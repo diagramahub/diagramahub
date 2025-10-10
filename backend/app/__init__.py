@@ -1,0 +1,1 @@
+"""Diagramahub backend application."""
