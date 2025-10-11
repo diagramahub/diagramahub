@@ -56,6 +56,7 @@ export default function DiagramEditorPage() {
   const [newDiagramName, setNewDiagramName] = useState('');
   const [newDiagramFolderId, setNewDiagramFolderId] = useState<string | null>(null);
   const [creatingDiagram, setCreatingDiagram] = useState(false);
+  const [isFirstDiagram, setIsFirstDiagram] = useState(false);
 
   // Autosave state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -114,7 +115,7 @@ export default function DiagramEditorPage() {
       if (diagramId) {
         // Load existing diagram - check in root diagrams
         let diagram = projectData.diagrams.find(d => d.id === diagramId);
-        
+
         // If not found in root, check in folders
         if (!diagram) {
           for (const folder of projectData.folders) {
@@ -122,15 +123,28 @@ export default function DiagramEditorPage() {
             if (diagram) break;
           }
         }
-        
+
         if (diagram) {
           setCurrentDiagram(diagram);
           setDiagramCode(diagram.content);
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
           setSelectedFolderId(diagram.folder_id || null);
+          // Restore viewport position
+          setZoom(diagram.viewport_zoom || 1);
+          setPan({ x: diagram.viewport_x || 0, y: diagram.viewport_y || 0 });
         } else {
           setError('Diagram not found');
+        }
+      } else {
+        // Check if this is a new project without diagrams
+        const totalDiagrams = projectData.diagrams.length +
+          projectData.folders.reduce((acc, f) => acc + f.diagrams.length, 0);
+
+        if (totalDiagrams === 0) {
+          // Show modal to create first diagram
+          setIsFirstDiagram(true);
+          setShowNewDiagramModal(true);
         }
       }
     } catch (err) {
@@ -172,10 +186,13 @@ export default function DiagramEditorPage() {
           content: diagramCode,
           description: diagramDescription,
           folder_id: selectedFolderId,
+          viewport_zoom: zoom,
+          viewport_x: pan.x,
+          viewport_y: pan.y,
         };
         await api.updateDiagram(currentDiagram.id, updateData);
         setSaveStatus('saved');
-        
+
         // Hide "Guardado" after 2 seconds
         setTimeout(() => {
           setSaveStatus('idle');
@@ -188,7 +205,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, selectedFolderId, currentDiagram, projectId]);
+  }, [diagramCode, diagramDescription, diagramTitle, selectedFolderId, zoom, pan, currentDiagram, projectId]);
 
   const handleNewDiagram = (folderId: string | null = null) => {
     setNewDiagramName('');
@@ -928,63 +945,111 @@ export default function DiagramEditorPage() {
       {/* New Diagram Modal */}
       {showNewDiagramModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Nuevo Diagrama</h3>
-            </div>
+          <div className={`bg-white rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? 'max-w-2xl' : 'max-w-md'}`}>
+            {isFirstDiagram && (
+              <div className="px-8 py-6 border-b border-gray-200 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Crea tu primer diagrama! 🎨</h3>
+                <p className="text-gray-600">Comienza a visualizar tus ideas con diagramas de Mermaid</p>
+              </div>
+            )}
 
-            <div className="px-6 py-4 space-y-4">
+            {!isFirstDiagram && (
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Nuevo Diagrama</h3>
+              </div>
+            )}
+
+            <div className={`space-y-4 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4'}`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del diagrama *
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Nombre del diagrama <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={newDiagramName}
                   onChange={(e) => setNewDiagramName(e.target.value)}
                   placeholder="Ej: Diagrama de flujo principal"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
                 />
+                {isFirstDiagram && (
+                  <p className="mt-2 text-sm text-gray-500">Dale un nombre descriptivo a tu diagrama</p>
+                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Carpeta (opcional)
-                </label>
-                <select
-                  value={newDiagramFolderId || ''}
-                  onChange={(e) => setNewDiagramFolderId(e.target.value || null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Sin carpeta (raíz)</option>
-                  {project?.folders.map(folder => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isFirstDiagram && project?.folders && project.folders.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Carpeta (opcional)
+                  </label>
+                  <select
+                    value={newDiagramFolderId || ''}
+                    onChange={(e) => setNewDiagramFolderId(e.target.value || null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Sin carpeta (raíz)</option>
+                    {project.folders.map(folder => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {isFirstDiagram && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <svg className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-800">
+                        <strong>¿Qué sigue?</strong> Después de crear tu diagrama, podrás escribir código Mermaid en el editor
+                        y ver la visualización en tiempo real. ¡Es fácil y poderoso!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowNewDiagramModal(false);
-                  setNewDiagramName('');
-                  setNewDiagramFolderId(null);
-                }}
-                disabled={creatingDiagram}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
-              >
-                Cancelar
-              </button>
+            <div className={`border-t border-gray-200 flex justify-end gap-3 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4'}`}>
+              {!isFirstDiagram && (
+                <button
+                  onClick={() => {
+                    setShowNewDiagramModal(false);
+                    setNewDiagramName('');
+                    setNewDiagramFolderId(null);
+                    setIsFirstDiagram(false);
+                  }}
+                  disabled={creatingDiagram}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
+                >
+                  Cancelar
+                </button>
+              )}
               <button
                 onClick={handleCreateDiagram}
                 disabled={creatingDiagram || !newDiagramName.trim()}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className={`px-6 py-3 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors ${isFirstDiagram ? 'w-full' : ''}`}
               >
-                {creatingDiagram ? 'Creando...' : 'Crear Diagrama'}
+                {creatingDiagram ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creando diagrama...
+                  </span>
+                ) : (
+                  isFirstDiagram ? 'Crear diagrama y empezar →' : 'Crear Diagrama'
+                )}
               </button>
             </div>
           </div>

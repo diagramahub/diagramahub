@@ -2,6 +2,7 @@ export type Project = {
   id: string;
   name: string;
   description?: string;
+  emoji: string;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -15,6 +16,9 @@ export type Diagram = {
   diagram_type: string;
   project_id: string;
   folder_id?: string | null;
+  viewport_zoom: number;
+  viewport_x: number;
+  viewport_y: number;
   created_at: string;
   updated_at: string;
 }
@@ -40,11 +44,13 @@ export type ProjectWithDiagrams = Project & {
 export type CreateProjectRequest = {
   name: string;
   description?: string;
+  emoji?: string;
 }
 
 export type UpdateProjectRequest = {
   name?: string;
   description?: string;
+  emoji?: string;
 }
 
 export type CreateDiagramRequest = {
@@ -61,6 +67,9 @@ export type UpdateDiagramRequest = {
   description?: string;
   diagram_type?: string;
   folder_id?: string | null;
+  viewport_zoom?: number;
+  viewport_x?: number;
+  viewport_y?: number;
 }
 
 export type CreateFolderRequest = {
