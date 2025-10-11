@@ -11,7 +11,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from app.api.v1.users.routes import router as users_router
 from app.api.v1.users.schemas import UserInDB
 from app.api.v1.projects.routes import router as projects_router
-from app.api.v1.projects.schemas import ProjectInDB, DiagramInDB, FolderInDB
+from app.api.v1.projects.schemas import ProjectInDB
+from app.api.v1.diagrams.routes import router as diagrams_router
+from app.api.v1.diagrams.schemas import DiagramInDB
+from app.api.v1.folders.routes import router as folders_router
+from app.api.v1.folders.schemas import FolderInDB
 from app.core.config import settings
 
 
@@ -57,6 +61,8 @@ app.add_middleware(
 # Include routers
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(projects_router, prefix=settings.API_V1_PREFIX)
+app.include_router(diagrams_router, prefix=settings.API_V1_PREFIX)
+app.include_router(folders_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

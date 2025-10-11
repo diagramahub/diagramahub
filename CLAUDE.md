@@ -104,21 +104,99 @@ docker exec diagramahub-backend ./run-tests.sh
 
 ## Architecture & Code Structure
 
+### Backend Modular Structure (IMPORTANT)
+
+**CRITICAL: Each CRUD entity MUST have its own dedicated module folder.**
+
+The backend follows a strict modular architecture where **each entity (users, projects, diagrams, folders, etc.) lives in its own separate folder** under `backend/app/api/v1/`. This is mandatory for all new features.
+
+**Current Module Structure:**
+```
+backend/app/api/v1/
+├── users/          # User authentication and management
+│   ├── __init__.py
+│   ├── interfaces.py      # Abstract interfaces (IUserRepository)
+│   ├── repository.py      # MongoDB implementation
+│   ├── services.py        # Business logic
+│   ├── schemas.py         # Pydantic models + Beanie Documents
+│   └── routes.py          # FastAPI endpoints
+│
+├── projects/       # Project CRUD operations
+│   ├── __init__.py
+│   ├── interfaces.py      # IProjectRepository
+│   ├── repository.py      # ProjectRepository
+│   ├── services.py        # ProjectService
+│   ├── schemas.py         # ProjectInDB, ProjectResponse, etc.
+│   └── routes.py          # /projects endpoints
+│
+├── diagrams/       # Diagram CRUD operations
+│   ├── __init__.py
+│   ├── interfaces.py      # IDiagramRepository
+│   ├── repository.py      # DiagramRepository
+│   ├── services.py        # DiagramService
+│   ├── schemas.py         # DiagramInDB, DiagramResponse, etc.
+│   └── routes.py          # /diagrams endpoints
+│
+└── folders/        # Folder CRUD operations
+    ├── __init__.py
+    ├── interfaces.py      # IFolderRepository
+    ├── repository.py      # FolderRepository
+    ├── services.py        # FolderService
+    ├── schemas.py         # FolderInDB, FolderResponse, etc.
+    └── routes.py          # /folders endpoints
+```
+
+**Why This Structure?**
+- ✅ **Separation of Concerns**: Each entity is completely independent
+- ✅ **Scalability**: Easy to add new entities without touching existing code
+- ✅ **Maintainability**: Changes to one entity don't affect others
+- ✅ **Testability**: Each module can be tested in isolation
+- ✅ **Team Collaboration**: Multiple developers can work on different modules simultaneously
+
 ### SOLID Principles Implementation
 
-The backend follows strict SOLID principles with clear separation of concerns:
+Each module follows strict SOLID principles with the same file structure:
 
-**Module Structure** (`backend/app/api/v1/users/`):
-- `interfaces.py` - Abstract base classes defining contracts (e.g., `IUserRepository`)
+**Standard Module Files (Required for every CRUD entity):**
+- `interfaces.py` - Abstract base classes defining contracts (e.g., `IProjectRepository`)
+  - Defines the interface/contract for data access
+  - Uses ABC (Abstract Base Class) from Python
+  - Example: `IProjectRepository` with methods like `create`, `get_by_id`, `update`, `delete`
+
 - `repository.py` - Concrete implementations of data access layer
+  - Implements the interface defined in `interfaces.py`
+  - Handles all MongoDB operations using Beanie ODM
+  - Example: `ProjectRepository(IProjectRepository)`
+
 - `services.py` - Business logic layer (depends on interfaces, not implementations)
+  - Contains all business rules and validations
+  - Depends on interfaces (dependency injection)
+  - Calls repositories to access data
+  - Example: `ProjectService` receives `IProjectRepository` in `__init__`
+
 - `schemas.py` - Pydantic models for validation and serialization
+  - **Beanie Documents**: Models that map to MongoDB collections (extend `Document`)
+  - **Request models**: For API input validation (e.g., `ProjectCreate`, `ProjectUpdate`)
+  - **Response models**: For API output serialization (e.g., `ProjectResponse`)
+  - Example structure:
+    - `ProjectBase` - Shared fields
+    - `ProjectCreate(ProjectBase)` - For POST requests
+    - `ProjectUpdate` - For PUT/PATCH requests
+    - `ProjectInDB(Document)` - Beanie model (MongoDB collection)
+    - `ProjectResponse` - For API responses
+
 - `routes.py` - FastAPI route handlers (HTTP layer)
+  - Defines all HTTP endpoints for the entity
+  - Uses FastAPI's `APIRouter`
+  - Handles request/response parsing
+  - Calls services for business logic
+  - Example: `@router.post("/projects")`, `@router.get("/projects/{id}")`
 
 **Key Principle: Dependency Inversion**
-- Services depend on abstractions (`IUserRepository`), not concrete implementations
+- Services depend on abstractions (`IProjectRepository`), not concrete implementations
 - This enables easy mocking for tests and swapping implementations
-- Example: `UserService` receives `IUserRepository` via dependency injection
+- Example: `ProjectService` receives `IProjectRepository` via dependency injection
+- Repositories are injected in route dependency functions
 
 ### Backend Architecture
 
@@ -282,16 +360,304 @@ Network: All services on `diagramahub-network` bridge
 
 ### Adding New Features
 
-**Backend module** (e.g., diagrams):
-1. Create `backend/app/api/v1/diagrams/` directory
-2. Add `interfaces.py` with abstract repository
-3. Implement `repository.py` with concrete data access
-4. Add `services.py` with business logic
-5. Define `schemas.py` with Pydantic models
-6. Create `routes.py` with FastAPI endpoints
-7. **Write tests** in `backend/tests/api/v1/diagrams/`
-8. Register router in `backend/app/main.py`
-9. Add Beanie document model to lifespan initialization
+**IMPORTANT: Creating a New Backend Module (CRUD Entity)**
+
+When adding a new entity (e.g., `comments`, `notifications`, `teams`), you MUST follow this exact structure:
+
+**Step-by-Step Guide:**
+
+1. **Create module directory**: `backend/app/api/v1/<entity_name>/`
+   ```bash
+   mkdir -p backend/app/api/v1/<entity_name>
+   ```
+
+2. **Create `__init__.py`**:
+   ```python
+   """<Entity> module."""
+   ```
+
+3. **Create `schemas.py`** (Pydantic models + Beanie Document):
+   ```python
+   """Pydantic models for <entity> module."""
+   from datetime import datetime
+   from typing import Optional, List
+   from pydantic import BaseModel, Field
+   from beanie import Document
+
+   # Base model with shared fields
+   class <Entity>Base(BaseModel):
+       """Base <entity> model."""
+       name: str = Field(..., min_length=1, max_length=100)
+       # Add your fields here
+
+   # For POST requests
+   class <Entity>Create(<Entity>Base):
+       """Model for creating a new <entity>."""
+       pass
+
+   # For PUT/PATCH requests
+   class <Entity>Update(BaseModel):
+       """Model for updating a <entity>."""
+       name: Optional[str] = Field(None, min_length=1, max_length=100)
+       # All fields optional
+
+   # MongoDB document (Beanie model)
+   class <Entity>InDB(Document):
+       """<Entity> document stored in MongoDB."""
+       name: str
+       user_id: str  # Owner (if applicable)
+       created_at: datetime = Field(default_factory=datetime.utcnow)
+       updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+       class Settings:
+           name = "<entity_plural>"  # MongoDB collection name
+           indexes = ["user_id"]  # Add indexes as needed
+
+   # For API responses
+   class <Entity>Response(BaseModel):
+       """Model for <entity> API responses."""
+       id: str
+       name: str
+       user_id: str
+       created_at: datetime
+       updated_at: datetime
+
+       class Config:
+           from_attributes = True
+   ```
+
+4. **Create `interfaces.py`** (Abstract repository interface):
+   ```python
+   """Abstract interfaces for <entity> repository."""
+   from abc import ABC, abstractmethod
+   from typing import Optional
+   from .schemas import <Entity>InDB, <Entity>Create, <Entity>Update
+
+   class I<Entity>Repository(ABC):
+       """Abstract interface for <entity> data access."""
+
+       @abstractmethod
+       async def create(self, data: <Entity>Create, user_id: str) -> <Entity>InDB:
+           """Create a new <entity>."""
+           pass
+
+       @abstractmethod
+       async def get_by_id(self, entity_id: str) -> Optional[<Entity>InDB]:
+           """Get <entity> by ID."""
+           pass
+
+       @abstractmethod
+       async def get_by_user_id(self, user_id: str) -> list[<Entity>InDB]:
+           """Get all <entities> for a user."""
+           pass
+
+       @abstractmethod
+       async def update(self, entity_id: str, data: <Entity>Update) -> Optional[<Entity>InDB]:
+           """Update <entity>."""
+           pass
+
+       @abstractmethod
+       async def delete(self, entity_id: str) -> bool:
+           """Delete <entity>."""
+           pass
+   ```
+
+5. **Create `repository.py`** (Concrete MongoDB implementation):
+   ```python
+   """Concrete implementation of <entity> repository."""
+   from datetime import datetime
+   from typing import Optional
+   from beanie import PydanticObjectId
+   from .interfaces import I<Entity>Repository
+   from .schemas import <Entity>InDB, <Entity>Create, <Entity>Update
+
+   class <Entity>Repository(I<Entity>Repository):
+       """MongoDB implementation of <entity> repository using Beanie."""
+
+       async def create(self, data: <Entity>Create, user_id: str) -> <Entity>InDB:
+           """Create a new <entity>."""
+           entity = <Entity>InDB(
+               name=data.name,
+               user_id=user_id,
+               created_at=datetime.utcnow(),
+               updated_at=datetime.utcnow()
+           )
+           await entity.insert()
+           return entity
+
+       async def get_by_id(self, entity_id: str) -> Optional[<Entity>InDB]:
+           """Get <entity> by ID."""
+           try:
+               return await <Entity>InDB.get(PydanticObjectId(entity_id))
+           except Exception:
+               return None
+
+       async def get_by_user_id(self, user_id: str) -> list[<Entity>InDB]:
+           """Get all <entities> for a user."""
+           entities = await <Entity>InDB.find(<Entity>InDB.user_id == user_id).to_list()
+           return entities
+
+       async def update(self, entity_id: str, data: <Entity>Update) -> Optional[<Entity>InDB]:
+           """Update <entity>."""
+           entity = await self.get_by_id(entity_id)
+           if not entity:
+               return None
+
+           update_data = data.model_dump(exclude_unset=True)
+           if update_data:
+               update_data["updated_at"] = datetime.utcnow()
+               await entity.set(update_data)
+
+           return entity
+
+       async def delete(self, entity_id: str) -> bool:
+           """Delete <entity>."""
+           entity = await self.get_by_id(entity_id)
+           if not entity:
+               return False
+
+           await entity.delete()
+           return True
+   ```
+
+6. **Create `services.py`** (Business logic):
+   ```python
+   """Business logic layer for <entities>."""
+   from fastapi import HTTPException, status
+   from .interfaces import I<Entity>Repository
+   from .schemas import <Entity>Create, <Entity>Update, <Entity>Response
+
+   class <Entity>Service:
+       """Service for <entity> business logic."""
+
+       def __init__(self, repository: I<Entity>Repository):
+           self.repository = repository
+
+       async def create_<entity>(self, data: <Entity>Create, user_id: str) -> <Entity>Response:
+           """Create a new <entity>."""
+           entity = await self.repository.create(data, user_id)
+           return <Entity>Response(
+               id=str(entity.id),
+               name=entity.name,
+               user_id=entity.user_id,
+               created_at=entity.created_at,
+               updated_at=entity.updated_at
+           )
+
+       async def get_<entity>(self, entity_id: str, user_id: str) -> <Entity>Response:
+           """Get <entity> by ID with authorization."""
+           entity = await self.repository.get_by_id(entity_id)
+           if not entity:
+               raise HTTPException(
+                   status_code=status.HTTP_404_NOT_FOUND,
+                   detail="<Entity> not found"
+               )
+
+           if entity.user_id != user_id:
+               raise HTTPException(
+                   status_code=status.HTTP_403_FORBIDDEN,
+                   detail="You don't have access to this <entity>"
+               )
+
+           return <Entity>Response(
+               id=str(entity.id),
+               name=entity.name,
+               user_id=entity.user_id,
+               created_at=entity.created_at,
+               updated_at=entity.updated_at
+           )
+
+       # Add more service methods (update, delete, list, etc.)
+   ```
+
+7. **Create `routes.py`** (FastAPI endpoints):
+   ```python
+   """FastAPI routes for <entities>."""
+   from fastapi import APIRouter, Depends, status
+   from app.api.v1.users.routes import get_current_user_email
+   from app.api.v1.users.repository import UserRepository
+   from .repository import <Entity>Repository
+   from .services import <Entity>Service
+   from .schemas import <Entity>Create, <Entity>Update, <Entity>Response
+
+   router = APIRouter()
+
+   # Dependency injection
+   def get_<entity>_service() -> <Entity>Service:
+       """Get <entity> service instance."""
+       return <Entity>Service(repository=<Entity>Repository())
+
+   async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
+       """Get current user ID from email."""
+       user_repo = UserRepository()
+       user = await user_repo.get_by_email(current_user_email)
+       return str(user.id)
+
+   @router.post("/<entities>", response_model=<Entity>Response, status_code=status.HTTP_201_CREATED)
+   async def create_<entity>(
+       data: <Entity>Create,
+       user_id: str = Depends(get_current_user_id),
+       service: <Entity>Service = Depends(get_<entity>_service)
+   ):
+       """Create a new <entity>."""
+       return await service.create_<entity>(data, user_id)
+
+   @router.get("/<entities>/{entity_id}", response_model=<Entity>Response)
+   async def get_<entity>(
+       entity_id: str,
+       user_id: str = Depends(get_current_user_id),
+       service: <Entity>Service = Depends(get_<entity>_service)
+   ):
+       """Get <entity> by ID."""
+       return await service.get_<entity>(entity_id, user_id)
+
+   # Add more endpoints (PUT, DELETE, etc.)
+   ```
+
+8. **Register in `backend/app/main.py`**:
+   ```python
+   # Add imports
+   from app.api.v1.<entity_plural>.routes import router as <entity_plural>_router
+   from app.api.v1.<entity_plural>.schemas import <Entity>InDB
+
+   # Add to Beanie initialization
+   await init_beanie(
+       database=database,
+       document_models=[UserInDB, ProjectInDB, <Entity>InDB],  # Add your model
+   )
+
+   # Register router
+   app.include_router(<entity_plural>_router, prefix=settings.API_V1_PREFIX)
+   ```
+
+9. **Write tests** in `backend/tests/api/v1/<entity_plural>/`
+   - Create test file for your endpoints
+   - Test CRUD operations
+   - Test authorization and edge cases
+
+10. **Update API types in frontend** (`frontend/src/types/<entity>.ts`)
+
+**Example: Creating a "comments" module**
+- Folder: `backend/app/api/v1/comments/`
+- Files: `__init__.py`, `interfaces.py`, `repository.py`, `services.py`, `schemas.py`, `routes.py`
+- Models: `CommentBase`, `CommentCreate`, `CommentUpdate`, `CommentInDB`, `CommentResponse`
+- Interface: `ICommentRepository`
+- Implementation: `CommentRepository(ICommentRepository)`
+- Service: `CommentService`
+- Routes: `/api/v1/comments` endpoints
+
+**DO NOT:**
+- ❌ Put multiple entities in the same module
+- ❌ Mix different entity logic in shared files
+- ❌ Create monolithic repository files
+- ❌ Skip the interface layer (always create `interfaces.py`)
+
+**DO:**
+- ✅ One entity = One module folder
+- ✅ Follow the 5-file structure (interfaces, repository, services, schemas, routes)
+- ✅ Use dependency injection (services depend on interfaces)
+- ✅ Write tests for each new module
+- ✅ Register router and Beanie model in `main.py`
 
 **Frontend feature**:
 1. Create page component in `frontend/src/pages/`
