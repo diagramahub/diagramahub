@@ -58,6 +58,7 @@ class UserService:
             )
 
         user = await self.repository.create(user_data)
+
         return UserResponse(
             id=str(user.id),
             email=user.email,

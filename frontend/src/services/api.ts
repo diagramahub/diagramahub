@@ -8,6 +8,19 @@ import {
   ResetPasswordRequest,
   ResetPasswordConfirm
 } from '../types/auth';
+import {
+  Project,
+  Diagram,
+  ProjectWithDiagrams,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  CreateDiagramRequest,
+  UpdateDiagramRequest,
+  Folder,
+  FolderWithDiagrams,
+  CreateFolderRequest,
+  UpdateFolderRequest
+} from '../types/project';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -84,6 +97,71 @@ class ApiService {
   async healthCheck(): Promise<{ status: string }> {
     const response = await this.api.get<{ status: string }>('/health');
     return response.data;
+  }
+
+  // Project endpoints
+  async getProjects(): Promise<Project[]> {
+    const response = await this.api.get<Project[]>('/api/v1/projects');
+    return response.data;
+  }
+
+  async getProject(projectId: string): Promise<ProjectWithDiagrams> {
+    const response = await this.api.get<ProjectWithDiagrams>(`/api/v1/projects/${projectId}`);
+    return response.data;
+  }
+
+  async createProject(data: CreateProjectRequest): Promise<Project> {
+    const response = await this.api.post<Project>('/api/v1/projects', data);
+    return response.data;
+  }
+
+  async updateProject(projectId: string, data: UpdateProjectRequest): Promise<Project> {
+    const response = await this.api.put<Project>(`/api/v1/projects/${projectId}`, data);
+    return response.data;
+  }
+
+  async deleteProject(projectId: string): Promise<void> {
+    await this.api.delete(`/api/v1/projects/${projectId}`);
+  }
+
+  // Diagram endpoints
+  async getDiagram(diagramId: string): Promise<Diagram> {
+    const response = await this.api.get<Diagram>(`/api/v1/diagrams/${diagramId}`);
+    return response.data;
+  }
+
+  async createDiagram(projectId: string, data: CreateDiagramRequest): Promise<Diagram> {
+    const response = await this.api.post<Diagram>(`/api/v1/projects/${projectId}/diagrams`, data);
+    return response.data;
+  }
+
+  async updateDiagram(diagramId: string, data: UpdateDiagramRequest): Promise<Diagram> {
+    const response = await this.api.put<Diagram>(`/api/v1/diagrams/${diagramId}`, data);
+    return response.data;
+  }
+
+  async deleteDiagram(diagramId: string): Promise<void> {
+    await this.api.delete(`/api/v1/diagrams/${diagramId}`);
+  }
+
+  // Folder endpoints
+  async getFolder(folderId: string): Promise<FolderWithDiagrams> {
+    const response = await this.api.get<FolderWithDiagrams>(`/api/v1/folders/${folderId}`);
+    return response.data;
+  }
+
+  async createFolder(projectId: string, data: CreateFolderRequest): Promise<Folder> {
+    const response = await this.api.post<Folder>(`/api/v1/projects/${projectId}/folders`, data);
+    return response.data;
+  }
+
+  async updateFolder(folderId: string, data: UpdateFolderRequest): Promise<Folder> {
+    const response = await this.api.put<Folder>(`/api/v1/folders/${folderId}`, data);
+    return response.data;
+  }
+
+  async deleteFolder(folderId: string): Promise<void> {
+    await this.api.delete(`/api/v1/folders/${folderId}`);
   }
 }
 

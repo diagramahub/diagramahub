@@ -5,6 +5,8 @@ import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import DiagramEditorPage from './pages/DiagramEditorPage';
+import OnboardingWizardPage from './pages/OnboardingWizardPage';
 
 function App() {
   return (
@@ -14,10 +16,34 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route
+            path="/onboarding"
+            element={
+              <PrivateRoute>
+                <OnboardingWizardPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/dashboard"
             element={
               <PrivateRoute>
                 <DashboardPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId"
+            element={
+              <PrivateRoute>
+                <DiagramEditorPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId/diagrams/:diagramId"
+            element={
+              <PrivateRoute>
+                <DiagramEditorPage />
               </PrivateRoute>
             }
           />

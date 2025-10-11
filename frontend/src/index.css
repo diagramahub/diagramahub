@@ -15,3 +15,62 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* SimpleMDE Editor Customization */
+.EasyMDEContainer {
+  height: 100%;
+}
+
+.EasyMDEContainer .CodeMirror {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #374151;
+  height: auto;
+  min-height: 400px;
+}
+
+.EasyMDEContainer .editor-toolbar {
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  background: transparent;
+  padding: 8px 0;
+  opacity: 1;
+}
+
+.EasyMDEContainer .editor-toolbar button {
+  color: #6b7280 !important;
+  border: none !important;
+}
+
+.EasyMDEContainer .editor-toolbar button:hover,
+.EasyMDEContainer .editor-toolbar button.active {
+  background: #f3f4f6 !important;
+  color: #111827 !important;
+  border: none !important;
+}
+
+.EasyMDEContainer .editor-toolbar i.separator {
+  border-left: 1px solid #e5e7eb;
+  border-right: none;
+}
+
+.EasyMDEContainer .CodeMirror-cursor {
+  border-left: 2px solid #111827;
+}
+
+.EasyMDEContainer .CodeMirror-selected {
+  background: #dbeafe;
+}
+
+.EasyMDEContainer .editor-preview,
+.EasyMDEContainer .editor-preview-side {
+  background: white;
+  padding: 20px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.EasyMDEContainer .editor-preview-side {
+  border-left: 1px solid #e5e7eb;
+}
