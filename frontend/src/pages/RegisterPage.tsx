@@ -47,7 +47,8 @@ const RegisterPage: React.FC = () => {
 
     try {
       await register(email, password, fullName || undefined);
-      navigate('/dashboard');
+      // Redirect to onboarding wizard to create first project
+      navigate('/onboarding');
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
