@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Project } from '../types/project';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (projectId: string) => void;
   isFirstProject?: boolean;
+  editMode?: boolean;
+  projectToEdit?: Project;
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  isFirstProject = false
+  isFirstProject = false,
+  editMode = false,
+  projectToEdit
 }) => {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
@@ -25,12 +30,18 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setProjectName(isFirstProject ? 'Mi primer proyecto' : '');
-      setProjectDescription('');
-      setSelectedEmoji('📊');
+      if (editMode && projectToEdit) {
+        setProjectName(projectToEdit.name);
+        setProjectDescription(projectToEdit.description || '');
+        setSelectedEmoji(projectToEdit.emoji);
+      } else {
+        setProjectName(isFirstProject ? 'Mi primer proyecto' : '');
+        setProjectDescription('');
+        setSelectedEmoji('📊');
+      }
       setError(null);
     }
-  }, [isOpen, isFirstProject]);
+  }, [isOpen, isFirstProject, editMode, projectToEdit]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,17 +55,28 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       setLoading(true);
       setError(null);
 
-      const project = await api.createProject({
-        name: projectName.trim(),
-        description: projectDescription.trim() || undefined,
-        emoji: selectedEmoji,
-      });
+      if (editMode && projectToEdit) {
+        // Update existing project
+        await api.updateProject(projectToEdit.id, {
+          name: projectName.trim(),
+          description: projectDescription.trim() || undefined,
+          emoji: selectedEmoji,
+        });
+        onSuccess(projectToEdit.id);
+      } else {
+        // Create new project
+        const project = await api.createProject({
+          name: projectName.trim(),
+          description: projectDescription.trim() || undefined,
+          emoji: selectedEmoji,
+        });
+        onSuccess(project.id);
+      }
 
-      onSuccess(project.id);
       onClose();
     } catch (err: any) {
-      console.error('Error creating project:', err);
-      setError(err.response?.data?.detail || 'Error al crear el proyecto. Por favor intenta de nuevo.');
+      console.error(`Error ${editMode ? 'updating' : 'creating'} project:`, err);
+      setError(err.response?.data?.detail || `Error al ${editMode ? 'actualizar' : 'crear'} el proyecto. Por favor intenta de nuevo.`);
     } finally {
       setLoading(false);
     }
@@ -77,6 +99,11 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">¡Bienvenido a DiagramaHub! 👋</h2>
                 <p className="text-gray-600">Comencemos creando tu primer proyecto</p>
+              </>
+            ) : editMode ? (
+              <>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Editar proyecto</h2>
+                <p className="text-gray-600">Actualiza la información de tu proyecto</p>
               </>
             ) : (
               <>
@@ -195,10 +222,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creando proyecto...
+                    {editMode ? 'Guardando cambios...' : 'Creando proyecto...'}
                   </span>
                 ) : (
-                  isFirstProject ? 'Crear proyecto y continuar →' : 'Crear proyecto'
+                  isFirstProject ? 'Crear proyecto y continuar →' : editMode ? 'Guardar cambios' : 'Crear proyecto'
                 )}
               </button>
             </div>

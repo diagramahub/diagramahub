@@ -114,8 +114,8 @@ class FolderService:
             updated_at=updated_folder.updated_at
         )
 
-    async def delete_folder(self, folder_id: str, user_id: str) -> dict:
-        """Delete a folder and move its diagrams to root."""
+    async def delete_folder(self, folder_id: str, user_id: str, delete_diagrams: bool = False) -> dict:
+        """Delete a folder. If delete_diagrams is True, deletes all diagrams. Otherwise, moves them to root."""
         folder = await self.folder_repository.get_by_id(folder_id)
         if not folder:
             raise HTTPException(
@@ -131,11 +131,23 @@ class FolderService:
                 detail="You don't have access to this folder"
             )
 
-        # Move diagrams to root (set folder_id to None)
-        from app.api.v1.diagrams.schemas import DiagramUpdate
+        # Get diagrams in folder
         diagrams = await self.diagram_repository.get_by_folder_id(folder_id)
-        for diagram in diagrams:
-            await self.diagram_repository.update(str(diagram.id), DiagramUpdate(folder_id=None))
+
+        if delete_diagrams:
+            # Delete all diagrams in the folder
+            for diagram in diagrams:
+                await self.diagram_repository.delete(str(diagram.id))
+        else:
+            # Move diagrams to root (set folder_id to None)
+            from app.api.v1.diagrams.schemas import DiagramUpdate
+            for diagram in diagrams:
+                await self.diagram_repository.update(str(diagram.id), DiagramUpdate(folder_id=None))
 
         await self.folder_repository.delete(folder_id)
-        return {"message": "Folder deleted successfully"}
+
+        message = "Folder deleted successfully"
+        if delete_diagrams and len(diagrams) > 0:
+            message = f"Folder and {len(diagrams)} diagram(s) deleted successfully"
+
+        return {"message": message}

@@ -27,7 +27,7 @@ class DiagramUpdate(BaseModel):
     description: Optional[str] = None
     diagram_type: Optional[str] = None
     folder_id: Optional[str] = None
-    viewport_zoom: Optional[float] = Field(None, ge=0.1, le=5.0, description="Zoom level (0.1 to 5.0)")
+    viewport_zoom: Optional[float] = Field(None, ge=0.1, le=10.0, description="Zoom level (0.1 to 10.0)")
     viewport_x: Optional[float] = Field(None, description="Viewport X position")
     viewport_y: Optional[float] = Field(None, description="Viewport Y position")
 

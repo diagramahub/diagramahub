@@ -1,7 +1,7 @@
 """
 FastAPI routes for folders.
 """
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from app.api.v1.users.routes import get_current_user_email
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.projects.repository import ProjectRepository
@@ -65,8 +65,9 @@ async def update_folder(
 @router.delete("/folders/{folder_id}")
 async def delete_folder(
     folder_id: str,
+    delete_diagrams: bool = Query(False, description="If True, deletes all diagrams in folder. Otherwise, moves them to root."),
     user_id: str = Depends(get_current_user_id),
     service: FolderService = Depends(get_folder_service)
 ):
-    """Delete a folder and move its diagrams to root."""
-    return await service.delete_folder(folder_id, user_id)
+    """Delete a folder. If delete_diagrams is True, deletes all diagrams in folder. Otherwise, moves them to root."""
+    return await service.delete_folder(folder_id, user_id, delete_diagrams)

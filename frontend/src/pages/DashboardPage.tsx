@@ -4,12 +4,22 @@ import api from '../services/api';
 import { Project } from '../types/project';
 import Navbar from '../components/Navbar';
 import CreateProjectModal from '../components/CreateProjectModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; project: Project | null }>({
+    isOpen: false,
+    project: null
+  });
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; projectId: string | null; projectName: string }>({
+    isOpen: false,
+    projectId: null,
+    projectName: ''
+  });
 
   useEffect(() => {
     loadProjects();
@@ -40,17 +50,34 @@ const DashboardPage: React.FC = () => {
     navigate(`/projects/${projectId}`);
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm('¿Estás seguro de que quieres eliminar este proyecto? Esta acción no se puede deshacer.')) {
-      return;
-    }
+  const handleEditProject = (project: Project) => {
+    setEditModal({
+      isOpen: true,
+      project
+    });
+  };
+
+  const handleProjectUpdated = () => {
+    loadProjects();
+  };
+
+  const handleDeleteProject = (projectId: string, projectName: string) => {
+    setDeleteConfirmModal({
+      isOpen: true,
+      projectId,
+      projectName
+    });
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!deleteConfirmModal.projectId) return;
 
     try {
-      await api.deleteProject(projectId);
+      await api.deleteProject(deleteConfirmModal.projectId);
       await loadProjects();
     } catch (error) {
       console.error('Error deleting project:', error);
-      alert('Error al eliminar el proyecto. Por favor intenta de nuevo.');
+      // Puedes agregar un toast o notificación aquí en lugar de alert
     }
   };
 
@@ -93,49 +120,84 @@ const DashboardPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map(project => (
               <div
                 key={project.id}
-                className="relative p-6 bg-white border border-gray-100 hover:border-gray-300 transition-colors group"
+                className="relative bg-white rounded-lg border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer"
+                onClick={() => handleProjectClick(project.id)}
               >
-                <button
-                  onClick={() => handleProjectClick(project.id)}
-                  className="text-left w-full"
-                >
-                  <div className="flex items-start gap-3 mb-2">
-                    <span className="text-3xl">{project.emoji}</span>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 group-hover:text-gray-600 transition-colors">
+                {/* Header with emoji and name */}
+                <div className="p-5 border-b border-gray-100">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-2xl">
+                      {project.emoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
                         {project.name}
                       </h3>
-                      {project.description && (
-                        <p className="text-sm text-gray-500 mt-1">{project.description}</p>
+                      {project.description ? (
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          {project.description}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic mt-1">Sin descripción</p>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 ml-12">
-                    {new Date(project.created_at).toLocaleDateString('es-ES', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </p>
-                </button>
+                </div>
 
-                {/* Delete button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteProject(project.id);
-                  }}
-                  className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
-                  title="Eliminar proyecto"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                {/* Stats section */}
+                <div className="px-5 py-3 bg-gray-50">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="font-medium">{project.diagram_count}</span>
+                      <span className="text-gray-500">{project.diagram_count === 1 ? 'diagrama' : 'diagramas'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {new Date(project.created_at).toLocaleDateString('es-ES', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditProject(project);
+                    }}
+                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Editar proyecto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteProject(project.id, project.name);
+                    }}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Eliminar proyecto"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -148,6 +210,27 @@ const DashboardPage: React.FC = () => {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={handleProjectCreated}
         isFirstProject={false}
+      />
+
+      {/* Edit Project Modal */}
+      <CreateProjectModal
+        isOpen={editModal.isOpen}
+        onClose={() => setEditModal({ isOpen: false, project: null })}
+        onSuccess={handleProjectUpdated}
+        editMode={true}
+        projectToEdit={editModal.project || undefined}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirmModal.isOpen}
+        onClose={() => setDeleteConfirmModal({ isOpen: false, projectId: null, projectName: '' })}
+        onConfirm={confirmDeleteProject}
+        title="Eliminar proyecto"
+        message={`¿Estás seguro de que quieres eliminar el proyecto "${deleteConfirmModal.projectName}"? Esta acción no se puede deshacer y se eliminarán todos los diagramas y carpetas asociados.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous={true}
       />
     </div>
   );
