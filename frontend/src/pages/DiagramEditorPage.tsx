@@ -210,6 +210,7 @@ export default function DiagramEditorPage() {
   const handleNewDiagram = (folderId: string | null = null) => {
     setNewDiagramName('');
     setNewDiagramFolderId(folderId);
+    setIsFirstDiagram(false); // Always false when manually creating a diagram
     setShowNewDiagramModal(true);
   };
 
@@ -240,7 +241,8 @@ export default function DiagramEditorPage() {
       setShowNewDiagramModal(false);
       setNewDiagramName('');
       setNewDiagramFolderId(null);
-      
+      setIsFirstDiagram(false); // Reset first diagram state
+
       await loadProject();
       navigate(`/projects/${projectId}/diagrams/${created.id}`, { replace: true });
     } catch (err) {
@@ -545,7 +547,7 @@ export default function DiagramEditorPage() {
       <Navbar showBackToDashboard />
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className={`flex-1 flex overflow-hidden transition-all ${showNewDiagramModal && isFirstDiagram ? 'blur-sm' : ''}`}>
         {/* Sidebar with folders and diagrams */}
         <aside className="w-64 border-r border-gray-100 overflow-y-auto flex flex-col">
           <div className="p-4 border-b border-gray-100">
@@ -725,7 +727,23 @@ export default function DiagramEditorPage() {
               <div className="flex items-center gap-2">
                 <select
                   value={selectedFolderId || ''}
-                  onChange={(e) => setSelectedFolderId(e.target.value || null)}
+                  onChange={async (e) => {
+                    const newFolderId = e.target.value || null;
+                    setSelectedFolderId(newFolderId);
+
+                    // Update the diagram immediately and reload the project to refresh sidebar
+                    if (currentDiagram) {
+                      try {
+                        await api.updateDiagram(currentDiagram.id, {
+                          folder_id: newFolderId,
+                        });
+                        // Reload project to update sidebar
+                        await loadProject();
+                      } catch (err) {
+                        console.error('Error moving diagram to folder:', err);
+                      }
+                    }
+                  }}
                   className="flex-1 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
                 >
                   <option value="">Sin carpeta</option>
