@@ -47,6 +47,7 @@ class ProjectResponse(BaseModel):
     description: Optional[str]
     emoji: str
     user_id: str
+    diagram_count: int = 0
     created_at: datetime
     updated_at: datetime
 

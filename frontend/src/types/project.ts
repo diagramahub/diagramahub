@@ -4,6 +4,7 @@ export type Project = {
   description?: string;
   emoji: string;
   user_id: string;
+  diagram_count: number;
   created_at: string;
   updated_at: string;
 }

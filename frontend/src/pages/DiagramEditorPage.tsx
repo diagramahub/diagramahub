@@ -10,6 +10,7 @@ import api from '../services/api';
 import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest } from '../types/project';
 import Navbar from '../components/Navbar';
 import Tabs from '../components/Tabs';
+import DeleteFolderModal from '../components/DeleteFolderModal';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -64,6 +65,14 @@ export default function DiagramEditorPage() {
   // Collapsible panels state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
+
+  // Delete confirmation modal state
+  const [deleteFolderModal, setDeleteFolderModal] = useState<{ isOpen: boolean; folderId: string | null; folderName: string; diagramCount: number }>({
+    isOpen: false,
+    folderId: null,
+    folderName: '',
+    diagramCount: 0
+  });
 
   // SimpleMDE options
   const editorOptions = useMemo(() => {
@@ -259,7 +268,7 @@ export default function DiagramEditorPage() {
 
   // Zoom handlers
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.1, 5));
+    setZoom(prev => Math.min(prev + 0.1, 10));
   };
 
   const handleZoomOut = () => {
@@ -292,7 +301,7 @@ export default function DiagramEditorPage() {
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    setZoom(prev => Math.max(0.5, Math.min(5, prev + delta)));
+    setZoom(prev => Math.max(0.5, Math.min(10, prev + delta)));
   };
 
   // Export functions
@@ -477,11 +486,21 @@ export default function DiagramEditorPage() {
     }
   };
 
-  const handleDeleteFolder = async (folderId: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta carpeta? Los diagramas se moverán a la raíz.')) return;
+  const handleDeleteFolder = (folderId: string, folderName: string, diagramCount: number) => {
+    setDeleteFolderModal({
+      isOpen: true,
+      folderId,
+      folderName,
+      diagramCount
+    });
+  };
 
+  const confirmDeleteFolder = async (deleteDiagrams: boolean) => {
+    if (!deleteFolderModal.folderId) return;
+
+    console.log('Deleting folder with deleteDiagrams:', deleteDiagrams);
     try {
-      await api.deleteFolder(folderId);
+      await api.deleteFolder(deleteFolderModal.folderId, deleteDiagrams);
       await loadProject();
     } catch (err) {
       console.error('Error deleting folder:', err);
@@ -651,7 +670,7 @@ export default function DiagramEditorPage() {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDeleteFolder(folder.id)}
+                        onClick={() => handleDeleteFolder(folder.id, folder.name, folder.diagrams.length)}
                         className="p-1 text-gray-400 hover:text-red-600 rounded"
                         title="Eliminar carpeta"
                       >
@@ -1189,6 +1208,15 @@ export default function DiagramEditorPage() {
           {error}
         </div>
       )}
+
+      {/* Delete Folder Confirmation Modal */}
+      <DeleteFolderModal
+        isOpen={deleteFolderModal.isOpen}
+        onClose={() => setDeleteFolderModal({ isOpen: false, folderId: null, folderName: '', diagramCount: 0 })}
+        onConfirm={confirmDeleteFolder}
+        folderName={deleteFolderModal.folderName}
+        diagramCount={deleteFolderModal.diagramCount}
+      />
     </div>
   );
 }

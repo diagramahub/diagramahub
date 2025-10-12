@@ -32,6 +32,7 @@ class ProjectService:
             description=project.description,
             emoji=project.emoji,
             user_id=project.user_id,
+            diagram_count=0,
             created_at=project.created_at,
             updated_at=project.updated_at
         )
@@ -63,12 +64,17 @@ class ProjectService:
                 detail="You don't have access to this project"
             )
 
+        # Count diagrams for this project
+        diagrams = await self.diagram_repository.get_by_project_id(project_id)
+        diagram_count = len(diagrams)
+
         return ProjectResponse(
             id=str(project.id),
             name=project.name,
             description=project.description,
             emoji=project.emoji,
             user_id=project.user_id,
+            diagram_count=diagram_count,
             created_at=project.created_at,
             updated_at=project.updated_at
         )
@@ -179,18 +185,27 @@ class ProjectService:
             List of projects
         """
         projects = await self.repository.get_by_user_id(user_id)
-        return [
-            ProjectResponse(
-                id=str(p.id),
-                name=p.name,
-                description=p.description,
-                emoji=p.emoji,
-                user_id=p.user_id,
-                created_at=p.created_at,
-                updated_at=p.updated_at
+        project_responses = []
+
+        for p in projects:
+            # Count diagrams for this project
+            diagrams = await self.diagram_repository.get_by_project_id(str(p.id))
+            diagram_count = len(diagrams)
+
+            project_responses.append(
+                ProjectResponse(
+                    id=str(p.id),
+                    name=p.name,
+                    description=p.description,
+                    emoji=p.emoji,
+                    user_id=p.user_id,
+                    diagram_count=diagram_count,
+                    created_at=p.created_at,
+                    updated_at=p.updated_at
+                )
             )
-            for p in projects
-        ]
+
+        return project_responses
 
     async def update_project(
         self, project_id: str, project_data: ProjectUpdate, user_id: str
@@ -223,12 +238,18 @@ class ProjectService:
             )
 
         updated_project = await self.repository.update(project_id, project_data)
+
+        # Count diagrams for this project
+        diagrams = await self.diagram_repository.get_by_project_id(project_id)
+        diagram_count = len(diagrams)
+
         return ProjectResponse(
             id=str(updated_project.id),
             name=updated_project.name,
             description=updated_project.description,
             emoji=updated_project.emoji,
             user_id=updated_project.user_id,
+            diagram_count=diagram_count,
             created_at=updated_project.created_at,
             updated_at=updated_project.updated_at
         )

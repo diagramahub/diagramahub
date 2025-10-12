@@ -160,8 +160,12 @@ class ApiService {
     return response.data;
   }
 
-  async deleteFolder(folderId: string): Promise<void> {
-    await this.api.delete(`/api/v1/folders/${folderId}`);
+  async deleteFolder(folderId: string, deleteDiagrams: boolean = false): Promise<void> {
+    console.log('API deleteFolder called with:', { folderId, deleteDiagrams });
+    const response = await this.api.delete(`/api/v1/folders/${folderId}`, {
+      params: { delete_diagrams: deleteDiagrams }
+    });
+    console.log('Delete folder response:', response.data);
   }
 }
 
