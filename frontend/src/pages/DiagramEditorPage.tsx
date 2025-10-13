@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import mermaid from 'mermaid';
+import plantumlEncoder from 'plantuml-encoder';
 import ReactMarkdown from 'react-markdown';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -11,6 +12,7 @@ import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramReques
 import Navbar from '../components/Navbar';
 import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -47,7 +49,7 @@ export default function DiagramEditorPage() {
   const [newFolderColor, setNewFolderColor] = useState('#3B82F6');
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  
+
   // Drag & drop state
   const [draggedDiagramId, setDraggedDiagramId] = useState<string | null>(null);
   const [dropTargetFolderId, setDropTargetFolderId] = useState<string | null>(null);
@@ -56,6 +58,7 @@ export default function DiagramEditorPage() {
   const [showNewDiagramModal, setShowNewDiagramModal] = useState(false);
   const [newDiagramName, setNewDiagramName] = useState('');
   const [newDiagramFolderId, setNewDiagramFolderId] = useState<string | null>(null);
+  const [newDiagramType, setNewDiagramType] = useState<'mermaid' | 'plantuml'>('mermaid');
   const [creatingDiagram, setCreatingDiagram] = useState(false);
   const [isFirstDiagram, setIsFirstDiagram] = useState(false);
 
@@ -72,6 +75,13 @@ export default function DiagramEditorPage() {
     folderId: null,
     folderName: '',
     diagramCount: 0
+  });
+
+  // Delete diagram modal state
+  const [deleteDiagramModal, setDeleteDiagramModal] = useState<{ isOpen: boolean; diagramId: string | null; diagramName: string }>({
+    isOpen: false,
+    diagramId: null,
+    diagramName: ''
   });
 
   // SimpleMDE options
@@ -128,12 +138,16 @@ export default function DiagramEditorPage() {
       if (diagramId) {
         // Load existing diagram - check in root diagrams
         let diagram = projectData.diagrams.find(d => d.id === diagramId);
+        let diagramFolderId = null;
 
         // If not found in root, check in folders
         if (!diagram) {
           for (const folder of projectData.folders) {
             diagram = folder.diagrams.find(d => d.id === diagramId);
-            if (diagram) break;
+            if (diagram) {
+              diagramFolderId = folder.id;
+              break;
+            }
           }
         }
 
@@ -146,16 +160,40 @@ export default function DiagramEditorPage() {
           // Restore viewport position
           setZoom(diagram.viewport_zoom || 1);
           setPan({ x: diagram.viewport_x || 0, y: diagram.viewport_y || 0 });
+
+          // If diagram is inside a folder, expand that folder
+          if (diagramFolderId) {
+            setExpandedFolders(prev => {
+              const newSet = new Set(prev);
+              newSet.add(diagramFolderId);
+              return newSet;
+            });
+          }
         } else {
           setError('Diagram not found');
         }
       } else {
-        // Check if this is a new project without diagrams
-        const totalDiagrams = projectData.diagrams.length +
-          projectData.folders.reduce((acc, f) => acc + f.diagrams.length, 0);
+        // No diagramId in URL - select first diagram available
+        let firstDiagram = null;
 
-        if (totalDiagrams === 0) {
-          // Show modal to create first diagram
+        // First, try to find a diagram outside of folders (root diagrams)
+        if (projectData.diagrams.length > 0) {
+          firstDiagram = projectData.diagrams[0];
+        } else {
+          // If no root diagrams, find first diagram in first folder
+          for (const folder of projectData.folders) {
+            if (folder.diagrams.length > 0) {
+              firstDiagram = folder.diagrams[0];
+              break;
+            }
+          }
+        }
+
+        if (firstDiagram) {
+          // Navigate to the first diagram found
+          navigate(`/projects/${projectId}/diagrams/${firstDiagram.id}`, { replace: true });
+        } else {
+          // No diagrams at all - show modal to create first diagram
           setIsFirstDiagram(true);
           setShowNewDiagramModal(true);
         }
@@ -168,26 +206,47 @@ export default function DiagramEditorPage() {
     }
   };
 
-  // Render Mermaid diagram
+  // Render diagram (Mermaid or PlantUML)
   useEffect(() => {
     const renderDiagram = async () => {
       if (!mermaidRef.current) return;
 
       try {
         mermaidRef.current.innerHTML = '';
-        const id = `mermaid-${Date.now()}`;
-        const { svg } = await mermaid.render(id, diagramCode);
-        mermaidRef.current.innerHTML = svg;
+
+        // Detect diagram type
+        const diagramType = currentDiagram?.diagram_type || 'mermaid';
+
+        if (diagramType === 'plantuml') {
+          // Render PlantUML using public server
+          const encoded = plantumlEncoder.encode(diagramCode);
+          const plantUMLServer = 'https://www.plantuml.com/plantuml/svg';
+          const imageUrl = `${plantUMLServer}/${encoded}`;
+
+          mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" />`;
+        } else {
+          // Render Mermaid
+          const id = `mermaid-${Date.now()}`;
+          const { svg } = await mermaid.render(id, diagramCode);
+          mermaidRef.current.innerHTML = svg;
+        }
       } catch (err) {
         mermaidRef.current.innerHTML = `<div class="text-red-500 p-4">Error rendering diagram: ${err instanceof Error ? err.message : 'Unknown error'}</div>`;
       }
     };
 
-    const debounce = setTimeout(renderDiagram, 500);
-    return () => clearTimeout(debounce);
-  }, [diagramCode]);
+    // Render immediately on first load, then with debounce for subsequent changes
+    if (currentDiagram) {
+      // If diagram just loaded, render immediately
+      renderDiagram();
+    } else {
+      // For new diagrams or while editing, use debounce
+      const debounce = setTimeout(renderDiagram, 300);
+      return () => clearTimeout(debounce);
+    }
+  }, [diagramCode, currentDiagram]);
 
-  // Autosave effect
+  // Autosave effect for diagram content
   useEffect(() => {
     if (!currentDiagram || !projectId) return;
 
@@ -206,6 +265,40 @@ export default function DiagramEditorPage() {
         await api.updateDiagram(currentDiagram.id, updateData);
         setSaveStatus('saved');
 
+        // Update the project state to reflect the new title in the sidebar
+        if (project) {
+          const updatedProject = { ...project };
+
+          // Update in root diagrams
+          const rootDiagramIndex = updatedProject.diagrams.findIndex(d => d.id === currentDiagram.id);
+          if (rootDiagramIndex !== -1) {
+            updatedProject.diagrams[rootDiagramIndex] = {
+              ...updatedProject.diagrams[rootDiagramIndex],
+              title: diagramTitle,
+              content: diagramCode,
+              description: diagramDescription,
+              folder_id: selectedFolderId
+            };
+          } else {
+            // Update in folder diagrams
+            for (const folder of updatedProject.folders) {
+              const folderDiagramIndex = folder.diagrams.findIndex(d => d.id === currentDiagram.id);
+              if (folderDiagramIndex !== -1) {
+                folder.diagrams[folderDiagramIndex] = {
+                  ...folder.diagrams[folderDiagramIndex],
+                  title: diagramTitle,
+                  content: diagramCode,
+                  description: diagramDescription,
+                  folder_id: selectedFolderId
+                };
+                break;
+              }
+            }
+          }
+
+          setProject(updatedProject);
+        }
+
         // Hide "Guardado" after 2 seconds
         setTimeout(() => {
           setSaveStatus('idle');
@@ -218,7 +311,28 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, selectedFolderId, zoom, pan, currentDiagram, projectId]);
+  }, [diagramCode, diagramDescription, diagramTitle, selectedFolderId]);
+
+  // Separate effect for viewport changes (zoom/pan) - saves less frequently
+  useEffect(() => {
+    if (!currentDiagram || !projectId) return;
+
+    const saveViewport = async () => {
+      try {
+        await api.updateDiagram(currentDiagram.id, {
+          viewport_zoom: zoom,
+          viewport_x: pan.x,
+          viewport_y: pan.y,
+        });
+      } catch (err) {
+        console.error('Error saving viewport:', err);
+      }
+    };
+
+    // Longer debounce for viewport changes (only save after user stops moving for 2 seconds)
+    const debounce = setTimeout(saveViewport, 2000);
+    return () => clearTimeout(debounce);
+  }, [zoom, pan]);
 
   const handleNewDiagram = (folderId: string | null = null) => {
     setNewDiagramName('');
@@ -232,16 +346,22 @@ export default function DiagramEditorPage() {
 
     try {
       setCreatingDiagram(true);
+
+      // Define default content based on diagram type
+      const defaultContent = newDiagramType === 'mermaid'
+        ? 'graph TD\n  A[Start] --> B[End]'
+        : '@startuml\nAlice -> Bob: Hello\nBob -> Alice: Hi!\n@enduml';
+
       const createData: CreateDiagramRequest = {
         title: newDiagramName,
-        content: 'graph TD\n  A[Start] --> B[End]',
+        content: defaultContent,
         description: '',
-        diagram_type: 'flowchart',
+        diagram_type: newDiagramType,
         folder_id: newDiagramFolderId,
       };
-      
+
       const created = await api.createDiagram(projectId, createData);
-      
+
       // Set current diagram and navigate
       setCurrentDiagram(created);
       setDiagramCode(created.content);
@@ -249,11 +369,12 @@ export default function DiagramEditorPage() {
       setDiagramTitle(created.title);
       setSelectedFolderId(created.folder_id || null);
       setActiveTab('code');
-      
+
       // Close modal and reload project
       setShowNewDiagramModal(false);
       setNewDiagramName('');
       setNewDiagramFolderId(null);
+      setNewDiagramType('mermaid'); // Reset to default
       setIsFirstDiagram(false); // Reset first diagram state
 
       await loadProject();
@@ -508,6 +629,34 @@ export default function DiagramEditorPage() {
     }
   };
 
+  // Delete diagram functions
+  const handleDeleteDiagram = (diagramId: string, diagramName: string) => {
+    setDeleteDiagramModal({
+      isOpen: true,
+      diagramId,
+      diagramName
+    });
+  };
+
+  const confirmDeleteDiagram = async () => {
+    if (!deleteDiagramModal.diagramId || !projectId) return;
+
+    try {
+      await api.deleteDiagram(deleteDiagramModal.diagramId);
+
+      // If the deleted diagram is the current one, navigate to project
+      if (deleteDiagramModal.diagramId === currentDiagram?.id) {
+        navigate(`/projects/${projectId}`);
+      }
+
+      await loadProject();
+      setDeleteDiagramModal({ isOpen: false, diagramId: null, diagramName: '' });
+    } catch (err) {
+      console.error('Error deleting diagram:', err);
+      setError('Error al eliminar diagrama');
+    }
+  };
+
   // Drag & drop functions
   const handleDragStart = (diagramId: string) => {
     setDraggedDiagramId(diagramId);
@@ -524,7 +673,7 @@ export default function DiagramEditorPage() {
 
   const handleDrop = async (e: React.DragEvent, targetFolderId: string | null) => {
     e.preventDefault();
-    
+
     if (!draggedDiagramId) return;
 
     try {
@@ -532,10 +681,10 @@ export default function DiagramEditorPage() {
       await api.updateDiagram(draggedDiagramId, {
         folder_id: targetFolderId,
       });
-      
+
       // Reload project to update folder structure
       await loadProject();
-      
+
       // If the dropped diagram is the current one, update selected folder
       if (currentDiagram?.id === draggedDiagramId) {
         setSelectedFolderId(targetFolderId);
@@ -612,21 +761,44 @@ export default function DiagramEditorPage() {
               <div className="space-y-1">
                 {/* Diagrams without folder */}
                 {project?.diagrams.map(diagram => (
-                  <button
+                  <div
                     key={diagram.id}
-                    draggable
-                    onDragStart={() => handleDragStart(diagram.id)}
-                    onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
-                    className={`w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
-                        ? 'text-gray-900 bg-blue-50'
-                        : 'text-gray-600 hover:bg-gray-50'
+                    className={`group flex items-center gap-1 rounded transition-colors ${diagram.id === currentDiagram?.id
+                      ? 'bg-blue-50'
+                      : 'hover:bg-gray-50'
                       } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
                   >
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <span className="truncate">{diagram.title}</span>
-                  </button>
+                    <button
+                      draggable
+                      onDragStart={() => handleDragStart(diagram.id)}
+                      onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
+                      className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
+                        ? 'text-gray-900'
+                        : 'text-gray-600'
+                        }`}
+                    >
+                      <div className={`w-4 h-4 flex-shrink-0 rounded flex items-center justify-center text-[10px] ${
+                        diagram.diagram_type === 'plantuml'
+                          ? 'bg-green-100'
+                          : 'bg-pink-100'
+                      }`}>
+                        {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
+                      </div>
+                      <span className="truncate">{diagram.title}</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteDiagram(diagram.id, diagram.title);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Eliminar diagrama"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 ))}
 
                 {/* Folders with diagrams */}
@@ -638,9 +810,8 @@ export default function DiagramEditorPage() {
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, folder.id)}
                   >
-                    <div className={`flex items-center gap-1 rounded transition-colors ${
-                      dropTargetFolderId === folder.id ? 'bg-blue-100' : ''
-                    }`}>
+                    <div className={`flex items-center gap-1 rounded transition-colors ${dropTargetFolderId === folder.id ? 'bg-blue-100' : ''
+                      }`}>
                       <button
                         onClick={() => toggleFolder(folder.id)}
                         className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
@@ -683,21 +854,44 @@ export default function DiagramEditorPage() {
                     {expandedFolders.has(folder.id) && (
                       <div className="ml-6 space-y-1">
                         {folder.diagrams.map(diagram => (
-                          <button
+                          <div
                             key={diagram.id}
-                            draggable
-                            onDragStart={() => handleDragStart(diagram.id)}
-                            onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
-                            className={`w-full text-left px-3 py-2 text-sm rounded transition-colors flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
-                                ? 'text-gray-900 bg-blue-50'
-                                : 'text-gray-600 hover:bg-gray-50'
+                            className={`group flex items-center gap-1 rounded transition-colors ${diagram.id === currentDiagram?.id
+                              ? 'bg-blue-50'
+                              : 'hover:bg-gray-50'
                               } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
                           >
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="truncate">{diagram.title}</span>
-                          </button>
+                            <button
+                              draggable
+                              onDragStart={() => handleDragStart(diagram.id)}
+                              onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
+                              className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
+                                ? 'text-gray-900'
+                                : 'text-gray-600'
+                                }`}
+                            >
+                              <div className={`w-4 h-4 flex-shrink-0 rounded flex items-center justify-center text-[10px] ${
+                                diagram.diagram_type === 'plantuml'
+                                  ? 'bg-green-100'
+                                  : 'bg-pink-100'
+                              }`}>
+                                {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
+                              </div>
+                              <span className="truncate">{diagram.title}</span>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDiagram(diagram.id, diagram.title);
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Eliminar diagrama"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         ))}
                         {folder.diagrams.length === 0 && (
                           <p className="text-xs text-gray-400 px-3 py-2">Sin diagramas</p>
@@ -723,47 +917,45 @@ export default function DiagramEditorPage() {
             <div className={`border-b border-gray-100 flex items-center gap-4 ${isEditorCollapsed ? 'p-2 justify-center' : 'px-6 py-3 justify-between'}`}>
               {!isEditorCollapsed && (
                 <>
-                  <input
-                    type="text"
-                    value={diagramTitle}
-                    onChange={(e) => setDiagramTitle(e.target.value)}
-                    className="flex-1 text-base font-medium text-gray-900 bg-transparent border-none focus:outline-none placeholder-gray-400"
-                    placeholder="Título del diagrama"
-                  />
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    {/* Autosave status indicator */}
-                    {saveStatus !== 'idle' && (
-                      <div className="flex items-center gap-2 text-xs">
-                        {saveStatus === 'saving' && (
-                          <>
-                            <svg className="w-3 h-3 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            <span className="text-gray-600">Guardando...</span>
-                          </>
-                        )}
-                        {saveStatus === 'saved' && (
-                          <>
-                            <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span className="text-green-600">Guardado</span>
-                          </>
-                        )}
-                      </div>
+                  <div className="flex-1 flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={diagramTitle}
+                      onChange={(e) => setDiagramTitle(e.target.value)}
+                      className="flex-1 text-base font-medium text-gray-900 bg-transparent border-none focus:outline-none placeholder-gray-400"
+                      placeholder="Título del diagrama"
+                    />
+                    {currentDiagram && (
+                      <span className={`px-2 py-1 rounded-md text-xs font-medium flex-shrink-0 ${currentDiagram.diagram_type === 'plantuml'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                        }`}>
+                        {currentDiagram.diagram_type === 'plantuml' ? '🌱 PlantUML' : '🧜‍♀️ Mermaid'}
+                      </span>
                     )}
-
-                    <button
-                      onClick={() => setShowExportModal(true)}
-                      className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Exportar
-                    </button>
                   </div>
+                  {/* Autosave status indicator */}
+                  {saveStatus !== 'idle' && (
+                    <div className="flex items-center gap-2 text-xs flex-shrink-0">
+                      {saveStatus === 'saving' && (
+                        <>
+                          <svg className="w-3 h-3 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span className="text-gray-600">Guardando...</span>
+                        </>
+                      )}
+                      {saveStatus === 'saved' && (
+                        <>
+                          <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-green-600">Guardado</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
               <button
@@ -877,12 +1069,12 @@ export default function DiagramEditorPage() {
 
           {/* Preview */}
           <div className="flex-1 flex flex-col bg-gray-50 relative">
-            {/* Zoom Controls - Only show for diagram view */}
+            {/* Zoom Controls and Export - Only show for diagram view */}
             {activeTab === 'code' && (
               <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-white rounded-lg shadow-md p-2 border border-gray-200">
                 <button
                   onClick={handleZoomIn}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
                   title="Zoom In"
                 >
                   <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -891,7 +1083,7 @@ export default function DiagramEditorPage() {
                 </button>
                 <button
                   onClick={handleZoomOut}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
                   title="Zoom Out"
                 >
                   <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -900,7 +1092,7 @@ export default function DiagramEditorPage() {
                 </button>
                 <button
                   onClick={handleResetZoom}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
                   title="Reset View"
                 >
                   <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -909,6 +1101,19 @@ export default function DiagramEditorPage() {
                 </button>
                 <div className="text-xs text-gray-500 text-center px-1 py-1 border-t border-gray-200">
                   {Math.round(zoom * 100)}%
+                </div>
+
+                {/* Export Button */}
+                <div className="border-t border-gray-200 pt-2">
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
+                    title="Exportar diagrama"
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             )}
@@ -1063,6 +1268,60 @@ export default function DiagramEditorPage() {
                 )}
               </div>
 
+              {/* Diagram Type Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                  Tipo de diagrama <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewDiagramType('mermaid')}
+                    className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'mermaid'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={`text-2xl ${newDiagramType === 'mermaid' ? 'scale-110' : ''} transition-transform`}>
+                        🧜‍♀️
+                      </div>
+                      <div className="text-center">
+                        <div className={`font-semibold ${newDiagramType === 'mermaid' ? 'text-blue-700' : 'text-gray-700'}`}>
+                          Mermaid
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Diagramas de flujo, secuencia, etc.
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNewDiagramType('plantuml')}
+                    className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'plantuml'
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={`text-2xl ${newDiagramType === 'plantuml' ? 'scale-110' : ''} transition-transform`}>
+                        🌱
+                      </div>
+                      <div className="text-center">
+                        <div className={`font-semibold ${newDiagramType === 'plantuml' ? 'text-blue-700' : 'text-gray-700'}`}>
+                          PlantUML
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          UML, clases, componentes, etc.
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               {!isFirstDiagram && project?.folders && project.folders.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1100,38 +1359,67 @@ export default function DiagramEditorPage() {
               )}
             </div>
 
-            <div className={`border-t border-gray-200 flex justify-end gap-3 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4'}`}>
-              {!isFirstDiagram && (
-                <button
-                  onClick={() => {
-                    setShowNewDiagramModal(false);
-                    setNewDiagramName('');
-                    setNewDiagramFolderId(null);
-                    setIsFirstDiagram(false);
-                  }}
-                  disabled={creatingDiagram}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
-                >
-                  Cancelar
-                </button>
+            <div className={`border-t border-gray-200 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4 flex justify-end gap-3'}`}>
+              {isFirstDiagram ? (
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleCreateDiagram}
+                    disabled={creatingDiagram || !newDiagramName.trim()}
+                    className="w-full px-6 py-3 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {creatingDiagram ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creando diagrama...
+                      </span>
+                    ) : (
+                      'Crear diagrama y empezar →'
+                    )}
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    disabled={creatingDiagram}
+                    className="w-full px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:text-gray-400 transition-colors"
+                  >
+                    Volver al dashboard
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowNewDiagramModal(false);
+                      setNewDiagramName('');
+                      setNewDiagramFolderId(null);
+                      setIsFirstDiagram(false);
+                    }}
+                    disabled={creatingDiagram}
+                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleCreateDiagram}
+                    disabled={creatingDiagram || !newDiagramName.trim()}
+                    className="px-6 py-3 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {creatingDiagram ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Creando diagrama...
+                      </span>
+                    ) : (
+                      'Crear Diagrama'
+                    )}
+                  </button>
+                </>
               )}
-              <button
-                onClick={handleCreateDiagram}
-                disabled={creatingDiagram || !newDiagramName.trim()}
-                className={`px-6 py-3 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors ${isFirstDiagram ? 'w-full' : ''}`}
-              >
-                {creatingDiagram ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creando diagrama...
-                  </span>
-                ) : (
-                  isFirstDiagram ? 'Crear diagrama y empezar →' : 'Crear Diagrama'
-                )}
-              </button>
             </div>
           </div>
         </div>
@@ -1216,6 +1504,18 @@ export default function DiagramEditorPage() {
         onConfirm={confirmDeleteFolder}
         folderName={deleteFolderModal.folderName}
         diagramCount={deleteFolderModal.diagramCount}
+      />
+
+      {/* Delete Diagram Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteDiagramModal.isOpen}
+        onClose={() => setDeleteDiagramModal({ isOpen: false, diagramId: null, diagramName: '' })}
+        onConfirm={confirmDeleteDiagram}
+        title="Eliminar diagrama"
+        message={`¿Estás seguro de que quieres eliminar el diagrama "${deleteDiagramModal.diagramName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDangerous={true}
       />
     </div>
   );

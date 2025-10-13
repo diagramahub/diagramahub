@@ -148,7 +148,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Ej: Mi proyecto de arquitectura"
                 required
                 maxLength={100}
@@ -166,7 +166,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 value={projectDescription}
                 onChange={(e) => setProjectDescription(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                 placeholder="Describe brevemente de qué trata tu proyecto..."
                 maxLength={500}
               />
@@ -206,7 +206,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                   type="button"
                   onClick={onClose}
                   disabled={loading}
-                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 bg-white font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Cancelar
                 </button>
