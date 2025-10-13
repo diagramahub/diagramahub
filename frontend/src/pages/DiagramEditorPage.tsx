@@ -68,6 +68,7 @@ export default function DiagramEditorPage() {
   // Collapsible panels state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Delete confirmation modal state
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ isOpen: boolean; folderId: string | null; folderName: string; diagramCount: number }>({
@@ -716,12 +717,13 @@ export default function DiagramEditorPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Navbar showBackToDashboard />
+      {!isFullscreen && <Navbar showBackToDashboard />}
 
       {/* Main Content */}
       <div className={`flex-1 flex overflow-hidden transition-all ${showNewDiagramModal && isFirstDiagram ? 'blur-sm' : ''}`}>
         {/* Sidebar with folders and diagrams */}
-        <aside className={`border-r border-gray-100 overflow-y-auto flex flex-col transition-all ${isSidebarCollapsed ? 'w-12' : 'w-64'}`}>
+        {!isFullscreen && (
+          <aside className={`border-r border-gray-100 overflow-y-auto flex flex-col transition-all ${isSidebarCollapsed ? 'w-12' : 'w-64'}`}>
           <div className={`border-b border-gray-100 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
             <div className="flex items-center justify-between gap-2">
               {!isSidebarCollapsed && <h2 className="text-sm font-medium text-gray-900 truncate">{project?.name}</h2>}
@@ -909,11 +911,13 @@ export default function DiagramEditorPage() {
             </div>
           )}
         </aside>
+        )}
 
         {/* Editor and Preview */}
         <main className="flex-1 flex overflow-hidden">
           {/* Editor */}
-          <div className={`flex flex-col border-r border-gray-100 transition-all ${isEditorCollapsed ? 'w-12' : 'w-1/3'}`}>
+          {!isFullscreen && (
+            <div className={`flex flex-col border-r border-gray-100 transition-all ${isEditorCollapsed ? 'w-12' : 'w-1/3'}`}>
             <div className={`border-b border-gray-100 flex items-center gap-4 ${isEditorCollapsed ? 'p-2 justify-center' : 'px-6 py-3 justify-between'}`}>
               {!isEditorCollapsed && (
                 <>
@@ -1066,6 +1070,7 @@ export default function DiagramEditorPage() {
               </>
             )}
           </div>
+          )}
 
           {/* Preview */}
           <div className="flex-1 flex flex-col bg-gray-50 relative">
@@ -1103,15 +1108,28 @@ export default function DiagramEditorPage() {
                   {Math.round(zoom * 100)}%
                 </div>
 
-                {/* Export Button */}
-                <div className="border-t border-gray-200 pt-2">
+                {/* Export and Fullscreen Buttons */}
+                <div className="border-t border-gray-200 pt-2 space-y-2">
                   <button
                     onClick={() => setShowExportModal(true)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
+                    className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center w-full"
                     title="Exportar diagrama"
                   >
                     <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center w-full"
+                    title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isFullscreen ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      )}
                     </svg>
                   </button>
                 </div>
