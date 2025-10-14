@@ -22,6 +22,7 @@ export default function DiagramEditorPage() {
   const [diagramCode, setDiagramCode] = useState('graph TD\n  A[Start] --> B[End]');
   const [diagramTitle, setDiagramTitle] = useState('New Diagram');
   const [diagramDescription, setDiagramDescription] = useState('');
+  const [diagramTheme, setDiagramTheme] = useState('default');
   const [activeTab, setActiveTab] = useState<'code' | 'description'>('code');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +158,7 @@ export default function DiagramEditorPage() {
           setDiagramCode(diagram.content);
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
+          setDiagramTheme(diagram.theme || 'default');
           setSelectedFolderId(diagram.folder_id || null);
           // Restore viewport position
           setZoom(diagram.viewport_zoom || 1);
@@ -226,7 +228,12 @@ export default function DiagramEditorPage() {
 
           mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" />`;
         } else {
-          // Render Mermaid
+          // Render Mermaid with theme
+          mermaid.initialize({
+            startOnLoad: true,
+            theme: diagramTheme,
+            securityLevel: 'loose',
+          });
           const id = `mermaid-${Date.now()}`;
           const { svg } = await mermaid.render(id, diagramCode);
           mermaidRef.current.innerHTML = svg;
@@ -245,7 +252,7 @@ export default function DiagramEditorPage() {
       const debounce = setTimeout(renderDiagram, 300);
       return () => clearTimeout(debounce);
     }
-  }, [diagramCode, currentDiagram]);
+  }, [diagramCode, diagramTheme, currentDiagram]);
 
   // Autosave effect for diagram content
   useEffect(() => {
@@ -258,6 +265,7 @@ export default function DiagramEditorPage() {
           title: diagramTitle,
           content: diagramCode,
           description: diagramDescription,
+          theme: diagramTheme,
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -312,7 +320,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, selectedFolderId]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, selectedFolderId]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
@@ -1021,6 +1029,26 @@ export default function DiagramEditorPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Theme Selector - Only for Mermaid diagrams */}
+                {currentDiagram?.diagram_type === 'mermaid' && (
+                  <div className="px-6 py-2 border-b border-gray-100">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Tema
+                    </label>
+                    <select
+                      value={diagramTheme}
+                      onChange={(e) => setDiagramTheme(e.target.value)}
+                      className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                    >
+                      <option value="default">Default (Claro)</option>
+                      <option value="dark">Dark (Oscuro)</option>
+                      <option value="forest">Forest (Verde)</option>
+                      <option value="neutral">Neutral (Gris)</option>
+                      <option value="base">Base (Minimalista)</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Tabs */}
                 <Tabs

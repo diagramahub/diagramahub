@@ -15,6 +15,7 @@ export type Diagram = {
   content: string;
   description?: string;
   diagram_type: string;
+  theme?: string;
   project_id: string;
   folder_id?: string | null;
   viewport_zoom: number;
@@ -67,6 +68,7 @@ export type UpdateDiagramRequest = {
   content?: string;
   description?: string;
   diagram_type?: string;
+  theme?: string;
   folder_id?: string | null;
   viewport_zoom?: number;
   viewport_x?: number;

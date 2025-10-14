@@ -13,6 +13,7 @@ class DiagramBase(BaseModel):
     content: str = Field(default="", description="Mermaid diagram code")
     description: Optional[str] = Field(default="", description="Markdown description of the diagram")
     diagram_type: str = Field(default="flowchart", description="Type of diagram (flowchart, sequence, etc)")
+    theme: str = Field(default="default", description="Mermaid theme (default, dark, forest, neutral, base)")
 
 
 class DiagramCreate(DiagramBase):
@@ -26,6 +27,7 @@ class DiagramUpdate(BaseModel):
     content: Optional[str] = None
     description: Optional[str] = None
     diagram_type: Optional[str] = None
+    theme: Optional[str] = None
     folder_id: Optional[str] = None
     viewport_zoom: Optional[float] = Field(None, ge=0.1, le=10.0, description="Zoom level (0.1 to 10.0)")
     viewport_x: Optional[float] = Field(None, description="Viewport X position")
@@ -38,6 +40,7 @@ class DiagramInDB(Document):
     content: str
     description: Optional[str] = ""
     diagram_type: str
+    theme: str = "default"
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float = 1.0
@@ -58,6 +61,7 @@ class DiagramResponse(BaseModel):
     content: str
     description: Optional[str]
     diagram_type: str
+    theme: str
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float
