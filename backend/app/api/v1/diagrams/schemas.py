@@ -10,10 +10,12 @@ from beanie import Document
 class DiagramBase(BaseModel):
     """Base diagram model."""
     title: str = Field(..., min_length=1, max_length=100)
-    content: str = Field(default="", description="Mermaid diagram code")
+    content: str = Field(default="", description="Mermaid diagram code (user's code without frontmatter)")
     description: Optional[str] = Field(default="", description="Markdown description of the diagram")
     diagram_type: str = Field(default="flowchart", description="Type of diagram (flowchart, sequence, etc)")
     theme: str = Field(default="default", description="Mermaid theme (default, dark, forest, neutral, base)")
+    layout: str = Field(default="dagre", description="Layout engine (dagre, elk)")
+    look: str = Field(default="classic", description="Visual style (classic, handDrawn)")
 
 
 class DiagramCreate(DiagramBase):
@@ -28,6 +30,8 @@ class DiagramUpdate(BaseModel):
     description: Optional[str] = None
     diagram_type: Optional[str] = None
     theme: Optional[str] = None
+    layout: Optional[str] = None
+    look: Optional[str] = None
     folder_id: Optional[str] = None
     viewport_zoom: Optional[float] = Field(None, ge=0.1, le=10.0, description="Zoom level (0.1 to 10.0)")
     viewport_x: Optional[float] = Field(None, description="Viewport X position")
@@ -41,6 +45,8 @@ class DiagramInDB(Document):
     description: Optional[str] = ""
     diagram_type: str
     theme: str = "default"
+    layout: str = "dagre"
+    look: str = "classic"
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float = 1.0
@@ -62,6 +68,8 @@ class DiagramResponse(BaseModel):
     description: Optional[str]
     diagram_type: str
     theme: str
+    layout: str
+    look: str
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float
