@@ -23,7 +23,22 @@ export default function DiagramEditorPage() {
   const [diagramTitle, setDiagramTitle] = useState('New Diagram');
   const [diagramDescription, setDiagramDescription] = useState('');
   const [diagramTheme, setDiagramTheme] = useState('default');
+  const [diagramLayout, setDiagramLayout] = useState('dagre');
+  const [diagramLook, setDiagramLook] = useState('classic');
   const [activeTab, setActiveTab] = useState<'code' | 'description'>('code');
+
+  // Helper function to generate frontmatter
+  const generateFrontmatter = (theme: string, layout: string, look: string): string => {
+    return `---\nconfig:\n  theme: ${theme}\n  layout: ${layout}\n  look: ${look}\n---\n`;
+  };
+
+  // Generate full code with frontmatter for rendering
+  const fullDiagramCode = useMemo(() => {
+    if (currentDiagram?.diagram_type === 'mermaid') {
+      return generateFrontmatter(diagramTheme, diagramLayout, diagramLook) + diagramCode;
+    }
+    return diagramCode;
+  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, currentDiagram]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
@@ -159,6 +174,8 @@ export default function DiagramEditorPage() {
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
           setDiagramTheme(diagram.theme || 'default');
+          setDiagramLayout(diagram.layout || 'dagre');
+          setDiagramLook(diagram.look || 'classic');
           setSelectedFolderId(diagram.folder_id || null);
           // Restore viewport position
           setZoom(diagram.viewport_zoom || 1);
@@ -228,14 +245,14 @@ export default function DiagramEditorPage() {
 
           mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" />`;
         } else {
-          // Render Mermaid with theme
+          // Render Mermaid with frontmatter config
+          // Note: Mermaid will read the frontmatter automatically
           mermaid.initialize({
             startOnLoad: true,
-            theme: diagramTheme,
             securityLevel: 'loose',
           });
           const id = `mermaid-${Date.now()}`;
-          const { svg } = await mermaid.render(id, diagramCode);
+          const { svg } = await mermaid.render(id, fullDiagramCode);
           mermaidRef.current.innerHTML = svg;
         }
       } catch (err) {
@@ -252,7 +269,7 @@ export default function DiagramEditorPage() {
       const debounce = setTimeout(renderDiagram, 300);
       return () => clearTimeout(debounce);
     }
-  }, [diagramCode, diagramTheme, currentDiagram]);
+  }, [fullDiagramCode, currentDiagram]);
 
   // Autosave effect for diagram content
   useEffect(() => {
@@ -266,6 +283,8 @@ export default function DiagramEditorPage() {
           content: diagramCode,
           description: diagramDescription,
           theme: diagramTheme,
+          layout: diagramLayout,
+          look: diagramLook,
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -320,7 +339,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, selectedFolderId]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, selectedFolderId]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
@@ -1030,23 +1049,53 @@ export default function DiagramEditorPage() {
                   </div>
                 </div>
 
-                {/* Theme Selector - Only for Mermaid diagrams */}
+                {/* Configuration Selectors - Only for Mermaid diagrams */}
                 {currentDiagram?.diagram_type === 'mermaid' && (
-                  <div className="px-6 py-2 border-b border-gray-100">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Tema
-                    </label>
-                    <select
-                      value={diagramTheme}
-                      onChange={(e) => setDiagramTheme(e.target.value)}
-                      className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
-                    >
-                      <option value="default">Default (Claro)</option>
-                      <option value="dark">Dark (Oscuro)</option>
-                      <option value="forest">Forest (Verde)</option>
-                      <option value="neutral">Neutral (Gris)</option>
-                      <option value="base">Base (Minimalista)</option>
-                    </select>
+                  <div className="px-6 py-2 border-b border-gray-100 space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Tema
+                      </label>
+                      <select
+                        value={diagramTheme}
+                        onChange={(e) => setDiagramTheme(e.target.value)}
+                        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                      >
+                        <option value="default">Default (Claro)</option>
+                        <option value="dark">Dark (Oscuro)</option>
+                        <option value="forest">Forest (Verde)</option>
+                        <option value="neutral">Neutral (Gris)</option>
+                        <option value="base">Base (Minimalista)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Layout
+                      </label>
+                      <select
+                        value={diagramLayout}
+                        onChange={(e) => setDiagramLayout(e.target.value)}
+                        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                      >
+                        <option value="dagre">Dagre (Por defecto)</option>
+                        <option value="elk">ELK (Optimizado)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Estilo Visual
+                      </label>
+                      <select
+                        value={diagramLook}
+                        onChange={(e) => setDiagramLook(e.target.value)}
+                        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                      >
+                        <option value="classic">Classic (Clásico)</option>
+                        <option value="handDrawn">Hand Drawn (Dibujado a mano)</option>
+                      </select>
+                    </div>
                   </div>
                 )}
 
