@@ -8,7 +8,7 @@ import jsPDF from 'jspdf';
 import SimpleMDE from 'react-simplemde-editor';
 import 'easymde/dist/easymde.min.css';
 import api from '../services/api';
-import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest } from '../types/project';
+import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest, createMermaidConfig, createPlantUMLConfig } from '../types/project';
 import Navbar from '../components/Navbar';
 import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
@@ -173,9 +173,9 @@ export default function DiagramEditorPage() {
           setDiagramCode(diagram.content);
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
-          setDiagramTheme(diagram.theme || 'default');
-          setDiagramLayout(diagram.layout || 'dagre');
-          setDiagramLook(diagram.look || 'classic');
+          setDiagramTheme(diagram.config.mermaid?.theme || 'default');
+          setDiagramLayout(diagram.config.mermaid?.layout || 'dagre');
+          setDiagramLook(diagram.config.mermaid?.look || 'classic');
           setSelectedFolderId(diagram.folder_id || null);
           // Restore viewport position
           setZoom(diagram.viewport_zoom || 1);
@@ -282,9 +282,9 @@ export default function DiagramEditorPage() {
           title: diagramTitle,
           content: diagramCode,
           description: diagramDescription,
-          theme: diagramTheme,
-          layout: diagramLayout,
-          look: diagramLook,
+          config: currentDiagram?.diagram_type === 'plantuml' 
+            ? createPlantUMLConfig() 
+            : createMermaidConfig(diagramTheme, diagramLayout, diagramLook),
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -751,193 +751,191 @@ export default function DiagramEditorPage() {
         {/* Sidebar with folders and diagrams */}
         {!isFullscreen && (
           <aside className={`border-r border-gray-100 overflow-y-auto flex flex-col transition-all ${isSidebarCollapsed ? 'w-12' : 'w-64'}`}>
-          <div className={`border-b border-gray-100 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
-            <div className="flex items-center justify-between gap-2">
-              {!isSidebarCollapsed && <h2 className="text-sm font-medium text-gray-900 truncate">{project?.name}</h2>}
-              <button
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"
-                title={isSidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {isSidebarCollapsed ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                  )}
-                </svg>
-              </button>
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="mt-2 flex gap-2">
+            <div className={`border-b border-gray-100 ${isSidebarCollapsed ? 'p-2' : 'p-4'}`}>
+              <div className="flex items-center justify-between gap-2">
+                {!isSidebarCollapsed && <h2 className="text-sm font-medium text-gray-900 truncate">{project?.name}</h2>}
                 <button
-                  onClick={() => handleNewDiagram()}
-                  className="flex-1 text-xs text-gray-600 hover:text-gray-900 text-left"
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"
+                  title={isSidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
                 >
-                  + Diagrama
-                </button>
-                <button
-                  onClick={() => setShowNewFolderModal(true)}
-                  className="flex-1 text-xs text-gray-600 hover:text-gray-900 text-left"
-                >
-                  + Carpeta
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isSidebarCollapsed ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    )}
+                  </svg>
                 </button>
               </div>
-            )}
-          </div>
-          {!isSidebarCollapsed && (
-            <div className="flex-1 overflow-y-auto p-2">
-              <div className="space-y-1">
-                {/* Diagrams without folder */}
-                {project?.diagrams.map(diagram => (
-                  <div
-                    key={diagram.id}
-                    className={`group flex items-center gap-1 rounded transition-colors ${diagram.id === currentDiagram?.id
-                      ? 'bg-blue-50'
-                      : 'hover:bg-gray-50'
-                      } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
+              {!isSidebarCollapsed && (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={() => handleNewDiagram()}
+                    className="flex-1 text-xs text-gray-600 hover:text-gray-900 text-left"
                   >
-                    <button
-                      draggable
-                      onDragStart={() => handleDragStart(diagram.id)}
-                      onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
-                      className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
-                        ? 'text-gray-900'
-                        : 'text-gray-600'
-                        }`}
+                    + Diagrama
+                  </button>
+                  <button
+                    onClick={() => setShowNewFolderModal(true)}
+                    className="flex-1 text-xs text-gray-600 hover:text-gray-900 text-left"
+                  >
+                    + Carpeta
+                  </button>
+                </div>
+              )}
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex-1 overflow-y-auto p-2">
+                <div className="space-y-1">
+                  {/* Diagrams without folder */}
+                  {project?.diagrams.map(diagram => (
+                    <div
+                      key={diagram.id}
+                      className={`group flex items-center gap-1 rounded transition-colors ${diagram.id === currentDiagram?.id
+                        ? 'bg-blue-50'
+                        : 'hover:bg-gray-50'
+                        } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
                     >
-                      <div className={`w-4 h-4 flex-shrink-0 rounded flex items-center justify-center text-[10px] ${
-                        diagram.diagram_type === 'plantuml'
+                      <button
+                        draggable
+                        onDragStart={() => handleDragStart(diagram.id)}
+                        onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
+                        className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
+                          ? 'text-gray-900'
+                          : 'text-gray-600'
+                          }`}
+                      >
+                        <div className={`w-4 h-4 flex-shrink-0 rounded flex items-center justify-center text-[10px] ${diagram.diagram_type === 'plantuml'
                           ? 'bg-green-100'
                           : 'bg-pink-100'
-                      }`}>
-                        {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
-                      </div>
-                      <span className="truncate">{diagram.title}</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteDiagram(diagram.id, diagram.title);
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Eliminar diagrama"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-
-                {/* Folders with diagrams */}
-                {project?.folders.map(folder => (
-                  <div
-                    key={folder.id}
-                    className="space-y-1"
-                    onDragOver={(e) => handleDragOver(e, folder.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, folder.id)}
-                  >
-                    <div className={`flex items-center gap-1 rounded transition-colors ${dropTargetFolderId === folder.id ? 'bg-blue-100' : ''
-                      }`}>
-                      <button
-                        onClick={() => toggleFolder(folder.id)}
-                        className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                      >
-                        <svg
-                          className={`w-4 h-4 flex-shrink-0 transition-transform ${expandedFolders.has(folder.id) ? 'rotate-90' : ''
-                            }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
-                        <span className="truncate font-medium">{folder.name}</span>
-                        <span className="text-xs text-gray-400">({folder.diagrams.length})</span>
+                          }`}>
+                          {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
+                        </div>
+                        <span className="truncate">{diagram.title}</span>
                       </button>
                       <button
-                        onClick={() => handleNewDiagram(folder.id)}
-                        className="p-1 text-gray-400 hover:text-green-600 rounded"
-                        title="Nuevo diagrama en esta carpeta"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteFolder(folder.id, folder.name, folder.diagrams.length)}
-                        className="p-1 text-gray-400 hover:text-red-600 rounded"
-                        title="Eliminar carpeta"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteDiagram(diagram.id, diagram.title);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Eliminar diagrama"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
                     </div>
+                  ))}
 
-                    {expandedFolders.has(folder.id) && (
-                      <div className="ml-6 space-y-1">
-                        {folder.diagrams.map(diagram => (
-                          <div
-                            key={diagram.id}
-                            className={`group flex items-center gap-1 rounded transition-colors ${diagram.id === currentDiagram?.id
-                              ? 'bg-blue-50'
-                              : 'hover:bg-gray-50'
-                              } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
+                  {/* Folders with diagrams */}
+                  {project?.folders.map(folder => (
+                    <div
+                      key={folder.id}
+                      className="space-y-1"
+                      onDragOver={(e) => handleDragOver(e, folder.id)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, folder.id)}
+                    >
+                      <div className={`flex items-center gap-1 rounded transition-colors ${dropTargetFolderId === folder.id ? 'bg-blue-100' : ''
+                        }`}>
+                        <button
+                          onClick={() => toggleFolder(folder.id)}
+                          className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                        >
+                          <svg
+                            className={`w-4 h-4 flex-shrink-0 transition-transform ${expandedFolders.has(folder.id) ? 'rotate-90' : ''
+                              }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
-                            <button
-                              draggable
-                              onDragStart={() => handleDragStart(diagram.id)}
-                              onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
-                              className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
-                                ? 'text-gray-900'
-                                : 'text-gray-600'
-                                }`}
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                          </svg>
+                          <span className="truncate font-medium">{folder.name}</span>
+                          <span className="text-xs text-gray-400">({folder.diagrams.length})</span>
+                        </button>
+                        <button
+                          onClick={() => handleNewDiagram(folder.id)}
+                          className="p-1 text-gray-400 hover:text-green-600 rounded"
+                          title="Nuevo diagrama en esta carpeta"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFolder(folder.id, folder.name, folder.diagrams.length)}
+                          className="p-1 text-gray-400 hover:text-red-600 rounded"
+                          title="Eliminar carpeta"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {expandedFolders.has(folder.id) && (
+                        <div className="ml-6 space-y-1">
+                          {folder.diagrams.map(diagram => (
+                            <div
+                              key={diagram.id}
+                              className={`group flex items-center gap-1 rounded transition-colors ${diagram.id === currentDiagram?.id
+                                ? 'bg-blue-50'
+                                : 'hover:bg-gray-50'
+                                } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
                             >
-                              <div className={`w-4 h-4 flex-shrink-0 rounded flex items-center justify-center text-[10px] ${
-                                diagram.diagram_type === 'plantuml'
+                              <button
+                                draggable
+                                onDragStart={() => handleDragStart(diagram.id)}
+                                onClick={() => navigate(`/projects/${projectId}/diagrams/${diagram.id}`)}
+                                className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2 cursor-move ${diagram.id === currentDiagram?.id
+                                  ? 'text-gray-900'
+                                  : 'text-gray-600'
+                                  }`}
+                              >
+                                <div className={`w-4 h-4 flex-shrink-0 rounded flex items-center justify-center text-[10px] ${diagram.diagram_type === 'plantuml'
                                   ? 'bg-green-100'
                                   : 'bg-pink-100'
-                              }`}>
-                                {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
-                              </div>
-                              <span className="truncate">{diagram.title}</span>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteDiagram(diagram.id, diagram.title);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                              title="Eliminar diagrama"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                        {folder.diagrams.length === 0 && (
-                          <p className="text-xs text-gray-400 px-3 py-2">Sin diagramas</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                                  }`}>
+                                  {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
+                                </div>
+                                <span className="truncate">{diagram.title}</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteDiagram(diagram.id, diagram.title);
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-red-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Eliminar diagrama"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                          {folder.diagrams.length === 0 && (
+                            <p className="text-xs text-gray-400 px-3 py-2">Sin diagramas</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
 
-                {(!project?.diagrams || project.diagrams.length === 0) &&
-                  (!project?.folders || project.folders.length === 0) && (
-                    <p className="text-sm text-gray-400 px-3 py-2">Sin diagramas ni carpetas</p>
-                  )}
+                  {(!project?.diagrams || project.diagrams.length === 0) &&
+                    (!project?.folders || project.folders.length === 0) && (
+                      <p className="text-sm text-gray-400 px-3 py-2">Sin diagramas ni carpetas</p>
+                    )}
+                </div>
               </div>
-            </div>
-          )}
-        </aside>
+            )}
+          </aside>
         )}
 
         {/* Editor and Preview */}
@@ -945,208 +943,207 @@ export default function DiagramEditorPage() {
           {/* Editor */}
           {!isFullscreen && (
             <div className={`flex flex-col border-r border-gray-100 transition-all ${isEditorCollapsed ? 'w-12' : 'w-1/3'}`}>
-            <div className={`border-b border-gray-100 flex items-center gap-4 ${isEditorCollapsed ? 'p-2 justify-center' : 'px-6 py-3 justify-between'}`}>
-              {!isEditorCollapsed && (
-                <>
-                  <div className="flex-1 flex items-center gap-3">
-                    <input
-                      type="text"
-                      value={diagramTitle}
-                      onChange={(e) => setDiagramTitle(e.target.value)}
-                      className="flex-1 text-base font-medium text-gray-900 bg-transparent border-none focus:outline-none placeholder-gray-400"
-                      placeholder="Título del diagrama"
-                    />
-                    {currentDiagram && (
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium flex-shrink-0 ${currentDiagram.diagram_type === 'plantuml'
+              <div className={`border-b border-gray-100 flex items-center gap-4 ${isEditorCollapsed ? 'p-2 justify-center' : 'px-6 py-3 justify-between'}`}>
+                {!isEditorCollapsed && (
+                  <>
+                    <div className="flex-1 flex items-center gap-3">
+                      <input
+                        type="text"
+                        value={diagramTitle}
+                        onChange={(e) => setDiagramTitle(e.target.value)}
+                        className="flex-1 text-base font-medium text-gray-900 bg-transparent border-none focus:outline-none placeholder-gray-400"
+                        placeholder="Título del diagrama"
+                      />
+                      {currentDiagram && (
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium flex-shrink-0 ${currentDiagram.diagram_type === 'plantuml'
                           ? 'bg-green-100 text-green-700'
                           : 'bg-blue-100 text-blue-700'
-                        }`}>
-                        {currentDiagram.diagram_type === 'plantuml' ? '🌱 PlantUML' : '🧜‍♀️ Mermaid'}
-                      </span>
+                          }`}>
+                          {currentDiagram.diagram_type === 'plantuml' ? '🌱 PlantUML' : '🧜‍♀️ Mermaid'}
+                        </span>
+                      )}
+                    </div>
+                    {/* Autosave status indicator */}
+                    {saveStatus !== 'idle' && (
+                      <div className="flex items-center gap-2 text-xs flex-shrink-0">
+                        {saveStatus === 'saving' && (
+                          <>
+                            <svg className="w-3 h-3 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-gray-600">Guardando...</span>
+                          </>
+                        )}
+                        {saveStatus === 'saved' && (
+                          <>
+                            <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-green-600">Guardado</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+                <button
+                  onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
+                  className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"
+                  title={isEditorCollapsed ? "Expandir editor" : "Colapsar editor"}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isEditorCollapsed ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                    )}
+                  </svg>
+                </button>
+              </div>
+
+              {!isEditorCollapsed && (
+                <>
+                  {/* Folder Selector */}
+                  <div className="px-6 py-2 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedFolderId || ''}
+                        onChange={async (e) => {
+                          const newFolderId = e.target.value || null;
+                          setSelectedFolderId(newFolderId);
+
+                          // Update the diagram immediately and reload the project to refresh sidebar
+                          if (currentDiagram) {
+                            try {
+                              await api.updateDiagram(currentDiagram.id, {
+                                folder_id: newFolderId,
+                              });
+                              // Reload project to update sidebar
+                              await loadProject();
+                            } catch (err) {
+                              console.error('Error moving diagram to folder:', err);
+                            }
+                          }
+                        }}
+                        className="flex-1 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                      >
+                        <option value="">Sin carpeta</option>
+                        {project?.folders.map(folder => (
+                          <option key={folder.id} value={folder.id}>
+                            {folder.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setShowNewFolderModal(true)}
+                        className="text-xs text-gray-400 hover:text-blue-600 p-1"
+                        title="Nueva carpeta"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Configuration Selectors - Only for Mermaid diagrams */}
+                  {currentDiagram?.diagram_type === 'mermaid' && (
+                    <div className="px-6 py-2 border-b border-gray-100 space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Tema
+                        </label>
+                        <select
+                          value={diagramTheme}
+                          onChange={(e) => setDiagramTheme(e.target.value)}
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                        >
+                          <option value="default">Default (Claro)</option>
+                          <option value="dark">Dark (Oscuro)</option>
+                          <option value="forest">Forest (Verde)</option>
+                          <option value="neutral">Neutral (Gris)</option>
+                          <option value="base">Base (Minimalista)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Layout
+                        </label>
+                        <select
+                          value={diagramLayout}
+                          onChange={(e) => setDiagramLayout(e.target.value)}
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                        >
+                          <option value="dagre">Dagre (Por defecto)</option>
+                          <option value="elk">ELK (Optimizado)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Estilo Visual
+                        </label>
+                        <select
+                          value={diagramLook}
+                          onChange={(e) => setDiagramLook(e.target.value)}
+                          className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
+                        >
+                          <option value="classic">Classic (Clásico)</option>
+                          <option value="handDrawn">Hand Drawn (Dibujado a mano)</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  <Tabs
+                    tabs={[
+                      {
+                        id: 'code',
+                        label: currentDiagram?.diagram_type === 'plantuml' ? 'Código PlantUML' : 'Código Mermaid',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        id: 'description',
+                        label: 'Descripción',
+                        icon: (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                          </svg>
+                        ),
+                      },
+                    ]}
+                    activeTab={activeTab}
+                    onChange={(tabId) => setActiveTab(tabId as 'code' | 'description')}
+                  />
+
+                  {/* Tab Content */}
+                  <div className="flex-1 p-6 overflow-auto">
+                    {activeTab === 'code' ? (
+                      <textarea
+                        value={diagramCode}
+                        onChange={(e) => setDiagramCode(e.target.value)}
+                        className="w-full h-full font-mono text-sm text-gray-700 bg-transparent border-none focus:outline-none resize-none placeholder-gray-400"
+                        placeholder="graph TD&#10;  A[Inicio] --> B[Proceso]&#10;  B --> C[Fin]"
+                      />
+                    ) : (
+                      <div className="h-full">
+                        <SimpleMDE
+                          value={diagramDescription}
+                          onChange={setDiagramDescription}
+                          options={editorOptions}
+                        />
+                      </div>
                     )}
                   </div>
-                  {/* Autosave status indicator */}
-                  {saveStatus !== 'idle' && (
-                    <div className="flex items-center gap-2 text-xs flex-shrink-0">
-                      {saveStatus === 'saving' && (
-                        <>
-                          <svg className="w-3 h-3 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span className="text-gray-600">Guardando...</span>
-                        </>
-                      )}
-                      {saveStatus === 'saved' && (
-                        <>
-                          <svg className="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span className="text-green-600">Guardado</span>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
-              <button
-                onClick={() => setIsEditorCollapsed(!isEditorCollapsed)}
-                className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"
-                title={isEditorCollapsed ? "Expandir editor" : "Colapsar editor"}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {isEditorCollapsed ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  )}
-                </svg>
-              </button>
             </div>
-
-            {!isEditorCollapsed && (
-              <>
-                {/* Folder Selector */}
-                <div className="px-6 py-2 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedFolderId || ''}
-                      onChange={async (e) => {
-                        const newFolderId = e.target.value || null;
-                        setSelectedFolderId(newFolderId);
-
-                        // Update the diagram immediately and reload the project to refresh sidebar
-                        if (currentDiagram) {
-                          try {
-                            await api.updateDiagram(currentDiagram.id, {
-                              folder_id: newFolderId,
-                            });
-                            // Reload project to update sidebar
-                            await loadProject();
-                          } catch (err) {
-                            console.error('Error moving diagram to folder:', err);
-                          }
-                        }
-                      }}
-                      className="flex-1 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
-                    >
-                      <option value="">Sin carpeta</option>
-                      {project?.folders.map(folder => (
-                        <option key={folder.id} value={folder.id}>
-                          {folder.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={() => setShowNewFolderModal(true)}
-                      className="text-xs text-gray-400 hover:text-blue-600 p-1"
-                      title="Nueva carpeta"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Configuration Selectors - Only for Mermaid diagrams */}
-                {currentDiagram?.diagram_type === 'mermaid' && (
-                  <div className="px-6 py-2 border-b border-gray-100 space-y-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Tema
-                      </label>
-                      <select
-                        value={diagramTheme}
-                        onChange={(e) => setDiagramTheme(e.target.value)}
-                        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
-                      >
-                        <option value="default">Default (Claro)</option>
-                        <option value="dark">Dark (Oscuro)</option>
-                        <option value="forest">Forest (Verde)</option>
-                        <option value="neutral">Neutral (Gris)</option>
-                        <option value="base">Base (Minimalista)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Layout
-                      </label>
-                      <select
-                        value={diagramLayout}
-                        onChange={(e) => setDiagramLayout(e.target.value)}
-                        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
-                      >
-                        <option value="dagre">Dagre (Por defecto)</option>
-                        <option value="elk">ELK (Optimizado)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Estilo Visual
-                      </label>
-                      <select
-                        value={diagramLook}
-                        onChange={(e) => setDiagramLook(e.target.value)}
-                        className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-600"
-                      >
-                        <option value="classic">Classic (Clásico)</option>
-                        <option value="handDrawn">Hand Drawn (Dibujado a mano)</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tabs */}
-                <Tabs
-                  tabs={[
-                    {
-                      id: 'code',
-                      label: 'Código Mermaid',
-                      icon: (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      id: 'description',
-                      label: 'Descripción',
-                      icon: (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                        </svg>
-                      ),
-                    },
-                  ]}
-                  activeTab={activeTab}
-                  onChange={(tabId) => setActiveTab(tabId as 'code' | 'description')}
-                />
-
-                {/* Tab Content */}
-                <div className="flex-1 p-6 overflow-auto">
-                  {activeTab === 'code' ? (
-                    <textarea
-                      value={diagramCode}
-                      onChange={(e) => setDiagramCode(e.target.value)}
-                      className="w-full h-full font-mono text-sm text-gray-700 bg-transparent border-none focus:outline-none resize-none placeholder-gray-400"
-                      placeholder="graph TD&#10;  A[Inicio] --> B[Proceso]&#10;  B --> C[Fin]"
-                    />
-                  ) : (
-                    <div className="h-full">
-                      <SimpleMDE
-                        value={diagramDescription}
-                        onChange={setDiagramDescription}
-                        options={editorOptions}
-                      />
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
           )}
 
           {/* Preview */}
@@ -1373,8 +1370,8 @@ export default function DiagramEditorPage() {
                     type="button"
                     onClick={() => setNewDiagramType('mermaid')}
                     className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'mermaid'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <div className="flex flex-col items-center gap-2">
@@ -1396,8 +1393,8 @@ export default function DiagramEditorPage() {
                     type="button"
                     onClick={() => setNewDiagramType('plantuml')}
                     className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'plantuml'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
                       }`}
                   >
                     <div className="flex flex-col items-center gap-2">

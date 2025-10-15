@@ -18,6 +18,7 @@ class DiagramRepository(IDiagramRepository):
             content=diagram_data.content,
             description=diagram_data.description,
             diagram_type=diagram_data.diagram_type,
+            config=diagram_data.config,
             project_id=project_id,
             folder_id=diagram_data.folder_id,
             created_at=datetime.utcnow(),

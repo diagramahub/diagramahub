@@ -9,15 +9,64 @@ export type Project = {
   updated_at: string;
 }
 
+// Configuration types for different diagram types
+export type MermaidConfig = {
+  theme?: string;
+  layout?: string;
+  look?: string;
+  handDrawnSeed?: number | null;
+  fontFamily?: string | null;
+  fontSize?: number | null;
+};
+
+export type PlantUMLConfig = {
+  skinparam?: Record<string, any>;
+};
+
+export type DiagramConfig = {
+  mermaid?: MermaidConfig | null;
+  plantuml?: PlantUMLConfig | null;
+};
+
+// Helper functions for creating diagram configurations
+export const createMermaidConfig = (
+  theme: string = "default",
+  layout: string = "dagre",
+  look: string = "classic",
+  handDrawnSeed?: number | null,
+  fontFamily?: string | null,
+  fontSize?: number | null
+): DiagramConfig => ({
+  mermaid: {
+    theme,
+    layout,
+    look,
+    handDrawnSeed,
+    fontFamily,
+    fontSize,
+  },
+});
+
+export const createPlantUMLConfig = (
+  skinparam: Record<string, any> = {}
+): DiagramConfig => ({
+  plantuml: {
+    skinparam,
+  },
+});
+
+// Helper to get mermaid config from a diagram
+export const getMermaidConfig = (diagram: Diagram): MermaidConfig => {
+  return diagram.config.mermaid || {};
+};
+
 export type Diagram = {
   id: string;
   title: string;
   content: string;
   description?: string;
   diagram_type: string;
-  theme?: string;
-  layout?: string;
-  look?: string;
+  config: DiagramConfig;
   project_id: string;
   folder_id?: string | null;
   viewport_zoom: number;
@@ -70,9 +119,7 @@ export type UpdateDiagramRequest = {
   content?: string;
   description?: string;
   diagram_type?: string;
-  theme?: string;
-  layout?: string;
-  look?: string;
+  config?: DiagramConfig;
   folder_id?: string | null;
   viewport_zoom?: number;
   viewport_x?: number;
