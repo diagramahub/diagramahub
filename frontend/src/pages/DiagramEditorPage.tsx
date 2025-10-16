@@ -473,7 +473,19 @@ export default function DiagramEditorPage() {
     });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = async () => {
+    if (isPanning && currentDiagram && projectId) {
+      // Save viewport immediately when panning stops
+      try {
+        await api.updateDiagram(currentDiagram.id, {
+          viewport_zoom: zoom,
+          viewport_x: pan.x,
+          viewport_y: pan.y,
+        });
+      } catch (err) {
+        console.error('Error saving viewport on pan end:', err);
+      }
+    }
     setIsPanning(false);
   };
 
@@ -944,7 +956,7 @@ export default function DiagramEditorPage() {
             {/* Floating Modals */}
             {/* Diagram Structure Modal */}
             {showFloatingSidebar && (
-              <div className="floating-sidebar absolute top-20 left-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto">
+              <div className="floating-sidebar absolute top-20 left-4 z-30 w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[48rem] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">{project?.name}</h3>
@@ -1131,7 +1143,7 @@ export default function DiagramEditorPage() {
 
             {/* Code View Modal */}
             {showCodeView && (
-              <div className="floating-code absolute top-20 left-4 z-30 w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden flex flex-col">
+              <div className="floating-code absolute top-20 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[48rem] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">Código del diagrama</h3>
@@ -1149,7 +1161,7 @@ export default function DiagramEditorPage() {
                   <textarea
                     value={diagramCode}
                     onChange={(e) => setDiagramCode(e.target.value)}
-                    className="w-full h-full min-h-[300px] font-mono text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full h-full font-mono text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     placeholder="graph TD&#10;  A[Inicio] --> B[Proceso]&#10;  B --> C[Fin]"
                   />
                 </div>
@@ -1158,7 +1170,7 @@ export default function DiagramEditorPage() {
 
             {/* Description View Modal */}
             {showDescriptionView && (
-              <div className="floating-description absolute top-20 left-4 z-30 w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-hidden flex flex-col">
+              <div className="floating-description absolute top-20 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[48rem] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">Descripción del diagrama</h3>
@@ -1176,7 +1188,7 @@ export default function DiagramEditorPage() {
                   <textarea
                     value={diagramDescription}
                     onChange={(e) => setDiagramDescription(e.target.value)}
-                    className="w-full h-full min-h-[300px] text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full h-full text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     placeholder="Describe tu diagrama aquí..."
                   />
                 </div>
