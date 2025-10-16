@@ -13,6 +13,7 @@ import Navbar from '../components/Navbar';
 import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
+import Tooltip from '../components/Tooltip';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -30,6 +31,19 @@ export default function DiagramEditorPage() {
   // Helper function to generate frontmatter
   const generateFrontmatter = (theme: string, layout: string, look: string): string => {
     return `---\nconfig:\n  theme: ${theme}\n  layout: ${layout}\n  look: ${look}\n---\n`;
+  };
+
+  // Helper function to format time ago
+  const getTimeAgo = (date: Date | null): string => {
+    if (!date) return '';
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 10) return 'justo ahora';
+    if (seconds < 60) return `hace ${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `hace ${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `hace ${hours}h`;
+    return `hace ${Math.floor(hours / 24)}d`;
   };
 
   // Generate full code with frontmatter for rendering
@@ -80,6 +94,7 @@ export default function DiagramEditorPage() {
 
   // Autosave state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
 
   // Collapsible panels state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -91,6 +106,10 @@ export default function DiagramEditorPage() {
   const [showCodeView, setShowCodeView] = useState(false);
   const [showDescriptionView, setShowDescriptionView] = useState(false);
   const [showAppearanceEditor, setShowAppearanceEditor] = useState(false);
+
+  // Inline editing state
+  const [isEditingDiagramTitle, setIsEditingDiagramTitle] = useState(false);
+  const [editingDiagramTitle, setEditingDiagramTitle] = useState('');
 
   // Close floating panels when clicking outside
   useEffect(() => {
@@ -111,10 +130,32 @@ export default function DiagramEditorPage() {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Update time ago display every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Force re-render to update time display
+      if (lastSavedTime) {
+        setLastSavedTime(new Date(lastSavedTime));
+      }
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [lastSavedTime]);
+
+  // Handle Escape key to exit fullscreen
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isFullscreen]);
 
   // Delete confirmation modal state
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
@@ -324,6 +365,7 @@ export default function DiagramEditorPage() {
         };
         await api.updateDiagram(currentDiagram.id, updateData);
         setSaveStatus('saved');
+        setLastSavedTime(new Date());
 
         // Update the project state to reflect the new title in the sidebar
         if (project) {
@@ -449,15 +491,87 @@ export default function DiagramEditorPage() {
 
   // Zoom handlers
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.1, 10));
+    setZoom(prev => prev + 0.1); // Sin límite máximo
   };
 
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.1, 0.5));
+    setZoom(prev => Math.max(prev - 0.1, 0.1)); // Mínimo 10%
   };
 
   const handleResetZoom = () => {
     setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Inline editing handlers
+  const handleStartEditDiagramTitle = () => {
+    setEditingDiagramTitle(diagramTitle);
+    setIsEditingDiagramTitle(true);
+  };
+
+  const handleSaveDiagramTitle = async () => {
+    if (!editingDiagramTitle.trim() || !currentDiagram) {
+      setIsEditingDiagramTitle(false);
+      return;
+    }
+
+    const newTitle = editingDiagramTitle.trim();
+    if (newTitle === diagramTitle) {
+      setIsEditingDiagramTitle(false);
+      return;
+    }
+
+    try {
+      setDiagramTitle(newTitle);
+      setIsEditingDiagramTitle(false);
+
+      // Guardar en el backend
+      await api.updateDiagram(currentDiagram.id, { title: newTitle });
+
+      // Actualizar en el proyecto
+      if (project) {
+        const updatedProject = { ...project };
+        const updateDiagramInList = (diagrams: Diagram[]) => {
+          return diagrams.map(d => d.id === currentDiagram.id ? { ...d, title: newTitle } : d);
+        };
+
+        updatedProject.diagrams = updateDiagramInList(updatedProject.diagrams);
+        updatedProject.folders = updatedProject.folders.map(folder => ({
+          ...folder,
+          diagrams: updateDiagramInList(folder.diagrams)
+        }));
+
+        setProject(updatedProject);
+      }
+    } catch (err) {
+      console.error('Error updating diagram title:', err);
+      setDiagramTitle(diagramTitle); // Revertir en caso de error
+    }
+  };
+
+  const handleCancelEditDiagramTitle = () => {
+    setIsEditingDiagramTitle(false);
+    setEditingDiagramTitle('');
+  };
+
+  // Ajustar diagrama a pantalla
+  const handleFitToScreen = () => {
+    if (!mermaidRef.current || !containerRef.current) return;
+
+    const diagramElement = mermaidRef.current;
+    const containerElement = containerRef.current;
+
+    // Obtener dimensiones del diagrama y contenedor
+    const diagramRect = diagramElement.getBoundingClientRect();
+    const containerRect = containerElement.getBoundingClientRect();
+
+    // Calcular el zoom necesario para ajustar (con un poco de padding)
+    const scaleX = (containerRect.width * 0.9) / diagramRect.width;
+    const scaleY = (containerRect.height * 0.9) / diagramRect.height;
+    const newZoom = Math.min(scaleX, scaleY) * zoom; // Mantener el zoom actual como base
+
+    // Centrar el diagrama
+    setZoom(newZoom);
     setPan({ x: 0, y: 0 });
   };
 
@@ -494,7 +608,7 @@ export default function DiagramEditorPage() {
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
-    setZoom(prev => Math.max(0.5, Math.min(10, prev + delta)));
+    setZoom(prev => Math.max(0.1, prev + delta)); // Sin límite máximo, mínimo 10%
   };
 
   // Export functions
@@ -812,12 +926,239 @@ export default function DiagramEditorPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {!isFullscreen && (
-        <Navbar
-          showBackToDashboard
-          diagramTitle={diagramTitle}
-          diagramType={currentDiagram?.diagram_type}
-          onDiagramTitleEdit={(newTitle) => setDiagramTitle(newTitle)}
-        />
+        <Navbar showBackToDashboard />
+      )}
+
+      {/* Toolbar Contextual Unificado */}
+      {!isFullscreen && (
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-2.5">
+            {/* Breadcrumbs y contexto */}
+            <div className="flex items-center gap-2">
+              {/* Proyecto */}
+              <Tooltip content="Volver al proyecto" position="bottom">
+                <button
+                  onClick={() => navigate(`/projects/${projectId}`)}
+                  className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded px-2 py-1 transition-colors"
+                >
+                  <span className="text-lg">{project?.emoji || '📁'}</span>
+                  <span className="font-medium">{project?.name}</span>
+                </button>
+              </Tooltip>
+
+              {/* Separador */}
+              <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+
+              {/* Carpeta (si existe) */}
+              {selectedFolderId && project?.folders && (() => {
+                const folder = project.folders.find(f => f.id === selectedFolderId);
+                return folder ? (
+                  <>
+                    <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: `${folder.color}15` }}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <span className="text-sm font-medium" style={{ color: folder.color }}>{folder.name}</span>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </>
+                ) : null;
+              })()}
+
+              {/* Título del diagrama editable */}
+              {isEditingDiagramTitle ? (
+                <input
+                  type="text"
+                  value={editingDiagramTitle}
+                  onChange={(e) => setEditingDiagramTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveDiagramTitle();
+                    if (e.key === 'Escape') handleCancelEditDiagramTitle();
+                  }}
+                  onBlur={handleSaveDiagramTitle}
+                  className="text-sm font-medium text-gray-900 bg-white border border-blue-500 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                  style={{ width: `${Math.max(editingDiagramTitle.length * 8, 100)}px` }}
+                />
+              ) : (
+                <Tooltip content="Haz clic para editar el nombre" position="bottom">
+                  <button
+                    onClick={handleStartEditDiagramTitle}
+                    className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:bg-gray-50 rounded px-2 py-0.5 transition-colors flex items-center gap-1.5 group"
+                  >
+                    <span>{diagramTitle}</span>
+                    <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                </Tooltip>
+              )}
+              <span
+                className={`ml-2 px-2 py-0.5 text-xs rounded-full ${currentDiagram?.diagram_type === 'mermaid'
+                  ? 'bg-pink-100 text-pink-700'
+                  : 'bg-green-100 text-green-700'
+                  }`}
+                title={`Tipo de diagrama: ${currentDiagram?.diagram_type === 'mermaid' ? 'Mermaid' : 'PlantUML'}`}
+              >
+                {currentDiagram?.diagram_type === 'mermaid' ? '🧜‍♀️ Mermaid' : '🌱 PlantUML'}
+              </span>
+            </div>
+
+            {/* Controles centrales */}
+            <div className="flex items-center gap-4">
+              {/* Grupo de paneles */}
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <Tooltip content="Ver estructura del proyecto." position="bottom">
+                  <button
+                    onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showFloatingSidebar
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <span>Estructura</span>
+                    </div>
+                  </button>
+                </Tooltip>
+                <Tooltip content="Editar código del diagrama (Mermaid/PlantUML)" position="bottom">
+                  <button
+                    onClick={() => setShowCodeView(!showCodeView)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showCodeView
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      <span>Código</span>
+                    </div>
+                  </button>
+                </Tooltip>
+                <Tooltip content="Agregar o editar descripción del diagrama (Markdown)" position="bottom">
+                  <button
+                    onClick={() => setShowDescriptionView(!showDescriptionView)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showDescriptionView
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Descripción</span>
+                    </div>
+                  </button>
+                </Tooltip>
+                <Tooltip content="Configurar tema, layout y estilo del diagrama" position="bottom">
+                  <button
+                    onClick={() => setShowAppearanceEditor(!showAppearanceEditor)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showAppearanceEditor
+                      ? 'bg-white text-blue-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                      </svg>
+                      <span>Apariencia</span>
+                    </div>
+                  </button>
+                </Tooltip>
+              </div>
+
+              {/* Separador */}
+              <div className="h-6 w-px bg-gray-300"></div>
+
+              {/* Grupo de zoom (solo visible cuando hay diagrama) */}
+              {activeTab === 'code' && (
+                <div className="flex items-center gap-1 bg-gray-50 rounded-lg px-2 py-1 border border-gray-200">
+                  <button
+                    onClick={handleZoomOut}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                    title="Reducir zoom"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                    </svg>
+                  </button>
+                  <span className="px-2 text-xs font-mono text-gray-700 min-w-[45px] text-center">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    onClick={handleZoomIn}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                    title="Aumentar zoom"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                  <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                  <button
+                    onClick={handleFitToScreen}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                    title="Ajustar a pantalla"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleResetZoom}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                    title="Restablecer vista (100%)"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Separador */}
+              <div className="h-6 w-px bg-gray-300"></div>
+
+              {/* Grupo de acciones */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5"
+                  title="Exportar diagrama como PNG o PDF"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span>Exportar</span>
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Modo presentación - Pantalla completa"}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isFullscreen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    )}
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Main Content */}
@@ -831,157 +1172,11 @@ export default function DiagramEditorPage() {
 
           {/* Preview */}
           <div className="flex-1 flex flex-col bg-gray-50 relative">
-            {/* Zoom Controls and Export - Only show for diagram view */}
-            {activeTab === 'code' && (
-              <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-white rounded-lg shadow-md p-2 border border-gray-200">
-                <button
-                  onClick={handleZoomIn}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
-                  title="Zoom In"
-                >
-                  <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleZoomOut}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
-                  title="Zoom Out"
-                >
-                  <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleResetZoom}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center"
-                  title="Reset View"
-                >
-                  <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-                <div className="text-xs text-gray-500 text-center px-1 py-1 border-t border-gray-200">
-                  {Math.round(zoom * 100)}%
-                </div>
-
-                {/* Export and Fullscreen Buttons */}
-                <div className="border-t border-gray-200 pt-2 space-y-2">
-                  <button
-                    onClick={() => setShowExportModal(true)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center w-full"
-                    title="Exportar diagrama"
-                  >
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center w-full"
-                    title={isFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
-                  >
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {isFullscreen ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      )}
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Save Status Indicator - Bottom Left */}
-            {saveStatus !== 'idle' && (
-              <div className="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-md border border-gray-200 px-3 py-2">
-                <div className="flex items-center gap-2 text-sm">
-                  {saveStatus === 'saving' && (
-                    <>
-                      <svg className="w-4 h-4 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span className="text-gray-600">Guardando...</span>
-                    </>
-                  )}
-                  {saveStatus === 'saved' && (
-                    <>
-                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-green-600">Guardado</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Floating Action Buttons - Top Left */}
-            <div className="absolute top-4 left-4 z-10 flex flex-row gap-2 bg-white rounded-lg shadow-md p-2 border border-gray-200">
-              {/* Diagram Structure Button */}
-              <button
-                onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
-                className={`floating-sidebar-button p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center ${showFloatingSidebar
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700'
-                  }`}
-                title="Estructura de carpetas y diagramas"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-              </button>
-
-              {/* Code View Button */}
-              <button
-                onClick={() => setShowCodeView(!showCodeView)}
-                className={`floating-code-button p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center ${showCodeView
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700'
-                  }`}
-                title="Código del diagrama (Mermaid/PlantUML)"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                </svg>
-              </button>
-
-              {/* Description View Button */}
-              <button
-                onClick={() => setShowDescriptionView(!showDescriptionView)}
-                className={`floating-description-button p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center ${showDescriptionView
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700'
-                  }`}
-                title="Descripción del diagrama"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </button>
-
-              {/* Appearance Editor Button */}
-              <button
-                onClick={() => setShowAppearanceEditor(!showAppearanceEditor)}
-                className={`floating-appearance-button p-2 hover:bg-gray-100 rounded transition-colors flex items-center justify-center ${showAppearanceEditor
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700'
-                  }`}
-                title="Configurar apariencia (Tema, Layout, Estilo)"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            </div>
 
             {/* Floating Modals */}
             {/* Diagram Structure Modal */}
             {showFloatingSidebar && (
-              <div className="floating-sidebar absolute top-20 left-4 z-30 w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[48rem] overflow-y-auto">
+              <div className="floating-sidebar absolute top-4 left-4 z-30 w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">{project?.name}</h3>
@@ -1234,7 +1429,7 @@ export default function DiagramEditorPage() {
 
             {/* Code View Modal */}
             {showCodeView && (
-              <div className="floating-code absolute top-20 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[48rem] overflow-hidden flex flex-col">
+              <div className="floating-code absolute top-4 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">Código del diagrama</h3>
@@ -1261,7 +1456,7 @@ export default function DiagramEditorPage() {
 
             {/* Description View Modal */}
             {showDescriptionView && (
-              <div className="floating-description absolute top-20 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[48rem] overflow-hidden flex flex-col">
+              <div className="floating-description absolute top-4 left-4 z-30 w-[32rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">Descripción del diagrama</h3>
@@ -1287,8 +1482,8 @@ export default function DiagramEditorPage() {
             )}
 
             {/* Appearance Editor Modal */}
-            {showAppearanceEditor && (
-              <div className="floating-appearance absolute top-20 left-4 z-30 w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto">
+            {showAppearanceEditor && currentDiagram?.diagram_type === 'mermaid' && (
+              <div className="floating-appearance absolute top-4 left-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">Apariencia del diagrama</h3>
@@ -1348,6 +1543,79 @@ export default function DiagramEditorPage() {
               </div>
             )}
 
+            {/* Controles de pantalla completa */}
+            {isFullscreen && (
+              <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+                {/* Indicador de modo pantalla completa */}
+                <div className="bg-black bg-opacity-75 text-white px-3 py-2 rounded-lg text-xs flex items-center gap-2 backdrop-blur-sm">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>Modo Presentación</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-300">Presiona Esc para salir</span>
+                </div>
+
+                {/* Botón para salir */}
+                <button
+                  onClick={() => setIsFullscreen(false)}
+                  className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-lg"
+                  title="Salir de pantalla completa (Esc)"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Controles de zoom flotantes en pantalla completa */}
+            {isFullscreen && activeTab === 'code' && (
+              <div className="absolute bottom-4 right-4 z-50 bg-black bg-opacity-75 backdrop-blur-sm rounded-lg p-2 flex items-center gap-2">
+                <button
+                  onClick={handleZoomOut}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
+                  title="Reducir zoom"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </button>
+                <span className="px-2 text-xs font-mono text-white min-w-[45px] text-center">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  onClick={handleZoomIn}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
+                  title="Aumentar zoom"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+                <div className="w-px h-6 bg-white bg-opacity-30 mx-1"></div>
+                <button
+                  onClick={handleFitToScreen}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
+                  title="Ajustar a pantalla"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleResetZoom}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
+                  title="Restablecer vista (100%)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
             <div
               ref={containerRef}
               className="flex-1 p-8 overflow-hidden"
@@ -1381,6 +1649,93 @@ export default function DiagramEditorPage() {
                 </div>
               )}
             </div>
+
+            {/* Barra de Estado Inferior */}
+            {!isFullscreen && (
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-2">
+                <div className="flex items-center justify-between text-xs">
+                  {/* Información del lado izquierdo */}
+                  <div className="flex items-center gap-4">
+                    {/* Estado de guardado con timestamp */}
+                    <div className="flex items-center gap-1.5">
+                      {saveStatus === 'saving' && (
+                        <>
+                          <svg className="w-3.5 h-3.5 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span className="text-gray-600">Guardando...</span>
+                        </>
+                      )}
+                      {saveStatus === 'saved' && lastSavedTime && (
+                        <>
+                          <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span className="text-green-600">Guardado {getTimeAgo(lastSavedTime)}</span>
+                        </>
+                      )}
+                      {saveStatus === 'idle' && (
+                        <span className="text-gray-400">Sin cambios</span>
+                      )}
+                    </div>
+
+                    {/* Separador */}
+                    <div className="h-3 w-px bg-gray-300"></div>
+
+                    {/* Información del código */}
+                    <div className="flex items-center gap-1 text-gray-500">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                      <span>{diagramCode.split('\n').length} líneas</span>
+                    </div>
+
+                    {/* Información del zoom (solo cuando está visible) */}
+                    {activeTab === 'code' && (
+                      <>
+                        <div className="h-3 w-px bg-gray-300"></div>
+                        <div className="flex items-center gap-1 text-gray-500">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                          </svg>
+                          <span>Zoom: {Math.round(zoom * 100)}%</span>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Tipo de diagrama */}
+                    <div className="h-3 w-px bg-gray-300"></div>
+                    <div className="flex items-center gap-1 text-gray-500">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                      </svg>
+                      <span>
+                        {currentDiagram?.diagram_type === 'mermaid' ? 'Mermaid' : 'PlantUML'}
+                        {currentDiagram?.diagram_type === 'mermaid' && (
+                          <span className="text-gray-400 ml-1">
+                            • {diagramTheme} • {diagramLayout}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Acciones del lado derecho */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => navigate(`/projects/${projectId}`)}
+                      className="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <span>Ver proyecto</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
