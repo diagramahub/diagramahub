@@ -1161,7 +1161,7 @@ export default function DiagramEditorPage() {
                   <textarea
                     value={diagramCode}
                     onChange={(e) => setDiagramCode(e.target.value)}
-                    className="w-full h-full font-mono text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full h-full min-h-[500px] font-mono text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     placeholder="graph TD&#10;  A[Inicio] --> B[Proceso]&#10;  B --> C[Fin]"
                   />
                 </div>
