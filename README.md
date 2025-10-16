@@ -26,8 +26,8 @@ You'll be able to try Diagramahub live on [diagramahub.com](https://diagramahub.
 ## ⚙️ Features
 
 ✅ Create diagrams using plain text (Mermaid, PlantUML, etc.)  
-✅ Organize diagrams by tags, folders or projects  
-✅ Export as PNG, SVG or Markdown  
+✅ Organize diagrams by project, folders and **tags**  
+✅ Export as PNG, SVG, **Markdown**  
 ✅ Easy to deploy: Docker-ready  
 ✅ Self-host or extend freely  
 ✅ Apache 2.0 licensed
@@ -60,7 +60,7 @@ diagramahub/
 │   ├── Dockerfile
 │   ├── pyproject.toml            # Poetry dependencies
 │   └── .env.template
-├── frontend/                     # React + Vite (coming next)
+├── frontend/                     # React + Vite + TypeScript
 ├── docker-compose.yml
 ├── LICENSE
 └── README.md
@@ -118,6 +118,19 @@ chmod +x test-api.sh
 
 ---
 
+### Diagram Management
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/v1/projects/{project_id}/diagrams` | Create a new diagram | Yes |
+| GET | `/api/v1/diagrams/{diagram_id}` | Get diagram by ID | Yes |
+| PUT | `/api/v1/diagrams/{diagram_id}` | Update a diagram | Yes |
+| DELETE | `/api/v1/diagrams/{diagram_id}` | Delete a diagram | Yes |
+| GET | `/api/v1/diagrams/{diagram_id}/export/markdown` | Export diagram as Markdown | Yes |
+| GET | `/api/v1/diagrams/search/tags?tags=tag1,tag2&project_id={project_id}` | Search diagrams by tags | Yes |
+
+---
+
 ## 💻 Development Mode
 
 ### Backend (FastAPI + Poetry)
@@ -145,8 +158,6 @@ poetry run uvicorn app.main:app --reload
 
 ### Frontend (React + Vite)
 
-**Coming soon!** Frontend setup will be added in the next phase.
-
 ```bash
 cd frontend
 npm install
@@ -157,46 +168,46 @@ npm run dev
 
 ## 📝 Project Status
 
-### ✅ Completado (Backend)
+### ✅ Completed (Backend)
 
-- ✅ Arquitectura modular con principios SOLID
-- ✅ FastAPI con MongoDB + Beanie ODM
-- ✅ Autenticación completa con JWT
-- ✅ Sistema de registro de usuarios
-- ✅ Login y logout
-- ✅ Cambio de contraseña autenticado
-- ✅ Sistema de reset de contraseña con tokens
-- ✅ Validaciones robustas con Pydantic
-- ✅ Hash seguro de contraseñas con BCrypt
-- ✅ Docker y Docker Compose configurados
-- ✅ Documentación interactiva (Swagger/ReDoc)
-- ✅ Script de pruebas automatizadas
-- ✅ Variables de entorno configurables
-- ✅ CORS configurado
+- ✅ Modular architecture with SOLID principles
+- ✅ FastAPI with MongoDB + Beanie ODM
+- ✅ Complete JWT authentication
+- ✅ User registration system
+- ✅ Login and logout
+- ✅ Authenticated password change
+- ✅ Password reset system with tokens
+- ✅ Robust validations with Pydantic
+- ✅ Secure password hashing with BCrypt
+- ✅ Docker and Docker Compose configured
+- ✅ Interactive documentation (Swagger/ReDoc)
+- ✅ Automated testing script
+- ✅ Configurable environment variables
+- ✅ CORS configured
 - ✅ Health checks
 
-### ✅ Completado (Frontend)
+### ✅ Completed (Frontend)
 
 - ✅ React 18 + TypeScript + Vite
-- ✅ TailwindCSS para estilos
-- ✅ React Router para navegación
-- ✅ Context API para autenticación global
-- ✅ Axios con interceptores automáticos
-- ✅ Páginas de Login, Register y Dashboard
-- ✅ Rutas protegidas con PrivateRoute
-- ✅ Hot reload configurado
+- ✅ TailwindCSS for styling
+- ✅ React Router for navigation
+- ✅ Context API for global authentication
+- ✅ Axios with automatic interceptors
+- ✅ Login, Register and Dashboard pages
+- ✅ Protected routes with PrivateRoute
+- ✅ Hot reload configured
 
-### ✅ Completado (Testing)
+### ✅ Completed (Testing)
 
-- ✅ Suite de tests con pytest
-- ✅ Tests de integración para todos los endpoints
-- ✅ Fixtures compartidos y reutilizables
+- ✅ Test suite with pytest
+- ✅ Integration tests for all endpoints
+- ✅ Shared and reusable fixtures
 - ✅ Coverage reports (HTML, terminal, XML)
-- ✅ Test isolation con base de datos de prueba
-- ✅ Faker para datos aleatorios
-- ✅ Marcadores de tests (unit, integration, slow)
+- ✅ Test isolation with test database
+- ✅ Faker for random data
+- ✅ Test markers (unit, integration, slow)
 
-### 🚧 En Progreso
+### 🚧 In Progress
 
 - ⏳ Frontend tests (Jest + React Testing Library)
 - ⏳ CI/CD pipeline
@@ -229,57 +240,92 @@ See [backend/.env.template](backend/.env.template) for all variables.
 
 ### SOLID Principles
 
-El backend está diseñado siguiendo los principios SOLID:
+The backend is designed following SOLID principles:
 
 **Single Responsibility Principle (SRP)**
-- Cada módulo tiene una responsabilidad única y bien definida
-- `routes.py` → Manejo de HTTP requests
-- `schemas.py` → Validación de datos
-- `services.py` → Lógica de negocio
-- `repository.py` → Acceso a datos
+- Each module has a single, well-defined responsibility
+- `interfaces.py` → Contracts (interfaces)
+- `routes.py` → HTTP request handling
+- `schemas.py` → Data validation
+- `services.py` → Business logic
+- `repository.py` → Data access
 
 **Open/Closed Principle (OCP)**
-- El código está abierto para extensión pero cerrado para modificación
-- Uso de interfaces y abstracciones
+- Code is open for extension but closed for modification
+- Use of interfaces and abstractions
 
 **Liskov Substitution Principle (LSP)**
-- Las implementaciones pueden ser sustituidas por sus interfaces
+- Implementations can be substituted for their interfaces
 
 **Interface Segregation Principle (ISP)**
-- Interfaces específicas (`IUserRepository`) en lugar de interfaces generales
+- Specific interfaces (`IUserRepository`) instead of general interfaces
 
 **Dependency Inversion Principle (DIP)**
-- Los servicios dependen de abstracciones, no de implementaciones concretas
-- `UserService` depende de `IUserRepository`, no de `UserRepository`
+- Services depend on abstractions, not concrete implementations
+- `UserService` depends on `IUserRepository`, not `UserRepository`
+
+### Interfaces.py as SRP Example
+
+The `interfaces.py` file is a perfect example of the **Single Responsibility Principle** in action:
+
+```python
+class IDiagramRepository(ABC):
+    """Abstract interface for diagram data access."""
+
+    @abstractmethod
+    async def create(self, diagram_data: DiagramCreate, project_id: str) -> DiagramInDB:
+        """Create a new diagram."""
+        pass
+
+    @abstractmethod
+    async def get_by_id(self, diagram_id: str) -> Optional[DiagramInDB]:
+        """Get diagram by ID."""
+        pass
+
+    # ... other methods
+```
+
+**Why this demonstrates SRP:**
+- **Single Purpose**: The interface defines *only* the contract for data access operations
+- **No Implementation**: Contains no business logic, validation, or data transformation
+- **Clear Boundaries**: Separates "what" (interface contract) from "how" (implementation details)
+- **Testability**: Allows easy mocking and testing of dependent services
+- **Flexibility**: Enables multiple implementations (MongoDB, PostgreSQL, in-memory) without changing dependent code
+
+This separation ensures that:
+- **Repository implementations** focus solely on data persistence
+- **Services** focus solely on business logic
+- **Routes** focus solely on HTTP request/response handling
+- **Schemas** focus solely on data validation and serialization
 
 ### Modular Structure
 
 ```
 api/v1/users/
-├── interfaces.py   # Contratos (IUserRepository)
-├── repository.py   # Implementación de acceso a datos
-├── services.py     # Lógica de negocio
-├── schemas.py      # Modelos y validaciones
-└── routes.py       # Endpoints HTTP
+├── interfaces.py   # Contracts (IUserRepository)
+├── repository.py   # Data access implementation
+├── services.py     # Business logic
+├── schemas.py      # Models and validations
+└── routes.py       # HTTP endpoints
 ```
 
-Esta estructura permite:
-- Fácil testing (mocking de repositorios)
-- Escalabilidad (agregar nuevos módulos sin afectar existentes)
-- Mantenibilidad (responsabilidades claras)
-- Reusabilidad (servicios independientes)
+This structure allows:
+- Easy testing (repository mocking)
+- Scalability (add new modules without affecting existing ones)
+- Maintainability (clear responsibilities)
+- Reusability (independent services)
 
 ---
 
 ## 🔒 Security Features
 
-- **JWT Authentication**: Tokens seguros para autenticación stateless
-- **Password Hashing**: BCrypt con salt automático
-- **Password Validation**: Requisitos mínimos de seguridad
-- **Token Expiration**: Tokens con tiempo de vida limitado
-- **CORS Protection**: Orígenes configurables
-- **Input Validation**: Pydantic valida todos los inputs
-- **SQL Injection Prevention**: MongoDB + ODM previene inyecciones
+- **JWT Authentication**: Secure tokens for stateless authentication
+- **Password Hashing**: BCrypt with automatic salt
+- **Password Validation**: Minimum security requirements
+- **Token Expiration**: Tokens with limited lifetime
+- **CORS Protection**: Configurable origins
+- **Input Validation**: Pydantic validates all inputs
+- **SQL Injection Prevention**: MongoDB + ODM prevents injections
 
 ---
 
@@ -287,24 +333,24 @@ Esta estructura permite:
 
 ### Pytest Test Suite (Recommended)
 
-El proyecto incluye una suite completa de tests con **pytest**:
+The project includes a complete test suite with **pytest**:
 
 ```bash
-# Ejecutar todos los tests con coverage
+# Run all tests with coverage
 docker exec diagramahub-backend poetry run pytest
 
-# O usar el script helper
+# Or use the script helper
 docker exec diagramahub-backend ./run-tests.sh
 
-# Ejecutar solo tests de integración
+# Run only integration tests
 docker exec diagramahub-backend poetry run pytest -m integration
 
-# Ejecutar tests rápidos (sin coverage)
+# Run fast tests (without coverage)
 docker exec diagramahub-backend poetry run pytest -v --no-cov
 
-# Ver reporte de coverage en HTML
+# View coverage report in HTML
 docker exec diagramahub-backend poetry run pytest --cov=app --cov-report=html
-# Abre: backend/htmlcov/index.html
+# Open: backend/htmlcov/index.html
 ```
 
 **Test Coverage:**
@@ -327,13 +373,13 @@ backend/tests/
 ### Legacy Shell Script Tests
 
 ```bash
-# Script de pruebas básicas (bash)
+# Basic test script (bash)
 ./test-api.sh
 ```
 
 ### Manual Testing
 
-Accede a la documentación interactiva:
+Access the interactive documentation:
 - Swagger UI: http://localhost:5172/docs
 - ReDoc: http://localhost:5172/redoc
 
@@ -341,30 +387,78 @@ Accede a la documentación interactiva:
 
 ## 📚 Documentation
 
-- **[Setup Guide](SETUP.md)** - Guía detallada de instalación
-- **[Backend README](backend/README.md)** - Documentación del backend
-- **[API Docs (Swagger)](http://localhost:8000/docs)** - Documentación interactiva
-- **[API Docs (ReDoc)](http://localhost:8000/redoc)** - Documentación alternativa
+- **[Setup Guide](SETUP.md)** - Detailed installation guide
+- **[Backend README](backend/README.md)** - Backend documentation
+- **[API Docs (Swagger)](http://localhost:8000/docs)** - Interactive documentation
+- **[API Docs (ReDoc)](http://localhost:8000/redoc)** - Alternative documentation
 
 ---
 
 ## 🤝 Contributing
 
-¡Las contribuciones son bienvenidas! Por favor:
+Contributions are welcome! Please:
 
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+1. Fork the repository
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ### Development Guidelines
 
-- Sigue los principios SOLID
-- Escribe tests para nuevas funcionalidades
-- Documenta tu código
-- Usa type hints en Python
-- Mantén la arquitectura modular
+- Follow SOLID principles
+- Write tests for new functionalities
+- Document your code
+- Use type hints in Python
+- Maintain modular architecture
+
+---
+
+## 🙌 Acknowledgments
+
+We'd like to thank all the amazing open-source libraries and tools that make Diagramahub possible:
+
+### Backend Libraries
+- **[FastAPI](https://fastapi.tiangolo.com/)** - Modern, fast web framework for building APIs with Python 3.7+
+- **[Uvicorn](https://www.uvicorn.org/)** - Lightning-fast ASGI server
+- **[Beanie](https://beanie-odm.dev/)** - Python ODM for MongoDB
+- **[Motor](https://motor.readthedocs.io/)** - Non-blocking MongoDB driver for Python
+- **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation and settings management using Python type annotations
+- **[Python-JOSE](https://python-jose.readthedocs.io/)** - JSON Web Token implementation in Python
+- **[Passlib](https://passlib.readthedocs.io/)** - Password hashing library
+- **[BCrypt](https://pypi.org/project/bcrypt/)** - Modern password hashing for your software
+- **[Email-Validator](https://pypi.org/project/email-validator/)** - Robust email address syntax and deliverability validation
+
+### Backend Development Tools
+- **[Poetry](https://python-poetry.org/)** - Dependency management and packaging
+- **[Pytest](https://pytest.org/)** - Simple and powerful testing framework
+- **[Black](https://black.readthedocs.io/)** - The uncompromising Python code formatter
+- **[Ruff](https://beta.ruff.rs/)** - An extremely fast Python linter
+- **[MyPy](https://mypy-lang.org/)** - Optional static typing for Python
+
+### Frontend Libraries
+- **[React](https://reactjs.org/)** - A JavaScript library for building user interfaces
+- **[Vite](https://vitejs.dev/)** - Next generation frontend tooling
+- **[TypeScript](https://www.typescriptlang.org/)** - Typed superset of JavaScript
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
+- **[React Router](https://reactrouter.com/)** - Declarative routing for React
+- **[Axios](https://axios-http.com/)** - Promise based HTTP client
+- **[Monaco Editor](https://microsoft.github.io/monaco-editor/)** - The code editor that powers VS Code
+- **[Mermaid](https://mermaid-js.github.io/)** - Generation of diagram and flowchart from text
+- **[PlantUML Encoder](https://plantuml.com/)** - Text-to-diagram tool
+- **[EasyMDE](https://github.com/Ionaru/easy-markdown-editor)** - Simple, beautiful and embeddable JavaScript Markdown editor
+- **[React Markdown](https://github.com/remarkjs/react-markdown)** - React component for rendering markdown
+- **[HTML2Canvas](https://html2canvas.hertzen.com/)** - Screenshots with JavaScript
+- **[jsPDF](https://parallax.github.io/jsPDF/)** - Client-side JavaScript PDF generation
+
+### Frontend Development Tools
+- **[ESLint](https://eslint.org/)** - Tool for identifying and reporting patterns in ECMAScript/JavaScript code
+- **[PostCSS](https://postcss.org/)** - Tool for transforming CSS with JavaScript
+- **[Autoprefixer](https://autoprefixer.github.io/)** - PostCSS plugin to parse CSS and add vendor prefixes
+
+### Infrastructure
+- **[Docker](https://www.docker.com/)** - Platform for developing, shipping, and running applications
+- **[MongoDB](https://www.mongodb.com/)** - Document database
 
 ---
 
@@ -379,15 +473,6 @@ You are free to use, modify and distribute the software, even commercially, as l
 
 We welcome contributions!  
 To get started:
-
-1. Fork the repo
-2. Create a branch (`feature/my-feature`)
-3. Commit your changes
-4. Open a PR
-
-Read our [contribution guidelines](CONTRIBUTING.md) _(coming soon)_.
-
----
 
 ## 🔮 About the Cloud Version
 
