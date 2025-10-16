@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import mermaid from 'mermaid';
 import plantumlEncoder from 'plantuml-encoder';
 import ReactMarkdown from 'react-markdown';
@@ -9,7 +10,6 @@ import SimpleMDE from 'react-simplemde-editor';
 import 'easymde/dist/easymde.min.css';
 import api from '../services/api';
 import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest, createMermaidConfig, createPlantUMLConfig } from '../types/project';
-import Navbar from '../components/Navbar';
 import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -18,6 +18,7 @@ import Tooltip from '../components/Tooltip';
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [project, setProject] = useState<ProjectWithDiagrams | null>(null);
   const [currentDiagram, setCurrentDiagram] = useState<Diagram | null>(null);
   const [diagramCode, setDiagramCode] = useState('graph TD\n  A[Start] --> B[End]');
@@ -925,16 +926,29 @@ export default function DiagramEditorPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {!isFullscreen && (
-        <Navbar showBackToDashboard />
-      )}
-
-      {/* Toolbar Contextual Unificado */}
+      {/* Navbar Unificado */}
       {!isFullscreen && (
         <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-4 py-2.5">
             {/* Breadcrumbs y contexto */}
             <div className="flex items-center gap-2">
+              {/* Home - Dashboard */}
+              <Tooltip content="Ir al Dashboard" position="bottom">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </button>
+              </Tooltip>
+
+              {/* Separador */}
+              <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+
               {/* Proyecto */}
               <Tooltip content="Volver al proyecto" position="bottom">
                 <button
@@ -951,23 +965,50 @@ export default function DiagramEditorPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
 
-              {/* Carpeta (si existe) */}
-              {selectedFolderId && project?.folders && (() => {
+              {/* Carpeta o Raíz */}
+              {selectedFolderId && project?.folders ? (() => {
                 const folder = project.folders.find(f => f.id === selectedFolderId);
                 return folder ? (
                   <>
-                    <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: `${folder.color}15` }}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      <span className="text-sm font-medium" style={{ color: folder.color }}>{folder.name}</span>
-                    </div>
+                    <Tooltip content="Ver diagramas en esta carpeta" position="bottom">
+                      <button
+                        onClick={() => {
+                          // Expandir la carpeta y abrir el modal
+                          setExpandedFolders(new Set([selectedFolderId]));
+                          setShowFloatingSidebar(true);
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: `${folder.color}15` }}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <span className="text-sm font-medium" style={{ color: folder.color }}>{folder.name}</span>
+                      </button>
+                    </Tooltip>
                     <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </>
                 ) : null;
-              })()}
+              })() : (
+                <>
+                  <Tooltip content="Ver todos los diagramas del proyecto" position="bottom">
+                    <button
+                      onClick={() => setShowFloatingSidebar(true)}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                      <span className="text-sm font-medium text-gray-600">/</span>
+                    </button>
+                  </Tooltip>
+                  <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </>
+              )}
 
               {/* Título del diagrama editable */}
               {isEditingDiagramTitle ? (
@@ -1007,27 +1048,10 @@ export default function DiagramEditorPage() {
                 {currentDiagram?.diagram_type === 'mermaid' ? '🧜‍♀️ Mermaid' : '🌱 PlantUML'}
               </span>
             </div>
-
             {/* Controles centrales */}
             <div className="flex items-center gap-4">
               {/* Grupo de paneles */}
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <Tooltip content="Ver estructura del proyecto." position="bottom">
-                  <button
-                    onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showFloatingSidebar
-                      ? 'bg-white text-blue-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      <span>Estructura</span>
-                    </div>
-                  </button>
-                </Tooltip>
                 <Tooltip content="Editar código del diagrama (Mermaid/PlantUML)" position="bottom">
                   <button
                     onClick={() => setShowCodeView(!showCodeView)}
@@ -1115,15 +1139,6 @@ export default function DiagramEditorPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                     </svg>
                   </button>
-                  <button
-                    onClick={handleResetZoom}
-                    className="p-1 hover:bg-white rounded transition-colors"
-                    title="Restablecer vista (100%)"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
                 </div>
               )}
 
@@ -1132,29 +1147,66 @@ export default function DiagramEditorPage() {
 
               {/* Grupo de acciones */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowExportModal(true)}
-                  className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5"
-                  title="Exportar diagrama como PNG o PDF"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span>Exportar</span>
-                </button>
-                <button
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                  title={isFullscreen ? "Salir de pantalla completa (Esc)" : "Modo presentación - Pantalla completa"}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {isFullscreen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    )}
-                  </svg>
-                </button>
+                <Tooltip content="Exportar como PNG o PDF" position="bottom">
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span>Exportar</span>
+                  </button>
+                </Tooltip>
+                <Tooltip content={isFullscreen ? "Salir de pantalla completa (Esc)" : "Modo presentación"} position="bottom">
+                  <button
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isFullscreen ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      )}
+                    </svg>
+                  </button>
+                </Tooltip>
+
+                {/* Separador */}
+                <div className="h-6 w-px bg-gray-300 mx-2"></div>
+
+                {/* Avatar y usuario */}
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                    {(() => {
+                      if (user?.full_name) {
+                        const names = user.full_name.trim().split(' ');
+                        if (names.length >= 2) {
+                          return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+                        }
+                        return names[0].substring(0, 2).toUpperCase();
+                      }
+                      if (user?.email) {
+                        return user.email.substring(0, 2).toUpperCase();
+                      }
+                      return 'U';
+                    })()}
+                  </div>
+                  <Tooltip content="Cerrar sesión" position="bottom">
+                    <button
+                      onClick={() => {
+                        logout();
+                        navigate('/login');
+                      }}
+                      className="p-1.5 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                    </button>
+                  </Tooltip>
+                </div>
               </div>
             </div>
           </div>
