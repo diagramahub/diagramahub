@@ -387,8 +387,8 @@ export default function DiagramEditorPage() {
       }
     };
 
-    // Longer debounce for viewport changes (only save after user stops moving for 2 seconds)
-    const debounce = setTimeout(saveViewport, 2000);
+    // Longer debounce for viewport changes (only save after user stops moving for 1 second)
+    const debounce = setTimeout(saveViewport, 1000);
     return () => clearTimeout(debounce);
   }, [zoom, pan]);
 
@@ -856,9 +856,9 @@ export default function DiagramEditorPage() {
               </div>
             )}
 
-            {/* Save Status Indicator - Top Right */}
+            {/* Save Status Indicator - Bottom Left */}
             {saveStatus !== 'idle' && (
-              <div className="absolute top-4 right-4 z-20 bg-white rounded-lg shadow-md border border-gray-200 px-3 py-2">
+              <div className="absolute bottom-4 left-4 z-20 bg-white rounded-lg shadow-md border border-gray-200 px-3 py-2">
                 <div className="flex items-center gap-2 text-sm">
                   {saveStatus === 'saving' && (
                     <>
