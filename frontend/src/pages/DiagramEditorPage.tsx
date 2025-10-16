@@ -1188,7 +1188,7 @@ export default function DiagramEditorPage() {
                   <textarea
                     value={diagramDescription}
                     onChange={(e) => setDiagramDescription(e.target.value)}
-                    className="w-full h-full text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full h-full min-h-[500px] text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     placeholder="Describe tu diagrama aquí..."
                   />
                 </div>
@@ -1212,72 +1212,6 @@ export default function DiagramEditorPage() {
                   </div>
                 </div>
                 <div className="p-4 space-y-4">
-                  {/* Diagram Title */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                    <input
-                      type="text"
-                      value={diagramTitle}
-                      onChange={(e) => setDiagramTitle(e.target.value)}
-                      className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Título del diagrama"
-                    />
-                  </div>
-
-                  {/* Diagram Type */}
-                  {currentDiagram && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                      <div className={`px-3 py-2 rounded-md text-sm font-medium ${currentDiagram.diagram_type === 'plantuml'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-blue-100 text-blue-700'
-                        }`}>
-                        {currentDiagram.diagram_type === 'plantuml' ? '🌱 PlantUML' : '🧜‍♀️ Mermaid'}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Folder Selector */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Carpeta</label>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={selectedFolderId || ''}
-                        onChange={async (e) => {
-                          const newFolderId = e.target.value || null;
-                          setSelectedFolderId(newFolderId);
-
-                          if (currentDiagram) {
-                            try {
-                              await api.updateDiagram(currentDiagram.id, {
-                                folder_id: newFolderId,
-                              });
-                              await loadProject();
-                            } catch (err) {
-                              console.error('Error moving diagram to folder:', err);
-                            }
-                          }
-                        }}
-                        className="flex-1 text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">Sin carpeta</option>
-                        {project?.folders.map(folder => (
-                          <option key={folder.id} value={folder.id}>
-                            {folder.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => setShowNewFolderModal(true)}
-                        className="p-2 text-gray-400 hover:text-green-600 rounded"
-                        title="Nueva carpeta"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
 
                   {/* Mermaid Configuration */}
                   {currentDiagram?.diagram_type === 'mermaid' && (
