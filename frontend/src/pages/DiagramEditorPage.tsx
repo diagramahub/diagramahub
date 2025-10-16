@@ -117,6 +117,8 @@ export default function DiagramEditorPage() {
   }, []);
 
   // Delete confirmation modal state
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState('');
   const [deleteFolderModal, setDeleteFolderModal] = useState<{ isOpen: boolean; folderId: string | null; folderName: string; diagramCount: number }>({
     isOpen: false,
     folderId: null,
@@ -677,6 +679,29 @@ export default function DiagramEditorPage() {
     }
   };
 
+  const handleEditFolder = (folderId: string, currentName: string) => {
+    setEditingFolderId(folderId);
+    setEditingFolderName(currentName);
+  };
+
+  const handleSaveFolderEdit = async () => {
+    if (!editingFolderId || !editingFolderName.trim()) return;
+
+    try {
+      await api.updateFolder(editingFolderId, { name: editingFolderName.trim() });
+      await loadProject();
+      setEditingFolderId(null);
+      setEditingFolderName('');
+    } catch (err) {
+      console.error('Error updating folder:', err);
+    }
+  };
+
+  const handleCancelFolderEdit = () => {
+    setEditingFolderId(null);
+    setEditingFolderName('');
+  };
+
   const handleDeleteFolder = (folderId: string, folderName: string, diagramCount: number) => {
     setDeleteFolderModal({
       isOpen: true,
@@ -1041,43 +1066,109 @@ export default function DiagramEditorPage() {
                       >
                         <div className={`flex items-center gap-1 rounded transition-colors ${dropTargetFolderId === folder.id ? 'bg-blue-100' : ''
                           }`}>
-                          <button
-                            onClick={() => toggleFolder(folder.id)}
-                            className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
-                          >
-                            <svg
-                              className={`w-4 h-4 flex-shrink-0 transition-transform ${expandedFolders.has(folder.id) ? 'rotate-90' : ''
-                                }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                            </svg>
-                            <span className="truncate font-medium">{folder.name}</span>
-                            <span className="text-xs text-gray-400">({folder.diagrams.length})</span>
-                          </button>
-                          <button
-                            onClick={() => handleNewDiagram(folder.id)}
-                            className="p-1 text-gray-400 hover:text-green-600 rounded"
-                            title="Nuevo diagrama en esta carpeta"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFolder(folder.id, folder.name, folder.diagrams.length)}
-                            className="p-1 text-gray-400 hover:text-red-600 rounded"
-                            title="Eliminar carpeta"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          {editingFolderId === folder.id ? (
+                            <div className="flex-1 flex items-center gap-2 px-3 py-2">
+                              <svg
+                                className={`w-4 h-4 flex-shrink-0 transition-transform`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                              </svg>
+                              <input
+                                type="text"
+                                value={editingFolderName}
+                                onChange={(e) => setEditingFolderName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveFolderEdit();
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelFolderEdit();
+                                  }
+                                }}
+                                className="flex-1 text-sm font-medium border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSaveFolderEdit();
+                                }}
+                                className="p-1 text-green-600 hover:text-green-700 rounded"
+                                title="Guardar"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCancelFolderEdit();
+                                }}
+                                className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                                title="Cancelar"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => toggleFolder(folder.id)}
+                                className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded transition-colors"
+                              >
+                                <svg
+                                  className={`w-4 h-4 flex-shrink-0 transition-transform ${expandedFolders.has(folder.id) ? 'rotate-90' : ''
+                                    }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span className="truncate font-medium">{folder.name}</span>
+                                <span className="text-xs text-gray-400">({folder.diagrams.length})</span>
+                              </button>
+                              <button
+                                onClick={() => handleNewDiagram(folder.id)}
+                                className="p-1 text-gray-400 hover:text-green-600 rounded"
+                                title="Nuevo diagrama en esta carpeta"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleEditFolder(folder.id, folder.name)}
+                                className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                                title="Editar nombre de carpeta"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteFolder(folder.id, folder.name, folder.diagrams.length)}
+                                className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                title="Eliminar carpeta"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
 
                         {expandedFolders.has(folder.id) && (
