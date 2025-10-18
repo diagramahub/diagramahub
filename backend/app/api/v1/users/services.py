@@ -15,6 +15,7 @@ from app.api.v1.users.schemas import (
     ResetPasswordRequest,
     Token,
     UserCreate,
+    UserUpdate,
     UserInDB,
     UserResponse,
 )
@@ -213,3 +214,28 @@ class UserService:
             User information or None
         """
         return await self.repository.get_by_email(email)
+
+    async def update_user_profile(
+        self, user_email: str, update_data: UserUpdate
+    ) -> Optional[UserInDB]:
+        """
+        Update user profile information.
+
+        Args:
+            user_email: Email of authenticated user
+            update_data: Updated user data (full_name, profile_picture)
+
+        Returns:
+            Updated user information
+
+        Raises:
+            HTTPException: If user not found
+        """
+        user = await self.repository.get_by_email(user_email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        return await self.repository.update_profile(str(user.id), update_data)

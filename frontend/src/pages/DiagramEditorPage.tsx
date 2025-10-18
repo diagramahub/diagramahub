@@ -98,6 +98,9 @@ export default function DiagramEditorPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
 
+  // Current time state (updates every second)
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
   // Collapsible panels state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
@@ -133,6 +136,15 @@ export default function DiagramEditorPage() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Update current time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // Update every second
+
+    return () => clearInterval(interval);
   }, []);
 
   // Update time ago display every minute
@@ -1039,15 +1051,6 @@ export default function DiagramEditorPage() {
                   </button>
                 </Tooltip>
               )}
-              <span
-                className={`ml-2 px-2 py-0.5 text-xs rounded-full ${currentDiagram?.diagram_type === 'mermaid'
-                  ? 'bg-pink-100 text-pink-700'
-                  : 'bg-green-100 text-green-700'
-                  }`}
-                title={`Tipo de diagrama: ${currentDiagram?.diagram_type === 'mermaid' ? 'Mermaid' : 'PlantUML'}`}
-              >
-                {currentDiagram?.diagram_type === 'mermaid' ? '🧜‍♀️ Mermaid' : '🌱 PlantUML'}
-              </span>
             </div>
             {/* Controles centrales */}
             <div className="flex items-center gap-4">
@@ -1178,21 +1181,29 @@ export default function DiagramEditorPage() {
 
                 {/* Avatar y usuario */}
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                    {(() => {
-                      if (user?.full_name) {
-                        const names = user.full_name.trim().split(' ');
-                        if (names.length >= 2) {
-                          return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+                  {user?.profile_picture ? (
+                    <img
+                      src={user.profile_picture}
+                      alt="Foto de perfil"
+                      className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
+                      {(() => {
+                        if (user?.full_name) {
+                          const names = user.full_name.trim().split(' ');
+                          if (names.length >= 2) {
+                            return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+                          }
+                          return names[0].substring(0, 2).toUpperCase();
                         }
-                        return names[0].substring(0, 2).toUpperCase();
-                      }
-                      if (user?.email) {
-                        return user.email.substring(0, 2).toUpperCase();
-                      }
-                      return 'U';
-                    })()}
-                  </div>
+                        if (user?.email) {
+                          return user.email.substring(0, 2).toUpperCase();
+                        }
+                        return 'U';
+                      })()}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1760,17 +1771,29 @@ export default function DiagramEditorPage() {
                     </div>
                   </div>
 
-                  {/* Acciones del lado derecho */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => navigate(`/projects/${projectId}`)}
-                      className="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      <span>Ver proyecto</span>
-                    </button>
+                  {/* Fecha y hora actual con timezone del usuario */}
+                  <div className="flex items-center gap-2">
+                    <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-gray-600">
+                      {currentTime.toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                        timeZone: user?.timezone || 'UTC'
+                      })}
+                    </span>
+                    <span className="text-xs text-gray-400">•</span>
+                    <span className="text-xs text-gray-500">
+                      {currentTime.toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        timeZone: user?.timezone || 'UTC'
+                      })}
+                    </span>
                   </div>
                 </div>
               </div>

@@ -6,7 +6,8 @@ import {
   User,
   ChangePasswordRequest,
   ResetPasswordRequest,
-  ResetPasswordConfirm
+  ResetPasswordConfirm,
+  UpdateProfileRequest
 } from '../types/auth';
 import {
   Project,
@@ -75,6 +76,11 @@ class ApiService {
 
   async getCurrentUser(): Promise<User> {
     const response = await this.api.get<User>('/api/v1/users/me');
+    return response.data;
+  }
+
+  async updateProfile(data: UpdateProfileRequest): Promise<User> {
+    const response = await this.api.put<User>('/api/v1/users/me', data);
     return response.data;
   }
 
@@ -169,4 +175,6 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;
+export { apiService };

@@ -25,12 +25,20 @@ You'll be able to try Diagramahub live on [diagramahub.com](https://diagramahub.
 
 ## ⚙️ Features
 
-✅ Create diagrams using plain text (Mermaid, PlantUML, etc.)  
-✅ Organize diagrams by project, folders and **tags**  
-✅ Export as PNG, SVG, **Markdown**  
-✅ Easy to deploy: Docker-ready  
-✅ Self-host or extend freely  
+### Core Features
+✅ Create diagrams using plain text (Mermaid, PlantUML, etc.)
+✅ Organize diagrams by project, folders and **tags**
+✅ Export as PNG, SVG, **Markdown**
+✅ Easy to deploy: Docker-ready
+✅ Self-host or extend freely
 ✅ Apache 2.0 licensed
+
+### User Profile & Customization
+✅ **Profile Picture with Base64 Storage** - Upload and manage your profile picture (stored as Base64 in MongoDB)
+✅ **Timezone Selection** - Choose from 21 global timezones for personalized date/time display
+✅ **Real-time Clock** - Live clock in the diagram editor showing time in your selected timezone
+✅ **Password Management** - Change password with secure validation
+✅ **User Settings** - Manage personal information and preferences
 
 > Future roadmap includes:
 > - Real-time collaboration
@@ -103,18 +111,24 @@ chmod +x test-api.sh
 
 ## 📡 Backend API Endpoints
 
-### User Authentication
+### User Authentication & Profile
 
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
 | POST | `/api/v1/users/register` | Register new user | No |
 | POST | `/api/v1/users/login` | Login & get JWT token | No |
 | GET | `/api/v1/users/me` | Get current user info | Yes |
+| PUT | `/api/v1/users/me` | Update user profile (name, picture, timezone) | Yes |
 | PUT | `/api/v1/users/change-password` | Change password (authenticated) | Yes |
 | POST | `/api/v1/users/reset-password-request` | Request password reset token | No |
 | POST | `/api/v1/users/reset-password-confirm` | Confirm password reset | No |
 
 **Authentication:** Include JWT token in `Authorization: Bearer <token>` header
+
+**Profile Update Fields:**
+- `full_name` (string, optional) - User's full name
+- `profile_picture` (string, optional) - Base64 encoded image (max 2MB)
+- `timezone` (string, optional) - IANA timezone identifier (e.g., "America/Mexico_City")
 
 ---
 
@@ -175,6 +189,9 @@ npm run dev
 - ✅ Complete JWT authentication
 - ✅ User registration system
 - ✅ Login and logout
+- ✅ User profile management (full name, picture, timezone)
+- ✅ Profile picture storage with Base64 in MongoDB
+- ✅ Timezone preference storage (21 global timezones)
 - ✅ Authenticated password change
 - ✅ Password reset system with tokens
 - ✅ Robust validations with Pydantic
@@ -194,6 +211,13 @@ npm run dev
 - ✅ Context API for global authentication
 - ✅ Axios with automatic interceptors
 - ✅ Login, Register and Dashboard pages
+- ✅ User profile page with edit functionality
+- ✅ Profile picture upload with preview and validation
+- ✅ Timezone selector with 21 global options
+- ✅ Real-time clock in diagram editor (timezone-aware)
+- ✅ Password change functionality
+- ✅ Settings page (coming soon preview)
+- ✅ Dropdown user menu with navigation
 - ✅ Protected routes with PrivateRoute
 - ✅ Hot reload configured
 
@@ -382,6 +406,127 @@ backend/tests/
 Access the interactive documentation:
 - Swagger UI: http://localhost:5172/docs
 - ReDoc: http://localhost:5172/redoc
+
+---
+
+## 👤 User Profile & Customization
+
+DiagramaHub includes a comprehensive user profile system with personalization options:
+
+### Profile Picture Management
+
+**Upload and Display Profile Pictures**
+- Upload images in JPG, PNG, or GIF format (max 2MB)
+- Images are automatically converted to Base64 and stored in MongoDB
+- No external cloud storage required - complete data ownership
+- Profile picture appears in:
+  - User menu (navbar)
+  - Profile page
+  - Diagram editor toolbar
+
+**How to Upload:**
+1. Navigate to "Mi Perfil" from the user menu
+2. Click "Editar" (Edit)
+3. Click "Subir foto" (Upload photo)
+4. Select an image file (automatically validates size and format)
+5. Preview appears instantly
+6. Click "Guardar Cambios" (Save Changes)
+
+**Technical Details:**
+- **Storage Method:** Base64 encoding directly in MongoDB
+- **Advantages:**
+  - No external cloud storage dependencies (AWS S3, Cloudinary, etc.)
+  - Simple deployment - one database, no extra services
+  - Atomic updates - picture and user data saved together
+  - No broken image links - data always available
+  - Complete data ownership and privacy
+- **Considerations:**
+  - 2MB limit per image (recommended for optimal performance)
+  - Base64 increases storage by ~33% vs raw binary
+  - Suitable for profile pictures; for large-scale image hosting, consider cloud storage migration
+
+### Timezone Selection
+
+**Choose Your Timezone**
+- Select from 21 global timezones covering all major regions
+- Real-time clock in diagram editor respects your timezone
+- Automatic date/time formatting for your locale
+
+**Available Timezones:**
+
+**Americas:**
+- 🇲🇽 Ciudad de México (GMT-6)
+- 🇲🇽 Cancún (GMT-5)
+- 🇲🇽 Tijuana (GMT-8)
+- 🇺🇸 Nueva York (GMT-5)
+- 🇺🇸 Chicago (GMT-6)
+- 🇺🇸 Denver (GMT-7)
+- 🇺🇸 Los Ángeles (GMT-8)
+- 🇨🇴 Bogotá (GMT-5)
+- 🇵🇪 Lima (GMT-5)
+- 🇨🇱 Santiago (GMT-3)
+- 🇦🇷 Buenos Aires (GMT-3)
+- 🇧🇷 São Paulo (GMT-3)
+
+**Europe:**
+- 🇪🇸 Madrid (GMT+1)
+- 🇬🇧 Londres (GMT+0)
+- 🇫🇷 París (GMT+1)
+- 🇩🇪 Berlín (GMT+1)
+
+**Asia:**
+- 🇯🇵 Tokio (GMT+9)
+- 🇨🇳 Shanghái (GMT+8)
+- 🇦🇪 Dubái (GMT+4)
+
+**Oceania:**
+- 🇦🇺 Sídney (GMT+11)
+
+**Universal:**
+- 🌍 UTC (Coordinated Universal Time)
+
+**How to Set Timezone:**
+1. Go to "Mi Perfil" from the user menu
+2. Click "Editar" (Edit)
+3. Select your timezone from the dropdown
+4. Click "Guardar Cambios" (Save Changes)
+5. The diagram editor will now display time in your selected timezone
+
+### Real-time Clock in Diagram Editor
+
+The diagram editor features a live clock that:
+- Updates every second
+- Displays time in your selected timezone
+- Shows both time (HH:MM:SS) and date (DD MMM YYYY)
+- Appears in the bottom toolbar of the editor
+- Format: `🕐 14:23:45 • 17 oct 2025`
+
+### Password Management
+
+**Change Password (Authenticated)**
+- Requires current password for verification
+- New password must meet security requirements:
+  - Minimum 8 characters
+  - At least one uppercase letter
+  - At least one lowercase letter
+  - At least one digit
+- Real-time validation feedback
+
+**Password Reset (Unauthenticated)**
+- Request reset token via email
+- Token expires after 1 hour
+- Secure token-based verification
+- Same password requirements apply
+
+### Profile Information Display
+
+Your profile page shows:
+- Profile picture (or initials if no picture)
+- Full name
+- Email address (cannot be changed)
+- Selected timezone
+- Member since date
+- Quick access to edit all information
 
 ---
 
