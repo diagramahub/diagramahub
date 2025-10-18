@@ -1182,7 +1182,11 @@ export default function DiagramEditorPage() {
                 <div className="h-6 w-px bg-gray-300 mx-2"></div>
 
                 {/* Avatar y usuario */}
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+                  title={t('nav.myProfile')}
+                >
                   {user?.profile_picture ? (
                     <img
                       src={user.profile_picture}
@@ -1206,7 +1210,7 @@ export default function DiagramEditorPage() {
                       })()}
                     </div>
                   )}
-                </div>
+                </button>
               </div>
             </div>
           </div>
