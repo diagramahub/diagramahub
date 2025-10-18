@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import Navbar from '../components/Navbar';
+import ConfirmModal from '../components/ConfirmModal';
 
 // Lista de zonas horarias comunes
 const TIMEZONES = [
@@ -31,9 +33,12 @@ const TIMEZONES = [
 
 export default function ProfilePage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Estados para edición de perfil
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -169,6 +174,11 @@ export default function ProfilePage() {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
     <>
       <Navbar />
@@ -180,6 +190,38 @@ export default function ProfilePage() {
           <p className="mt-2 text-sm text-gray-600">
             {t('profile.subtitle')}
           </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`${
+                activeTab === 'profile'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+              {t('common.profile')}
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`${
+                activeTab === 'settings'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+              {t('common.settings')}
+            </button>
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="ml-auto whitespace-nowrap py-4 px-4 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              {t('common.logout')}
+            </button>
+          </nav>
         </div>
 
         {/* Mensajes de éxito o error */}
@@ -194,6 +236,9 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Profile Tab Content */}
+        {activeTab === 'profile' && (
+          <>
         {/* Información del Perfil */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
@@ -473,8 +518,82 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+          </>
+        )}
+
+        {/* Settings Tab Content */}
+        {activeTab === 'settings' && (
+          <>
+            {/* Contenido principal */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="px-6 py-12 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                  <svg
+                    className="w-8 h-8 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('settings.comingSoon')}</h2>
+                <p className="text-gray-600 max-w-md mx-auto">
+                  {t('settings.comingSoonDescription')}
+                </p>
+              </div>
+            </div>
+
+            {/* Secciones futuras (preview) */}
+            <div className="mt-6 space-y-4">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">{t('settings.appearance')}</h3>
+                </div>
+                <div className="px-6 py-4">
+                  <p className="text-sm text-gray-500">{t('settings.appearanceDescription')}</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">{t('settings.notifications')}</h3>
+                </div>
+                <div className="px-6 py-4">
+                  <p className="text-sm text-gray-500">{t('settings.notificationsDescription')}</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">{t('settings.privacy')}</h3>
+                </div>
+                <div className="px-6 py-4">
+                  <p className="text-sm text-gray-500">{t('settings.privacyDescription')}</p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
+
+    {/* Logout Confirmation Modal */}
+    <ConfirmModal
+      isOpen={showLogoutConfirm}
+      onClose={() => setShowLogoutConfirm(false)}
+      onConfirm={handleLogout}
+      title={t('auth.logoutConfirm')}
+      message={t('auth.logoutMessage')}
+      confirmText={t('common.logout')}
+      cancelText={t('common.cancel')}
+      isDangerous={true}
+    />
     </>
   );
 }

@@ -43,7 +43,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       }
       setError(null);
     }
-  }, [isOpen, isFirstProject, editMode, projectToEdit]);
+  }, [isOpen, isFirstProject, editMode, projectToEdit, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,11 +128,10 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     key={emoji}
                     type="button"
                     onClick={() => setSelectedEmoji(emoji)}
-                    className={`text-2xl p-2 rounded-lg transition-all ${
-                      selectedEmoji === emoji
-                        ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
-                        : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                    }`}
+                    className={`text-2xl p-2 rounded-lg transition-all ${selectedEmoji === emoji
+                      ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
+                      : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                      }`}
                   >
                     {emoji}
                   </button>
