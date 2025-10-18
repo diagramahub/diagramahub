@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import mermaid from 'mermaid';
 import plantumlEncoder from 'plantuml-encoder';
@@ -20,6 +21,7 @@ export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [project, setProject] = useState<ProjectWithDiagrams | null>(null);
   const [currentDiagram, setCurrentDiagram] = useState<Diagram | null>(null);
   const [diagramCode, setDiagramCode] = useState('graph TD\n  A[Start] --> B[End]');
@@ -924,7 +926,7 @@ export default function DiagramEditorPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="text-gray-600">{t('editor.loading')}</div>
       </div>
     );
   }
@@ -1068,7 +1070,7 @@ export default function DiagramEditorPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
-                      <span>Código</span>
+                      <span>{t('editor.code')}</span>
                     </div>
                   </button>
                 </Tooltip>
@@ -1084,7 +1086,7 @@ export default function DiagramEditorPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      <span>Descripción</span>
+                      <span>{t('editor.description')}</span>
                     </div>
                   </button>
                 </Tooltip>
@@ -1100,7 +1102,7 @@ export default function DiagramEditorPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                       </svg>
-                      <span>Apariencia</span>
+                      <span>{t('editor.appearance')}</span>
                     </div>
                   </button>
                 </Tooltip>
@@ -1461,7 +1463,7 @@ export default function DiagramEditorPage() {
                               </div>
                             ))}
                             {folder.diagrams.length === 0 && (
-                              <p className="text-xs text-gray-400 px-3 py-2">Sin diagramas</p>
+                              <p className="text-xs text-gray-400 px-3 py-2">{t('editor.noDiagrams')}</p>
                             )}
                           </div>
                         )}
@@ -1470,7 +1472,7 @@ export default function DiagramEditorPage() {
 
                     {(!project?.diagrams || project.diagrams.length === 0) &&
                       (!project?.folders || project.folders.length === 0) && (
-                        <p className="text-sm text-gray-400 px-3 py-2">Sin diagramas ni carpetas</p>
+                        <p className="text-sm text-gray-400 px-3 py-2">{t('editor.noDiagramsOrFolders')}</p>
                       )}
                   </div>
                 </div>
@@ -1482,7 +1484,7 @@ export default function DiagramEditorPage() {
               <div className="floating-code absolute top-4 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900">Código del diagrama</h3>
+                    <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramCode')}</h3>
                     <button
                       onClick={() => setShowCodeView(false)}
                       className="text-gray-400 hover:text-gray-600 p-1"
@@ -1509,7 +1511,7 @@ export default function DiagramEditorPage() {
               <div className="floating-description absolute top-4 left-4 z-30 w-[32rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900">Descripción del diagrama</h3>
+                    <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramDescription')}</h3>
                     <button
                       onClick={() => setShowDescriptionView(false)}
                       className="text-gray-400 hover:text-gray-600 p-1"
@@ -1525,7 +1527,7 @@ export default function DiagramEditorPage() {
                     value={diagramDescription}
                     onChange={(e) => setDiagramDescription(e.target.value)}
                     className="w-full h-full min-h-[500px] text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                    placeholder="Describe tu diagrama aquí..."
+                    placeholder={t('editor.descriptionPlaceholder')}
                   />
                 </div>
               </div>
@@ -1536,7 +1538,7 @@ export default function DiagramEditorPage() {
               <div className="floating-appearance absolute top-4 left-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900">Apariencia del diagrama</h3>
+                    <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramAppearance')}</h3>
                     <button
                       onClick={() => setShowAppearanceEditor(false)}
                       className="text-gray-400 hover:text-gray-600 p-1"
@@ -1553,7 +1555,7 @@ export default function DiagramEditorPage() {
                   {currentDiagram?.diagram_type === 'mermaid' && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tema</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.theme')}</label>
                         <select
                           value={diagramTheme}
                           onChange={(e) => setDiagramTheme(e.target.value)}
@@ -1566,7 +1568,7 @@ export default function DiagramEditorPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Layout</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.layout')}</label>
                         <select
                           value={diagramLayout}
                           onChange={(e) => setDiagramLayout(e.target.value)}
@@ -1577,7 +1579,7 @@ export default function DiagramEditorPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Estilo</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.style')}</label>
                         <select
                           value={diagramLook}
                           onChange={(e) => setDiagramLook(e.target.value)}
@@ -1602,9 +1604,9 @@ export default function DiagramEditorPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  <span>Modo Presentación</span>
+                  <span>{t('editor.presentationMode')}</span>
                   <span className="text-gray-400">•</span>
-                  <span className="text-gray-300">Presiona Esc para salir</span>
+                  <span className="text-gray-300">{t('editor.pressEscToExit')}</span>
                 </div>
 
                 {/* Botón para salir */}
@@ -1693,7 +1695,7 @@ export default function DiagramEditorPage() {
                     <ReactMarkdown>{diagramDescription}</ReactMarkdown>
                   ) : (
                     <div className="text-gray-400 text-center py-12">
-                      <p className="text-sm">Sin descripción</p>
+                      <p className="text-sm">{t('editor.noDescription')}</p>
                     </div>
                   )}
                 </div>
@@ -1714,7 +1716,7 @@ export default function DiagramEditorPage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          <span className="text-gray-600">Guardando...</span>
+                          <span className="text-gray-600">{t('editor.saving')}</span>
                         </>
                       )}
                       {saveStatus === 'saved' && lastSavedTime && (
@@ -1726,7 +1728,7 @@ export default function DiagramEditorPage() {
                         </>
                       )}
                       {saveStatus === 'idle' && (
-                        <span className="text-gray-400">Sin cambios</span>
+                        <span className="text-gray-400">{t('editor.noChanges')}</span>
                       )}
                     </div>
 
@@ -1749,7 +1751,7 @@ export default function DiagramEditorPage() {
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                           </svg>
-                          <span>Zoom: {Math.round(zoom * 100)}%</span>
+                          <span>{t('editor.zoom')}: {Math.round(zoom * 100)}%</span>
                         </div>
                       </>
                     )}
@@ -1807,7 +1809,7 @@ export default function DiagramEditorPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Exportar Diagrama</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('editor.exportDiagram')}</h3>
             </div>
 
             <div className="px-6 py-4 space-y-4">
@@ -1819,7 +1821,7 @@ export default function DiagramEditorPage() {
                     onChange={(e) => setExportOptions({ ...exportOptions, includeDescription: e.target.checked })}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700">Incluir descripción del diagrama</span>
+                  <span className="text-sm text-gray-700">{t('editor.includeDescription')}</span>
                 </label>
               </div>
 
@@ -1831,12 +1833,12 @@ export default function DiagramEditorPage() {
                     onChange={(e) => setExportOptions({ ...exportOptions, includeProjectInfo: e.target.checked })}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700">Incluir información del proyecto</span>
+                  <span className="text-sm text-gray-700">{t('editor.includeProjectInfo')}</span>
                 </label>
               </div>
 
               <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-3">Selecciona el formato de exportación:</p>
+                <p className="text-xs text-gray-500 mb-3">{t('editor.selectFormat')}</p>
                 <div className="flex gap-3">
                   <button
                     onClick={handleExportPNG}
@@ -1887,13 +1889,13 @@ export default function DiagramEditorPage() {
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Crea tu primer diagrama! 🎨</h3>
-                <p className="text-gray-600">Comienza a visualizar tus ideas con diagramas de Mermaid</p>
+                <p className="text-gray-600">{t('editor.startVisualizing')}</p>
               </div>
             )}
 
             {!isFirstDiagram && (
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Nuevo Diagrama</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('editor.newDiagram')}</h3>
               </div>
             )}
 
@@ -1906,12 +1908,12 @@ export default function DiagramEditorPage() {
                   type="text"
                   value={newDiagramName}
                   onChange={(e) => setNewDiagramName(e.target.value)}
-                  placeholder="Ej: Diagrama de flujo principal"
+                  placeholder={t('editor.diagramNamePlaceholder')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
                 />
                 {isFirstDiagram && (
-                  <p className="mt-2 text-sm text-gray-500">Dale un nombre descriptivo a tu diagrama</p>
+                  <p className="mt-2 text-sm text-gray-500">{t('editor.diagramNameHint')}</p>
                 )}
               </div>
 
@@ -2077,7 +2079,7 @@ export default function DiagramEditorPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Nueva Carpeta</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('editor.newFolder')}</h3>
             </div>
 
             <div className="px-6 py-4 space-y-4">
@@ -2089,7 +2091,7 @@ export default function DiagramEditorPage() {
                   type="text"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Ej: Diagramas de flujo"
+                  placeholder={t('editor.folderNamePlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                 />

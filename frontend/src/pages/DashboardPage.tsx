@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { Project } from '../types/project';
 import Navbar from '../components/Navbar';
@@ -8,6 +9,7 @@ import ConfirmModal from '../components/ConfirmModal';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -90,10 +92,10 @@ const DashboardPage: React.FC = () => {
         <div className="mb-12 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              Tus proyectos
+              {t('dashboard.title')}
             </h1>
             <p className="text-gray-600">
-              {projects.length} {projects.length === 1 ? 'proyecto' : 'proyectos'}
+              {projects.length} {projects.length === 1 ? t('dashboard.project') : t('dashboard.projects')}
             </p>
           </div>
           <button
@@ -103,20 +105,20 @@ const DashboardPage: React.FC = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Nuevo proyecto
+            {t('dashboard.newProject')}
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-gray-500">Cargando proyectos...</div>
+          <div className="text-center py-16 text-gray-500">{t('dashboard.loading')}</div>
         ) : projects.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">No tienes proyectos aún</p>
+            <p className="text-gray-500 mb-4">{t('dashboard.noProjects')}</p>
             <button
               onClick={() => navigate('/onboarding')}
               className="text-sm text-gray-900 hover:text-gray-600 underline"
             >
-              Crear tu primer proyecto
+              {t('dashboard.createFirstProject')}
             </button>
           </div>
         ) : (
@@ -142,7 +144,7 @@ const DashboardPage: React.FC = () => {
                           {project.description}
                         </p>
                       ) : (
-                        <p className="text-sm text-gray-400 italic mt-1">Sin descripción</p>
+                        <p className="text-sm text-gray-400 italic mt-1">{t('dashboard.noDescription')}</p>
                       )}
                     </div>
                   </div>
@@ -156,7 +158,7 @@ const DashboardPage: React.FC = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <span className="font-medium">{project.diagram_count}</span>
-                      <span className="text-gray-500">{project.diagram_count === 1 ? 'diagrama' : 'diagramas'}</span>
+                      <span className="text-gray-500">{project.diagram_count === 1 ? t('dashboard.diagram') : t('dashboard.diagrams')}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-gray-400">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +181,7 @@ const DashboardPage: React.FC = () => {
                       handleEditProject(project);
                     }}
                     className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                    title="Editar proyecto"
+                    title={t('dashboard.editProject')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -191,7 +193,7 @@ const DashboardPage: React.FC = () => {
                       handleDeleteProject(project.id, project.name);
                     }}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Eliminar proyecto"
+                    title={t('dashboard.deleteProject')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -226,10 +228,10 @@ const DashboardPage: React.FC = () => {
         isOpen={deleteConfirmModal.isOpen}
         onClose={() => setDeleteConfirmModal({ isOpen: false, projectId: null, projectName: '' })}
         onConfirm={confirmDeleteProject}
-        title="Eliminar proyecto"
-        message={`¿Estás seguro de que quieres eliminar el proyecto "${deleteConfirmModal.projectName}"? Esta acción no se puede deshacer y se eliminarán todos los diagramas y carpetas asociados.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('dashboard.confirmDelete')}
+        message={t('dashboard.deleteProjectMessage', { projectName: deleteConfirmModal.projectName })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous={true}
       />
     </div>

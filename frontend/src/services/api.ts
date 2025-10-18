@@ -7,7 +7,8 @@ import {
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
-  UpdateProfileRequest
+  UpdateProfileRequest,
+  InstallationStatus
 } from '../types/auth';
 import {
   Project,
@@ -64,6 +65,11 @@ class ApiService {
   }
 
   // Auth endpoints
+  async checkInstallationStatus(): Promise<InstallationStatus> {
+    const response = await this.api.get<InstallationStatus>('/api/v1/users/installation-status');
+    return response.data;
+  }
+
   async register(data: RegisterRequest): Promise<User> {
     const response = await this.api.post<User>('/api/v1/users/register', data);
     return response.data;

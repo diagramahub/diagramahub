@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
+
   return (
     <>
       <Navbar />
@@ -8,9 +11,9 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Configuraciones</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('settings.title')}</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Personaliza tu experiencia en DiagramaHub
+            {t('nav.settings')}
           </p>
         </div>
 
@@ -32,10 +35,9 @@ export default function SettingsPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Próximamente</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('settings.comingSoon')}</h2>
             <p className="text-gray-600 max-w-md mx-auto">
-              Estamos trabajando en nuevas opciones de configuración para mejorar tu experiencia.
-              Pronto podrás personalizar temas, notificaciones y mucho más.
+              {t('settings.comingSoonDescription')}
             </p>
           </div>
         </div>
@@ -44,28 +46,28 @@ export default function SettingsPage() {
         <div className="mt-6 space-y-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Apariencia</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('settings.appearance')}</h3>
             </div>
             <div className="px-6 py-4">
-              <p className="text-sm text-gray-500">Personaliza el tema y la apariencia de la aplicación</p>
+              <p className="text-sm text-gray-500">{t('settings.appearanceDescription')}</p>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Notificaciones</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('settings.notifications')}</h3>
             </div>
             <div className="px-6 py-4">
-              <p className="text-sm text-gray-500">Configura cómo y cuándo quieres recibir notificaciones</p>
+              <p className="text-sm text-gray-500">{t('settings.notificationsDescription')}</p>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Privacidad</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('settings.privacy')}</h3>
             </div>
             <div className="px-6 py-4">
-              <p className="text-sm text-gray-500">Gestiona tu privacidad y datos personales</p>
+              <p className="text-sm text-gray-500">{t('settings.privacyDescription')}</p>
             </div>
           </div>
         </div>

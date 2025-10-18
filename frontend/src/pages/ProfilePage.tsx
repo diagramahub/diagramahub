@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import Navbar from '../components/Navbar';
@@ -29,6 +30,7 @@ const TIMEZONES = [
 ];
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -72,13 +74,13 @@ export default function ProfilePage() {
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      setError('Por favor selecciona un archivo de imagen válido');
+      setError(t('profile.invalidImageType'));
       return;
     }
 
     // Validar tamaño (máximo 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      setError('La imagen debe ser menor a 2MB');
+      setError(t('profile.imageTooLarge'));
       return;
     }
 
@@ -115,13 +117,13 @@ export default function ProfilePage() {
       // Actualizar usuario en localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
-      setSuccess('Perfil actualizado exitosamente');
+      setSuccess(t('profile.profileUpdated'));
       setIsEditingProfile(false);
 
       // Recargar página para reflejar cambios en toda la aplicación
       setTimeout(() => window.location.reload(), 1000);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al actualizar el perfil');
+      setError(err.response?.data?.detail || t('profile.profileUpdateError'));
     } finally {
       setLoading(false);
     }
@@ -134,17 +136,17 @@ export default function ProfilePage() {
 
     // Validaciones
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('Todos los campos son obligatorios');
+      setError(t('profile.allFieldsRequired'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('profile.passwordsDoNotMatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      setError('La nueva contraseña debe tener al menos 8 caracteres');
+      setError(t('profile.passwordTooShort'));
       return;
     }
 
@@ -155,13 +157,13 @@ export default function ProfilePage() {
         current_password: currentPassword,
         new_password: newPassword
       });
-      setSuccess('Contraseña actualizada exitosamente');
+      setSuccess(t('profile.passwordUpdated'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setIsChangingPassword(false);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al cambiar la contraseña');
+      setError(err.response?.data?.detail || t('profile.passwordChangeError'));
     } finally {
       setLoading(false);
     }
@@ -174,9 +176,9 @@ export default function ProfilePage() {
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Gestiona tu información personal y configuración de seguridad
+            {t('profile.subtitle')}
           </p>
         </div>
 
@@ -195,13 +197,13 @@ export default function ProfilePage() {
         {/* Información del Perfil */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">Información Personal</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('profile.profileInformation')}</h2>
             {!isEditingProfile && (
               <button
                 onClick={() => setIsEditingProfile(true)}
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                Editar
+                {t('profile.edit')}
               </button>
             )}
           </div>
@@ -214,7 +216,7 @@ export default function ProfilePage() {
                   {imagePreview ? (
                     <img
                       src={imagePreview}
-                      alt="Foto de perfil"
+                      alt={t('profile.profilePicture')}
                       className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                     />
                   ) : (
@@ -223,27 +225,27 @@ export default function ProfilePage() {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Foto de Perfil</p>
-                    <p className="text-xs text-gray-500">JPG, PNG o GIF (máx. 2MB)</p>
+                    <p className="text-sm font-medium text-gray-900">{t('profile.profilePicture')}</p>
+                    <p className="text-xs text-gray-500">{t('profile.photoLimitInfo')}</p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Nombre Completo</label>
-                  <p className="mt-1 text-gray-900">{user?.full_name || 'No especificado'}</p>
+                  <label className="text-sm font-medium text-gray-500">{t('profile.fullName')}</label>
+                  <p className="mt-1 text-gray-900">{user?.full_name || t('profile.notSpecified')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Correo Electrónico</label>
+                  <label className="text-sm font-medium text-gray-500">{t('profile.emailAddress')}</label>
                   <p className="mt-1 text-gray-900">{user?.email}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Zona Horaria</label>
+                  <label className="text-sm font-medium text-gray-500">{t('profile.timezone')}</label>
                   <p className="mt-1 text-gray-900">
                     {TIMEZONES.find(tz => tz.value === user?.timezone)?.label || 'UTC (Hora Universal)'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Miembro desde</label>
+                  <label className="text-sm font-medium text-gray-500">{t('profile.memberSince')}</label>
                   <p className="mt-1 text-gray-900">
                     {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-ES', {
                       year: 'numeric',
@@ -258,13 +260,13 @@ export default function ProfilePage() {
                 {/* Upload de foto de perfil */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Foto de Perfil
+                    {t('profile.profilePicture')}
                   </label>
                   <div className="flex items-center gap-6">
                     {imagePreview ? (
                       <img
                         src={imagePreview}
-                        alt="Preview"
+                        alt={t('profile.profilePicture')}
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                       />
                     ) : (
@@ -282,7 +284,7 @@ export default function ProfilePage() {
                             className="hidden"
                           />
                           <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                            Subir foto
+                            {t('profile.uploadPhoto')}
                           </span>
                         </label>
                         {imagePreview && (
@@ -291,12 +293,12 @@ export default function ProfilePage() {
                             onClick={handleRemoveImage}
                             className="px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-600 bg-white hover:bg-red-50 transition-colors"
                           >
-                            Eliminar
+                            {t('profile.removePhoto')}
                           </button>
                         )}
                       </div>
                       <p className="mt-2 text-xs text-gray-500">
-                        JPG, PNG o GIF. Máximo 2MB.
+                        {t('profile.photoLimitInfo')}
                       </p>
                     </div>
                   </div>
@@ -304,7 +306,7 @@ export default function ProfilePage() {
 
                 <div>
                   <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre Completo
+                    {t('profile.fullName')}
                   </label>
                   <input
                     id="fullName"
@@ -312,13 +314,13 @@ export default function ProfilePage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Tu nombre completo"
+                    placeholder={t('installation.fullNamePlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Correo Electrónico
+                    {t('profile.emailAddress')}
                   </label>
                   <input
                     id="email"
@@ -328,12 +330,12 @@ export default function ProfilePage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                     disabled
                   />
-                  <p className="mt-1 text-xs text-gray-500">El correo electrónico no se puede cambiar</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('profile.emailCannotChange')}</p>
                 </div>
 
                 <div>
                   <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Zona Horaria
+                    {t('profile.timezone')}
                   </label>
                   <select
                     id="timezone"
@@ -347,7 +349,7 @@ export default function ProfilePage() {
                       </option>
                     ))}
                   </select>
-                  <p className="mt-1 text-xs text-gray-500">Esta zona horaria se usará para mostrar fechas y horas</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('profile.timezoneHint')}</p>
                 </div>
 
                 <div className="flex gap-3 pt-2">
@@ -356,7 +358,7 @@ export default function ProfilePage() {
                     disabled={loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {loading ? 'Guardando...' : 'Guardar Cambios'}
+                    {loading ? t('profile.saving') : t('profile.saveChanges')}
                   </button>
                   <button
                     type="button"
@@ -371,7 +373,7 @@ export default function ProfilePage() {
                     }}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Cancelar
+                    {t('profile.cancelEdit')}
                   </button>
                 </div>
               </form>
@@ -382,13 +384,13 @@ export default function ProfilePage() {
         {/* Seguridad - Cambiar Contraseña */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">Seguridad</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{t('profile.accountSecurity')}</h2>
             {!isChangingPassword && (
               <button
                 onClick={() => setIsChangingPassword(true)}
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                Cambiar Contraseña
+                {t('profile.changePassword')}
               </button>
             )}
           </div>
@@ -397,14 +399,14 @@ export default function ProfilePage() {
             {!isChangingPassword ? (
               <div>
                 <p className="text-sm text-gray-600">
-                  Mantén tu cuenta segura actualizando tu contraseña regularmente.
+                  {t('profile.securityMessage')}
                 </p>
               </div>
             ) : (
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Contraseña Actual
+                    {t('profile.currentPassword')}
                   </label>
                   <input
                     id="currentPassword"
@@ -418,7 +420,7 @@ export default function ProfilePage() {
 
                 <div>
                   <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nueva Contraseña
+                    {t('profile.newPassword')}
                   </label>
                   <input
                     id="newPassword"
@@ -428,12 +430,12 @@ export default function ProfilePage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="••••••••"
                   />
-                  <p className="mt-1 text-xs text-gray-500">Mínimo 8 caracteres</p>
+                  <p className="mt-1 text-xs text-gray-500">{t('profile.passwordMinLength')}</p>
                 </div>
 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirmar Nueva Contraseña
+                    {t('profile.confirmNewPassword')}
                   </label>
                   <input
                     id="confirmPassword"
@@ -451,7 +453,7 @@ export default function ProfilePage() {
                     disabled={loading}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+                    {loading ? t('profile.updating') : t('profile.updatePassword')}
                   </button>
                   <button
                     type="button"
@@ -464,7 +466,7 @@ export default function ProfilePage() {
                     }}
                     className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    Cancelar
+                    {t('profile.cancelEdit')}
                   </button>
                 </div>
               </form>

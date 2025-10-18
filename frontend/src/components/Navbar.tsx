@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import UserMenu from './UserMenu';
+import LanguageSelector from './LanguageSelector';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -18,8 +19,9 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Right side - UserMenu con avatar */}
+          {/* Right side - Language selector and UserMenu */}
           <div className="flex items-center gap-3">
+            <LanguageSelector />
             <UserMenu />
           </div>
         </div>

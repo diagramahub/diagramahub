@@ -38,9 +38,24 @@ class UserService:
         """
         self.repository = repository
 
+    async def check_installation_status(self) -> dict:
+        """
+        Check if the system needs initial setup.
+
+        Returns:
+            Dictionary with 'needs_setup' boolean
+        """
+        user_count = await self.repository.count_users()
+        return {
+            "needs_setup": user_count == 0,
+            "user_count": user_count
+        }
+
     async def register_user(self, user_data: UserCreate) -> UserResponse:
         """
         Register a new user.
+
+        If this is the first user, they will be automatically assigned admin role.
 
         Args:
             user_data: User registration data
@@ -58,12 +73,20 @@ class UserService:
                 detail="User with this email already exists",
             )
 
+        # Check if this is the first user
+        user_count = await self.repository.count_users()
+        if user_count == 0:
+            # First user is automatically admin
+            from app.api.v1.users.schemas import UserRole
+            user_data.role = UserRole.ADMIN
+
         user = await self.repository.create(user_data)
 
         return UserResponse(
             id=str(user.id),
             email=user.email,
             full_name=user.full_name,
+            role=user.role,
             is_active=user.is_active,
             created_at=user.created_at,
         )
