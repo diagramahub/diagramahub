@@ -2,6 +2,8 @@ export type User = {
   id: string;
   email: string;
   full_name?: string;
+  profile_picture?: string;  // Base64 encoded image
+  timezone?: string;  // User's preferred timezone (IANA format)
   is_active: boolean;
   created_at: string;
 }
@@ -35,6 +37,12 @@ export type ResetPasswordConfirm = {
   email: string;
   token: string;
   new_password: string;
+}
+
+export type UpdateProfileRequest = {
+  full_name?: string;
+  profile_picture?: string;  // Base64 encoded image
+  timezone?: string;  // User's preferred timezone (IANA format)
 }
 
 export type AuthContextType = {

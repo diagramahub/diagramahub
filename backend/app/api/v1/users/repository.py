@@ -89,3 +89,18 @@ class UserRepository(IUserRepository):
         user.reset_token_expires = None
         await user.save()
         return True
+
+    async def update_profile(self, user_id: str, user_data: UserUpdate) -> Optional[UserInDB]:
+        """Update user profile (full_name, profile_picture)."""
+        user = await self.get_by_id(user_id)
+        if not user:
+            return None
+
+        update_data = user_data.model_dump(exclude_unset=True)
+        if update_data:
+            for field, value in update_data.items():
+                if field != 'email':  # Prevent email updates
+                    setattr(user, field, value)
+            await user.save()
+
+        return user

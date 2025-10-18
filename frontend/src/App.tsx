@@ -6,6 +6,8 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import DiagramEditorPage from './pages/DiagramEditorPage';
 import OnboardingWizardPage from './pages/OnboardingWizardPage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -43,6 +45,22 @@ function App() {
             element={
               <PrivateRoute>
                 <DiagramEditorPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute>
+                <SettingsPage />
               </PrivateRoute>
             }
           />

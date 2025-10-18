@@ -15,6 +15,7 @@ from app.api.v1.users.schemas import (
     ResetPasswordRequest,
     Token,
     UserCreate,
+    UserUpdate,
     UserResponse,
 )
 from app.api.v1.users.services import UserService
@@ -181,6 +182,43 @@ async def get_current_user(
         id=str(user.id),
         email=user.email,
         full_name=user.full_name,
+        profile_picture=user.profile_picture,
+        timezone=user.timezone,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_current_user(
+    update_data: UserUpdate,
+    current_user_email: Annotated[str, Depends(get_current_user_email)],
+    service: Annotated[UserService, Depends(get_user_service)],
+) -> UserResponse:
+    """
+    Update current authenticated user information.
+
+    Args:
+        update_data: User update data (full_name, profile_picture, timezone)
+        current_user_email: Email from JWT token
+        service: User service instance
+
+    Returns:
+        Updated user information
+    """
+    user = await service.update_user_profile(current_user_email, update_data)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        profile_picture=user.profile_picture,
+        timezone=user.timezone,
         is_active=user.is_active,
         created_at=user.created_at,
     )

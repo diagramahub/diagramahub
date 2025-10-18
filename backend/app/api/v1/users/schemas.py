@@ -13,6 +13,8 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     is_active: bool = True
+    profile_picture: Optional[str] = None  # Base64 encoded image
+    timezone: Optional[str] = 'UTC'  # User's preferred timezone
 
 
 class UserCreate(UserBase):
@@ -36,6 +38,8 @@ class UserUpdate(BaseModel):
     """Schema for updating user information."""
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
+    profile_picture: Optional[str] = None  # Base64 encoded image
+    timezone: Optional[str] = None  # User's preferred timezone
 
 
 class UserInDB(Document):
@@ -43,6 +47,8 @@ class UserInDB(Document):
     email: EmailStr
     hashed_password: str
     full_name: Optional[str] = None
+    profile_picture: Optional[str] = None  # Base64 encoded image
+    timezone: str = 'UTC'  # User's preferred timezone (default UTC)
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -63,6 +69,8 @@ class UserResponse(BaseModel):
     id: str
     email: EmailStr
     full_name: Optional[str] = None
+    profile_picture: Optional[str] = None  # Base64 encoded image
+    timezone: str = 'UTC'  # User's preferred timezone
     is_active: bool
     created_at: datetime
 
