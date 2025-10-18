@@ -19,9 +19,14 @@ class UserRepository(IUserRepository):
             hashed_password=get_password_hash(user_data.password),
             full_name=user_data.full_name,
             is_active=user_data.is_active,
+            role=user_data.role,
         )
         await user.insert()
         return user
+
+    async def count_users(self) -> int:
+        """Count total number of users in database."""
+        return await UserInDB.count()
 
     async def get_by_email(self, email: str) -> Optional[UserInDB]:
         """Retrieve user by email address."""

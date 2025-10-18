@@ -2,10 +2,17 @@
 Pydantic schemas for user-related data validation.
 """
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from beanie import Document
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+class UserRole(str, Enum):
+    """User role enumeration."""
+    ADMIN = "admin"
+    USER = "user"
 
 
 class UserBase(BaseModel):
@@ -15,6 +22,7 @@ class UserBase(BaseModel):
     is_active: bool = True
     profile_picture: Optional[str] = None  # Base64 encoded image
     timezone: Optional[str] = 'UTC'  # User's preferred timezone
+    role: UserRole = UserRole.USER  # User role (admin or user)
 
 
 class UserCreate(UserBase):
@@ -49,6 +57,7 @@ class UserInDB(Document):
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None  # Base64 encoded image
     timezone: str = 'UTC'  # User's preferred timezone (default UTC)
+    role: UserRole = UserRole.USER  # User role (admin or user)
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -71,6 +80,7 @@ class UserResponse(BaseModel):
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None  # Base64 encoded image
     timezone: str = 'UTC'  # User's preferred timezone
+    role: UserRole = UserRole.USER  # User role (admin or user)
     is_active: bool
     created_at: datetime
 

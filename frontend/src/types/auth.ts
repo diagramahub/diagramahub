@@ -1,11 +1,19 @@
+export type UserRole = 'admin' | 'user';
+
 export type User = {
   id: string;
   email: string;
   full_name?: string;
   profile_picture?: string;  // Base64 encoded image
   timezone?: string;  // User's preferred timezone (IANA format)
+  role?: UserRole;  // User role (admin or regular user)
   is_active: boolean;
   created_at: string;
+}
+
+export type InstallationStatus = {
+  needs_setup: boolean;
+  user_count: number;
 }
 
 export type LoginRequest = {

@@ -17,6 +17,7 @@ from app.api.v1.users.schemas import (
     UserCreate,
     UserUpdate,
     UserResponse,
+    UserRole,
 )
 from app.api.v1.users.services import UserService
 from app.core.security import decode_access_token
@@ -64,6 +65,19 @@ async def get_current_user_email(
     return email
 
 
+@router.get("/installation-status")
+async def check_installation_status(
+    service: Annotated[UserService, Depends(get_user_service)],
+) -> dict:
+    """
+    Check if the system has been initialized (any users exist).
+
+    Returns:
+        Dictionary with 'needs_setup' boolean indicating if setup wizard should be shown
+    """
+    return await service.check_installation_status()
+
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserCreate,
@@ -71,6 +85,8 @@ async def register(
 ) -> UserResponse:
     """
     Register a new user.
+
+    If this is the first user (installation), they will be created as admin.
 
     Args:
         user_data: User registration information
@@ -184,6 +200,7 @@ async def get_current_user(
         full_name=user.full_name,
         profile_picture=user.profile_picture,
         timezone=user.timezone,
+        role=user.role,
         is_active=user.is_active,
         created_at=user.created_at,
     )
@@ -219,6 +236,7 @@ async def update_current_user(
         full_name=user.full_name,
         profile_picture=user.profile_picture,
         timezone=user.timezone,
+        role=user.role,
         is_active=user.is_active,
         created_at=user.created_at,
     )
