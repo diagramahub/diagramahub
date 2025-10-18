@@ -249,6 +249,20 @@ Each module follows strict SOLID principles with the same file structure:
 - Hot reload configured in Docker
 - Responsive design patterns
 
+**Internationalization (i18n)** (`frontend/src/i18n/`):
+- **Framework**: i18next + react-i18next
+- **Languages**: Spanish (default), English
+- **Translation Files**: `frontend/src/i18n/locales/es.json`, `en.json`
+- **Features**:
+  - Automatic browser language detection
+  - Persistent language preference in `localStorage`
+  - Instant language switching without page reload
+  - Pluralization support
+  - Variable interpolation in messages
+- **Configuration**: `frontend/src/i18n/config.ts`
+- **Component**: `LanguageSelector` in navbar for switching languages
+- **Coverage**: 100% of UI text (all pages, components, validations, errors)
+
 ### Testing Architecture
 
 **Backend Tests** (`backend/tests/`):
@@ -774,6 +788,205 @@ Apache 2.0 - See LICENSE file for details
 
 ---
 
+## Internationalization (i18n)
+
+### Overview
+
+The frontend is fully internationalized using **i18next** and **react-i18next**. All user-facing text supports multiple languages.
+
+### Supported Languages
+
+- **Spanish (es)** - Default language
+- **English (en)** - Full translation
+
+### File Structure
+
+```
+frontend/src/i18n/
+├── config.ts              # i18n configuration and initialization
+└── locales/
+    ├── es.json           # Spanish translations (283 keys)
+    └── en.json           # English translations (283 keys)
+```
+
+### How to Use Translations in Components
+
+**Basic usage:**
+```tsx
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+
+  return (
+    <div>
+      <h1>{t('common.title')}</h1>
+      <button>{t('common.save')}</button>
+    </div>
+  );
+}
+```
+
+**With pluralization:**
+```tsx
+const { t } = useTranslation();
+const count = 5;
+
+return (
+  <p>
+    {count} {count === 1 ? t('dashboard.project') : t('dashboard.projects')}
+  </p>
+);
+```
+
+**With variable interpolation:**
+```tsx
+const { t } = useTranslation();
+const projectName = "My Project";
+
+return (
+  <p>{t('dashboard.deleteProjectMessage', { projectName })}</p>
+);
+// Result: "¿Estás seguro de que quieres eliminar el proyecto "My Project"?"
+```
+
+### Translation Key Organization
+
+All translations are organized into logical sections:
+
+| Section | File Location | Description |
+|---------|---------------|-------------|
+| `common` | Both files | Shared UI elements (save, cancel, delete, etc.) |
+| `nav` | Both files | Navigation items |
+| `auth` | Both files | Authentication (login, register, logout) |
+| `validation` | Both files | Form validation messages |
+| `dashboard` | Both files | Dashboard page |
+| `project` | Both files | Project management |
+| `diagram` | Both files | Diagram editor |
+| `profile` | Both files | User profile |
+| `settings` | Both files | Settings page |
+| `editor` | Both files | Diagram editor tools |
+| `errors` | Both files | Error messages |
+
+### Adding New Translations
+
+**When adding new UI text:**
+
+1. **NEVER hardcode text in components**
+   ```tsx
+   // ❌ BAD
+   <button>Save</button>
+
+   // ✅ GOOD
+   <button>{t('common.save')}</button>
+   ```
+
+2. **Add the translation key to BOTH language files:**
+
+   In `frontend/src/i18n/locales/es.json`:
+   ```json
+   {
+     "myFeature": {
+       "title": "Mi Nueva Función",
+       "description": "Esta es la descripción"
+     }
+   }
+   ```
+
+   In `frontend/src/i18n/locales/en.json`:
+   ```json
+   {
+     "myFeature": {
+       "title": "My New Feature",
+       "description": "This is the description"
+     }
+   }
+   ```
+
+3. **Use the translation in your component:**
+   ```tsx
+   import { useTranslation } from 'react-i18next';
+
+   function MyNewFeature() {
+     const { t } = useTranslation();
+
+     return (
+       <div>
+         <h1>{t('myFeature.title')}</h1>
+         <p>{t('myFeature.description')}</p>
+       </div>
+     );
+   }
+   ```
+
+### Language Switching
+
+The language selector is available in the `Navbar` component. Users can switch between languages instantly, and their preference is saved in `localStorage`.
+
+**Implementation details:**
+- Component: `frontend/src/components/LanguageSelector.tsx`
+- Persistence: `localStorage.setItem('language', languageCode)`
+- Detection: Automatic browser language detection on first visit
+- No page reload required when switching languages
+
+### Adding a New Language
+
+To add support for a new language (e.g., French):
+
+1. **Create new translation file:**
+   ```bash
+   cp frontend/src/i18n/locales/en.json frontend/src/i18n/locales/fr.json
+   ```
+
+2. **Translate all keys in the new file** (283 keys)
+
+3. **Update `frontend/src/i18n/config.ts`:**
+   ```typescript
+   import translationFR from './locales/fr.json';
+
+   const resources = {
+     es: { translation: translationES },
+     en: { translation: translationEN },
+     fr: { translation: translationFR }  // Add new language
+   };
+   ```
+
+4. **Update `frontend/src/components/LanguageSelector.tsx`:**
+   ```tsx
+   const languages = [
+     { code: 'es', name: 'Español', flag: '🇪🇸' },
+     { code: 'en', name: 'English', flag: '🇺🇸' },
+     { code: 'fr', name: 'Français', flag: '🇫🇷' }  // Add new option
+   ];
+   ```
+
+### Best Practices
+
+1. **Always add translations to both language files** - Missing keys will display the key itself
+2. **Use descriptive key names** - `auth.loginButton` is better than `btn1`
+3. **Group related translations** - Use sections like `auth`, `profile`, `dashboard`
+4. **Test language switching** - Verify all text changes when switching languages
+5. **Avoid concatenating translations** - Use interpolation instead
+6. **Keep translations consistent** - Use the same terminology across the app
+
+### Troubleshooting
+
+**Translation not showing:**
+- Check if the key exists in both `es.json` and `en.json`
+- Verify the key path is correct (e.g., `common.save` not `save`)
+- Check browser console for i18next warnings
+
+**Language not persisting:**
+- Verify `localStorage` is enabled in the browser
+- Check that `localStorage.setItem('language', code)` is called when switching
+
+**New language not appearing:**
+- Ensure the language is added to `resources` in `config.ts`
+- Verify the translation file is imported correctly
+- Check that `LanguageSelector` includes the new language option
+
+---
+
 ## Tips for Claude Code
 
 - Always run tests after making changes to backend code
@@ -781,3 +994,5 @@ Apache 2.0 - See LICENSE file for details
 - Follow SOLID principles when adding new features
 - Check existing patterns before implementing new ones
 - Update this file when adding significant new features or patterns
+- **When adding new UI text, ALWAYS use i18n translations** - never hardcode text
+- **Add translation keys to both Spanish and English files** when creating new features

@@ -39,6 +39,7 @@ You'll be able to try Diagramahub live on [diagramahub.com](https://diagramahub.
 ✅ **Real-time Clock** - Live clock in the diagram editor showing time in your selected timezone
 ✅ **Password Management** - Change password with secure validation
 ✅ **User Settings** - Manage personal information and preferences
+✅ **Internationalization (i18n)** - Full support for Spanish and English with instant language switching
 
 > Future roadmap includes:
 > - Real-time collaboration
@@ -220,6 +221,11 @@ npm run dev
 - ✅ Dropdown user menu with navigation
 - ✅ Protected routes with PrivateRoute
 - ✅ Hot reload configured
+- ✅ **Internationalization (i18n)** - Complete i18n implementation with react-i18next
+- ✅ **Multi-language Support** - Full Spanish and English translations
+- ✅ **Language Selector** - Interactive language switcher in navbar
+- ✅ **Persistent Language Preference** - Language choice saved in localStorage
+- ✅ **Automatic Browser Detection** - Detects user's browser language on first visit
 
 ### ✅ Completed (Testing)
 
@@ -530,6 +536,140 @@ Your profile page shows:
 
 ---
 
+## 🌍 Internationalization (i18n)
+
+DiagramaHub is fully internationalized with support for multiple languages. All user-facing text dynamically changes based on the selected language.
+
+### Supported Languages
+
+- 🇪🇸 **Spanish (Español)** - Default language
+- 🇺🇸 **English** - Full translation
+
+### Features
+
+**Comprehensive Translation Coverage:**
+- ✅ All pages (Login, Register, Dashboard, Profile, Settings, Editor, Installation)
+- ✅ All components (Navbar, UserMenu, Modals, Forms)
+- ✅ All validation messages and error texts
+- ✅ All buttons, labels, and placeholders
+- ✅ Dynamic content (pluralization, variable interpolation)
+
+**Smart Language Management:**
+- 🔄 **Instant Switching** - Change language with one click, no page reload
+- 💾 **Persistent Preference** - Language choice saved in browser localStorage
+- 🌐 **Browser Detection** - Automatically detects browser language on first visit
+- 🔁 **Hot Reload** - Translation changes apply instantly during development
+
+### How to Change Language
+
+1. Look for the language selector in the navigation bar (top right)
+2. Click on the current language flag (🇪🇸 or 🇺🇸)
+3. Select your preferred language from the dropdown
+4. The entire interface updates immediately
+
+**Example:**
+```
+🇪🇸 Español  →  Click  →  🇺🇸 English
+```
+
+Your language preference is automatically saved and will be remembered on your next visit.
+
+### Technical Implementation
+
+**Technology Stack:**
+- **i18next** - Internationalization framework
+- **react-i18next** - React integration
+- **i18next-browser-languagedetector** - Automatic language detection
+
+**Translation Files:**
+```
+frontend/src/i18n/
+├── config.ts          # i18n configuration
+└── locales/
+    ├── es.json        # Spanish translations (283 keys)
+    └── en.json        # English translations (283 keys)
+```
+
+**Translation File Structure:**
+```json
+{
+  "common": { "save": "Save", "cancel": "Cancel", ... },
+  "auth": { "login": "Sign in", "register": "Sign up", ... },
+  "dashboard": { "title": "Your projects", ... },
+  "profile": { "title": "My Profile", ... },
+  "editor": { "save": "Save", "export": "Export", ... }
+}
+```
+
+**Usage in Components:**
+```tsx
+import { useTranslation } from 'react-i18next';
+
+function MyComponent() {
+  const { t } = useTranslation();
+
+  return (
+    <button>{t('common.save')}</button>
+    <h1>{t('dashboard.title')}</h1>
+  );
+}
+```
+
+**Advanced Features:**
+- **Pluralization**: Automatic singular/plural handling
+  ```tsx
+  {count} {count === 1 ? t('dashboard.project') : t('dashboard.projects')}
+  ```
+- **Variable Interpolation**: Dynamic text with variables
+  ```tsx
+  t('dashboard.deleteProjectMessage', { projectName: 'My Project' })
+  // → "Are you sure you want to delete \"My Project\"?"
+  ```
+
+### Adding New Languages
+
+To add support for a new language:
+
+1. Create a new translation file in `frontend/src/i18n/locales/`:
+   ```bash
+   cp frontend/src/i18n/locales/en.json frontend/src/i18n/locales/fr.json
+   ```
+
+2. Translate all keys in the new file
+
+3. Add the language to the configuration in `frontend/src/i18n/config.ts`:
+   ```typescript
+   import translationFR from './locales/fr.json';
+
+   const resources = {
+     es: { translation: translationES },
+     en: { translation: translationEN },
+     fr: { translation: translationFR }  // New language
+   };
+   ```
+
+4. Update the LanguageSelector component to include the new language option
+
+### Translation Keys Organization
+
+All translations are organized into logical sections:
+
+| Section | Description | Example Keys |
+|---------|-------------|--------------|
+| `common` | Shared UI elements | save, cancel, delete, edit |
+| `nav` | Navigation items | dashboard, projects, settings |
+| `auth` | Authentication | login, register, logout |
+| `validation` | Form validations | required, emailInvalid |
+| `dashboard` | Dashboard page | title, newProject, noProjects |
+| `project` | Project management | createTitle, editTitle |
+| `diagram` | Diagram editor | save, export, code |
+| `profile` | User profile | title, uploadPhoto |
+| `settings` | Settings page | title, comingSoon |
+| `editor` | Diagram editor | tools, actions, theme |
+| `errors` | Error messages | genericError, networkError |
+
+---
+
 ## 📚 Documentation
 
 - **[Setup Guide](SETUP.md)** - Detailed installation guide
@@ -588,6 +728,9 @@ We'd like to thank all the amazing open-source libraries and tools that make Dia
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 - **[React Router](https://reactrouter.com/)** - Declarative routing for React
 - **[Axios](https://axios-http.com/)** - Promise based HTTP client
+- **[i18next](https://www.i18next.com/)** - Internationalization framework
+- **[react-i18next](https://react.i18next.com/)** - React integration for i18next
+- **[i18next-browser-languagedetector](https://github.com/i18next/i18next-browser-languageDetector)** - Language detector for browser environment
 - **[Monaco Editor](https://microsoft.github.io/monaco-editor/)** - The code editor that powers VS Code
 - **[Mermaid](https://mermaid-js.github.io/)** - Generation of diagram and flowchart from text
 - **[PlantUML Encoder](https://plantuml.com/)** - Text-to-diagram tool
