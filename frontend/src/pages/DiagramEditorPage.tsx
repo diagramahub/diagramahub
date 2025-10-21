@@ -39,6 +39,38 @@ export default function DiagramEditorPage() {
   const [plantUMLTheme, setPlantUMLTheme] = useState('');
   const [activeTab, setActiveTab] = useState<'code' | 'description'>('code');
 
+  // Background customization state
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundPattern, setBackgroundPattern] = useState('plain');
+
+  // Helper function to generate background styles
+  const getBackgroundStyle = (): React.CSSProperties => {
+    if (backgroundPattern === 'plain') {
+      return { backgroundColor };
+    }
+
+    if (backgroundPattern === 'dots') {
+      return {
+        backgroundColor,
+        backgroundImage: `radial-gradient(circle, #00000015 1px, transparent 1px)`,
+        backgroundSize: '20px 20px',
+      };
+    }
+
+    if (backgroundPattern === 'grid') {
+      return {
+        backgroundColor,
+        backgroundImage: `
+          linear-gradient(to right, #00000010 1px, transparent 1px),
+          linear-gradient(to bottom, #00000010 1px, transparent 1px)
+        `,
+        backgroundSize: '20px 20px',
+      };
+    }
+
+    return { backgroundColor };
+  };
+
   // Helper function to generate frontmatter
   const generateFrontmatter = (
     theme: string,
@@ -288,6 +320,26 @@ export default function DiagramEditorPage() {
     }
   };
 
+  const loadBackgroundPreferences = () => {
+    try {
+      const savedColor = localStorage.getItem('diagramBackgroundColor');
+      const savedPattern = localStorage.getItem('diagramBackgroundPattern');
+      if (savedColor) setBackgroundColor(savedColor);
+      if (savedPattern) setBackgroundPattern(savedPattern);
+    } catch (err) {
+      console.warn('Failed to load background preferences:', err);
+    }
+  };
+
+  const saveBackgroundPreferences = (color: string, pattern: string) => {
+    try {
+      localStorage.setItem('diagramBackgroundColor', color);
+      localStorage.setItem('diagramBackgroundPattern', pattern);
+    } catch (err) {
+      console.warn('Failed to save background preferences:', err);
+    }
+  };
+
   // Initialize Mermaid
   useEffect(() => {
     mermaid.initialize({
@@ -296,6 +348,16 @@ export default function DiagramEditorPage() {
       securityLevel: 'loose',
     });
   }, []);
+
+  // Load background preferences on mount
+  useEffect(() => {
+    loadBackgroundPreferences();
+  }, []);
+
+  // Save background preferences when they change
+  useEffect(() => {
+    saveBackgroundPreferences(backgroundColor, backgroundPattern);
+  }, [backgroundColor, backgroundPattern]);
 
   // Load project and diagram
   useEffect(() => {
@@ -1950,6 +2012,45 @@ export default function DiagramEditorPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Background Customization - Always visible */}
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-xs font-medium text-gray-600 mb-3">Fondo del Visualizador</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={backgroundColor}
+                            onChange={(e) => setBackgroundColor(e.target.value)}
+                            className="h-10 w-20 border border-gray-200 rounded cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={backgroundColor}
+                            onChange={(e) => setBackgroundColor(e.target.value)}
+                            placeholder="#ffffff"
+                            className="flex-1 text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">Selecciona o escribe un color en formato hexadecimal</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Patrón de Fondo</label>
+                        <select
+                          value={backgroundPattern}
+                          onChange={(e) => setBackgroundPattern(e.target.value)}
+                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="plain">▭ Plano (Sin patrón)</option>
+                          <option value="dots">⚬ Puntos</option>
+                          <option value="grid">⊞ Cuadrícula</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )}
@@ -2035,7 +2136,10 @@ export default function DiagramEditorPage() {
               onMouseUp={activeTab === 'code' ? handleMouseUp : undefined}
               onMouseLeave={activeTab === 'code' ? handleMouseUp : undefined}
               onWheel={activeTab === 'code' ? handleWheel : undefined}
-              style={{ cursor: isPanning ? 'grabbing' : (activeTab === 'code' ? 'grab' : 'default') }}
+              style={{
+                cursor: isPanning ? 'grabbing' : (activeTab === 'code' ? 'grab' : 'default'),
+                ...getBackgroundStyle()
+              }}
             >
               {activeTab === 'code' ? (
                 <div
