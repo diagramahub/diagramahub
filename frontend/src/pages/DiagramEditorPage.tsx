@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import mermaid from 'mermaid';
 import plantumlEncoder from 'plantuml-encoder';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import SimpleMDE from 'react-simplemde-editor';
@@ -16,6 +17,8 @@ import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Tooltip from '../components/Tooltip';
 import CodeEditor from '../components/CodeEditor';
+import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
+import MarkdownEditor from '../components/MarkdownEditor';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -30,11 +33,36 @@ export default function DiagramEditorPage() {
   const [diagramTheme, setDiagramTheme] = useState('default');
   const [diagramLayout, setDiagramLayout] = useState('dagre');
   const [diagramLook, setDiagramLook] = useState('classic');
+  const [diagramCurve, setDiagramCurve] = useState('basis');
+  const [diagramFontFamily, setDiagramFontFamily] = useState('');
+  const [diagramFontSize, setDiagramFontSize] = useState('16');
+  const [plantUMLTheme, setPlantUMLTheme] = useState('');
   const [activeTab, setActiveTab] = useState<'code' | 'description'>('code');
 
   // Helper function to generate frontmatter
-  const generateFrontmatter = (theme: string, layout: string, look: string): string => {
-    return `---\nconfig:\n  theme: ${theme}\n  layout: ${layout}\n  look: ${look}\n---\n`;
+  const generateFrontmatter = (
+    theme: string,
+    layout: string,
+    look: string,
+    curve: string,
+    fontFamily: string,
+    fontSize: string
+  ): string => {
+    let config = `---\nconfig:\n  theme: ${theme}\n  layout: ${layout}\n  look: ${look}\n  flowchart:\n    curve: ${curve}`;
+
+    // Add themeVariables if fontFamily or fontSize are set
+    if (fontFamily || fontSize) {
+      config += `\n  themeVariables:`;
+      if (fontFamily) {
+        config += `\n    fontFamily: "${fontFamily}"`;
+      }
+      if (fontSize) {
+        config += `\n    fontSize: "${fontSize}px"`;
+      }
+    }
+
+    config += `\n---\n`;
+    return config;
   };
 
   // Helper function to format time ago
@@ -50,13 +78,31 @@ export default function DiagramEditorPage() {
     return `hace ${Math.floor(hours / 24)}d`;
   };
 
+  // Helper function to inject PlantUML theme
+  const injectPlantUMLTheme = (code: string, theme: string): string => {
+    if (!theme) return code;
+
+    // Insert !theme directive after @startuml
+    const lines = code.split('\n');
+    const startIndex = lines.findIndex(line => line.trim().startsWith('@startuml'));
+
+    if (startIndex !== -1) {
+      lines.splice(startIndex + 1, 0, `!theme ${theme}`);
+      return lines.join('\n');
+    }
+
+    return code;
+  };
+
   // Generate full code with frontmatter for rendering
   const fullDiagramCode = useMemo(() => {
     if (currentDiagram?.diagram_type === 'mermaid') {
-      return generateFrontmatter(diagramTheme, diagramLayout, diagramLook) + diagramCode;
+      return generateFrontmatter(diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize) + diagramCode;
+    } else if (currentDiagram?.diagram_type === 'plantuml') {
+      return injectPlantUMLTheme(diagramCode, plantUMLTheme);
     }
     return diagramCode;
-  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, currentDiagram]);
+  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, currentDiagram]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
@@ -70,6 +116,7 @@ export default function DiagramEditorPage() {
 
   // Export options state
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showImproveAIModal, setShowImproveAIModal] = useState(false);
   const [exportOptions, setExportOptions] = useState({
     includeDescription: true,
     includeProjectInfo: true,
@@ -113,6 +160,11 @@ export default function DiagramEditorPage() {
   const [showCodeView, setShowCodeView] = useState(false);
   const [showDescriptionView, setShowDescriptionView] = useState(false);
   const [showAppearanceEditor, setShowAppearanceEditor] = useState(false);
+
+  // AI generation state
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [showDescriptionConfirmModal, setShowDescriptionConfirmModal] = useState(false);
+  const [generatedDescription, setGeneratedDescription] = useState('');
 
   // Inline editing state
   const [isEditingDiagramTitle, setIsEditingDiagramTitle] = useState(false);
@@ -327,6 +379,12 @@ export default function DiagramEditorPage() {
         const diagramType = currentDiagram?.diagram_type || 'mermaid';
 
         if (diagramType === 'plantuml') {
+          // Validate PlantUML code is not empty
+          if (!diagramCode.trim()) {
+            mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código PlantUML para ver el diagrama...</div>`;
+            return;
+          }
+
           // Render PlantUML using public server
           const encoded = plantumlEncoder.encode(diagramCode);
           const plantUMLServer = 'https://www.plantuml.com/plantuml/svg';
@@ -334,18 +392,56 @@ export default function DiagramEditorPage() {
 
           mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" />`;
         } else {
+          // Validate Mermaid code is not empty
+          const cleanCode = diagramCode.trim();
+          if (!cleanCode) {
+            mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código Mermaid para ver el diagrama...</div>`;
+            return;
+          }
+
           // Render Mermaid with frontmatter config
           // Note: Mermaid will read the frontmatter automatically
           mermaid.initialize({
             startOnLoad: true,
             securityLevel: 'loose',
+            suppressErrors: true, // Suppress multiple error messages
           });
-          const id = `mermaid-${Date.now()}`;
-          const { svg } = await mermaid.render(id, fullDiagramCode);
-          mermaidRef.current.innerHTML = svg;
+
+          const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+          try {
+            const { svg } = await mermaid.render(id, fullDiagramCode);
+            mermaidRef.current.innerHTML = svg;
+          } catch (renderErr) {
+            // Clean up failed render attempt
+            const failedElement = document.getElementById(id);
+            if (failedElement) {
+              failedElement.remove();
+            }
+            throw renderErr;
+          }
         }
       } catch (err) {
-        mermaidRef.current.innerHTML = `<div class="text-red-500 p-4">Error rendering diagram: ${err instanceof Error ? err.message : 'Unknown error'}</div>`;
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+        // Only show error if it's not just "Syntax error in text" (which is too generic)
+        if (errorMessage.includes('Syntax error in text')) {
+          mermaidRef.current.innerHTML = `<div class="text-amber-600 p-4 border border-amber-300 bg-amber-50 rounded-lg">
+            <p class="font-semibold mb-2">⚠️ Error de sintaxis en el diagrama</p>
+            <p class="text-sm">Verifica que:</p>
+            <ul class="text-sm list-disc ml-5 mt-2">
+              <li>El tipo de diagrama sea válido (graph, flowchart, sequenceDiagram, etc.)</li>
+              <li>La sintaxis de las flechas y nodos sea correcta</li>
+              <li>No haya caracteres especiales sin escapar</li>
+              <li>Las comillas estén balanceadas</li>
+            </ul>
+          </div>`;
+        } else {
+          mermaidRef.current.innerHTML = `<div class="text-red-500 p-4 border border-red-300 bg-red-50 rounded-lg">
+            <p class="font-semibold mb-2">❌ Error al renderizar diagrama</p>
+            <p class="text-sm">${errorMessage}</p>
+          </div>`;
+        }
       }
     };
 
@@ -355,10 +451,10 @@ export default function DiagramEditorPage() {
       renderDiagram();
     } else {
       // For new diagrams or while editing, use debounce
-      const debounce = setTimeout(renderDiagram, 300);
+      const debounce = setTimeout(renderDiagram, 500); // Increased debounce time
       return () => clearTimeout(debounce);
     }
-  }, [fullDiagramCode, currentDiagram]);
+  }, [fullDiagramCode, currentDiagram, diagramCode]);
 
   // Autosave effect for diagram content
   useEffect(() => {
@@ -429,7 +525,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, selectedFolderId]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, selectedFolderId]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
@@ -568,6 +664,80 @@ export default function DiagramEditorPage() {
   const handleCancelEditDiagramTitle = () => {
     setIsEditingDiagramTitle(false);
     setEditingDiagramTitle('');
+  };
+
+  // Generate description with AI
+  const handleGenerateDescription = async () => {
+    if (!diagramCode.trim()) {
+      alert(t('ai.generate.error'));
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const response = await api.generateDescription({
+        diagram_code: diagramCode,
+        diagram_type: currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid',
+        language: user?.language || 'es'
+      });
+
+      // Store generated description and show confirmation modal
+      setGeneratedDescription(response.description);
+      setShowDescriptionConfirmModal(true);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        alert(t('ai.messages.noProvidersError'));
+      } else {
+        alert(error.response?.data?.detail || t('ai.generate.error'));
+      }
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const handleAcceptDescription = async () => {
+    setDiagramDescription(generatedDescription);
+
+    // Auto-save if we have a current diagram
+    if (currentDiagram && projectId) {
+      try {
+        await api.updateDiagram(currentDiagram.id, {
+          description: generatedDescription
+        });
+        setSaveStatus('saved');
+        setLastSavedTime(new Date());
+      } catch (error) {
+        console.error('Error saving description:', error);
+      }
+    }
+
+    setShowDescriptionConfirmModal(false);
+    setGeneratedDescription('');
+  };
+
+  const handleRejectDescription = () => {
+    setShowDescriptionConfirmModal(false);
+    setGeneratedDescription('');
+  };
+
+  // Improve diagram with AI
+  const handleImproveAccept = async (improvedCode: string) => {
+    setDiagramCode(improvedCode);
+    setSaveStatus('unsaved');
+
+    // Auto-save if we have a current diagram
+    if (currentDiagram && projectId) {
+      try {
+        await api.updateDiagram(currentDiagram.id, {
+          code: improvedCode
+        });
+        setSaveStatus('saved');
+        setLastSavedTime(new Date());
+      } catch (error: any) {
+        console.error('Error saving improved diagram:', error);
+        setSaveStatus('unsaved');
+      }
+    }
   };
 
   // Ajustar diagrama a pantalla
@@ -1153,6 +1323,16 @@ export default function DiagramEditorPage() {
 
               {/* Grupo de acciones */}
               <div className="flex items-center gap-2">
+                <Tooltip content={t('ai.improveDiagram.button')} position="bottom">
+                  <button
+                    onClick={() => setShowImproveAIModal(true)}
+                    disabled={!diagramCode.trim()}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  >
+                    <span>⚡</span>
+                    <span className="hidden lg:inline">{t('ai.improveDiagram.button')}</span>
+                  </button>
+                </Tooltip>
                 <Tooltip content="Exportar como PNG o PDF" position="bottom">
                   <button
                     onClick={() => setShowExportModal(true)}
@@ -1514,7 +1694,7 @@ export default function DiagramEditorPage() {
             {showDescriptionView && (
               <div className="floating-description absolute top-4 left-4 z-30 w-[32rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramDescription')}</h3>
                     <button
                       onClick={() => setShowDescriptionView(false)}
@@ -1525,13 +1705,33 @@ export default function DiagramEditorPage() {
                       </svg>
                     </button>
                   </div>
+                  <button
+                    onClick={handleGenerateDescription}
+                    disabled={generatingDescription || !diagramCode.trim()}
+                    className="w-full px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {generatingDescription ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>{t('ai.generate.generating')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>⚡</span>
+                        <span>{t('ai.generate.button')}</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-                <div className="flex-1 p-4 overflow-auto">
-                  <textarea
+                <div className="flex-1 overflow-hidden">
+                  <MarkdownEditor
                     value={diagramDescription}
-                    onChange={(e) => setDiagramDescription(e.target.value)}
-                    className="w-full h-full min-h-[500px] text-sm text-gray-800 bg-gray-50 p-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    onChange={setDiagramDescription}
                     placeholder={t('editor.descriptionPlaceholder')}
+                    minHeight="500px"
                   />
                 </div>
               </div>
@@ -1566,6 +1766,7 @@ export default function DiagramEditorPage() {
                           className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         >
                           <option value="default">Default</option>
+                          <option value="base">Base (Personalizable)</option>
                           <option value="dark">Dark</option>
                           <option value="forest">Forest</option>
                           <option value="neutral">Neutral</option>
@@ -1589,9 +1790,115 @@ export default function DiagramEditorPage() {
                           onChange={(e) => setDiagramLook(e.target.value)}
                           className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         >
-                          <option value="classic">Classic</option>
-                          <option value="modern">Modern</option>
+                          <option value="classic">Classic (Tradicional)</option>
+                          <option value="neo">Neo (Moderno)</option>
+                          <option value="handDrawn">Hand Drawn (Sketch)</option>
                         </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Líneas</label>
+                        <select
+                          value={diagramCurve}
+                          onChange={(e) => setDiagramCurve(e.target.value)}
+                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="basis">Suaves (Basis)</option>
+                          <option value="linear">Rectas (Linear)</option>
+                          <option value="step">Escalones (Step)</option>
+                          <option value="stepBefore">Escalones Antes</option>
+                          <option value="stepAfter">Escalones Después</option>
+                        </select>
+                      </div>
+
+                      {/* Global Styling Options */}
+                      <div className="pt-3 border-t border-gray-200">
+                        <p className="text-xs font-medium text-gray-600 mb-2">Estilos Globales</p>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Fuente</label>
+                            <select
+                              value={diagramFontFamily}
+                              onChange={(e) => setDiagramFontFamily(e.target.value)}
+                              className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="">Por defecto</option>
+                              <option value="Arial, sans-serif">Arial</option>
+                              <option value="Helvetica, sans-serif">Helvetica</option>
+                              <option value="Verdana, sans-serif">Verdana</option>
+                              <option value="Trebuchet MS, sans-serif">Trebuchet MS</option>
+                              <option value="Georgia, serif">Georgia</option>
+                              <option value="Courier New, monospace">Courier New</option>
+                              <option value="Times New Roman, serif">Times New Roman</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño de Fuente (px)</label>
+                            <select
+                              value={diagramFontSize}
+                              onChange={(e) => setDiagramFontSize(e.target.value)}
+                              className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                              <option value="12">12px (Pequeño)</option>
+                              <option value="14">14px (Normal)</option>
+                              <option value="16">16px (Mediano)</option>
+                              <option value="18">18px (Grande)</option>
+                              <option value="20">20px (Muy Grande)</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PlantUML Configuration */}
+                  {currentDiagram?.diagram_type === 'plantuml' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Tema</label>
+                        <select
+                          value={plantUMLTheme}
+                          onChange={(e) => setPlantUMLTheme(e.target.value)}
+                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">Sin tema (por defecto)</option>
+                          <optgroup label="🎨 Estilos Modernos">
+                            <option value="sketchy">Sketchy (Dibujado a mano)</option>
+                            <option value="sketchy-outline">Sketchy Outline</option>
+                            <option value="blueprint">Blueprint (Plano)</option>
+                            <option value="minty">Minty (Menta)</option>
+                            <option value="spacelab">Spacelab</option>
+                          </optgroup>
+                          <optgroup label="🌈 Temas de Color">
+                            <option value="bluegray">Blue Gray</option>
+                            <option value="cerulean">Cerulean (Azul cielo)</option>
+                            <option value="cerulean-outline">Cerulean Outline</option>
+                            <option value="materia">Materia</option>
+                            <option value="materia-outline">Materia Outline</option>
+                            <option value="lightgray">Light Gray</option>
+                            <option value="plain">Plain (Simple)</option>
+                          </optgroup>
+                          <optgroup label="🌙 Temas Oscuros">
+                            <option value="cyborg">Cyborg (Oscuro)</option>
+                            <option value="cyborg-outline">Cyborg Outline</option>
+                            <option value="superhero">Superhero (Oscuro)</option>
+                            <option value="superhero-outline">Superhero Outline</option>
+                            <option value="black-knight">Black Knight</option>
+                            <option value="hacker">Hacker (Verde Matrix)</option>
+                          </optgroup>
+                          <optgroup label="🕹️ Temas Retro">
+                            <option value="amiga">Amiga (Retro)</option>
+                            <option value="crt-amber">CRT Amber</option>
+                            <option value="crt-green">CRT Green</option>
+                            <option value="metal">Metal</option>
+                          </optgroup>
+                          <optgroup label="📄 Otros">
+                            <option value="resume-light">Resume Light</option>
+                            <option value="unitide">Unitide</option>
+                          </optgroup>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          El tema se aplica automáticamente al código PlantUML
+                        </p>
                       </div>
                     </div>
                   )}
@@ -2010,6 +2317,7 @@ export default function DiagramEditorPage() {
                   </div>
                 </div>
               )}
+
             </div>
 
             <div className={`border-t border-gray-200 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4 flex justify-end gap-3'}`}>
@@ -2170,6 +2478,65 @@ export default function DiagramEditorPage() {
         cancelText="Cancelar"
         isDangerous={true}
       />
+
+      {/* Improve Diagram with AI Modal */}
+      <ImproveDiagramWithAIModal
+        isOpen={showImproveAIModal}
+        onClose={() => setShowImproveAIModal(false)}
+        onAccept={handleImproveAccept}
+        currentCode={diagramCode}
+        diagramType={currentDiagram?.diagram_type || 'mermaid'}
+      />
+
+      {/* Generated Description Confirmation Modal */}
+      {showDescriptionConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Descripción generada con IA</h2>
+                  <p className="text-sm text-gray-500 mt-1">Revisa la descripción generada antes de aceptarla</p>
+                </div>
+                <button
+                  onClick={handleRejectDescription}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content - Markdown Preview */}
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {generatedDescription}
+                </ReactMarkdown>
+              </div>
+            </div>
+
+            {/* Footer - Actions */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={handleRejectDescription}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Rechazar
+              </button>
+              <button
+                onClick={handleAcceptDescription}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Aceptar y reemplazar descripción
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

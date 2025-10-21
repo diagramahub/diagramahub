@@ -86,6 +86,8 @@ class UserService:
             id=str(user.id),
             email=user.email,
             full_name=user.full_name,
+            profile_picture=user.profile_picture,
+            timezone=user.timezone,
             role=user.role,
             is_active=user.is_active,
             created_at=user.created_at,
