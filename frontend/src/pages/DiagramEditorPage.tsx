@@ -438,7 +438,7 @@ export default function DiagramEditorPage() {
           const plantUMLServer = 'https://www.plantuml.com/plantuml/svg';
           const imageUrl = `${plantUMLServer}/${encoded}`;
 
-          mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" />`;
+          mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" draggable="false" style="pointer-events: none; user-select: none;" />`;
         } else {
           // Validate Mermaid code is not empty
           const cleanCode = diagramCode.trim();
