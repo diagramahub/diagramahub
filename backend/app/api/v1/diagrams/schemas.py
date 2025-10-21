@@ -20,6 +20,7 @@ class MermaidConfig(BaseModel):
 
 class PlantUMLConfig(BaseModel):
     """PlantUML diagram configuration."""
+    theme: Optional[str] = Field(default="", description="PlantUML theme name (sketchy, blueprint, amiga, etc.)")
     # PlantUML uses skinparam for styling, which can include many options
     skinparam: Optional[Dict[str, Any]] = Field(default_factory=dict, description="PlantUML skinparam configuration object")
     # Add other PlantUML-specific config options as needed
@@ -55,11 +56,13 @@ class DiagramConfig(BaseModel):
     @classmethod
     def for_plantuml(
         cls,
+        theme: str = "",
         skinparam: Optional[Dict[str, Any]] = None
     ) -> "DiagramConfig":
         """Create configuration for PlantUML diagrams."""
         return cls(
             plantuml=PlantUMLConfig(
+                theme=theme,
                 skinparam=skinparam or {}
             )
         )
