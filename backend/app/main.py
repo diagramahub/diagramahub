@@ -16,6 +16,8 @@ from app.api.v1.diagrams.routes import router as diagrams_router
 from app.api.v1.diagrams.schemas import DiagramInDB
 from app.api.v1.folders.routes import router as folders_router
 from app.api.v1.folders.schemas import FolderInDB
+from app.api.v1.ai_providers.routes import router as ai_providers_router
+from app.api.v1.ai_providers.schemas import UserAISettingsInDB
 from app.core.config import settings
 
 
@@ -33,7 +35,7 @@ async def lifespan(app: FastAPI):
     # Initialize Beanie with document models
     await init_beanie(
         database=database,
-        document_models=[UserInDB, ProjectInDB, DiagramInDB, FolderInDB],
+        document_models=[UserInDB, ProjectInDB, DiagramInDB, FolderInDB, UserAISettingsInDB],
     )
 
     yield
@@ -63,6 +65,7 @@ app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(projects_router, prefix=settings.API_V1_PREFIX)
 app.include_router(diagrams_router, prefix=settings.API_V1_PREFIX)
 app.include_router(folders_router, prefix=settings.API_V1_PREFIX)
+app.include_router(ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"])
 
 
 @app.get("/")

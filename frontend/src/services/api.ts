@@ -23,6 +23,20 @@ import {
   CreateFolderRequest,
   UpdateFolderRequest
 } from '../types/project';
+import {
+  UserAISettings,
+  CreateProviderRequest,
+  UpdateProviderRequest,
+  TestProviderRequest,
+  TestProviderResponse,
+  GenerateDescriptionRequest,
+  GenerateDescriptionResponse,
+  GenerateDiagramRequest,
+  GenerateDiagramResponse,
+  ImproveDiagramRequest,
+  ImproveDiagramResponse,
+  AIProviderType
+} from '../types/ai';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -178,6 +192,57 @@ class ApiService {
       params: { delete_diagrams: deleteDiagrams }
     });
     console.log('Delete folder response:', response.data);
+  }
+
+  // AI Provider endpoints
+  async getAISettings(): Promise<UserAISettings> {
+    const response = await this.api.get<UserAISettings>('/api/v1/ai/settings');
+    return response.data;
+  }
+
+  async addAIProvider(data: CreateProviderRequest): Promise<UserAISettings> {
+    const response = await this.api.post<UserAISettings>('/api/v1/ai/providers', data);
+    return response.data;
+  }
+
+  async updateAIProvider(providerIndex: number, data: UpdateProviderRequest): Promise<UserAISettings> {
+    const response = await this.api.put<UserAISettings>(`/api/v1/ai/providers/${providerIndex}`, data);
+    return response.data;
+  }
+
+  async removeAIProvider(providerIndex: number): Promise<UserAISettings> {
+    const response = await this.api.delete<UserAISettings>(`/api/v1/ai/providers/${providerIndex}`);
+    return response.data;
+  }
+
+  async setDefaultAIProvider(provider: AIProviderType): Promise<UserAISettings> {
+    const response = await this.api.put<UserAISettings>('/api/v1/ai/settings/default-provider', { provider });
+    return response.data;
+  }
+
+  async updateAutoGenerate(autoGenerate: boolean): Promise<UserAISettings> {
+    const response = await this.api.put<UserAISettings>('/api/v1/ai/settings/auto-generate', { auto_generate: autoGenerate });
+    return response.data;
+  }
+
+  async testAIProvider(data: TestProviderRequest): Promise<TestProviderResponse> {
+    const response = await this.api.post<TestProviderResponse>('/api/v1/ai/test-provider', data);
+    return response.data;
+  }
+
+  async generateDescription(data: GenerateDescriptionRequest): Promise<GenerateDescriptionResponse> {
+    const response = await this.api.post<GenerateDescriptionResponse>('/api/v1/ai/generate-description', data);
+    return response.data;
+  }
+
+  async generateDiagram(data: GenerateDiagramRequest): Promise<GenerateDiagramResponse> {
+    const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/generate-diagram', data);
+    return response.data;
+  }
+
+  async improveDiagram(data: ImproveDiagramRequest): Promise<ImproveDiagramResponse> {
+    const response = await this.api.post<ImproveDiagramResponse>('/api/v1/ai/improve-diagram', data);
+    return response.data;
   }
 }
 
