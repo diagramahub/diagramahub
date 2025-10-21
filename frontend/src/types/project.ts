@@ -20,6 +20,7 @@ export type MermaidConfig = {
 };
 
 export type PlantUMLConfig = {
+  theme?: string;
   skinparam?: Record<string, any>;
 };
 
@@ -48,9 +49,11 @@ export const createMermaidConfig = (
 });
 
 export const createPlantUMLConfig = (
+  theme: string = "",
   skinparam: Record<string, any> = {}
 ): DiagramConfig => ({
   plantuml: {
+    theme,
     skinparam,
   },
 });

@@ -271,6 +271,23 @@ export default function DiagramEditorPage() {
     };
   }, []);
 
+  // Helper functions for localStorage
+  const getLastViewedDiagram = (projectId: string): string | null => {
+    try {
+      return localStorage.getItem(`lastDiagram_${projectId}`);
+    } catch {
+      return null;
+    }
+  };
+
+  const saveLastViewedDiagram = (projectId: string, diagramId: string) => {
+    try {
+      localStorage.setItem(`lastDiagram_${projectId}`, diagramId);
+    } catch (err) {
+      console.warn('Failed to save last viewed diagram:', err);
+    }
+  };
+
   // Initialize Mermaid
   useEffect(() => {
     mermaid.initialize({
@@ -283,6 +300,13 @@ export default function DiagramEditorPage() {
   // Load project and diagram
   useEffect(() => {
     loadProject();
+  }, [projectId, diagramId]);
+
+  // Save last viewed diagram when diagramId changes
+  useEffect(() => {
+    if (projectId && diagramId) {
+      saveLastViewedDiagram(projectId, diagramId);
+    }
   }, [projectId, diagramId]);
 
   const loadProject = async () => {
@@ -314,9 +338,15 @@ export default function DiagramEditorPage() {
           setDiagramCode(diagram.content);
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
+
+          // Load Mermaid config
           setDiagramTheme(diagram.config.mermaid?.theme || 'default');
           setDiagramLayout(diagram.config.mermaid?.layout || 'dagre');
           setDiagramLook(diagram.config.mermaid?.look || 'classic');
+
+          // Load PlantUML config
+          setPlantUMLTheme(diagram.config.plantuml?.theme || '');
+
           setSelectedFolderId(diagram.folder_id || null);
           // Restore viewport position
           setZoom(diagram.viewport_zoom || 1);
@@ -334,25 +364,43 @@ export default function DiagramEditorPage() {
           setError('Diagram not found');
         }
       } else {
-        // No diagramId in URL - select first diagram available
-        let firstDiagram = null;
+        // No diagramId in URL - try to load last viewed diagram or first available
+        let targetDiagram = null;
 
-        // First, try to find a diagram outside of folders (root diagrams)
-        if (projectData.diagrams.length > 0) {
-          firstDiagram = projectData.diagrams[0];
-        } else {
-          // If no root diagrams, find first diagram in first folder
-          for (const folder of projectData.folders) {
-            if (folder.diagrams.length > 0) {
-              firstDiagram = folder.diagrams[0];
-              break;
+        // Try to get last viewed diagram from localStorage
+        const lastViewedId = getLastViewedDiagram(projectId);
+        if (lastViewedId) {
+          // Try to find the last viewed diagram in root diagrams
+          targetDiagram = projectData.diagrams.find(d => d.id === lastViewedId);
+
+          // If not found in root, check in folders
+          if (!targetDiagram) {
+            for (const folder of projectData.folders) {
+              targetDiagram = folder.diagrams.find(d => d.id === lastViewedId);
+              if (targetDiagram) break;
             }
           }
         }
 
-        if (firstDiagram) {
-          // Navigate to the first diagram found
-          navigate(`/projects/${projectId}/diagrams/${firstDiagram.id}`, { replace: true });
+        // If no last viewed diagram or it doesn't exist anymore, get first available
+        if (!targetDiagram) {
+          // First, try to find a diagram outside of folders (root diagrams)
+          if (projectData.diagrams.length > 0) {
+            targetDiagram = projectData.diagrams[0];
+          } else {
+            // If no root diagrams, find first diagram in first folder
+            for (const folder of projectData.folders) {
+              if (folder.diagrams.length > 0) {
+                targetDiagram = folder.diagrams[0];
+                break;
+              }
+            }
+          }
+        }
+
+        if (targetDiagram) {
+          // Navigate to the target diagram
+          navigate(`/projects/${projectId}/diagrams/${targetDiagram.id}`, { replace: true });
         } else {
           // No diagrams at all - show modal to create first diagram
           setIsFirstDiagram(true);
@@ -385,8 +433,8 @@ export default function DiagramEditorPage() {
             return;
           }
 
-          // Render PlantUML using public server
-          const encoded = plantumlEncoder.encode(diagramCode);
+          // Render PlantUML using public server (with theme injected)
+          const encoded = plantumlEncoder.encode(fullDiagramCode);
           const plantUMLServer = 'https://www.plantuml.com/plantuml/svg';
           const imageUrl = `${plantUMLServer}/${encoded}`;
 
@@ -468,7 +516,7 @@ export default function DiagramEditorPage() {
           content: diagramCode,
           description: diagramDescription,
           config: currentDiagram?.diagram_type === 'plantuml'
-            ? createPlantUMLConfig()
+            ? createPlantUMLConfig(plantUMLTheme)
             : createMermaidConfig(diagramTheme, diagramLayout, diagramLook),
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
@@ -1738,7 +1786,7 @@ export default function DiagramEditorPage() {
             )}
 
             {/* Appearance Editor Modal */}
-            {showAppearanceEditor && currentDiagram?.diagram_type === 'mermaid' && (
+            {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml') && (
               <div className="floating-appearance absolute top-4 left-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
