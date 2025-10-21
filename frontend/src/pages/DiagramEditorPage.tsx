@@ -1849,7 +1849,7 @@ export default function DiagramEditorPage() {
 
             {/* Appearance Editor Modal */}
             {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml') && (
-              <div className="floating-appearance absolute top-4 left-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="floating-appearance absolute top-4 left-4 z-30 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-100px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramAppearance')}</h3>
@@ -2019,22 +2019,30 @@ export default function DiagramEditorPage() {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={backgroundColor}
-                            onChange={(e) => setBackgroundColor(e.target.value)}
-                            className="h-10 w-20 border border-gray-200 rounded cursor-pointer"
-                          />
-                          <input
-                            type="text"
-                            value={backgroundColor}
-                            onChange={(e) => setBackgroundColor(e.target.value)}
-                            placeholder="#ffffff"
-                            className="flex-1 text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 font-mono"
-                          />
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            { color: '#ffffff', name: 'Blanco' },
+                            { color: '#e5e7eb', name: 'Gris' },
+                            { color: '#1f2937', name: 'Negro' },
+                            { color: '#10b981', name: 'Verde' },
+                            { color: '#3b82f6', name: 'Azul' },
+                            { color: '#c084fc', name: 'Lavanda' },
+                            { color: '#f472b6', name: 'Rosa' },
+                            { color: '#fbbf24', name: 'Amarillo' },
+                          ].map(({ color, name }) => (
+                            <button
+                              key={color}
+                              onClick={() => setBackgroundColor(color)}
+                              className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
+                                backgroundColor === color
+                                  ? 'border-blue-500 ring-2 ring-blue-200'
+                                  : 'border-gray-300 hover:border-gray-400'
+                              }`}
+                              style={{ backgroundColor: color }}
+                              title={name}
+                            />
+                          ))}
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Selecciona o escribe un color en formato hexadecimal</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Patrón de Fondo</label>
