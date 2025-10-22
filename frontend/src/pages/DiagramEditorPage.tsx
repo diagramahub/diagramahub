@@ -320,26 +320,6 @@ export default function DiagramEditorPage() {
     }
   };
 
-  const loadBackgroundPreferences = () => {
-    try {
-      const savedColor = localStorage.getItem('diagramBackgroundColor');
-      const savedPattern = localStorage.getItem('diagramBackgroundPattern');
-      if (savedColor) setBackgroundColor(savedColor);
-      if (savedPattern) setBackgroundPattern(savedPattern);
-    } catch (err) {
-      console.warn('Failed to load background preferences:', err);
-    }
-  };
-
-  const saveBackgroundPreferences = (color: string, pattern: string) => {
-    try {
-      localStorage.setItem('diagramBackgroundColor', color);
-      localStorage.setItem('diagramBackgroundPattern', pattern);
-    } catch (err) {
-      console.warn('Failed to save background preferences:', err);
-    }
-  };
-
   // Initialize Mermaid
   useEffect(() => {
     mermaid.initialize({
@@ -348,16 +328,6 @@ export default function DiagramEditorPage() {
       securityLevel: 'loose',
     });
   }, []);
-
-  // Load background preferences on mount
-  useEffect(() => {
-    loadBackgroundPreferences();
-  }, []);
-
-  // Save background preferences when they change
-  useEffect(() => {
-    saveBackgroundPreferences(backgroundColor, backgroundPattern);
-  }, [backgroundColor, backgroundPattern]);
 
   // Load project and diagram
   useEffect(() => {
@@ -408,6 +378,10 @@ export default function DiagramEditorPage() {
 
           // Load PlantUML config
           setPlantUMLTheme(diagram.config.plantuml?.theme || '');
+
+          // Load background config
+          setBackgroundColor(diagram.config.background_color || '#ffffff');
+          setBackgroundPattern(diagram.config.background_pattern || 'plain');
 
           setSelectedFolderId(diagram.folder_id || null);
           // Restore viewport position
@@ -578,8 +552,8 @@ export default function DiagramEditorPage() {
           content: diagramCode,
           description: diagramDescription,
           config: currentDiagram?.diagram_type === 'plantuml'
-            ? createPlantUMLConfig(plantUMLTheme)
-            : createMermaidConfig(diagramTheme, diagramLayout, diagramLook),
+            ? createPlantUMLConfig(plantUMLTheme, {}, backgroundColor, backgroundPattern)
+            : createMermaidConfig(diagramTheme, diagramLayout, diagramLook, null, null, null, backgroundColor, backgroundPattern),
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -635,7 +609,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, selectedFolderId]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
