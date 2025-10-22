@@ -27,6 +27,8 @@ export type PlantUMLConfig = {
 export type DiagramConfig = {
   mermaid?: MermaidConfig | null;
   plantuml?: PlantUMLConfig | null;
+  background_color?: string;
+  background_pattern?: string;
 };
 
 // Helper functions for creating diagram configurations
@@ -36,7 +38,9 @@ export const createMermaidConfig = (
   look: string = "classic",
   handDrawnSeed?: number | null,
   fontFamily?: string | null,
-  fontSize?: number | null
+  fontSize?: number | null,
+  background_color: string = "#ffffff",
+  background_pattern: string = "plain"
 ): DiagramConfig => ({
   mermaid: {
     theme,
@@ -46,16 +50,22 @@ export const createMermaidConfig = (
     fontFamily,
     fontSize,
   },
+  background_color,
+  background_pattern,
 });
 
 export const createPlantUMLConfig = (
   theme: string = "",
-  skinparam: Record<string, any> = {}
+  skinparam: Record<string, any> = {},
+  background_color: string = "#ffffff",
+  background_pattern: string = "plain"
 ): DiagramConfig => ({
   plantuml: {
     theme,
     skinparam,
   },
+  background_color,
+  background_pattern,
 });
 
 // Helper to get mermaid config from a diagram
