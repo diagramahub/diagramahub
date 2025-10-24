@@ -79,7 +79,56 @@ diagramahub/
 
 ## 🐳 Quickstart (with Docker)
 
-> Requirements: Docker + Docker Compose
+### 🚀 One-Line Installation (Easiest!)
+
+Install DiagramHub with a single command:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/diagramahub/diagramahub/main/install.sh)
+```
+
+Or using wget:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/diagramahub/diagramahub/main/install.sh | bash
+```
+
+**This will:**
+- ✅ Auto-detect your OS (Ubuntu, Debian, CentOS, Fedora, macOS)
+- ✅ Install Docker & Docker Compose (if needed)
+- ✅ Clone the repository
+- ✅ Interactive MongoDB setup (local or external)
+- ✅ Test MongoDB connection
+- ✅ Generate secure JWT secrets
+- ✅ Build and start DiagramHub automatically
+
+**No manual configuration required!** The script handles everything.
+
+---
+
+### ⚡ Interactive Installation (Alternative)
+
+If you prefer Python or have already cloned the repo:
+
+> **Requirements:** Docker + Docker Compose + Python 3.8+
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/diagramahub/diagramahub.git
+cd diagramahub
+
+# 2. Run the interactive installer
+python3 install.py
+
+# 3. Start services
+docker-compose up -d
+```
+
+📖 **For detailed installation instructions, see [INSTALL.md](INSTALL.md)**
+
+### 🔧 Manual Installation
+
+If you prefer manual setup:
 
 ```bash
 # 1. Clone the repo
@@ -87,16 +136,20 @@ git clone https://github.com/alexdzul/diagramahub.git
 cd diagramahub
 
 # 2. Create environment file from template
-cp backend/.env.template backend/.env
+cp backend/.env.example backend/.env
 
-# 3. Edit backend/.env and set your JWT_SECRET (required!)
-# Example: JWT_SECRET=your-super-secret-key-change-this-min-32-chars
-# Or generate one: python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+# 3. Edit backend/.env and set your configuration:
+#    - MONGO_URI (local: mongodb://mongodb:27017 or external: mongodb+srv://...)
+#    - JWT_SECRET (generate with: python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+#    - DATABASE_NAME (default: diagramahub)
 
-# 4. Build and run with Docker Compose
+# 4. (Optional) If using external MongoDB, create docker-compose.override.yml
+#    See INSTALL.md for details
+
+# 5. Build and run with Docker Compose
 docker-compose up --build
 
-# 5. In another terminal, run tests to verify everything works
+# 6. In another terminal, run tests to verify everything works
 chmod +x test-api.sh
 ./test-api.sh
 ```
