@@ -20,11 +20,16 @@ wget -qO- https://raw.githubusercontent.com/diagramahub/diagramahub/main/install
 - ✅ **Zero dependencies** - Pure bash script, no Python required
 - ✅ **Auto-installs Docker** - Detects your OS and installs Docker if needed
 - ✅ **OS Detection** - Supports Ubuntu, Debian, CentOS, Fedora, RHEL, macOS
-- ✅ **Interactive wizard** - Guides you through MongoDB setup
-- ✅ **Connection testing** - Verifies MongoDB before proceeding
+- ✅ **Interactive wizard** - Guides you through MongoDB setup (local or external)
+- ✅ **MongoDB 8** - Deploys latest MongoDB with automatic patch updates
 - ✅ **Automatic start** - Builds and starts DiagramHub for you
+- ✅ **Fast installation** - Complete setup in 3-5 minutes
 
 This is the **recommended method** for new installations.
+
+**MongoDB Options:**
+1. **Local MongoDB** - Deploys MongoDB 8 in Docker with automatic patch updates
+2. **External MongoDB** - Connect to MongoDB Atlas or your own MongoDB server
 
 ---
 
@@ -34,84 +39,15 @@ If you prefer manual installation, ensure you have:
 
 - **Docker** (20.10 or higher) - [Install Docker](https://docs.docker.com/get-docker/)
 - **Docker Compose** (2.0 or higher) - Usually included with Docker Desktop
-- **Python 3.8+** (for the Python installer only)
 
 ### Verify Prerequisites
 
 ```bash
 docker --version
 docker-compose --version
-python3 --version
 ```
 
-## ⚡ Interactive Installation (Alternative)
-
-The easiest way to install DiagramHub is using the interactive installation script:
-
-```bash
-python3 install.py
-```
-
-The script will guide you through:
-1. ✅ Checking prerequisites (Docker, Docker Compose)
-2. 🗄️ Choosing MongoDB setup (Local or External)
-3. 🔐 Configuring JWT security
-4. 📝 Creating environment files
-5. ✨ Testing database connection
-
-### Installation Options
-
-#### Option 1: Local MongoDB (Docker) - Recommended for Development
-
-```bash
-# Run the installer
-python3 install.py
-
-# Choose option 1 when prompted
-# The script will:
-# - Configure MongoDB to run in Docker
-# - Generate secure JWT secret
-# - Create backend/.env file
-```
-
-**Advantages:**
-- ✅ Zero configuration required
-- ✅ Everything runs in Docker
-- ✅ Easy to reset/cleanup
-- ✅ Isolated from your system
-
-#### Option 2: External MongoDB - Recommended for Production
-
-```bash
-# Run the installer
-python3 install.py
-
-# Choose option 2 when prompted
-# Provide your MongoDB connection string (examples below)
-```
-
-**MongoDB URI Examples:**
-
-**MongoDB Atlas (Cloud):**
-```
-mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
-```
-
-**Self-hosted MongoDB:**
-```
-mongodb://username:password@your-server.com:27017/
-```
-
-**Local MongoDB (custom installation):**
-```
-mongodb://localhost:27017/
-```
-
-**Advantages:**
-- ✅ Production-ready
-- ✅ Scalable (MongoDB Atlas auto-scaling)
-- ✅ Backups included (Atlas)
-- ✅ Better performance for production
+---
 
 ## 🔧 Manual Installation
 
