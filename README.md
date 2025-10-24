@@ -97,34 +97,21 @@ wget -qO- https://raw.githubusercontent.com/diagramahub/diagramahub/main/install
 - ✅ Auto-detect your OS (Ubuntu, Debian, CentOS, Fedora, macOS)
 - ✅ Install Docker & Docker Compose (if needed)
 - ✅ Clone the repository
-- ✅ Interactive MongoDB setup (local or external)
-- ✅ Test MongoDB connection
+- ✅ Interactive MongoDB setup (local MongoDB 8 with auto-updates or external MongoDB Atlas)
 - ✅ Generate secure JWT secrets
 - ✅ Build and start DiagramHub automatically
 
-**No manual configuration required!** The script handles everything.
+**No manual configuration required!** The script handles everything in 3-5 minutes.
+
+**What happens after installation:**
+- Frontend: [http://localhost:5173](http://localhost:5173) 🎨 Create diagrams
+- Backend API: [http://localhost:5172/docs](http://localhost:5172/docs) 📖 Explore the API
+
+**MongoDB Options:**
+1. **Local MongoDB** - Deploys MongoDB 8 in Docker with automatic patch updates
+2. **External MongoDB** - Connect to MongoDB Atlas or your own MongoDB server
 
 ---
-
-### ⚡ Interactive Installation (Alternative)
-
-If you prefer Python or have already cloned the repo:
-
-> **Requirements:** Docker + Docker Compose + Python 3.8+
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/diagramahub/diagramahub.git
-cd diagramahub
-
-# 2. Run the interactive installer
-python3 install.py
-
-# 3. Start services
-docker-compose up -d
-```
-
-📖 **For detailed installation instructions, see [INSTALL.md](INSTALL.md)**
 
 ### 🔧 Manual Installation
 
