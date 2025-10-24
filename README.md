@@ -218,7 +218,7 @@ cp .env.template .env
 # Edit .env and set JWT_SECRET
 
 # Run MongoDB (via Docker)
-docker run -d -p 27017:27017 --name mongodb mongo:7.0
+docker run -d -p 27017:27017 --name mongodb mongo:8.0
 
 # Run backend with hot reload
 poetry run uvicorn app.main:app --reload

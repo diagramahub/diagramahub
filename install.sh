@@ -287,7 +287,7 @@ test_mongodb_connection() {
     fi
 
     # Try using Docker to test connection
-    if docker run --rm mongo:7 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
+    if docker run --rm mongo:8.0 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
         print_success "Connection successful!"
         return 0
     fi
@@ -657,6 +657,7 @@ main() {
     echo ""
     echo -e "${GREEN}🎉 Happy diagramming!${NC}"
     echo ""
+    echo -e "${CYAN}💡 Tip:${NC} Visit http://localhost:5173 to start creating diagrams"
     echo -e "${CYAN}💡 Tip:${NC} Visit http://localhost:5172/docs to explore the API"
     echo ""
 }

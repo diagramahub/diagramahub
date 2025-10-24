@@ -4,7 +4,7 @@ Complete DiagramHub installation with all services running locally in Docker.
 
 ## Services Included
 
-- **MongoDB 7.0** - Database (Docker container)
+- **MongoDB 8.0** - Database (Docker container)
 - **Backend** - FastAPI application
 - **Frontend** - React + Vite application
 
@@ -58,11 +58,11 @@ docker volume ls | grep mongodb
 
 # Backup data
 docker run --rm -v diagramahub_mongodb_data:/data -v $(pwd):/backup \
-  mongo:7.0 tar czf /backup/mongodb-backup.tar.gz /data
+  mongo:8.0 tar czf /backup/mongodb-backup.tar.gz /data
 
 # Restore data
 docker run --rm -v diagramahub_mongodb_data:/data -v $(pwd):/backup \
-  mongo:7.0 tar xzf /backup/mongodb-backup.tar.gz -C /
+  mongo:8.0 tar xzf /backup/mongodb-backup.tar.gz -C /
 ```
 
 ## Common Operations
