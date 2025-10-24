@@ -1,0 +1,71 @@
+# DiagramHub - Local Full Installation
+# This configuration includes all services: MongoDB, Backend, and Frontend
+# Use this for local development or self-hosted installations
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: diagramahub-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: diagramahub
+    networks:
+      - diagramahub-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: diagramahub-backend
+    restart: unless-stopped
+    ports:
+      - "5172:5172"
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/tests:/app/tests
+      - ./backend/pytest.ini:/app/pytest.ini
+      - ./backend/run-tests.sh:/app/run-tests.sh
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongodb
+    networks:
+      - diagramahub-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 5172 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: diagramahub-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/package-lock.json:/app/package-lock.json
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
+      - ./frontend/tsconfig.node.json:/app/tsconfig.node.json
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+    environment:
+      - VITE_API_URL=http://localhost:5172
+    networks:
+      - diagramahub-network
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  diagramahub-network:
+    driver: bridge
