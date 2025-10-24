@@ -361,7 +361,7 @@ VITE_API_URL=http://localhost:5172
 
 ### Docker Services
 
-- **mongodb** (port 27017): MongoDB 8.0 with persistent volume
+- **mongodb** (port 27017): MongoDB 8 (latest 8.x) with persistent volume
 - **backend** (port 5172): FastAPI with hot reload enabled
 - **frontend** (port 5173): Vite dev server with hot reload
 
