@@ -300,28 +300,49 @@ test_mongodb_connection() {
 configure_mongodb() {
     print_section "MongoDB Configuration"
 
-    echo "Choose your MongoDB setup:"
+    echo "DiagramHub supports two deployment modes:"
     echo ""
-    echo "  1. 🐳 Local MongoDB (Docker) - Recommended for development"
-    echo "  2. 🌐 External MongoDB (Atlas, custom server, etc.)"
+    echo "  ${GREEN}1. 🐳 Local MongoDB (Docker)${NC}"
+    echo "     • MongoDB runs in a Docker container"
+    echo "     • Perfect for development and testing"
+    echo "     • Data persists in a Docker volume"
+    echo "     • No external database needed"
+    echo ""
+    echo "  ${BLUE}2. 🌐 External MongoDB${NC}"
+    echo "     • Use MongoDB Atlas (cloud)"
+    echo "     • Use your own MongoDB server"
+    echo "     • Better for production environments"
+    echo "     • You manage backups and scaling"
     echo ""
 
     local choice
-    choice=$(ask_input "Enter your choice (1 or 2)" "1")
+    while true; do
+        choice=$(ask_input "Enter your choice (1 or 2)" "1")
+        if [ "$choice" = "1" ] || [ "$choice" = "2" ]; then
+            break
+        else
+            print_error "Invalid choice. Please enter 1 or 2"
+        fi
+    done
 
     if [ "$choice" = "1" ]; then
+        echo ""
+        print_info "Configuring Local MongoDB (Docker)"
         MONGO_URI="mongodb://mongodb:27017"
         DATABASE_NAME=$(ask_input "Database name" "diagramahub")
         USE_EXTERNAL_MONGO=false
-        print_success "Using local MongoDB with Docker"
+        echo ""
+        print_success "Local MongoDB configured"
+        print_info "MongoDB will run in a Docker container named 'diagramahub-mongodb'"
 
     elif [ "$choice" = "2" ]; then
-        print_info "External MongoDB Configuration"
         echo ""
-        echo "Example formats:"
-        echo "  MongoDB Atlas: mongodb+srv://user:pass@cluster.mongodb.net/"
-        echo "  Standard:      mongodb://user:pass@host:27017/"
-        echo "  Local custom:  mongodb://localhost:27017/"
+        print_info "Configuring External MongoDB"
+        echo ""
+        echo "Connection URI examples:"
+        echo "  ${CYAN}MongoDB Atlas:${NC}  mongodb+srv://username:password@cluster.mongodb.net/"
+        echo "  ${CYAN}Standard:${NC}       mongodb://username:password@hostname:27017/"
+        echo "  ${CYAN}Local custom:${NC}   mongodb://localhost:27017/"
         echo ""
 
         while true; do
@@ -332,12 +353,16 @@ configure_mongodb() {
                 continue
             fi
 
+            # Basic validation
+            if [[ ! "$MONGO_URI" =~ ^mongodb ]]; then
+                print_error "URI must start with 'mongodb://' or 'mongodb+srv://'"
+                continue
+            fi
+
             if test_mongodb_connection "$MONGO_URI"; then
                 break
             else
-                if ! ask_yes_no "Connection test inconclusive. Continue anyway?" "y"; then
-                    continue
-                else
+                if ask_yes_no "Connection test inconclusive. Continue anyway?" "y"; then
                     break
                 fi
             fi
@@ -345,10 +370,9 @@ configure_mongodb() {
 
         DATABASE_NAME=$(ask_input "Database name" "diagramahub")
         USE_EXTERNAL_MONGO=true
-
-    else
-        print_error "Invalid choice"
-        exit 1
+        echo ""
+        print_success "External MongoDB configured"
+        print_info "DiagramHub will connect to: ${MONGO_URI%%\?*}"  # Hide query params
     fi
 }
 
@@ -412,38 +436,42 @@ setup_docker_compose() {
 
     local deploy_source_relative
     local deploy_name
+    local deploy_description
 
     if [ "$USE_EXTERNAL_MONGO" = true ]; then
         deploy_source_relative="deploy/external-mongodb/docker-compose.yml"
         deploy_name="External MongoDB"
-        print_info "Using deployment configuration: External MongoDB"
+        deploy_description="Backend + Frontend (MongoDB hosted externally)"
     else
         deploy_source_relative="deploy/local-full/docker-compose.yml"
         deploy_name="Local Full Stack"
-        print_info "Using deployment configuration: Local Full Stack (with MongoDB)"
+        deploy_description="MongoDB + Backend + Frontend (all in Docker)"
     fi
 
-    # Create symbolic link or copy the appropriate docker-compose file
+    # Verify deployment configuration exists
+    local deploy_full_path="$INSTALL_DIR/$deploy_source_relative"
+    if [ ! -f "$deploy_full_path" ]; then
+        print_error "Deployment configuration not found: $deploy_source_relative"
+        print_error "This may indicate the repository is corrupted or incomplete"
+        exit 1
+    fi
+
+    print_info "Selected deployment mode: $deploy_name"
+    print_info "Services: $deploy_description"
+    echo ""
+
+    # Remove existing docker-compose.yml (whether file or symlink)
     local compose_target="$INSTALL_DIR/docker-compose.yml"
-
-    # Backup original if exists
-    if [ -f "$compose_target" ] && [ ! -L "$compose_target" ]; then
-        cp "$compose_target" "$compose_target.backup"
-        print_info "Original docker-compose.yml backed up"
+    if [ -e "$compose_target" ] || [ -L "$compose_target" ]; then
+        rm -f "$compose_target"
     fi
 
-    # Remove existing symlink if it exists
-    if [ -L "$compose_target" ]; then
-        rm "$compose_target"
-    fi
-
-    # Create symbolic link to deployment configuration (using relative path)
+    # Create symbolic link to deployment configuration
     cd "$INSTALL_DIR"
     ln -sf "$deploy_source_relative" docker-compose.yml
-    cd - > /dev/null
 
-    print_success "Docker Compose configured for: $deploy_name"
-    print_info "Configuration: $deploy_source_relative"
+    print_success "Docker Compose configured successfully"
+    print_info "Using: $deploy_source_relative"
 }
 
 build_and_start() {
@@ -451,28 +479,72 @@ build_and_start() {
 
     cd "$INSTALL_DIR"
 
+    # Show what will be started
+    if [ "$USE_EXTERNAL_MONGO" = true ]; then
+        echo "The following services will be started:"
+        echo "  • ${GREEN}Backend${NC} (FastAPI on port 5172)"
+        echo "  • ${GREEN}Frontend${NC} (Vite on port 5173)"
+        echo ""
+        print_info "MongoDB will NOT be started (using external connection)"
+    else
+        echo "The following services will be started:"
+        echo "  • ${GREEN}MongoDB${NC} (port 27017)"
+        echo "  • ${GREEN}Backend${NC} (FastAPI on port 5172)"
+        echo "  • ${GREEN}Frontend${NC} (Vite on port 5173)"
+    fi
+    echo ""
+
     if ask_yes_no "Would you like to start DiagramHub now?" "y"; then
         print_info "Building Docker images (this may take a few minutes)..."
-        docker-compose build
-
-        print_info "Starting services..."
-        docker-compose up -d
-
-        print_success "DiagramHub is starting..."
+        if docker-compose build; then
+            print_success "Docker images built successfully"
+        else
+            print_error "Failed to build Docker images"
+            print_info "Check the output above for errors"
+            exit 1
+        fi
 
         echo ""
-        print_info "Waiting for services to be ready (30 seconds)..."
-        sleep 30
+        print_info "Starting services..."
+        if docker-compose up -d; then
+            print_success "Services started successfully"
+        else
+            print_error "Failed to start services"
+            print_info "Check logs with: cd $INSTALL_DIR && docker-compose logs"
+            exit 1
+        fi
 
-        # Check if services are running
-        if docker-compose ps | grep -q "Up"; then
-            print_success "Services are running!"
+        echo ""
+        print_info "Waiting for services to initialize (15 seconds)..."
+        sleep 15
+
+        # Check service status
+        echo ""
+        print_info "Checking service status..."
+        docker-compose ps
+
+        # Verify services are running
+        local running_services=$(docker-compose ps --filter "status=running" --quiet | wc -l)
+        local expected_services
+        if [ "$USE_EXTERNAL_MONGO" = true ]; then
+            expected_services=2  # backend + frontend
+        else
+            expected_services=3  # mongodb + backend + frontend
+        fi
+
+        echo ""
+        if [ "$running_services" -ge "$expected_services" ]; then
+            print_success "All services are running!"
         else
             print_warning "Some services may not have started correctly"
-            print_info "Check logs with: cd $INSTALL_DIR && docker-compose logs"
+            print_info "Running services: $running_services / $expected_services"
+            print_info "Check logs with: cd $INSTALL_DIR && docker-compose logs -f"
         fi
     else
+        echo ""
+        print_info "Skipping automatic startup"
         print_info "You can start DiagramHub later with:"
+        echo ""
         echo "  cd $INSTALL_DIR"
         echo "  docker-compose up -d"
     fi
@@ -524,38 +596,68 @@ main() {
 
     echo -e "${GREEN}✅ DiagramHub has been installed successfully!${NC}"
     echo ""
-    echo "Configuration:"
-    echo "  • MongoDB: $([ "$USE_EXTERNAL_MONGO" = true ] && echo "External" || echo "Local (Docker)")"
-    echo "  • Database: $DATABASE_NAME"
-    echo "  • Location: $INSTALL_DIR"
+    echo "════════════════════════════════════════════════════════════════"
+    echo "  Configuration Summary"
+    echo "════════════════════════════════════════════════════════════════"
+    echo ""
+    if [ "$USE_EXTERNAL_MONGO" = true ]; then
+        echo "  ${CYAN}Deployment Mode:${NC}  External MongoDB"
+        echo "  ${CYAN}Services:${NC}         Backend + Frontend"
+        echo "  ${CYAN}MongoDB:${NC}          External (not managed by Docker Compose)"
+        echo "  ${CYAN}Database:${NC}         $DATABASE_NAME"
+    else
+        echo "  ${CYAN}Deployment Mode:${NC}  Local Full Stack"
+        echo "  ${CYAN}Services:${NC}         MongoDB + Backend + Frontend"
+        echo "  ${CYAN}MongoDB:${NC}          Running in Docker (diagramahub-mongodb)"
+        echo "  ${CYAN}Database:${NC}         $DATABASE_NAME"
+    fi
+    echo "  ${CYAN}Location:${NC}         $INSTALL_DIR"
     echo ""
     echo "════════════════════════════════════════════════════════════════"
     echo "  Access DiagramHub"
     echo "════════════════════════════════════════════════════════════════"
     echo ""
-    echo "  🌐 Frontend:  http://localhost:5173"
-    echo "  🔧 Backend:   http://localhost:5172"
-    echo "  📚 API Docs:  http://localhost:5172/docs"
+    echo "  ${GREEN}🌐 Frontend:${NC}  http://localhost:5173"
+    echo "  ${GREEN}🔧 Backend:${NC}   http://localhost:5172"
+    echo "  ${GREEN}📚 API Docs:${NC}  http://localhost:5172/docs"
+    if [ "$USE_EXTERNAL_MONGO" = false ]; then
+        echo "  ${GREEN}🗄️  MongoDB:${NC}   localhost:27017"
+    fi
     echo ""
     echo "════════════════════════════════════════════════════════════════"
     echo "  Useful Commands"
     echo "════════════════════════════════════════════════════════════════"
     echo ""
-    echo "  View logs:"
+    echo "  ${YELLOW}View logs (all services):${NC}"
     echo "    cd $INSTALL_DIR && docker-compose logs -f"
     echo ""
-    echo "  Stop services:"
+    echo "  ${YELLOW}View logs (specific service):${NC}"
+    echo "    cd $INSTALL_DIR && docker-compose logs -f backend"
+    echo "    cd $INSTALL_DIR && docker-compose logs -f frontend"
+    if [ "$USE_EXTERNAL_MONGO" = false ]; then
+        echo "    cd $INSTALL_DIR && docker-compose logs -f mongodb"
+    fi
+    echo ""
+    echo "  ${YELLOW}Stop services:${NC}"
     echo "    cd $INSTALL_DIR && docker-compose down"
     echo ""
-    echo "  Restart services:"
+    echo "  ${YELLOW}Restart services:${NC}"
     echo "    cd $INSTALL_DIR && docker-compose restart"
     echo ""
-    echo "  Update DiagramHub:"
-    echo "    cd $INSTALL_DIR && git pull && docker-compose build && docker-compose up -d"
+    echo "  ${YELLOW}Update DiagramHub:${NC}"
+    echo "    cd $INSTALL_DIR"
+    echo "    git pull"
+    echo "    docker-compose build"
+    echo "    docker-compose up -d"
+    echo ""
+    echo "  ${YELLOW}Run backend tests:${NC}"
+    echo "    docker exec diagramahub-backend poetry run pytest"
     echo ""
     echo "════════════════════════════════════════════════════════════════"
     echo ""
-    echo -e "${CYAN}🎉 Happy diagramming!${NC}"
+    echo -e "${GREEN}🎉 Happy diagramming!${NC}"
+    echo ""
+    echo -e "${CYAN}💡 Tip:${NC} Visit http://localhost:5172/docs to explore the API"
     echo ""
 }
 
