@@ -53,7 +53,7 @@ cp .env.template .env
 vim .env
 
 # Ejecutar MongoDB
-docker run -d -p 27017:27017 --name mongodb mongo:7.0
+docker run -d -p 27017:27017 --name mongodb mongo:8.0
 
 # Ejecutar backend
 poetry run uvicorn app.main:app --reload

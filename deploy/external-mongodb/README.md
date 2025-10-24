@@ -79,7 +79,7 @@ mongodb://username:password@host:27017/database
    mongosh "mongodb+srv://user:password@cluster.mongodb.net/diagramahub"
 
    # Test with Docker
-   docker run --rm mongo:7 mongosh "your-connection-string" --eval "db.adminCommand('ping')"
+   docker run --rm mongo:8.0 mongosh "your-connection-string" --eval "db.adminCommand('ping')"
    ```
 
 4. **Start services:**
