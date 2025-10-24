@@ -272,7 +272,7 @@ test_mongodb_connection() {
 
     # Try using mongosh if available
     if command -v mongosh &> /dev/null; then
-        if mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
+        if timeout 10 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null 2>&1; then
             print_success "Connection successful!"
             return 0
         fi
@@ -280,20 +280,33 @@ test_mongodb_connection() {
 
     # Try using mongo (legacy)
     if command -v mongo &> /dev/null; then
-        if mongo "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
+        if timeout 10 mongo "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null 2>&1; then
             print_success "Connection successful!"
             return 0
         fi
     fi
 
-    # Try using Docker to test connection
-    if docker run --rm mongo:8 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
+    # Try using Docker to test connection (with timeout and image pull progress)
+    print_info "Attempting connection test with Docker (may take a moment to download image)..."
+
+    # Pull image first to show progress
+    if ! docker image inspect mongo:8 &> /dev/null; then
+        print_info "Downloading MongoDB client image (this is a one-time download)..."
+        if ! timeout 120 docker pull mongo:8 2>&1 | grep -E 'Pulling|Downloaded|Status'; then
+            print_warning "Image download timeout or failed"
+            print_info "Connection will be verified when starting the application"
+            return 0
+        fi
+    fi
+
+    # Test connection with timeout
+    if timeout 15 docker run --rm mongo:8 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null 2>&1; then
         print_success "Connection successful!"
         return 0
     fi
 
-    print_warning "Could not verify connection (mongo client not available)"
-    print_info "Connection will be verified when starting the application"
+    print_warning "Could not verify connection"
+    print_info "This is usually fine - connection will be verified when starting the application"
     return 0
 }
 
