@@ -287,7 +287,7 @@ test_mongodb_connection() {
     fi
 
     # Try using Docker to test connection
-    if docker run --rm mongo:8.0 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
+    if docker run --rm mongo:8 mongosh "$mongo_uri" --eval "db.adminCommand('ping')" &> /dev/null; then
         print_success "Connection successful!"
         return 0
     fi
