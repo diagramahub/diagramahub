@@ -56,7 +56,7 @@ vim .env
 docker run -d -p 27017:27017 --name mongodb mongo:8
 
 # Ejecutar backend
-poetry run uvicorn app.main:app --reload
+poetry run uvicorn app.main:app --port 5172 --reload
 ```
 
 ### Con Docker Compose (Más fácil)
@@ -95,10 +95,10 @@ BACKEND_CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"]
 
 ```bash
 # Root endpoint
-curl http://localhost:8000/
+curl http://localhost:5172/
 
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:5172/health
 ```
 
 ### Autenticación
@@ -106,7 +106,7 @@ curl http://localhost:8000/health
 #### 1. Registro de Usuario
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/users/register \
+curl -X POST http://localhost:5172/api/v1/users/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -135,7 +135,7 @@ curl -X POST http://localhost:8000/api/v1/users/register \
 #### 2. Login
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/users/login \
+curl -X POST http://localhost:5172/api/v1/users/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -155,7 +155,7 @@ curl -X POST http://localhost:8000/api/v1/users/login \
 
 ```bash
 TOKEN="your-jwt-token"
-curl -X GET http://localhost:8000/api/v1/users/me \
+curl -X GET http://localhost:5172/api/v1/users/me \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -163,7 +163,7 @@ curl -X GET http://localhost:8000/api/v1/users/me \
 
 ```bash
 TOKEN="your-jwt-token"
-curl -X PUT http://localhost:8000/api/v1/users/change-password \
+curl -X PUT http://localhost:5172/api/v1/users/change-password \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -175,7 +175,7 @@ curl -X PUT http://localhost:8000/api/v1/users/change-password \
 #### 5. Solicitar Reset de Contraseña
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/users/reset-password-request \
+curl -X POST http://localhost:5172/api/v1/users/reset-password-request \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com"
@@ -187,7 +187,7 @@ curl -X POST http://localhost:8000/api/v1/users/reset-password-request \
 #### 6. Confirmar Reset de Contraseña
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/users/reset-password-confirm \
+curl -X POST http://localhost:5172/api/v1/users/reset-password-confirm \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -200,8 +200,8 @@ curl -X POST http://localhost:8000/api/v1/users/reset-password-confirm \
 
 Una vez corriendo el backend, accede a:
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Swagger UI**: http://localhost:5172/docs
+- **ReDoc**: http://localhost:5172/redoc
 
 ## Arquitectura y Principios SOLID
 
@@ -266,7 +266,7 @@ docker build -t diagramahub-backend .
 ### Run manual
 
 ```bash
-docker run -p 8000:8000 \
+docker run -p 5172:5172 \
   -e JWT_SECRET="your-secret" \
   -e MONGO_URI="mongodb://host.docker.internal:27017" \
   diagramahub-backend

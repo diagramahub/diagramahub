@@ -41,7 +41,7 @@ docker-compose up frontend
 ## Variables de Entorno
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:5172
 ```
 
 ## Licencia
