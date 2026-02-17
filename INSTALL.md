@@ -49,13 +49,16 @@ docker-compose --version
 
 ---
 
-## 🔧 Manual Installation
+### 1. Choose Deployment Mode
 
-If you prefer to configure manually instead of using the installation script:
+DiagramHub provides pre-configured deployment folders in the `deploy/` directory:
 
-### 1. Create Backend Environment File
+- `deploy/local-full/`: Includes MongoDB 8, Backend, and Frontend.
+- `deploy/external-mongodb/`: Includes only Backend and Frontend.
 
-Create `backend/.env`:
+### 2. Configure Environment
+
+Create `backend/.env` from the template:
 
 ```bash
 # MongoDB Configuration
@@ -79,21 +82,23 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 
 Copy the output and use it as your `JWT_SECRET` in the `.env` file.
 
-### 3. (Optional) Configure External MongoDB
+### 3. Setup Docker Compose
 
-If using external MongoDB, create `docker-compose.override.yml`:
+Instead of editing a single large file, link the configuration that matches your needs:
 
-```yaml
-version: '3.8'
-
-services:
-  mongodb:
-    # Disable local MongoDB when using external service
-    profiles:
-      - disabled
+**For Local MongoDB:**
+```bash
+ln -sf deploy/local-full/docker-compose.yml docker-compose.yml
 ```
 
-This tells Docker Compose to skip starting the local MongoDB container.
+**For External MongoDB:**
+```bash
+# Ensure your MONGO_URI in backend/.env points to your external DB
+ln -sf deploy/external-mongodb/docker-compose.yml docker-compose.yml
+```
+
+> [!NOTE]
+> `docker-compose.yml` is ignored by Git to prevent your local deployment choices from interfering with updates.
 
 ## 🏃 Running DiagramHub
 

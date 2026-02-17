@@ -130,11 +130,15 @@ cp backend/.env.example backend/.env
 #    - JWT_SECRET (generate with: python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 #    - DATABASE_NAME (default: diagramahub)
 
-# 4. (Optional) If using external MongoDB, create docker-compose.override.yml
-#    See INSTALL.md for details
+# 4. Setup Docker Compose
+# For local MongoDB:
+ln -sf deploy/local-full/docker-compose.yml docker-compose.yml
+
+# For external MongoDB:
+# ln -sf deploy/external-mongodb/docker-compose.yml docker-compose.yml
 
 # 5. Build and run with Docker Compose
-docker-compose up --build
+docker-compose up -d --build
 
 # 6. In another terminal, run tests to verify everything works
 chmod +x test-api.sh
@@ -714,8 +718,8 @@ All translations are organized into logical sections:
 
 - **[Setup Guide](SETUP.md)** - Detailed installation guide
 - **[Backend README](backend/README.md)** - Backend documentation
-- **[API Docs (Swagger)](http://localhost:8000/docs)** - Interactive documentation
-- **[API Docs (ReDoc)](http://localhost:8000/redoc)** - Alternative documentation
+- **[API Docs (Swagger)](http://localhost:5172/docs)** - Interactive documentation
+- **[API Docs (ReDoc)](http://localhost:5172/redoc)** - Alternative documentation
 
 ---
 
