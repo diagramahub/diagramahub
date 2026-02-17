@@ -1,1 +1,1 @@
-deploy/external-mongodb/docker-compose.yml
+deploy/local-full/docker-compose.yml
