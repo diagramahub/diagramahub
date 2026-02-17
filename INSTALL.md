@@ -300,31 +300,45 @@ docker-compose up -d
 
 For production environments, it is recommended to use a reverse proxy like **Nginx** or **Traefik** to handle SSL (HTTPS) and serve the application on standard ports (80/443).
 
-### 1. Reverse Proxy with Nginx
+### 1. Reverse Proxy with Nginx (Subdomain Approach)
+
+For a professional setup, we recommend using a subdomain for the API (e.g., `api.diagramahub.com`) and the main domain for the Frontend.
 
 Example Nginx configuration (`/etc/nginx/sites-available/diagramahub`):
 
 ```nginx
+# 1. Frontend Configuration
 server {
     listen 80;
     server_name diagramahub.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:5173; # Frontend
+        proxy_pass http://localhost:5173; # Frontend container
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
     }
+}
 
-    location /api {
-        proxy_pass http://localhost:5172; # Backend
+# 2. Backend API Configuration
+server {
+    listen 80;
+    server_name api.diagramahub.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:5172; # Backend container
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
+
+> [!IMPORTANT]
+> If you use the subdomain approach, ensure you update the `VITE_API_URL` environment variable in the frontend and the `BACKEND_CORS_ORIGINS` in the backend `.env` to allow cross-origin requests between your domains.
 
 ### 2. Enabling SSL (HTTPS)
 
