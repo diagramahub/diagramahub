@@ -13,7 +13,7 @@ class AIProviderType(str, Enum):
     GEMINI = "gemini"          # ✅ Implemented
     OPENAI = "openai"          # 🔜 Future
     CLAUDE = "claude"          # 🔜 Future
-    DEEPSEEK = "deepseek"      # 🔜 Future
+    DEEPSEEK = "deepseek"      # ✅ Implemented
 
 
 class AIProviderConfig(BaseModel):
