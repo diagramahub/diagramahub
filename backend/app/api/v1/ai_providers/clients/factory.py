@@ -5,6 +5,7 @@ from typing import Dict, Any
 from .base import BaseAIClient
 from .gemini_client import GeminiClient
 from .openai_client import OpenAIClient
+from .deepseek_client import DeepSeekClient
 from ..schemas import AIProviderType
 
 
@@ -15,6 +16,7 @@ class AIClientFactory:
     _clients_map = {
         AIProviderType.GEMINI: GeminiClient,
         AIProviderType.OPENAI: OpenAIClient,
+        AIProviderType.DEEPSEEK: DeepSeekClient,
         # Add more providers here as they're implemented
     }
 

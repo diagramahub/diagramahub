@@ -168,7 +168,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                     type="button"
                     onClick={() => handleProviderChange(provider)}
                     disabled={!isAvailable}
-                    className={`relative p-4 border-2 rounded-lg text-left transition-all ${
+                    className={`relative p-4 border-2 rounded-lg text-left transition-all flex items-center space-x-3 ${
                       formData.provider === provider
                         ? 'border-blue-500 bg-blue-50'
                         : isAvailable
@@ -176,12 +176,6 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                         : 'border-gray-200 opacity-50 cursor-not-allowed'
                     }`}
                   >
-                    <div className="font-medium text-gray-900">{AI_PROVIDER_NAMES[provider]}</div>
-                    {!isAvailable && (
-                      <span className="text-xs text-gray-500 mt-1 block">
-                        {t('ai.status.comingSoon')}
-                      </span>
-                    )}
                     {isAvailable && formData.provider === provider && (
                       <div className="absolute top-2 right-2">
                         <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -193,6 +187,33 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                         </svg>
                       </div>
                     )}
+
+                    {/* Provider Icon */}
+                    <div className="flex-shrink-0">
+                      <img 
+                        src={`/images/ai-providers/${provider}.svg`} 
+                        alt={AI_PROVIDER_NAMES[provider]}
+                        className="w-10 h-10 object-contain"
+                        onError={(e) => {
+                          // Fallback to text initials or default icon if image fails
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                      {/* Fallback Icon */}
+                      <div className="hidden w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 font-bold">
+                        {AI_PROVIDER_NAMES[provider].charAt(0)}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="font-medium text-gray-900">{AI_PROVIDER_NAMES[provider]}</div>
+                      {!isAvailable && (
+                        <span className="text-xs text-gray-500 mt-1 block">
+                          {t('ai.status.comingSoon')}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}

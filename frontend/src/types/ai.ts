@@ -116,10 +116,12 @@ export const AI_PROVIDER_NAMES: Record<AIProviderType, string> = {
 
 export const AI_PROVIDER_MODELS: Record<AIProviderType, string[]> = {
   [AIProviderType.GEMINI]: [
-    'gemini-2.0-flash-lite',
-    'gemini-pro',
-    'gemini-1.5-pro',
-    'gemini-1.5-flash-latest'
+    'gemini-3.0-pro',
+    'gemini-3.0-flash',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro'
   ],
   [AIProviderType.OPENAI]: [
     'gpt-4',
@@ -141,5 +143,5 @@ export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_so
   [AIProviderType.GEMINI]: 'available',
   [AIProviderType.OPENAI]: 'coming_soon',
   [AIProviderType.CLAUDE]: 'coming_soon',
-  [AIProviderType.DEEPSEEK]: 'coming_soon'
+  [AIProviderType.DEEPSEEK]: 'available'
 };
