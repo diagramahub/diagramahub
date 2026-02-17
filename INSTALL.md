@@ -279,16 +279,70 @@ docker-compose restart frontend
 
 ## 🔄 Updating DiagramHub
 
+To upgrade your installation to the latest version:
+
 ```bash
-# Pull latest changes
+# 1. Pull latest changes from repository
 git pull
 
-# Rebuild containers
+# 2. Re-run installer to apply any new environment changes (recommended)
+# OR manually rebuild:
 docker-compose build
-
-# Restart services
 docker-compose up -d
 ```
+
+> [!TIP]
+> Your data in `mongodb_data` is persistent and will not be lost during an upgrade unless you manually delete the volume.
+
+---
+
+## 🚀 Production Deployment
+
+For production environments, it is recommended to use a reverse proxy like **Nginx** or **Traefik** to handle SSL (HTTPS) and serve the application on standard ports (80/443).
+
+### 1. Reverse Proxy with Nginx
+
+Example Nginx configuration (`/etc/nginx/sites-available/diagramahub`):
+
+```nginx
+server {
+    listen 80;
+    server_name diagramahub.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:5173; # Frontend
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    location /api {
+        proxy_pass http://localhost:5172; # Backend
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+### 2. Enabling SSL (HTTPS)
+
+We recommend using **Certbot** for free SSL certificates from Let's Encrypt:
+
+```bash
+sudo apt install certbot python3-certbot-nginx
+sudo certbot --nginx -d diagramahub.yourdomain.com
+```
+
+### 3. Security Considerations
+
+- **JWT_SECRET**: Ensure your `JWT_SECRET` is a strong, random string (at least 32 chars).
+- **MongoDB**: If using local MongoDB, ensure port `27017` is **NOT** exposed to the public internet (use a firewall like UFW).
+- **Backups**: Regularly backup your `mongodb_data` volume.
+
+---
+
 
 ## 🧹 Cleanup
 
