@@ -3,7 +3,8 @@ Business logic layer for diagrams.
 """
 from fastapi import HTTPException, status
 from .interfaces import IDiagramRepository
-from .schemas import DiagramCreate, DiagramUpdate, DiagramResponse
+from .schemas import DiagramCreate, DiagramUpdate, DiagramResponse, MermaidConfig
+from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
 
 
 class DiagramService:
@@ -12,10 +13,14 @@ class DiagramService:
     def __init__(
         self,
         diagram_repository: IDiagramRepository,
-        project_repository
+        project_repository,
+        config_embedder: MermaidConfigEmbedder = None,
+        config_parser: MermaidConfigParser = None
     ):
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
+        self.config_embedder = config_embedder or MermaidConfigEmbedder()
+        self.config_parser = config_parser or MermaidConfigParser()
 
     async def create_diagram(
         self, diagram_data: DiagramCreate, project_id: str, user_id: str
@@ -47,6 +52,10 @@ class DiagramService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this project"
             )
+
+        # For Mermaid diagrams, config is in content (init block)
+        # Frontend handles embedding config in content, backend just stores it
+        # No need to parse or manipulate the content here
 
         diagram = await self.diagram_repository.create(diagram_data, project_id)
         return DiagramResponse(
@@ -93,6 +102,9 @@ class DiagramService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this diagram"
             )
+
+        # For Mermaid diagrams, config is in content (init block), not in config object
+        # Just return the diagram as-is, frontend will parse the init block
 
         return DiagramResponse(
             id=str(diagram.id),
@@ -142,6 +154,10 @@ class DiagramService:
                 detail="You don't have access to this diagram"
             )
 
+        # For Mermaid diagrams, config is in content (init block)
+        # Frontend handles embedding config in content, backend just stores it
+        # No need to parse or manipulate the content here
+
         updated_diagram = await self.diagram_repository.update(diagram_id, diagram_data)
         return DiagramResponse(
             id=str(updated_diagram.id),
@@ -190,3 +206,27 @@ class DiagramService:
 
         await self.diagram_repository.delete(diagram_id)
         return {"message": "Diagram deleted successfully"}
+
+    def _is_mermaid_diagram(self, diagram_type: str) -> bool:
+        """
+        Check if diagram type is a Mermaid diagram.
+        
+        Args:
+            diagram_type: Type of diagram
+            
+        Returns:
+            True if it's a Mermaid diagram type
+        """
+        mermaid_types = [
+            "mermaid",
+            "flowchart",
+            "sequence",
+            "class",
+            "state",
+            "er",
+            "gantt",
+            "pie",
+            "journey",
+            "gitgraph"
+        ]
+        return diagram_type.lower() in mermaid_types

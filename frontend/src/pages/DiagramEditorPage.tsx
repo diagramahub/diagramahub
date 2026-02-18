@@ -12,13 +12,16 @@ import SimpleMDE from 'react-simplemde-editor';
 import 'easymde/dist/easymde.min.css';
 import api from '../services/api';
 import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest, createMermaidConfig, createPlantUMLConfig } from '../types/project';
+import { UserAISettings, AI_PROVIDER_NAMES } from '../types/ai';
 import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Tooltip from '../components/Tooltip';
 import CodeEditor from '../components/CodeEditor';
 import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
+import NoAIProviderModal from '../components/NoAIProviderModal';
 import MarkdownEditor from '../components/MarkdownEditor';
+import { configInitBlockManager } from '../utils/configInitBlockManager';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -129,7 +132,10 @@ export default function DiagramEditorPage() {
   // Generate full code with frontmatter for rendering
   const fullDiagramCode = useMemo(() => {
     if (currentDiagram?.diagram_type === 'mermaid') {
-      return generateFrontmatter(diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize) + diagramCode;
+      // Remove init block from diagram code before adding frontmatter for rendering
+      const parseResult = configInitBlockManager.parseConfig(diagramCode);
+      const codeWithoutInit = parseResult.contentWithoutInit;
+      return generateFrontmatter(diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize) + codeWithoutInit;
     } else if (currentDiagram?.diagram_type === 'plantuml') {
       return injectPlantUMLTheme(diagramCode, plantUMLTheme);
     }
@@ -139,6 +145,9 @@ export default function DiagramEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Ref to track if we're updating from UI controls (to avoid infinite loops)
+  const isUpdatingFromUI = useRef(false);
 
   // Zoom and pan state
   const [zoom, setZoom] = useState(1);
@@ -197,6 +206,29 @@ export default function DiagramEditorPage() {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [showDescriptionConfirmModal, setShowDescriptionConfirmModal] = useState(false);
   const [generatedDescription, setGeneratedDescription] = useState('');
+  const [aiSettings, setAiSettings] = useState<UserAISettings | null>(null);
+  const [showNoAIModal, setShowNoAIModal] = useState(false);
+
+  // Load AI Settings
+  useEffect(() => {
+    const loadAISettings = async () => {
+      try {
+        const settings = await api.getAISettings();
+        setAiSettings(settings);
+      } catch (err) {
+        console.error('Error loading AI settings:', err);
+      }
+    };
+    loadAISettings();
+  }, []);
+
+  const validateAIConfiguration = () => {
+    if (!aiSettings || !aiSettings.providers || aiSettings.providers.length === 0) {
+      setShowNoAIModal(true);
+      return false;
+    }
+    return true;
+  };
 
   // Inline editing state
   const [isEditingDiagramTitle, setIsEditingDiagramTitle] = useState(false);
@@ -367,19 +399,42 @@ export default function DiagramEditorPage() {
 
         if (diagram) {
           setCurrentDiagram(diagram);
-          setDiagramCode(diagram.content);
+          
+          // For Mermaid diagrams, keep the full content with init block
+          // The init block will be parsed for UI controls but kept in the code editor
+          if (diagram.diagram_type === 'mermaid') {
+            const parseResult = configInitBlockManager.parseConfig(diagram.content);
+            
+            if (parseResult.config) {
+              // Use parsed config from content to populate UI controls
+              setDiagramTheme(parseResult.config.theme);
+              setDiagramLayout(parseResult.config.layout);
+              setDiagramLook(parseResult.config.look);
+              setDiagramFontFamily(parseResult.config.fontFamily || '');
+              setDiagramFontSize(parseResult.config.fontSize?.toString() || '16');
+            } else {
+              // Fallback to config object if no init block found
+              setDiagramTheme(diagram.config.mermaid?.theme || 'default');
+              setDiagramLayout(diagram.config.mermaid?.layout || 'dagre');
+              setDiagramLook(diagram.config.mermaid?.look || 'classic');
+              setDiagramFontFamily(diagram.config.mermaid?.fontFamily || '');
+              setDiagramFontSize(diagram.config.mermaid?.fontSize?.toString() || '16');
+            }
+            
+            // Keep the full content (with init block if present)
+            setDiagramCode(diagram.content);
+          } else {
+            // For non-Mermaid diagrams, use content as-is
+            setDiagramCode(diagram.content);
+          }
+          
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
-
-          // Load Mermaid config
-          setDiagramTheme(diagram.config.mermaid?.theme || 'default');
-          setDiagramLayout(diagram.config.mermaid?.layout || 'dagre');
-          setDiagramLook(diagram.config.mermaid?.look || 'classic');
 
           // Load PlantUML config
           setPlantUMLTheme(diagram.config.plantuml?.theme || '');
 
-          // Load background config
+          // Load background config (always from config object, never from init block)
           setBackgroundColor(diagram.config.background_color || '#ffffff');
           setBackgroundPattern(diagram.config.background_pattern || 'plain');
 
@@ -547,13 +602,42 @@ export default function DiagramEditorPage() {
     const autoSave = async () => {
       try {
         setSaveStatus('saving');
+        
+        // Prepare content with embedded config for Mermaid diagrams
+        let contentToSave = diagramCode;
+        if (currentDiagram?.diagram_type === 'mermaid') {
+          // Check if code already has an init block
+          const parseResult = configInitBlockManager.parseConfig(diagramCode);
+          
+          // If there's already an init block, keep the code as-is
+          // Otherwise, embed the config from UI controls
+          if (!parseResult.config) {
+            // No init block found, embed config from UI controls
+            const codeWithoutInit = parseResult.contentWithoutInit;
+            contentToSave = configInitBlockManager.embedConfig(codeWithoutInit, {
+              theme: diagramTheme,
+              layout: diagramLayout,
+              look: diagramLook,
+              handDrawnSeed: diagramLook === 'handDrawn' ? Math.floor(Math.random() * 1000) : undefined,
+              fontFamily: diagramFontFamily || undefined,
+              fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined
+            });
+          }
+          // If init block exists, use the code as-is (user may have edited it manually)
+        }
+        
         const updateData: UpdateDiagramRequest = {
           title: diagramTitle,
-          content: diagramCode,
+          content: contentToSave,
           description: diagramDescription,
           config: currentDiagram?.diagram_type === 'plantuml'
             ? createPlantUMLConfig(plantUMLTheme, {}, backgroundColor, backgroundPattern)
-            : createMermaidConfig(diagramTheme, diagramLayout, diagramLook, null, null, null, backgroundColor, backgroundPattern),
+            : {
+                mermaid: null, // Don't store mermaid config, it's in content
+                plantuml: null,
+                background_color: backgroundColor,
+                background_pattern: backgroundPattern
+              },
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -573,7 +657,7 @@ export default function DiagramEditorPage() {
             updatedProject.diagrams[rootDiagramIndex] = {
               ...updatedProject.diagrams[rootDiagramIndex],
               title: diagramTitle,
-              content: diagramCode,
+              content: contentToSave,
               description: diagramDescription,
               folder_id: selectedFolderId
             };
@@ -585,7 +669,7 @@ export default function DiagramEditorPage() {
                 folder.diagrams[folderDiagramIndex] = {
                   ...folder.diagrams[folderDiagramIndex],
                   title: diagramTitle,
-                  content: diagramCode,
+                  content: contentToSave,
                   description: diagramDescription,
                   folder_id: selectedFolderId
                 };
@@ -610,6 +694,67 @@ export default function DiagramEditorPage() {
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
   }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId]);
+
+  // Parse config from content when user manually edits Mermaid code with init block
+  useEffect(() => {
+    if (!currentDiagram || currentDiagram.diagram_type !== 'mermaid') return;
+    
+    // Skip if we're updating from UI controls
+    if (isUpdatingFromUI.current) {
+      isUpdatingFromUI.current = false;
+      return;
+    }
+    
+    // Parse config from diagram code
+    const parseResult = configInitBlockManager.parseConfig(diagramCode);
+    
+    if (parseResult.config) {
+      // Only update if values are different to avoid infinite loops
+      if (parseResult.config.theme !== diagramTheme) {
+        setDiagramTheme(parseResult.config.theme);
+      }
+      if (parseResult.config.layout !== diagramLayout) {
+        setDiagramLayout(parseResult.config.layout);
+      }
+      if (parseResult.config.look !== diagramLook) {
+        setDiagramLook(parseResult.config.look);
+      }
+      if (parseResult.config.fontFamily && parseResult.config.fontFamily !== diagramFontFamily) {
+        setDiagramFontFamily(parseResult.config.fontFamily);
+      }
+      if (parseResult.config.fontSize && parseResult.config.fontSize.toString() !== diagramFontSize) {
+        setDiagramFontSize(parseResult.config.fontSize.toString());
+      }
+    }
+  }, [diagramCode]);
+
+  // Update init block in code when UI controls change (for Mermaid diagrams)
+  useEffect(() => {
+    if (!currentDiagram || currentDiagram.diagram_type !== 'mermaid') return;
+    
+    // Parse current code to get content without init block
+    const parseResult = configInitBlockManager.parseConfig(diagramCode);
+    const codeWithoutInit = parseResult.contentWithoutInit;
+    
+    // Create new config from UI controls
+    const newConfig = {
+      theme: diagramTheme,
+      layout: diagramLayout,
+      look: diagramLook,
+      handDrawnSeed: diagramLook === 'handDrawn' ? Math.floor(Math.random() * 1000) : undefined,
+      fontFamily: diagramFontFamily || undefined,
+      fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined
+    };
+    
+    // Embed new config in code
+    const updatedCode = configInitBlockManager.embedConfig(codeWithoutInit, newConfig);
+    
+    // Only update if the code actually changed
+    if (updatedCode !== diagramCode) {
+      isUpdatingFromUI.current = true;
+      setDiagramCode(updatedCode);
+    }
+  }, [diagramTheme, diagramLayout, diagramLook, diagramFontFamily, diagramFontSize, currentDiagram]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
@@ -752,6 +897,8 @@ export default function DiagramEditorPage() {
 
   // Generate description with AI
   const handleGenerateDescription = async () => {
+    if (!validateAIConfiguration()) return;
+
     if (!diagramCode.trim()) {
       alert(t('ai.generate.error'));
       return;
@@ -1409,11 +1556,23 @@ export default function DiagramEditorPage() {
               <div className="flex items-center gap-2">
                 <Tooltip content={t('ai.improveDiagram.button')} position="bottom">
                   <button
-                    onClick={() => setShowImproveAIModal(true)}
+                    onClick={() => {
+                      if (validateAIConfiguration()) {
+                        setShowImproveAIModal(true);
+                      }
+                    }}
                     disabled={!diagramCode.trim()}
                     className="px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                   >
-                    <span>⚡</span>
+                    {aiSettings?.default_provider ? (
+                       <img 
+                         src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
+                         alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
+                         className="w-4 h-4 object-contain brightness-0 invert"
+                       />
+                    ) : (
+                       <span>⚡</span>
+                    )}
                     <span className="hidden lg:inline">{t('ai.improveDiagram.button')}</span>
                   </button>
                 </Tooltip>
@@ -1804,7 +1963,15 @@ export default function DiagramEditorPage() {
                       </>
                     ) : (
                       <>
-                        <span>⚡</span>
+                        {aiSettings?.default_provider ? (
+                           <img 
+                             src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
+                             alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
+                             className="w-4 h-4 object-contain brightness-0 invert"
+                           />
+                        ) : (
+                           <span>⚡</span>
+                        )}
                         <span>{t('ai.generate.button')}</span>
                       </>
                     )}
@@ -2620,6 +2787,12 @@ export default function DiagramEditorPage() {
         onAccept={handleImproveAccept}
         currentCode={diagramCode}
         diagramType={currentDiagram?.diagram_type || 'mermaid'}
+        aiSettings={aiSettings}
+      />
+
+      <NoAIProviderModal
+        isOpen={showNoAIModal}
+        onClose={() => setShowNoAIModal(false)}
       />
 
       {/* Generated Description Confirmation Modal */}

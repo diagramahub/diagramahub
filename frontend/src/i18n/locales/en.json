@@ -405,7 +405,10 @@
       "providerRequired": "Select a provider",
       "apiKeyRequired": "API key is required",
       "apiKeyMinLength": "API key must be at least 10 characters",
-      "modelRequired": "Select a model"
+      "modelRequired": "Select a model",
+      "tokenRequiredTitle": "AI Configuration Required",
+      "tokenRequiredMessage": "To use AI features, you need to configure at least one AI provider token.",
+      "goToSettings": "Go to Configuration"
     },
     "help": {
       "title": "How to get an API key?",

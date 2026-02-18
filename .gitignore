@@ -116,3 +116,5 @@ secrets.json
 # Application specific
 *.sqlite
 *.db
+
+.kiro

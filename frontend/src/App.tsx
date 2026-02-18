@@ -8,7 +8,6 @@ import DiagramEditorPage from './pages/DiagramEditorPage';
 import OnboardingWizardPage from './pages/OnboardingWizardPage';
 import InstallationWizardPage from './pages/InstallationWizardPage';
 import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
 import InstallationGuard from './components/InstallationGuard';
 
 function App() {
@@ -57,14 +56,6 @@ function App() {
               element={
                 <PrivateRoute>
                   <ProfilePage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <PrivateRoute>
-                  <SettingsPage />
                 </PrivateRoute>
               }
             />

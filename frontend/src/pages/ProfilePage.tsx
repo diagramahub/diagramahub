@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -36,7 +36,13 @@ export default function ProfilePage() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>('profile');
+  const location = useLocation();
+  
+  // Get tab from URL query params
+  const queryParams = new URLSearchParams(location.search);
+  const initialTab = queryParams.get('tab') === 'settings' ? 'settings' : 'profile';
+  
+  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(initialTab);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);

@@ -6,6 +6,7 @@ export type User = {
   full_name?: string;
   profile_picture?: string;  // Base64 encoded image
   timezone?: string;  // User's preferred timezone (IANA format)
+  language?: string;  // User's preferred language
   role?: UserRole;  // User role (admin or regular user)
   is_active: boolean;
   created_at: string;
