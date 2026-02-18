@@ -405,7 +405,10 @@
       "providerRequired": "Selecciona un proveedor",
       "apiKeyRequired": "La clave API es requerida",
       "apiKeyMinLength": "La clave API debe tener al menos 10 caracteres",
-      "modelRequired": "Selecciona un modelo"
+      "modelRequired": "Selecciona un modelo",
+      "tokenRequiredTitle": "Configuración de IA Requerida",
+      "tokenRequiredMessage": "Para utilizar las funciones de IA, es necesario tener al menos un token configurado.",
+      "goToSettings": "Ir a Configuración"
     },
     "help": {
       "title": "¿Cómo obtener una clave API?",

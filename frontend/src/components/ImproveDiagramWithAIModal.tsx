@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { UserAISettings, AI_PROVIDER_NAMES } from '../types/ai';
 
 interface ImproveDiagramWithAIModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ImproveDiagramWithAIModalProps {
   onAccept: (improvedCode: string) => void;
   currentCode: string;
   diagramType: string;
+  aiSettings?: UserAISettings | null;
 }
 
 export default function ImproveDiagramWithAIModal({
@@ -16,7 +18,8 @@ export default function ImproveDiagramWithAIModal({
   onClose,
   onAccept,
   currentCode,
-  diagramType
+  diagramType,
+  aiSettings
 }: ImproveDiagramWithAIModalProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -245,11 +248,20 @@ export default function ImproveDiagramWithAIModal({
                   </>
                 ) : (
                   <>
-                    <span>⚡</span>
+                    {aiSettings?.default_provider ? (
+                       <img 
+                         src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
+                         alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
+                         className="w-4 h-4 object-contain brightness-0 invert"
+                       />
+                    ) : (
+                       <span>⚡</span>
+                    )}
                     <span>{t('ai.improveDiagram.button')}</span>
                   </>
                 )}
               </button>
+
             </>
           ) : (
             <>
