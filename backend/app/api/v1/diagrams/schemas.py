@@ -15,7 +15,9 @@ class MermaidConfig(BaseModel):
     handDrawnSeed: Optional[int] = Field(default=None, description="Seed for handDrawn look randomization")
     fontFamily: Optional[str] = Field(default=None, description="Font family for diagram text")
     fontSize: Optional[int] = Field(default=None, description="Base font size")
-    # Mermaid-specific config options can be added here
+    
+    # Flowchart configuration
+    curve: Optional[str] = Field(default=None, description="Curve type (basis, linear, natural, step, stepBefore, stepAfter, monotoneX, monotoneY)")
 
 
 class PlantUMLConfig(BaseModel):

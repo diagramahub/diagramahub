@@ -208,6 +208,9 @@ export default function DiagramEditorPage() {
   const [generatedDescription, setGeneratedDescription] = useState('');
   const [aiSettings, setAiSettings] = useState<UserAISettings | null>(null);
   const [showNoAIModal, setShowNoAIModal] = useState(false);
+  
+  // Copy code state
+  const [codeCopied, setCodeCopied] = useState(false);
 
   // Load AI Settings
   useEffect(() => {
@@ -412,6 +415,7 @@ export default function DiagramEditorPage() {
               setDiagramLook(parseResult.config.look);
               setDiagramFontFamily(parseResult.config.fontFamily || '');
               setDiagramFontSize(parseResult.config.fontSize?.toString() || '16');
+              setDiagramCurve(parseResult.config.curve || 'basis');
             } else {
               // Fallback to config object if no init block found
               setDiagramTheme(diagram.config.mermaid?.theme || 'default');
@@ -419,6 +423,7 @@ export default function DiagramEditorPage() {
               setDiagramLook(diagram.config.mermaid?.look || 'classic');
               setDiagramFontFamily(diagram.config.mermaid?.fontFamily || '');
               setDiagramFontSize(diagram.config.mermaid?.fontSize?.toString() || '16');
+              setDiagramCurve(diagram.config.mermaid?.curve || 'basis');
             }
             
             // Keep the full content (with init block if present)
@@ -620,7 +625,8 @@ export default function DiagramEditorPage() {
               look: diagramLook,
               handDrawnSeed: diagramLook === 'handDrawn' ? Math.floor(Math.random() * 1000) : undefined,
               fontFamily: diagramFontFamily || undefined,
-              fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined
+              fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined,
+              curve: diagramCurve || undefined
             });
           }
           // If init block exists, use the code as-is (user may have edited it manually)
@@ -725,6 +731,9 @@ export default function DiagramEditorPage() {
       if (parseResult.config.fontSize && parseResult.config.fontSize.toString() !== diagramFontSize) {
         setDiagramFontSize(parseResult.config.fontSize.toString());
       }
+      if (parseResult.config.curve && parseResult.config.curve !== diagramCurve) {
+        setDiagramCurve(parseResult.config.curve);
+      }
     }
   }, [diagramCode]);
 
@@ -743,7 +752,8 @@ export default function DiagramEditorPage() {
       look: diagramLook,
       handDrawnSeed: diagramLook === 'handDrawn' ? Math.floor(Math.random() * 1000) : undefined,
       fontFamily: diagramFontFamily || undefined,
-      fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined
+      fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined,
+      curve: diagramCurve || undefined
     };
     
     // Embed new config in code
@@ -754,7 +764,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
-  }, [diagramTheme, diagramLayout, diagramLook, diagramFontFamily, diagramFontSize, currentDiagram]);
+  }, [diagramTheme, diagramLayout, diagramLook, diagramFontFamily, diagramFontSize, diagramCurve, currentDiagram]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
@@ -801,6 +811,13 @@ export default function DiagramEditorPage() {
         description: '',
         diagram_type: newDiagramType,
         folder_id: newDiagramFolderId,
+        // Set default background pattern to grid for Mermaid diagrams
+        config: newDiagramType === 'mermaid' ? {
+          mermaid: null,
+          plantuml: null,
+          background_color: '#ffffff',
+          background_pattern: 'grid'
+        } : undefined
       };
 
       const created = await api.createDiagram(projectId, createData);
@@ -812,6 +829,11 @@ export default function DiagramEditorPage() {
       setDiagramTitle(created.title);
       setSelectedFolderId(created.folder_id || null);
       setActiveTab('code');
+      
+      // Set background pattern to grid for new Mermaid diagrams
+      if (newDiagramType === 'mermaid') {
+        setBackgroundPattern('grid');
+      }
 
       // Close modal and reload project
       setShowNewDiagramModal(false);
@@ -949,6 +971,17 @@ export default function DiagramEditorPage() {
   const handleRejectDescription = () => {
     setShowDescriptionConfirmModal(false);
     setGeneratedDescription('');
+  };
+
+  // Copy diagram code to clipboard
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(diagramCode);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (err) {
+      console.error('Error copying code:', err);
+    }
   };
 
   // Improve diagram with AI
@@ -1912,14 +1945,36 @@ export default function DiagramEditorPage() {
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramCode')}</h3>
-                    <button
-                      onClick={() => setShowCodeView(false)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <Tooltip content={codeCopied ? "¡Copiado!" : "Copiar código"} position="bottom">
+                        <button
+                          onClick={handleCopyCode}
+                          className={`p-1.5 rounded transition-colors ${
+                            codeCopied 
+                              ? 'text-green-600 bg-green-50' 
+                              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                          }`}
+                        >
+                          {codeCopied ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          )}
+                        </button>
+                      </Tooltip>
+                      <button
+                        onClick={() => setShowCodeView(false)}
+                        className="text-gray-400 hover:text-gray-600 p-1"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="flex-1 p-4 overflow-auto">
