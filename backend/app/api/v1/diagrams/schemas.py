@@ -30,54 +30,8 @@ class PlantUMLConfig(BaseModel):
 
 class DiagramConfig(BaseModel):
     """Generic diagram configuration that can handle different diagram types."""
-    mermaid: Optional[MermaidConfig] = Field(default=None, description="Mermaid-specific configuration")
-    plantuml: Optional[PlantUMLConfig] = Field(default=None, description="PlantUML-specific configuration")
     background_color: str = Field(default="#ffffff", description="Background color for diagram viewer")
     background_pattern: str = Field(default="plain", description="Background pattern (plain, dots, grid)")
-
-    @classmethod
-    def for_mermaid(
-        cls,
-        theme: str = "default",
-        layout: str = "dagre",
-        look: str = "classic",
-        handDrawnSeed: Optional[int] = None,
-        fontFamily: Optional[str] = None,
-        fontSize: Optional[int] = None,
-        background_color: str = "#ffffff",
-        background_pattern: str = "plain"
-    ) -> "DiagramConfig":
-        """Create configuration for Mermaid diagrams."""
-        return cls(
-            mermaid=MermaidConfig(
-                theme=theme,
-                layout=layout,
-                look=look,
-                handDrawnSeed=handDrawnSeed,
-                fontFamily=fontFamily,
-                fontSize=fontSize
-            ),
-            background_color=background_color,
-            background_pattern=background_pattern
-        )
-
-    @classmethod
-    def for_plantuml(
-        cls,
-        theme: str = "",
-        skinparam: Optional[Dict[str, Any]] = None,
-        background_color: str = "#ffffff",
-        background_pattern: str = "plain"
-    ) -> "DiagramConfig":
-        """Create configuration for PlantUML diagrams."""
-        return cls(
-            plantuml=PlantUMLConfig(
-                theme=theme,
-                skinparam=skinparam or {}
-            ),
-            background_color=background_color,
-            background_pattern=background_pattern
-        )
 
 
 class DiagramBase(BaseModel):
@@ -86,7 +40,7 @@ class DiagramBase(BaseModel):
     content: str = Field(default="", description="Diagram code (Mermaid, PlantUML, etc.)")
     description: Optional[str] = Field(default="", description="Markdown description of the diagram")
     diagram_type: str = Field(default="flowchart", description="Type of diagram (flowchart, sequence, etc)")
-    config: DiagramConfig = Field(default_factory=lambda: DiagramConfig.for_mermaid(), description="Diagram configuration object")
+    config: DiagramConfig = Field(default_factory=DiagramConfig, description="Diagram configuration object")
 
 
 class DiagramCreate(DiagramBase):
@@ -113,7 +67,7 @@ class DiagramInDB(Document):
     content: str
     description: Optional[str] = ""
     diagram_type: str
-    config: DiagramConfig = Field(default_factory=lambda: DiagramConfig.for_mermaid(), description="Diagram configuration object")
+    config: DiagramConfig = Field(default_factory=DiagramConfig, description="Diagram configuration object")
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float = 1.0

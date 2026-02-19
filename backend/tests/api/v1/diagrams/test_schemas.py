@@ -66,44 +66,20 @@ class TestPlantUMLConfig:
 class TestDiagramConfig:
     """Test DiagramConfig model."""
 
-    def test_mermaid_config(self):
-        """Test DiagramConfig with mermaid configuration."""
-        mermaid_config = MermaidConfig(theme="dark", layout="elk")
-        config = DiagramConfig(mermaid=mermaid_config)
-        assert config.mermaid == mermaid_config
-        assert config.plantuml is None
+    def test_default_values(self):
+        """Test default values for DiagramConfig."""
+        config = DiagramConfig()
+        assert config.background_color == "#ffffff"
+        assert config.background_pattern == "plain"
 
-    def test_plantuml_config(self):
-        """Test DiagramConfig with plantuml configuration."""
-        plantuml_config = PlantUMLConfig(skinparam={"backgroundColor": "#fff"})
-        config = DiagramConfig(plantuml=plantuml_config)
-        assert config.plantuml == plantuml_config
-        assert config.mermaid is None
-
-    def test_both_configs(self):
-        """Test DiagramConfig with both configurations."""
-        mermaid_config = MermaidConfig(theme="forest")
-        plantuml_config = PlantUMLConfig(skinparam={"color": "blue"})
-        config = DiagramConfig(mermaid=mermaid_config, plantuml=plantuml_config)
-        assert config.mermaid == mermaid_config
-        assert config.plantuml == plantuml_config
-
-    def test_for_mermaid_classmethod(self):
-        """Test DiagramConfig.for_mermaid() class method."""
-        config = DiagramConfig.for_mermaid(theme="neutral", layout="elk", look="handDrawn")
-        assert config.mermaid is not None
-        assert config.mermaid.theme == "neutral"
-        assert config.mermaid.layout == "elk"
-        assert config.mermaid.look == "handDrawn"
-        assert config.plantuml is None
-
-    def test_for_plantuml_classmethod(self):
-        """Test DiagramConfig.for_plantuml() class method."""
-        skinparam = {"backgroundColor": "#f0f0f0"}
-        config = DiagramConfig.for_plantuml(skinparam=skinparam)
-        assert config.plantuml is not None
-        assert config.plantuml.skinparam == skinparam
-        assert config.mermaid is None
+    def test_custom_values(self):
+        """Test custom values for DiagramConfig."""
+        config = DiagramConfig(
+            background_color="#f0f0f0",
+            background_pattern="grid"
+        )
+        assert config.background_color == "#f0f0f0"
+        assert config.background_pattern == "grid"
 
 
 class TestDiagramModels:
@@ -111,7 +87,7 @@ class TestDiagramModels:
 
     def test_diagram_base_with_config(self):
         """Test DiagramBase with config field."""
-        config = DiagramConfig.for_mermaid(theme="dark")
+        config = DiagramConfig(background_color="#f5f5f5", background_pattern="dots")
         diagram = DiagramBase(
             title="Test Diagram",
             content="graph TD\nA-->B",
@@ -119,26 +95,25 @@ class TestDiagramModels:
         )
         assert diagram.title == "Test Diagram"
         assert diagram.content == "graph TD\nA-->B"
-        assert diagram.config.mermaid.theme == "dark"
+        assert diagram.config.background_color == "#f5f5f5"
+        assert diagram.config.background_pattern == "dots"
 
     def test_diagram_create_default_config(self):
         """Test DiagramCreate with default config."""
         diagram = DiagramCreate(
-            title="New Diagram",
-            project_id="project123"
+            title="New Diagram"
         )
         assert diagram.title == "New Diagram"
-        assert diagram.project_id == "project123"
-        assert diagram.config.mermaid is not None
-        assert diagram.config.mermaid.theme == "default"
+        assert diagram.config.background_color == "#ffffff"
+        assert diagram.config.background_pattern == "plain"
 
     def test_diagram_update_with_config(self):
         """Test DiagramUpdate with config changes."""
-        config = DiagramConfig.for_mermaid(theme="forest", look="handDrawn")
+        config = DiagramConfig(background_color="#e0e0e0", background_pattern="grid")
         update = DiagramUpdate(
             title="Updated Title",
             config=config
         )
         assert update.title == "Updated Title"
-        assert update.config.mermaid.theme == "forest"
-        assert update.config.mermaid.look == "handDrawn"
+        assert update.config.background_color == "#e0e0e0"
+        assert update.config.background_pattern == "grid"
