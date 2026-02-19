@@ -10,6 +10,8 @@ export interface MermaidConfig {
   handDrawnSeed?: number;
   fontFamily?: string;
   fontSize?: number;
+  // Flowchart configuration
+  curve?: string;
 }
 
 export interface InitJson {
@@ -21,8 +23,6 @@ export interface InitJson {
   };
   flowchart?: {
     curve?: string;
-    nodeSpacing?: number;
-    rankSpacing?: number;
     [key: string]: any;
   };
   handDrawnSeed?: number;
@@ -107,8 +107,10 @@ export class ConfigInitBlockManager {
       initJson.theme = config.theme;
     }
 
-    // Add themeVariables if fontFamily or fontSize are set
+    // Add themeVariables if any font settings are present
     const themeVariables: { [key: string]: any } = {};
+    
+    // Font settings
     if (config.fontFamily) {
       themeVariables.fontFamily = config.fontFamily;
     }
@@ -120,17 +122,17 @@ export class ConfigInitBlockManager {
       initJson.themeVariables = themeVariables;
     }
 
-    // Add flowchart configuration based on layout
+    // Add flowchart configuration
     const flowchartConfig: { [key: string]: any } = {};
-    if (config.layout === 'dagre') {
+    
+    // Curve type - prioritize explicit curve setting, otherwise use layout
+    if (config.curve) {
+      flowchartConfig.curve = config.curve;
+    } else if (config.layout === 'dagre') {
       flowchartConfig.curve = 'basis';
     } else if (config.layout === 'elk') {
       flowchartConfig.curve = 'linear';
     }
-
-    // Add default spacing
-    flowchartConfig.nodeSpacing = 50;
-    flowchartConfig.rankSpacing = 60;
 
     if (Object.keys(flowchartConfig).length > 0) {
       initJson.flowchart = flowchartConfig;
@@ -151,12 +153,18 @@ export class ConfigInitBlockManager {
     // Extract theme
     const theme = initJson.theme || 'default';
 
-    // Extract layout from flowchart curve
+    // Extract flowchart configuration
+    const flowchartConfig = initJson.flowchart || {};
+    
+    // Extract curve type
+    const curve = flowchartConfig.curve;
+    
+    // Extract layout from flowchart curve (for backward compatibility)
     let layout = 'dagre'; // default
-    if (initJson.flowchart?.curve) {
-      if (initJson.flowchart.curve === 'linear') {
+    if (curve) {
+      if (curve === 'linear') {
         layout = 'elk';
-      } else if (initJson.flowchart.curve === 'basis') {
+      } else if (curve === 'basis') {
         layout = 'dagre';
       }
     }
@@ -167,18 +175,21 @@ export class ConfigInitBlockManager {
       look = 'handDrawn';
     }
 
-    // Extract font settings from themeVariables
+    // Extract theme variables
+    const themeVariables = initJson.themeVariables || {};
+    
+    // Font settings
     let fontFamily: string | undefined;
     let fontSize: number | undefined;
-    if (initJson.themeVariables) {
-      fontFamily = initJson.themeVariables.fontFamily;
-      const fontSizeStr = initJson.themeVariables.fontSize;
-      if (fontSizeStr && typeof fontSizeStr === 'string') {
-        // Remove 'px' suffix if present
-        fontSize = parseInt(fontSizeStr.replace('px', ''));
-      } else if (typeof fontSizeStr === 'number') {
-        fontSize = fontSizeStr;
-      }
+    if (themeVariables.fontFamily) {
+      fontFamily = themeVariables.fontFamily;
+    }
+    const fontSizeStr = themeVariables.fontSize;
+    if (fontSizeStr && typeof fontSizeStr === 'string') {
+      // Remove 'px' suffix if present
+      fontSize = parseInt(fontSizeStr.replace('px', ''));
+    } else if (typeof fontSizeStr === 'number') {
+      fontSize = fontSizeStr;
     }
 
     return {
@@ -187,7 +198,8 @@ export class ConfigInitBlockManager {
       look,
       handDrawnSeed: initJson.handDrawnSeed,
       fontFamily,
-      fontSize
+      fontSize,
+      curve
     };
   }
 

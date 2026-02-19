@@ -68,27 +68,29 @@ class MermaidConfigEmbedder:
         if config.theme:
             init_json["theme"] = config.theme
         
-        # Add themeVariables if fontFamily or fontSize are set
+        # Add themeVariables if any font settings are present
         theme_variables: Dict[str, Any] = {}
+        
+        # Font settings
         if config.fontFamily:
             theme_variables["fontFamily"] = config.fontFamily
         if config.fontSize:
             theme_variables["fontSize"] = f"{config.fontSize}px"
-        
+
         if theme_variables:
             init_json["themeVariables"] = theme_variables
         
-        # Add flowchart configuration based on layout
+        # Add flowchart configuration
         flowchart_config: Dict[str, Any] = {}
-        if config.layout == "dagre":
+        
+        # Curve type - prioritize explicit curve setting, otherwise use layout
+        if config.curve:
+            flowchart_config["curve"] = config.curve
+        elif config.layout == "dagre":
             flowchart_config["curve"] = "basis"
         elif config.layout == "elk":
             flowchart_config["curve"] = "linear"
-        
-        # Add default spacing
-        flowchart_config["nodeSpacing"] = 50
-        flowchart_config["rankSpacing"] = 60
-        
+
         if flowchart_config:
             init_json["flowchart"] = flowchart_config
         
@@ -195,11 +197,17 @@ class MermaidConfigParser:
         # Extract theme
         theme = init_json.get("theme", "default")
         
-        # Extract layout from flowchart curve
-        layout = "dagre"  # default
+        # Extract flowchart configuration
         flowchart_config = init_json.get("flowchart", {})
+        
+        # Extract curve type
+        curve = None
         if isinstance(flowchart_config, dict):
-            curve = flowchart_config.get("curve", "basis")
+            curve = flowchart_config.get("curve")
+        
+        # Extract layout from flowchart curve (for backward compatibility)
+        layout = "dagre"  # default
+        if curve:
             if curve == "linear":
                 layout = "elk"
             elif curve == "basis":
@@ -211,10 +219,12 @@ class MermaidConfigParser:
         if hand_drawn_seed is not None:
             look = "handDrawn"
         
-        # Extract font settings from themeVariables
+        # Extract theme variables
+        theme_variables = init_json.get("themeVariables", {})
+        
+        # Font settings
         font_family = None
         font_size = None
-        theme_variables = init_json.get("themeVariables", {})
         if isinstance(theme_variables, dict):
             font_family = theme_variables.get("fontFamily")
             font_size_str = theme_variables.get("fontSize")
@@ -230,7 +240,8 @@ class MermaidConfigParser:
             look=look,
             handDrawnSeed=hand_drawn_seed,
             fontFamily=font_family,
-            fontSize=font_size
+            fontSize=font_size,
+            curve=curve
         )
 
     def _remove_init_block(self, content: str) -> str:

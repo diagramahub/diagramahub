@@ -125,6 +125,7 @@ export type CreateDiagramRequest = {
   description?: string;
   diagram_type?: string;
   folder_id?: string | null;
+  config?: DiagramConfig;
 }
 
 export type UpdateDiagramRequest = {
