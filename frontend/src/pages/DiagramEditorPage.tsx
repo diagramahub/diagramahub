@@ -11,7 +11,7 @@ import jsPDF from 'jspdf';
 import SimpleMDE from 'react-simplemde-editor';
 import 'easymde/dist/easymde.min.css';
 import api from '../services/api';
-import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest, createMermaidConfig, createPlantUMLConfig } from '../types/project';
+import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest } from '../types/project';
 import { UserAISettings, AI_PROVIDER_NAMES } from '../types/ai';
 import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
@@ -22,6 +22,7 @@ import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
 import NoAIProviderModal from '../components/NoAIProviderModal';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
+import { plantUMLConfigManager } from '../utils/plantUMLConfigManager';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -113,22 +114,6 @@ export default function DiagramEditorPage() {
     return `hace ${Math.floor(hours / 24)}d`;
   };
 
-  // Helper function to inject PlantUML theme
-  const injectPlantUMLTheme = (code: string, theme: string): string => {
-    if (!theme) return code;
-
-    // Insert !theme directive after @startuml
-    const lines = code.split('\n');
-    const startIndex = lines.findIndex(line => line.trim().startsWith('@startuml'));
-
-    if (startIndex !== -1) {
-      lines.splice(startIndex + 1, 0, `!theme ${theme}`);
-      return lines.join('\n');
-    }
-
-    return code;
-  };
-
   // Generate full code with frontmatter for rendering
   const fullDiagramCode = useMemo(() => {
     if (currentDiagram?.diagram_type === 'mermaid') {
@@ -137,10 +122,12 @@ export default function DiagramEditorPage() {
       const codeWithoutInit = parseResult.contentWithoutInit;
       return generateFrontmatter(diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize) + codeWithoutInit;
     } else if (currentDiagram?.diagram_type === 'plantuml') {
-      return injectPlantUMLTheme(diagramCode, plantUMLTheme);
+      // For PlantUML, the theme is already embedded in the content
+      // Just return the code as-is (theme directive is part of PlantUML syntax)
+      return diagramCode;
     }
     return diagramCode;
-  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, currentDiagram]);
+  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, currentDiagram]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
@@ -417,29 +404,37 @@ export default function DiagramEditorPage() {
               setDiagramFontSize(parseResult.config.fontSize?.toString() || '16');
               setDiagramCurve(parseResult.config.curve || 'basis');
             } else {
-              // Fallback to config object if no init block found
-              setDiagramTheme(diagram.config.mermaid?.theme || 'default');
-              setDiagramLayout(diagram.config.mermaid?.layout || 'dagre');
-              setDiagramLook(diagram.config.mermaid?.look || 'classic');
-              setDiagramFontFamily(diagram.config.mermaid?.fontFamily || '');
-              setDiagramFontSize(diagram.config.mermaid?.fontSize?.toString() || '16');
-              setDiagramCurve(diagram.config.mermaid?.curve || 'basis');
+              // Fallback to default values if no init block found
+              setDiagramTheme('default');
+              setDiagramLayout('dagre');
+              setDiagramLook('classic');
+              setDiagramFontFamily('');
+              setDiagramFontSize('16');
+              setDiagramCurve('basis');
             }
             
             // Keep the full content (with init block if present)
             setDiagramCode(diagram.content);
           } else {
-            // For non-Mermaid diagrams, use content as-is
+            // For PlantUML diagrams, parse theme from content
+            const parseResult = plantUMLConfigManager.parseTheme(diagram.content);
+            
+            if (parseResult.config?.theme) {
+              // Use parsed theme from content to populate UI controls
+              setPlantUMLTheme(parseResult.config.theme);
+            } else {
+              // Fallback to default value if no theme directive found
+              setPlantUMLTheme('');
+            }
+            
+            // Keep the full content (with theme directive if present)
             setDiagramCode(diagram.content);
           }
           
           setDiagramDescription(diagram.description || '');
           setDiagramTitle(diagram.title);
 
-          // Load PlantUML config
-          setPlantUMLTheme(diagram.config.plantuml?.theme || '');
-
-          // Load background config (always from config object, never from init block)
+          // Load background config (always from config object, never from init/theme block)
           setBackgroundColor(diagram.config.background_color || '#ffffff');
           setBackgroundPattern(diagram.config.background_pattern || 'plain');
 
@@ -608,8 +603,9 @@ export default function DiagramEditorPage() {
       try {
         setSaveStatus('saving');
         
-        // Prepare content with embedded config for Mermaid diagrams
+        // Prepare content with embedded config
         let contentToSave = diagramCode;
+        
         if (currentDiagram?.diagram_type === 'mermaid') {
           // Check if code already has an init block
           const parseResult = configInitBlockManager.parseConfig(diagramCode);
@@ -630,20 +626,30 @@ export default function DiagramEditorPage() {
             });
           }
           // If init block exists, use the code as-is (user may have edited it manually)
+        } else if (currentDiagram?.diagram_type === 'plantuml') {
+          // Check if code already has a theme directive
+          const parseResult = plantUMLConfigManager.parseTheme(diagramCode);
+          
+          // If there's already a theme directive, keep the code as-is
+          // Otherwise, embed the theme from UI controls
+          if (!parseResult.config) {
+            // No theme directive found, embed theme from UI controls
+            const codeWithoutTheme = parseResult.contentWithoutTheme;
+            contentToSave = plantUMLConfigManager.embedTheme(codeWithoutTheme, {
+              theme: plantUMLTheme || undefined
+            });
+          }
+          // If theme directive exists, use the code as-is (user may have edited it manually)
         }
         
         const updateData: UpdateDiagramRequest = {
           title: diagramTitle,
           content: contentToSave,
           description: diagramDescription,
-          config: currentDiagram?.diagram_type === 'plantuml'
-            ? createPlantUMLConfig(plantUMLTheme, {}, backgroundColor, backgroundPattern)
-            : {
-                mermaid: null, // Don't store mermaid config, it's in content
-                plantuml: null,
-                background_color: backgroundColor,
-                background_pattern: backgroundPattern
-              },
+          config: {
+            background_color: backgroundColor,
+            background_pattern: backgroundPattern
+          },
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -737,6 +743,27 @@ export default function DiagramEditorPage() {
     }
   }, [diagramCode]);
 
+  // Parse theme from content when user manually edits PlantUML code with theme directive
+  useEffect(() => {
+    if (!currentDiagram || currentDiagram.diagram_type !== 'plantuml') return;
+    
+    // Skip if we're updating from UI controls
+    if (isUpdatingFromUI.current) {
+      isUpdatingFromUI.current = false;
+      return;
+    }
+    
+    // Parse theme from diagram code
+    const parseResult = plantUMLConfigManager.parseTheme(diagramCode);
+    
+    if (parseResult.config?.theme) {
+      // Only update if value is different to avoid infinite loops
+      if (parseResult.config.theme !== plantUMLTheme) {
+        setPlantUMLTheme(parseResult.config.theme);
+      }
+    }
+  }, [diagramCode]);
+
   // Update init block in code when UI controls change (for Mermaid diagrams)
   useEffect(() => {
     if (!currentDiagram || currentDiagram.diagram_type !== 'mermaid') return;
@@ -765,6 +792,29 @@ export default function DiagramEditorPage() {
       setDiagramCode(updatedCode);
     }
   }, [diagramTheme, diagramLayout, diagramLook, diagramFontFamily, diagramFontSize, diagramCurve, currentDiagram]);
+
+  // Update theme directive in code when UI controls change (for PlantUML diagrams)
+  useEffect(() => {
+    if (!currentDiagram || currentDiagram.diagram_type !== 'plantuml') return;
+    
+    // Parse current code to get content without theme directive
+    const parseResult = plantUMLConfigManager.parseTheme(diagramCode);
+    const codeWithoutTheme = parseResult.contentWithoutTheme;
+    
+    // Create new config from UI controls
+    const newConfig = {
+      theme: plantUMLTheme || undefined
+    };
+    
+    // Embed new theme in code
+    const updatedCode = plantUMLConfigManager.embedTheme(codeWithoutTheme, newConfig);
+    
+    // Only update if the code actually changed
+    if (updatedCode !== diagramCode) {
+      isUpdatingFromUI.current = true;
+      setDiagramCode(updatedCode);
+    }
+  }, [plantUMLTheme, currentDiagram]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
@@ -813,8 +863,6 @@ export default function DiagramEditorPage() {
         folder_id: newDiagramFolderId,
         // Set default background pattern to grid for Mermaid diagrams
         config: newDiagramType === 'mermaid' ? {
-          mermaid: null,
-          plantuml: null,
           background_color: '#ffffff',
           background_pattern: 'grid'
         } : undefined
