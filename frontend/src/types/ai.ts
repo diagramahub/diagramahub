@@ -124,9 +124,11 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, string[]> = {
     'gemini-1.5-pro'
   ],
   [AIProviderType.OPENAI]: [
-    'gpt-4',
-    'gpt-4-turbo',
-    'gpt-3.5-turbo'
+  'gpt-4o',        // Balance potencia/costo (muy buena opción general)
+  'gpt-4o-mini',   // Más barato y rápido
+  'gpt-5',         // Más avanzado
+  'gpt-5-mini',    // Balance moderno
+  'gpt-5-nano'     // Ultra low cost / alta concurrencia
   ],
   [AIProviderType.CLAUDE]: [
     'claude-3-opus',
@@ -141,7 +143,7 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, string[]> = {
 
 export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_soon'> = {
   [AIProviderType.GEMINI]: 'available',
-  [AIProviderType.OPENAI]: 'coming_soon',
+  [AIProviderType.OPENAI]: 'available',
   [AIProviderType.CLAUDE]: 'coming_soon',
   [AIProviderType.DEEPSEEK]: 'available'
 };
