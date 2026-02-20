@@ -5,6 +5,7 @@ from typing import Dict, Any
 from .base import BaseAIClient
 from .gemini_client import GeminiClient
 from .openai_client import OpenAIClient
+from .claude_client import ClaudeClient
 from .deepseek_client import DeepSeekClient
 from ..schemas import AIProviderType
 
@@ -16,8 +17,8 @@ class AIClientFactory:
     _clients_map = {
         AIProviderType.GEMINI: GeminiClient,
         AIProviderType.OPENAI: OpenAIClient,
+        AIProviderType.CLAUDE: ClaudeClient,
         AIProviderType.DEEPSEEK: DeepSeekClient,
-        # Add more providers here as they're implemented
     }
 
     @classmethod
@@ -32,7 +33,7 @@ class AIClientFactory:
         Create instance of the appropriate AI client.
 
         Args:
-            provider: Provider type (gemini, openai, etc.)
+            provider: Provider type (gemini, openai, claude, deepseek)
             api_key: API key for the provider
             model: Model name to use
             parameters: Provider-specific parameters
