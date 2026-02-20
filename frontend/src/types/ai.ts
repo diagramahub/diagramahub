@@ -131,9 +131,12 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, string[]> = {
   'gpt-5-nano'     // Ultra low cost / alta concurrencia
   ],
   [AIProviderType.CLAUDE]: [
-    'claude-3-opus',
-    'claude-3-sonnet',
-    'claude-3-haiku'
+  'claude-haiku-4-5-20251001',
+  'claude-sonnet-4-5-20250929',
+  'claude-opus-4-1-20250805',
+  'claude-opus-4-20250514',
+  'claude-sonnet-4-20250514',
+  'claude-opus-4-5-20251101'
   ],
   [AIProviderType.DEEPSEEK]: [
     'deepseek-chat',
@@ -144,6 +147,6 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, string[]> = {
 export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_soon'> = {
   [AIProviderType.GEMINI]: 'available',
   [AIProviderType.OPENAI]: 'available',
-  [AIProviderType.CLAUDE]: 'coming_soon',
+  [AIProviderType.CLAUDE]: 'available',
   [AIProviderType.DEEPSEEK]: 'available'
 };
