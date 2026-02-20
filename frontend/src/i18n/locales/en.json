@@ -337,6 +337,8 @@
       "selectProvider": "Select a provider",
       "apiKey": "API Key",
       "apiKeyPlaceholder": "Enter your API key",
+      "apiKeyUpdatePlaceholder": "Leave blank to keep current key",
+      "changeApiKey": "Change",
       "model": "Model",
       "selectModel": "Select a model",
       "displayName": "Custom name (optional)",
@@ -416,7 +418,10 @@
       "openai": "Create an OpenAI account and generate an API key",
       "claude": "Sign up at Anthropic Console to get access",
       "deepseek": "Visit DeepSeek to create your account and get a key",
-      "security": "Your API keys are stored securely and encrypted"
+      "security": "Your API keys are stored securely and encrypted",
+      "providerCannotChange": "The provider cannot be changed. If you need to use another provider, create a new connection.",
+      "apiKeyUpdate": "Leave this field empty if you don't want to change the current API key",
+      "clickToChangeApiKey": "Click on the field or 'Change' to update the API key"
     }
   }
 }

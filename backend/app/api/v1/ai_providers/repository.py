@@ -78,10 +78,16 @@ class AIProviderRepository(IAIProviderRepository):
         if not settings or provider_index >= len(settings.providers):
             raise ValueError("Provider not found")
 
-        # Encrypt new API key if provided
-        if provider_data.api_key:
+        current_provider = settings.providers[provider_index]
+
+        # Only encrypt if a new API key is provided and it's different from current
+        # (current is encrypted, so if they're the same, it means we're keeping the current one)
+        if provider_data.api_key and provider_data.api_key != current_provider.api_key:
             encrypted_key = encrypt_api_key(provider_data.api_key)
             provider_data.api_key = encrypted_key
+        elif not provider_data.api_key or provider_data.api_key == current_provider.api_key:
+            # Keep the current encrypted key
+            provider_data.api_key = current_provider.api_key
 
         # Update provider
         settings.providers[provider_index] = provider_data
