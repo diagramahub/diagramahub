@@ -79,6 +79,13 @@ class AIProviderService:
         Raises:
             HTTPException: If API key validation fails
         """
+        # Ensure API key is provided for new providers
+        if not provider_data.api_key:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="API key is required when adding a new provider"
+            )
+        
         # Validate API key before saving
         try:
             client = AIClientFactory.create_client(
@@ -122,7 +129,7 @@ class AIProviderService:
         Args:
             user_id: User ID
             provider_index: Index of provider to update
-            provider_data: Updated provider configuration
+            provider_data: Updated provider configuration (api_key=None means keep current)
 
         Returns:
             Updated user settings
@@ -130,8 +137,21 @@ class AIProviderService:
         Raises:
             HTTPException: If provider not found or validation fails
         """
-        # If API key is provided, validate it
-        if provider_data.api_key:
+        # Get current provider to preserve api_key if not provided
+        settings = await self.repository.get_user_settings(user_id)
+        if not settings or provider_index >= len(settings.providers):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Provider not found"
+            )
+        
+        current_provider = settings.providers[provider_index]
+        
+        # If API key is None, keep the current one (don't validate)
+        if provider_data.api_key is None:
+            provider_data.api_key = current_provider.api_key
+        else:
+            # New API key provided, validate it
             try:
                 client = AIClientFactory.create_client(
                     provider=provider_data.provider,

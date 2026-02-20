@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserAISettings, AI_PROVIDER_NAMES, AI_PROVIDER_STATUS } from '../types/ai';
+import { UserAISettings, AIProviderConfig, AI_PROVIDER_NAMES, AI_PROVIDER_STATUS } from '../types/ai';
 import apiService from '../services/api';
 import AddProviderModal from './AddProviderModal';
+import EditProviderModal from './EditProviderModal';
 
 export default function AIIntegrationsSection() {
   const { t } = useTranslation();
   const [settings, setSettings] = useState<UserAISettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<{ provider: AIProviderConfig; index: number } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +71,16 @@ export default function AIIntegrationsSection() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleEditProvider = (provider: AIProviderConfig, index: number) => {
+    setEditingProvider({ provider, index });
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProvider(null);
   };
 
   if (loading) {
@@ -212,6 +225,21 @@ export default function AIIntegrationsSection() {
 
                       {/* Actions */}
                       <div className="flex items-center space-x-2 ml-4">
+                        <button
+                          onClick={() => handleEditProvider(provider, index)}
+                          disabled={actionLoading !== null}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                          title={t('ai.editProvider')}
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
                         {!isDefault && isAvailable && (
                           <button
                             onClick={() => handleSetDefault(index)}
@@ -259,6 +287,15 @@ export default function AIIntegrationsSection() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={loadSettings}
+      />
+
+      {/* Edit Modal */}
+      <EditProviderModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSuccess={loadSettings}
+        provider={editingProvider?.provider || null}
+        providerIndex={editingProvider?.index || 0}
       />
     </>
   );

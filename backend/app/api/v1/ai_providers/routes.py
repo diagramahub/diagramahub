@@ -115,9 +115,10 @@ async def update_provider(
     current_provider = settings.providers[provider_index]
 
     # Build updated config (only update provided fields)
+    # IMPORTANT: Don't include api_key if not provided to avoid validation of masked key
     updated_config = AIProviderConfig(
         provider=current_provider.provider,
-        api_key=request.api_key if request.api_key else current_provider.api_key,
+        api_key=request.api_key if request.api_key else None,  # None means keep current
         model=request.model if request.model else current_provider.model,
         is_active=request.is_active if request.is_active is not None else current_provider.is_active,
         is_default=request.is_default if request.is_default is not None else current_provider.is_default,
