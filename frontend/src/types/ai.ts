@@ -150,3 +150,10 @@ export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_so
   [AIProviderType.CLAUDE]: 'available',
   [AIProviderType.DEEPSEEK]: 'available'
 };
+
+export const AI_PROVIDER_API_KEY_URLS: Record<AIProviderType, string> = {
+  [AIProviderType.GEMINI]: 'https://aistudio.google.com/app/apikey',
+  [AIProviderType.OPENAI]: 'https://platform.openai.com/api-keys',
+  [AIProviderType.CLAUDE]: 'https://console.anthropic.com/settings/keys',
+  [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys'
+};

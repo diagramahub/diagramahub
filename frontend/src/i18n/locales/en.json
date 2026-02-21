@@ -421,7 +421,8 @@
       "security": "Your API keys are stored securely and encrypted",
       "providerCannotChange": "The provider cannot be changed. If you need to use another provider, create a new connection.",
       "apiKeyUpdate": "Leave this field empty if you don't want to change the current API key",
-      "clickToChangeApiKey": "Click on the field or 'Change' to update the API key"
+      "clickToChangeApiKey": "Click on the field or 'Change' to update the API key",
+      "getApiKey": "Get API Key"
     }
   }
 }
