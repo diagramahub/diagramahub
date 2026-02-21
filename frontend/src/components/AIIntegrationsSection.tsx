@@ -183,6 +183,11 @@ export default function AIIntegrationsSection() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
+                          <img
+                            src={`/images/ai-providers/${provider.provider}.svg`}
+                            alt={AI_PROVIDER_NAMES[provider.provider]}
+                            className="w-6 h-6 object-contain"
+                          />
                           <h4 className="text-base font-medium text-gray-900">
                             {provider.display_name || AI_PROVIDER_NAMES[provider.provider]}
                           </h4>

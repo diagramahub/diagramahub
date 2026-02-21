@@ -21,6 +21,9 @@ import CodeEditor from '../components/CodeEditor';
 import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
 import NoAIProviderModal from '../components/NoAIProviderModal';
 import MarkdownEditor from '../components/MarkdownEditor';
+import { DiagramDiffView } from '../components/DiagramDiffView';
+import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
+import { FixDiagramResponse } from '../types/ai';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
 import { plantUMLConfigManager } from '../utils/plantUMLConfigManager';
 
@@ -198,6 +201,23 @@ export default function DiagramEditorPage() {
   
   // Copy code state
   const [codeCopied, setCodeCopied] = useState(false);
+
+  // Fix diagram state
+  const [showFixDiffModal, setShowFixDiffModal] = useState(false);
+  const [fixResult, setFixResult] = useState<FixDiagramResponse | null>(null);
+  const [fixError, setFixError] = useState<string | null>(null);
+  const [isFixing, setIsFixing] = useState(false);
+
+  // Use error detection hook
+  const diagramError = useDiagramErrorDetection(
+    diagramCode,
+    currentDiagram?.diagram_type || 'mermaid'
+  );
+
+  // Debug: Log error state
+  useEffect(() => {
+    console.log('🔍 Diagram Error State:', diagramError);
+  }, [diagramError]);
 
   // Load AI Settings
   useEffect(() => {
@@ -1073,6 +1093,34 @@ export default function DiagramEditorPage() {
     setPan({ x: 0, y: 0 });
   };
 
+  // Fix diagram handlers
+  const handleFixSuccess = (response: FixDiagramResponse) => {
+    setFixResult(response);
+    setFixError(null);
+    setShowFixDiffModal(true);
+  };
+
+  const handleFixError = (error: string) => {
+    setFixError(error);
+    setFixResult(null);
+    // Show error notification for 5 seconds
+    setTimeout(() => setFixError(null), 5000);
+  };
+
+  const handleApplyFix = () => {
+    if (fixResult) {
+      // Apply the corrected code
+      setDiagramCode(fixResult.corrected_code);
+      setShowFixDiffModal(false);
+      setFixResult(null);
+    }
+  };
+
+  const handleCancelFix = () => {
+    setShowFixDiffModal(false);
+    setFixResult(null);
+  };
+
   // Pan handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsPanning(true);
@@ -1540,7 +1588,7 @@ export default function DiagramEditorPage() {
             <div className="flex items-center gap-4">
               {/* Grupo de paneles */}
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <Tooltip content="Editar código del diagrama (Mermaid/PlantUML)" position="bottom">
+                <Tooltip content="Editar código del diagrama" position="bottom">
                   <button
                     onClick={() => setShowCodeView(!showCodeView)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showCodeView
@@ -1989,43 +2037,153 @@ export default function DiagramEditorPage() {
 
             {/* Code View Modal */}
             {showCodeView && (
-              <div className="floating-code absolute top-4 left-4 z-30 w-[28rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramCode')}</h3>
-                    <div className="flex items-center gap-2">
-                      <Tooltip content={codeCopied ? "¡Copiado!" : "Copiar código"} position="bottom">
+              <div className="floating-code absolute top-4 left-4 z-30 w-[32rem] bg-white rounded-lg shadow-xl border border-gray-300 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
+                {/* Header con estilo profesional */}
+                <div className="bg-gray-100 px-4 py-2.5 border-b border-gray-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <span className="text-xs font-mono text-gray-600">
+                      {currentDiagram?.diagram_type === 'plantuml' ? 'diagram.puml' : 'diagram.mmd'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Botón Corregir con IA - solo si hay error */}
+                    {diagramError.hasError && currentDiagram && (
+                      <Tooltip content={isFixing ? "Corrigiendo..." : "Corregir con IA"} position="bottom">
                         <button
-                          onClick={handleCopyCode}
-                          className={`p-1.5 rounded transition-colors ${
-                            codeCopied 
-                              ? 'text-green-600 bg-green-50' 
-                              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                          onClick={async () => {
+                            if (!currentDiagram || isFixing) return;
+                            
+                            setIsFixing(true);
+                            setFixError(null);
+                            
+                            try {
+                              const response = await api.fixDiagram(currentDiagram.id, {
+                                error_context: diagramError.errorContext,
+                                language: 'es'
+                              });
+                              
+                              handleFixSuccess(response);
+                            } catch (error: any) {
+                              let errorMessage = 'Error al corregir el diagrama';
+                              
+                              if (error.response) {
+                                const status = error.response.status;
+                                const detail = error.response.data?.detail || error.message;
+                                
+                                switch (status) {
+                                  case 401:
+                                    errorMessage = 'No estás autenticado. Por favor inicia sesión.';
+                                    break;
+                                  case 403:
+                                    errorMessage = 'No tienes permisos para corregir este diagrama.';
+                                    break;
+                                  case 404:
+                                    errorMessage = 'Diagrama no encontrado.';
+                                    break;
+                                  case 408:
+                                    errorMessage = 'La corrección tomó demasiado tiempo. Por favor intenta de nuevo.';
+                                    break;
+                                  case 422:
+                                    errorMessage = `El código corregido no es válido: ${detail}`;
+                                    break;
+                                  case 429:
+                                    errorMessage = 'Límite de solicitudes excedido. Por favor intenta de nuevo en unos momentos.';
+                                    break;
+                                  case 500:
+                                  case 502:
+                                  case 503:
+                                    errorMessage = `Error del servidor: ${detail}`;
+                                    break;
+                                  default:
+                                    errorMessage = detail || errorMessage;
+                                }
+                              } else if (error.message) {
+                                errorMessage = error.message;
+                              }
+                              
+                              handleFixError(errorMessage);
+                            } finally {
+                              setIsFixing(false);
+                            }
+                          }}
+                          disabled={isFixing}
+                          className={`px-2.5 py-1.5 text-xs font-medium text-white rounded transition-all flex items-center gap-1.5 shadow-sm ${
+                            isFixing 
+                              ? 'bg-gray-400 cursor-not-allowed' 
+                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
                           }`}
                         >
-                          {codeCopied ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
+                          {isFixing ? (
+                            <>
+                              <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Corrigiendo...</span>
+                            </>
                           ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
+                            <>
+                              {aiSettings?.default_provider ? (
+                                <img 
+                                  src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
+                                  alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
+                                  className="w-3.5 h-3.5 object-contain brightness-0 invert"
+                                />
+                              ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                              )}
+                              <span>Corregir</span>
+                            </>
                           )}
                         </button>
                       </Tooltip>
+                    )}
+                    <Tooltip content={codeCopied ? "¡Copiado!" : "Copiar código"} position="bottom">
                       <button
-                        onClick={() => setShowCodeView(false)}
-                        className="text-gray-400 hover:text-gray-600 p-1"
+                        onClick={handleCopyCode}
+                        className={`p-1.5 rounded transition-colors ${
+                          codeCopied 
+                            ? 'text-green-600 bg-green-50' 
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+                        }`}
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        {codeCopied ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
                       </button>
-                    </div>
+                    </Tooltip>
+                    <button
+                      onClick={() => setShowCodeView(false)}
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-200 p-1.5 rounded transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
-                <div className="flex-1 p-4 overflow-auto">
+                {/* Contador de líneas */}
+                <div className="px-4 py-1.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                  <span className="text-xs text-gray-600">
+                    {t('editor.diagramCode')}
+                  </span>
+                  <span className="text-xs text-gray-500 font-mono">
+                    {diagramCode.split('\n').length} líneas
+                  </span>
+                </div>
+                {/* Editor */}
+                <div className="flex-1 overflow-hidden" style={{ minHeight: '400px' }}>
                   <CodeEditor
                     value={diagramCode}
                     onChange={setDiagramCode}
@@ -2394,16 +2552,19 @@ export default function DiagramEditorPage() {
               }}
             >
               {activeTab === 'code' ? (
-                <div
-                  className="flex items-center justify-center min-h-full"
-                  style={{
-                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                    transformOrigin: 'center',
-                    transition: isPanning ? 'none' : 'transform 0.1s ease-out',
-                  }}
-                >
-                  <div ref={mermaidRef}></div>
-                </div>
+                <>
+                  <div
+                    className="flex items-center justify-center min-h-full"
+                    style={{
+                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                      transformOrigin: 'center',
+                      transition: isPanning ? 'none' : 'transform 0.1s ease-out',
+                    }}
+                  >
+                    <div ref={mermaidRef}></div>
+                  </div>
+                  
+                </>
               ) : (
                 <div className="prose prose-sm max-w-none overflow-auto h-full">
                   {diagramDescription ? (
@@ -2897,6 +3058,34 @@ export default function DiagramEditorPage() {
         isOpen={showNoAIModal}
         onClose={() => setShowNoAIModal(false)}
       />
+
+      {/* Fix Diagram Diff Modal */}
+      {showFixDiffModal && fixResult && (
+        <DiagramDiffView
+          originalCode={fixResult.original_code}
+          correctedCode={fixResult.corrected_code}
+          explanation={fixResult.explanation}
+          changesSummary={fixResult.changes_summary}
+          diagramType={currentDiagram?.diagram_type}
+          onApply={handleApplyFix}
+          onCancel={handleCancelFix}
+        />
+      )}
+
+      {/* Fix Error Notification */}
+      {fixError && (
+        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md shadow-lg max-w-md z-50">
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="font-semibold text-sm">Error al corregir diagrama</p>
+              <p className="text-sm mt-1">{fixError}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Generated Description Confirmation Modal */}
       {showDescriptionConfirmModal && (

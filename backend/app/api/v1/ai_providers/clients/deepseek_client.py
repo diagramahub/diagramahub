@@ -190,6 +190,125 @@ INSTRUCCIONES CRÍTICAS:
         except Exception as e:
             raise ValueError(f"Error improving diagram with DeepSeek: {str(e)}")
 
+    async def fix_diagram(
+        self,
+        diagram_code: str,
+        diagram_type: str,
+        error_context: str | None = None,
+        language: str = "es"
+    ) -> Dict[str, str]:
+        """
+        Corregir errores de sintaxis en código de diagrama.
+
+        Args:
+            diagram_code: Código del diagrama con errores
+            diagram_type: Tipo de diagrama (mermaid, plantuml)
+            error_context: Información del error (mensaje, línea)
+            language: Idioma para la explicación (es, en)
+
+        Returns:
+            Dict con:
+            - corrected_code: Código corregido
+            - explanation: Explicación de los cambios
+            - changes_summary: Resumen breve de cambios
+
+        Raises:
+            ValueError: Si la corrección falla
+        """
+        # Import fix prompts module
+        from ...diagrams.fix_prompts import build_mermaid_fix_prompt, build_plantuml_fix_prompt
+        
+        # Build specialized prompt based on diagram type
+        if diagram_type.lower() in ['plantuml', 'uml']:
+            prompt = build_plantuml_fix_prompt(diagram_code, error_context, language)
+        else:
+            prompt = build_mermaid_fix_prompt(diagram_code, error_context, language)
+        
+        messages = [
+            {
+                "role": "system",
+                "content": "You are an expert in fixing syntax errors in technical diagrams. Provide accurate corrections with clear explanations."
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ]
+        
+        # Prepare request payload
+        data = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.parameters.get("temperature", 0.3),  # Lower temperature for more deterministic fixes
+            "max_tokens": self.parameters.get("max_output_tokens", 2048),
+            "top_p": self.parameters.get("top_p", 1.0),
+            "stream": False
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.BASE_URL}/chat/completions",
+                    headers=self.headers,
+                    json=data
+                )
+                
+                if response.status_code == 429:
+                    raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
+                
+                if response.status_code != 200:
+                    error_detail = response.text
+                    try:
+                        error_json = response.json()
+                        error_detail = error_json.get("error", {}).get("message", response.text)
+                    except:
+                        pass
+                    raise ValueError(f"DeepSeek API error ({response.status_code}): {error_detail}")
+                
+                result = response.json()
+                response_text = result["choices"][0]["message"]["content"].strip()
+                
+                # Parse JSON response
+                import re
+                
+                # Try to extract JSON from response
+                json_match = re.search(r'\{[\s\S]*\}', response_text)
+                if not json_match:
+                    raise ValueError("No se pudo extraer JSON de la respuesta de DeepSeek")
+                
+                fix_result = json.loads(json_match.group())
+                
+                # Validate required fields
+                if "corrected_code" not in fix_result:
+                    raise ValueError("Respuesta de DeepSeek no contiene 'corrected_code'")
+                if "explanation" not in fix_result:
+                    raise ValueError("Respuesta de DeepSeek no contiene 'explanation'")
+                if "changes_summary" not in fix_result:
+                    raise ValueError("Respuesta de DeepSeek no contiene 'changes_summary'")
+                
+                # Clean corrected code (remove markdown blocks if present)
+                corrected_code = fix_result["corrected_code"].strip()
+                if corrected_code.startswith("```"):
+                    lines = corrected_code.split("\n")
+                    if lines[0].startswith("```"):
+                        lines = lines[1:]
+                    if lines and lines[-1].startswith("```"):
+                        lines = lines[:-1]
+                    corrected_code = "\n".join(lines).strip()
+                
+                fix_result["corrected_code"] = corrected_code
+                
+                return fix_result
+                
+        except httpx.RequestError as e:
+            raise ValueError(f"Network error connecting to DeepSeek: {str(e)}")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error al parsear respuesta JSON de DeepSeek: {str(e)}")
+        except (KeyError, IndexError):
+            raise ValueError("DeepSeek returned an unexpected response format")
+        except Exception as e:
+            raise ValueError(f"Error al corregir diagrama con DeepSeek: {str(e)}")
+
     def _clean_response(self, text: str) -> str:
         """Clean response from AI (remove markers)."""
         text = text.strip()
