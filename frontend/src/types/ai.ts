@@ -157,3 +157,30 @@ export const AI_PROVIDER_API_KEY_URLS: Record<AIProviderType, string> = {
   [AIProviderType.CLAUDE]: 'https://console.anthropic.com/settings/keys',
   [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys'
 };
+
+// Types for diagram fix functionality
+
+export interface FixDiagramRequest {
+  error_context?: string;
+  provider?: AIProviderType;
+  language?: string;
+}
+
+export interface FixDiagramResponse {
+  original_code: string;
+  corrected_code: string;
+  explanation: string;
+  changes_summary: string;
+  diff: string;
+  provider_used: AIProviderType;
+  model_used: string;
+  generation_time: number;
+  validation_passed: boolean;
+}
+
+export interface DiagramError {
+  hasError: boolean;
+  errorMessage: string;
+  errorLine?: number;
+  errorContext: string;
+}

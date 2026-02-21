@@ -35,7 +35,9 @@ import {
   GenerateDiagramResponse,
   ImproveDiagramRequest,
   ImproveDiagramResponse,
-  AIProviderType
+  AIProviderType,
+  FixDiagramRequest,
+  FixDiagramResponse
 } from '../types/ai';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
@@ -242,6 +244,11 @@ class ApiService {
 
   async improveDiagram(data: ImproveDiagramRequest): Promise<ImproveDiagramResponse> {
     const response = await this.api.post<ImproveDiagramResponse>('/api/v1/ai/improve-diagram', data);
+    return response.data;
+  }
+
+  async fixDiagram(diagramId: string, data: FixDiagramRequest): Promise<FixDiagramResponse> {
+    const response = await this.api.post<FixDiagramResponse>(`/api/v1/diagrams/${diagramId}/fix`, data);
     return response.data;
   }
 }

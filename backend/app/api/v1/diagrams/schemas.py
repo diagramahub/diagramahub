@@ -99,3 +99,62 @@ class DiagramResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+# Schemas para auto-corrección de diagramas con IA
+
+class FixDiagramRequest(BaseModel):
+    """Solicitud para corregir un diagrama."""
+    error_context: Optional[str] = Field(
+        None,
+        description="Contexto del error de renderizado (mensaje, línea)"
+    )
+    provider: Optional[str] = Field(
+        None,
+        description="Proveedor de IA específico a usar (opcional)"
+    )
+    language: str = Field(
+        default="es",
+        description="Idioma para la explicación (es, en)"
+    )
+
+
+class FixDiagramResponse(BaseModel):
+    """Respuesta de corrección de diagrama."""
+    original_code: str = Field(
+        ...,
+        description="Código original del diagrama"
+    )
+    corrected_code: str = Field(
+        ...,
+        description="Código corregido del diagrama"
+    )
+    explanation: str = Field(
+        ...,
+        description="Explicación detallada de los cambios"
+    )
+    changes_summary: str = Field(
+        ...,
+        description="Resumen breve de los cambios (1 línea)"
+    )
+    diff: str = Field(
+        ...,
+        description="Diff unificado entre original y corregido"
+    )
+    provider_used: str = Field(
+        ...,
+        description="Proveedor de IA utilizado"
+    )
+    model_used: str = Field(
+        ...,
+        description="Modelo específico utilizado"
+    )
+    generation_time: float = Field(
+        ...,
+        description="Tiempo de generación en segundos"
+    )
+    validation_passed: bool = Field(
+        ...,
+        description="Si el código corregido pasó validación de sintaxis"
+    )

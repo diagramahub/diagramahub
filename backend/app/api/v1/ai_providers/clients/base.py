@@ -93,6 +93,34 @@ class BaseAIClient(ABC):
         pass
 
     @abstractmethod
+    async def fix_diagram(
+        self,
+        diagram_code: str,
+        diagram_type: str,
+        error_context: str | None = None,
+        language: str = "es"
+    ) -> Dict[str, str]:
+        """
+        Corregir errores de sintaxis en código de diagrama.
+
+        Args:
+            diagram_code: Código del diagrama con errores
+            diagram_type: Tipo de diagrama (mermaid, plantuml)
+            error_context: Información del error (mensaje, línea)
+            language: Idioma para la explicación (es, en)
+
+        Returns:
+            Dict con:
+            - corrected_code: Código corregido
+            - explanation: Explicación de los cambios
+            - changes_summary: Resumen breve de cambios
+
+        Raises:
+            ValueError: Si la corrección falla
+        """
+        pass
+
+    @abstractmethod
     async def validate_api_key(self) -> bool:
         """
         Validate that the API key is valid and has permissions.
