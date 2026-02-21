@@ -421,7 +421,8 @@
       "security": "Tus claves API se almacenan de forma segura y encriptada",
       "providerCannotChange": "El proveedor no puede ser cambiado. Si necesitas usar otro proveedor, crea una nueva conexión.",
       "apiKeyUpdate": "Deja este campo vacío si no deseas cambiar la clave API actual",
-      "clickToChangeApiKey": "Haz clic en el campo o en 'Cambiar' para actualizar la clave API"
+      "clickToChangeApiKey": "Haz clic en el campo o en 'Cambiar' para actualizar la clave API",
+      "getApiKey": "Obtener clave API"
     }
   }
 }
