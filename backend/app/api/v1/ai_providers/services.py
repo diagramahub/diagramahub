@@ -239,24 +239,6 @@ class AIProviderService:
 
         return await self.get_user_settings(user_id)
 
-    async def update_auto_generate(
-        self,
-        user_id: str,
-        auto_generate: bool
-    ) -> UserAISettingsResponse:
-        """
-        Update auto-generate setting.
-
-        Args:
-            user_id: User ID
-            auto_generate: Whether to auto-generate on save
-
-        Returns:
-            Updated user settings
-        """
-        settings = await self.repository.update_auto_generate(user_id, auto_generate)
-        return await self.get_user_settings(user_id)
-
     async def generate_description(
         self,
         user_id: str,

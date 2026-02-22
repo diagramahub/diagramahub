@@ -116,24 +116,6 @@ class IAIProviderRepository(ABC):
         pass
 
     @abstractmethod
-    async def update_auto_generate(
-        self,
-        user_id: str,
-        auto_generate: bool
-    ) -> UserAISettingsInDB:
-        """
-        Update auto-generate setting.
-
-        Args:
-            user_id: User ID
-            auto_generate: Auto-generate on save flag
-
-        Returns:
-            Updated user AI settings
-        """
-        pass
-
-    @abstractmethod
     async def get_active_provider(
         self,
         user_id: str,

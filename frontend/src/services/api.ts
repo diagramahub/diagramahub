@@ -222,11 +222,6 @@ class ApiService {
     return response.data;
   }
 
-  async updateAutoGenerate(autoGenerate: boolean): Promise<UserAISettings> {
-    const response = await this.api.put<UserAISettings>('/api/v1/ai/settings/auto-generate', { auto_generate: autoGenerate });
-    return response.data;
-  }
-
   async testAIProvider(data: TestProviderRequest): Promise<TestProviderResponse> {
     const response = await this.api.post<TestProviderResponse>('/api/v1/ai/test-provider', data);
     return response.data;
