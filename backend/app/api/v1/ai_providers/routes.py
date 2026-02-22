@@ -165,22 +165,6 @@ async def set_default_provider(
     return await service.set_default_provider(user_id, provider)
 
 
-@router.put(
-    "/settings/auto-generate",
-    response_model=UserAISettingsResponse,
-    summary="Update auto-generate setting"
-)
-async def update_auto_generate(
-    auto_generate: bool = Body(..., embed=True),
-    user_id: str = Depends(get_current_user_id),
-    service: AIProviderService = Depends(get_ai_provider_service)
-):
-    """
-    Enable or disable auto-generating descriptions on diagram save.
-    """
-    return await service.update_auto_generate(user_id, auto_generate)
-
-
 # ==================== AI Generation ====================
 
 @router.post(

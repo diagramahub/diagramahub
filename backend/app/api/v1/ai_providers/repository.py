@@ -157,22 +157,6 @@ class AIProviderRepository(IAIProviderRepository):
 
         return settings
 
-    async def update_auto_generate(
-        self,
-        user_id: str,
-        auto_generate: bool
-    ) -> UserAISettingsInDB:
-        """Update auto-generate setting."""
-        settings = await self.get_user_settings(user_id)
-        if not settings:
-            settings = await self.create_user_settings(user_id)
-
-        settings.auto_generate_on_save = auto_generate
-        settings.updated_at = datetime.utcnow()
-        await settings.save()
-
-        return settings
-
     async def get_active_provider(
         self,
         user_id: str,
