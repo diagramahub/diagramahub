@@ -24,6 +24,7 @@ RUN poetry lock --no-interaction --no-ansi && \
 
 # Copy application code
 COPY ./app ./app
+COPY ./scripts ./scripts
 
 # Expose port
 EXPOSE 8000

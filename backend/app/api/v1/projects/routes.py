@@ -6,6 +6,9 @@ from app.api.v1.users.routes import get_current_user_email
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.diagrams.repository import DiagramRepository
 from app.api.v1.folders.repository import FolderRepository
+from app.api.v1.subscriptions.usage_limiter import UsageLimiter
+from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+from app.api.v1.subscriptions.plan_repository import PlanRepository
 from .repository import ProjectRepository
 from .services import ProjectService
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithDiagramsResponse
@@ -21,6 +24,15 @@ def get_project_service() -> ProjectService:
         folder_repository=FolderRepository()
     )
 
+def get_usage_limiter() -> UsageLimiter:
+    """Get usage limiter instance."""
+    return UsageLimiter(
+        subscription_repository=SubscriptionRepository(),
+        plan_repository=PlanRepository(),
+        project_repository=ProjectRepository(),
+        diagram_repository=DiagramRepository()
+    )
+
 async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
     """Get current user ID from email."""
     user_repo = UserRepository()
@@ -34,9 +46,13 @@ async def get_current_user_id(current_user_email: str = Depends(get_current_user
 async def create_project(
     project_data: ProjectCreate,
     user_id: str = Depends(get_current_user_id),
-    service: ProjectService = Depends(get_project_service)
+    service: ProjectService = Depends(get_project_service),
+    usage_limiter: UsageLimiter = Depends(get_usage_limiter)
 ):
     """Create a new project."""
+    # Validar límite de proyectos
+    await usage_limiter.enforce_project_limit(user_id)
+    
     return await service.create_project(project_data, user_id)
 
 

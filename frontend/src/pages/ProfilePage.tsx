@@ -6,6 +6,12 @@ import apiService from '../services/api';
 import Navbar from '../components/Navbar';
 import ConfirmModal from '../components/ConfirmModal';
 import AIIntegrationsSection from '../components/AIIntegrationsSection';
+import PlanList from '../components/admin/PlanList';
+import SubscriptionCard from '../components/subscription/SubscriptionCard';
+import UsageIndicator from '../components/subscription/UsageIndicator';
+import PlanSelector from '../components/subscription/PlanSelector';
+import BillingHistory from '../components/subscription/BillingHistory';
+import { Subscription } from '../types/subscription';
 
 // Lista de zonas horarias comunes
 const TIMEZONES = [
@@ -40,12 +46,19 @@ export default function ProfilePage() {
   
   // Get tab from URL query params
   const queryParams = new URLSearchParams(location.search);
-  const initialTab = queryParams.get('tab') === 'settings' ? 'settings' : 'profile';
+  let initialTab: 'profile' | 'settings' | 'subscription' | 'admin' = 'profile';
+  const tabParam = queryParams.get('tab');
+  if (tabParam === 'settings') initialTab = 'settings';
+  if (tabParam === 'subscription') initialTab = 'subscription';
+  if (tabParam === 'admin' && user?.role === 'admin') initialTab = 'admin';
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'profile' | 'settings' | 'subscription' | 'admin'>(initialTab);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [showPlanSelector, setShowPlanSelector] = useState(false);
 
   // Estados para edición de perfil
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -186,6 +199,20 @@ export default function ProfilePage() {
     navigate('/login');
   };
 
+  const handlePlanSelected = () => {
+    // Refresh subscription components after plan change
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const loadSubscription = async () => {
+    try {
+      const data = await apiService.getMySubscription();
+      setSubscription(data);
+    } catch (err) {
+      console.error('Error loading subscription:', err);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -222,6 +249,31 @@ export default function ProfilePage() {
             >
               {t('common.settings')}
             </button>
+            <button
+              onClick={() => {
+                setActiveTab('subscription');
+                loadSubscription();
+              }}
+              className={`${
+                activeTab === 'subscription'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+              Mi Suscripción
+            </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`${
+                  activeTab === 'admin'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              >
+                Admin
+              </button>
+            )}
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className="ml-auto whitespace-nowrap py-4 px-4 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
@@ -566,6 +618,65 @@ export default function ProfilePage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Subscription Tab Content */}
+        {activeTab === 'subscription' && (
+          <div className="space-y-6">
+            {/* Current Subscription */}
+            <div key={`subscription-${refreshKey}`}>
+              <SubscriptionCard />
+            </div>
+
+            {/* Usage Indicator */}
+            <div key={`usage-${refreshKey}`}>
+              <UsageIndicator />
+            </div>
+
+            {/* Change Plan Button */}
+            {!showPlanSelector && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <button
+                  onClick={() => setShowPlanSelector(true)}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Cambiar Plan
+                </button>
+              </div>
+            )}
+
+            {/* Plan Selector (shown when button is clicked) */}
+            {showPlanSelector && (
+              <div key={`plans-${refreshKey}`}>
+                <div className="mb-4 flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">Seleccionar Nuevo Plan</h3>
+                  <button
+                    onClick={() => setShowPlanSelector(false)}
+                    className="text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+                <PlanSelector 
+                  currentSubscription={subscription}
+                  onPlanSelected={() => {
+                    handlePlanSelected();
+                    setShowPlanSelector(false);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Billing History */}
+            <BillingHistory />
+          </div>
+        )}
+
+        {/* Admin Tab Content */}
+        {activeTab === 'admin' && user?.role === 'admin' && (
+          <div>
+            <PlanList />
+          </div>
         )}
       </div>
     </div>
