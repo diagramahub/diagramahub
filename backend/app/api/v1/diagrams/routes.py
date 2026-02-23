@@ -6,6 +6,9 @@ from app.api.v1.users.routes import get_current_user_email
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.projects.repository import ProjectRepository
 from app.api.v1.ai_providers.repository import AIProviderRepository
+from app.api.v1.subscriptions.usage_limiter import UsageLimiter
+from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+from app.api.v1.subscriptions.plan_repository import PlanRepository
 from .repository import DiagramRepository
 from .services import DiagramService
 from .fix_service import (
@@ -36,6 +39,16 @@ def get_diagram_fix_service() -> DiagramFixService:
     )
 
 
+def get_usage_limiter() -> UsageLimiter:
+    """Get usage limiter instance."""
+    return UsageLimiter(
+        subscription_repository=SubscriptionRepository(),
+        plan_repository=PlanRepository(),
+        project_repository=ProjectRepository(),
+        diagram_repository=DiagramRepository()
+    )
+
+
 async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
     """Get current user ID from email."""
     user_repo = UserRepository()
@@ -50,9 +63,13 @@ async def create_diagram(
     project_id: str,
     diagram_data: DiagramCreate,
     user_id: str = Depends(get_current_user_id),
-    service: DiagramService = Depends(get_diagram_service)
+    service: DiagramService = Depends(get_diagram_service),
+    usage_limiter: UsageLimiter = Depends(get_usage_limiter)
 ):
     """Create a new diagram in a project."""
+    # Validar límite de diagramas
+    await usage_limiter.enforce_diagram_limit(user_id)
+    
     return await service.create_diagram(diagram_data, project_id, user_id)
 
 

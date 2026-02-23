@@ -56,6 +56,7 @@ class UserService:
         Register a new user.
 
         If this is the first user, they will be automatically assigned admin role.
+        Automatically creates a FREE subscription for the new user.
 
         Args:
             user_data: User registration data
@@ -81,6 +82,33 @@ class UserService:
             user_data.role = UserRole.ADMIN
 
         user = await self.repository.create(user_data)
+
+        # Create FREE subscription for new user
+        try:
+            from app.api.v1.subscriptions.subscription_service import SubscriptionService
+            from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+            from app.api.v1.subscriptions.plan_repository import PlanRepository
+            from app.api.v1.subscriptions.payment_providers.stripe_provider import StripePaymentProvider
+            
+            # Create subscription service
+            try:
+                payment_provider = StripePaymentProvider.from_env()
+            except ValueError:
+                payment_provider = None
+            
+            subscription_service = SubscriptionService(
+                repository=SubscriptionRepository(),
+                plan_repository=PlanRepository(),
+                payment_provider=payment_provider
+            )
+            
+            # Create FREE subscription
+            await subscription_service.create_free_subscription(str(user.id))
+        except Exception as e:
+            # Log error but don't fail registration
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to create FREE subscription for user {user.email}: {str(e)}")
 
         return UserResponse(
             id=str(user.id),

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import UserMenu from './UserMenu';
 import LanguageSelector from './LanguageSelector';
+import UsageBadge from './UsageBadge';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -19,8 +20,9 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Right side - Language selector and UserMenu */}
+          {/* Right side - Usage badge, Language selector and UserMenu */}
           <div className="flex items-center gap-3">
+            <UsageBadge />
             <LanguageSelector />
             <UserMenu />
           </div>

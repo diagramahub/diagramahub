@@ -22,6 +22,7 @@ email-validator = "^2.2.0"
 google-generativeai = "^0.8.0"
 cryptography = "^43.0.0"
 httpx = "^0.27.0"
+stripe = "^11.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
@@ -31,6 +32,7 @@ faker = "^33.0.0"
 black = "^24.10.0"
 ruff = "^0.7.0"
 mypy = "^1.13.0"
+hypothesis = "^6.100.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -70,4 +72,5 @@ markers = [
     "unit: Unit tests",
     "integration: Integration tests",
     "slow: Slow running tests",
+    "property: Property-based tests",
 ]

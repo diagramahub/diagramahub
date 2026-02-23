@@ -39,6 +39,13 @@ import {
   FixDiagramRequest,
   FixDiagramResponse
 } from '../types/ai';
+import {
+  Plan,
+  PlanCreate,
+  PlanUpdate,
+  Subscription,
+  UsageSummary
+} from '../types/subscription';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -244,6 +251,62 @@ class ApiService {
 
   async fixDiagram(diagramId: string, data: FixDiagramRequest): Promise<FixDiagramResponse> {
     const response = await this.api.post<FixDiagramResponse>(`/api/v1/diagrams/${diagramId}/fix`, data);
+    return response.data;
+  }
+
+  // ============================================================================
+  // Subscription & Plans API
+  // ============================================================================
+
+  // Plans (Public)
+  async getPlans(): Promise<Plan[]> {
+    const response = await this.api.get<Plan[]>('/api/v1/plans');
+    return response.data;
+  }
+
+  async getPlan(planId: string): Promise<Plan> {
+    const response = await this.api.get<Plan>(`/api/v1/plans/${planId}`);
+    return response.data;
+  }
+
+  // Plans (Admin)
+  async getAllPlans(): Promise<Plan[]> {
+    const response = await this.api.get<Plan[]>('/api/v1/admin/plans');
+    return response.data;
+  }
+
+  async createPlan(data: PlanCreate): Promise<Plan> {
+    const response = await this.api.post<Plan>('/api/v1/admin/plans', data);
+    return response.data;
+  }
+
+  async updatePlan(planId: string, data: PlanUpdate): Promise<Plan> {
+    const response = await this.api.put<Plan>(`/api/v1/admin/plans/${planId}`, data);
+    return response.data;
+  }
+
+  async deactivatePlan(planId: string): Promise<void> {
+    await this.api.delete(`/api/v1/admin/plans/${planId}`);
+  }
+
+  // Subscriptions
+  async getMySubscription(): Promise<Subscription> {
+    const response = await this.api.get<Subscription>('/api/v1/subscriptions/me');
+    return response.data;
+  }
+
+  async getUsageSummary(): Promise<UsageSummary> {
+    const response = await this.api.get<UsageSummary>('/api/v1/subscriptions/usage');
+    return response.data;
+  }
+
+  async initiateCheckout(planId: string): Promise<{ session_url?: string; message?: string }> {
+    const response = await this.api.post('/api/v1/subscriptions/checkout', { plan_id: planId });
+    return response.data;
+  }
+
+  async cancelSubscription(): Promise<Subscription> {
+    const response = await this.api.post<Subscription>('/api/v1/subscriptions/cancel');
     return response.data;
   }
 }
