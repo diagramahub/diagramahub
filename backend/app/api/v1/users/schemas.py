@@ -83,6 +83,7 @@ class UserResponse(BaseModel):
     role: UserRole = UserRole.USER  # User role (admin or user)
     is_active: bool
     created_at: datetime
+    subscription: Optional[dict] = None  # Subscription info for premium badge
 
 
 class Token(BaseModel):

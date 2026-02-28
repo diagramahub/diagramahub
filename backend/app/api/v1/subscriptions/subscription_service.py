@@ -3,8 +3,8 @@ Subscription service with business logic.
 """
 from datetime import datetime
 from typing import Optional
-import os
 
+from app.core.config import settings
 from .interfaces import ISubscriptionRepository, IPlanRepository
 from .schemas import (
     SubscriptionCreate, SubscriptionResponse, SubscriptionWithUsage,
@@ -13,6 +13,7 @@ from .schemas import (
 from .payment_providers.interfaces import IPaymentProvider
 from .exceptions import NotFoundError, ValidationError
 from .constants import FREE_PLAN_NAME, STATUS_ACTIVE, STATUS_PENDING
+from .logger import SubscriptionLogger
 
 
 class SubscriptionService:
@@ -49,6 +50,14 @@ class SubscriptionService:
             plan_id=str(free_plan.id)
         )
         subscription = await self.repository.create(subscription_data)
+        
+        # Log creation
+        SubscriptionLogger.subscription_created(
+            subscription_id=str(subscription.id),
+            user_id=user_id,
+            plan_name=FREE_PLAN_NAME,
+            status=STATUS_ACTIVE
+        )
         
         # Retornar respuesta con plan embebido
         return await self._to_response(subscription)
@@ -117,10 +126,9 @@ class SubscriptionService:
         # Por ahora, usaremos un placeholder - esto se debe mejorar
         user_email = f"user_{user_id}@placeholder.com"  # TODO: Get real email
         
-        # Configurar URLs
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-        success_url = f"{frontend_url}/subscription/success"
-        cancel_url = f"{frontend_url}/subscription/cancel"
+        # Configurar URLs usando settings
+        success_url = f"{settings.FRONTEND_URL}/profile?tab=subscription&success=true&session_id={{CHECKOUT_SESSION_ID}}"
+        cancel_url = f"{settings.FRONTEND_URL}/profile?tab=subscription"
         
         # Crear sesión de checkout
         session = await self.payment_provider.create_checkout_session(
@@ -135,6 +143,14 @@ class SubscriptionService:
             }
         )
         
+        # Log checkout session creation
+        SubscriptionLogger.checkout_session_created(
+            user_id=user_id,
+            plan_name=plan.name,
+            session_id=session["session_id"],
+            amount=plan.price_usd
+        )
+        
         return session
     
     async def activate_subscription(
@@ -142,7 +158,8 @@ class SubscriptionService:
         user_id: str,
         plan_id: str,
         stripe_customer_id: str,
-        stripe_subscription_id: str
+        stripe_subscription_id: str,
+        current_period_end: Optional[datetime] = None
     ) -> SubscriptionResponse:
         """
         Activa suscripción tras pago exitoso.
@@ -162,31 +179,57 @@ class SubscriptionService:
         subscription = await self.repository.create(subscription_data)
         
         # Actualizar con datos de Stripe
+        update_data = {
+            "stripe_customer_id": stripe_customer_id,
+            "stripe_subscription_id": stripe_subscription_id,
+            "status": STATUS_ACTIVE,
+            "current_period_start": datetime.utcnow()
+        }
+        
+        if current_period_end:
+            update_data["current_period_end"] = current_period_end
+        
         await self.repository.update(
             str(subscription.id),
-            {
-                "stripe_customer_id": stripe_customer_id,
-                "stripe_subscription_id": stripe_subscription_id,
-                "status": STATUS_ACTIVE,
-                "current_period_start": datetime.utcnow()
-            }
+            update_data
         )
         
         # Obtener suscripción actualizada
         updated_sub = await self.repository.get_by_id(str(subscription.id))
-        return await self._to_response(updated_sub)
+        response = await self._to_response(updated_sub)
+        
+        # Log activation
+        SubscriptionLogger.subscription_activated(
+            subscription_id=str(subscription.id),
+            user_id=user_id,
+            plan_name=response.plan.name,
+            stripe_subscription_id=stripe_subscription_id
+        )
+        
+        return response
     
     async def cancel_subscription(
         self,
-        user_id: str
+        user_id: str,
+        immediate: bool = False
     ) -> dict:
         """
         Cancela suscripción de pago.
         
+        Args:
+            user_id: ID del usuario
+            immediate: Si es True, cancela inmediatamente y cambia a FREE.
+                      Si es False, mantiene activa hasta fin de período.
+        
         Lógica:
-        - Cancela en Stripe
-        - Mantiene activa hasta fin de período
-        - Programa cambio a FREE
+        - Si immediate=True:
+          * Cancela en Stripe inmediatamente
+          * Cambia a plan FREE de inmediato
+          * Usuario pierde acceso premium ahora
+        - Si immediate=False:
+          * Cancela en Stripe con cancel_at_period_end=True
+          * Mantiene activa hasta fin de período
+          * Programa cambio a FREE
         """
         # Obtener suscripción activa
         subscription = await self.repository.get_active_by_user(user_id)
@@ -197,25 +240,74 @@ class SubscriptionService:
         if not subscription.stripe_subscription_id:
             raise ValidationError("Cannot cancel free subscription")
         
-        # Cancelar en Stripe
-        cancel_result = await self.payment_provider.cancel_subscription(
-            subscription.stripe_subscription_id
-        )
+        # Get plan for logging
+        plan = await self.plan_repository.get_by_id(subscription.plan_id)
         
-        # Actualizar suscripción local
-        await self.repository.update(
-            str(subscription.id),
-            {
-                "cancelled_at": datetime.utcnow(),
-                "current_period_end": cancel_result.get("cancel_at")
+        if immediate:
+            # Cancelación inmediata
+            try:
+                # Cancelar en Stripe inmediatamente
+                import stripe
+                stripe.Subscription.delete(subscription.stripe_subscription_id)
+            except Exception as e:
+                # Si falla la cancelación en Stripe, continuar de todos modos
+                print(f"Error cancelling in Stripe: {e}")
+            
+            # Marcar suscripción actual como cancelada
+            await self.repository.update(
+                str(subscription.id),
+                {
+                    "cancelled_at": datetime.utcnow(),
+                    "status": "cancelled"
+                }
+            )
+            
+            # Cambiar a plan FREE inmediatamente
+            await self.create_free_subscription(user_id)
+            
+            # Log cancellation
+            SubscriptionLogger.subscription_cancelled(
+                subscription_id=str(subscription.id),
+                user_id=user_id,
+                plan_name=plan.name if plan else "Unknown",
+                cancel_at=datetime.utcnow()
+            )
+            
+            return {
+                "message": "Subscription cancelled immediately",
+                "cancel_at": datetime.utcnow(),
+                "access_until": datetime.utcnow(),
+                "immediate": True
             }
-        )
-        
-        return {
-            "message": "Subscription cancelled successfully",
-            "cancel_at": cancel_result.get("cancel_at"),
-            "access_until": cancel_result.get("cancel_at")
-        }
+        else:
+            # Cancelación al final del período (comportamiento actual)
+            cancel_result = await self.payment_provider.cancel_subscription(
+                subscription.stripe_subscription_id
+            )
+            
+            # Actualizar suscripción local
+            await self.repository.update(
+                str(subscription.id),
+                {
+                    "cancelled_at": datetime.utcnow(),
+                    "current_period_end": cancel_result.get("cancel_at")
+                }
+            )
+            
+            # Log cancellation
+            SubscriptionLogger.subscription_cancelled(
+                subscription_id=str(subscription.id),
+                user_id=user_id,
+                plan_name=plan.name if plan else "Unknown",
+                cancel_at=cancel_result.get("cancel_at")
+            )
+            
+            return {
+                "message": "Subscription cancelled successfully",
+                "cancel_at": cancel_result.get("cancel_at"),
+                "access_until": cancel_result.get("cancel_at"),
+                "immediate": False
+            }
     
     async def get_user_subscription(
         self,

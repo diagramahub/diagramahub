@@ -2,6 +2,7 @@
 FastAPI routes for subscriptions and plans.
 """
 from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi.responses import RedirectResponse
 from app.api.v1.users.routes import get_current_user_email
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserRole
@@ -10,15 +11,17 @@ from .plan_repository import PlanRepository
 from .plan_service import PlanService
 from .subscription_repository import SubscriptionRepository
 from .subscription_service import SubscriptionService
+from .billing_service import BillingService
 from .usage_limiter import UsageLimiter
 from .payment_providers.stripe_provider import StripePaymentProvider
 from .schemas import (
     PlanCreate, PlanUpdate, PlanResponse,
     CheckoutSessionRequest, CheckoutSessionResponse,
-    UsageSummaryResponse
+    UsageSummaryResponse, BillingHistoryResponse
 )
 from ..projects.repository import ProjectRepository
 from ..diagrams.repository import DiagramRepository
+import os
 
 router = APIRouter()
 
@@ -79,6 +82,21 @@ def get_usage_limiter() -> UsageLimiter:
         plan_repository=PlanRepository(),
         project_repository=ProjectRepository(),
         diagram_repository=DiagramRepository()
+    )
+
+
+def get_billing_service() -> BillingService:
+    """Get billing service instance."""
+    stripe_api_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing service not configured"
+        )
+    
+    return BillingService(
+        subscription_repository=SubscriptionRepository(),
+        stripe_api_key=stripe_api_key
     )
 
 
@@ -252,16 +270,21 @@ async def create_checkout_session(
     tags=["subscriptions"]
 )
 async def cancel_subscription(
+    immediate: bool = False,
     user_id: str = Depends(get_current_user_id),
     service: SubscriptionService = Depends(get_subscription_service)
 ):
     """
     Cancel current subscription.
     
-    Maintains access until end of billing period.
-    Automatically switches to FREE plan after period ends.
+    Args:
+        immediate: If True, cancels immediately and switches to FREE.
+                  If False (default), maintains access until end of billing period.
+    
+    Returns:
+        Cancellation details including when access ends.
     """
-    return await service.cancel_subscription(user_id)
+    return await service.cancel_subscription(user_id, immediate=immediate)
 
 
 @router.get(
@@ -279,3 +302,51 @@ async def get_usage_summary(
     Returns current usage and limits for projects and diagrams.
     """
     return await limiter.get_usage_summary(user_id)
+
+
+
+# ============================================================================
+# Billing History Endpoints
+# ============================================================================
+
+@router.get(
+    "/subscriptions/billing-history",
+    response_model=BillingHistoryResponse,
+    tags=["subscriptions", "billing"]
+)
+async def get_billing_history(
+    limit: int = 10,
+    user_id: str = Depends(get_current_user_id),
+    service: BillingService = Depends(get_billing_service)
+):
+    """
+    Get billing history for current user.
+    
+    Returns list of invoices/payments from Stripe.
+    """
+    return await service.get_billing_history(user_id, limit)
+
+
+@router.get(
+    "/subscriptions/invoices/{invoice_id}/pdf-url",
+    tags=["subscriptions", "billing"]
+)
+async def get_invoice_pdf_url(
+    invoice_id: str,
+    user_id: str = Depends(get_current_user_id),
+    service: BillingService = Depends(get_billing_service)
+):
+    """
+    Get invoice PDF URL.
+    
+    Returns the Stripe-hosted PDF URL for the invoice.
+    Verifies that the invoice belongs to the current user.
+    """
+    try:
+        pdf_url = await service.get_invoice_pdf_url(user_id, invoice_id)
+        return {"pdf_url": pdf_url}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Invoice not found or access denied"
+        )

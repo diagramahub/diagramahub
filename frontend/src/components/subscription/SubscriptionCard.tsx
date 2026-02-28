@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Subscription } from '../../types/subscription';
-import ConfirmModal from '../ConfirmModal';
+import CancelSubscriptionModal from './CancelSubscriptionModal';
 
 export default function SubscriptionCard() {
+  const { t } = useTranslation();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     loadSubscription();
@@ -21,22 +22,19 @@ export default function SubscriptionCard() {
       setSubscription(data);
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error loading subscription');
+      setError(err.response?.data?.detail || t('subscription.errors.loadingSubscription'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelSubscription = async () => {
+  const handleCancelSubscription = async (immediate: boolean) => {
     try {
-      setCancelling(true);
-      await apiService.cancelSubscription();
+      await apiService.cancelSubscription(immediate);
       setShowCancelModal(false);
       loadSubscription();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error cancelling subscription');
-    } finally {
-      setCancelling(false);
+      setError(err.response?.data?.detail || t('subscription.errors.cancellingSubscription'));
     }
   };
 
@@ -58,11 +56,11 @@ export default function SubscriptionCard() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { color: string; text: string }> = {
-      active: { color: 'bg-green-100 text-green-800', text: 'Active' },
-      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
-      payment_failed: { color: 'bg-red-100 text-red-800', text: 'Payment Failed' },
-      cancelled: { color: 'bg-gray-100 text-gray-800', text: 'Cancelled' },
-      expired: { color: 'bg-gray-100 text-gray-800', text: 'Expired' },
+      active: { color: 'bg-green-100 text-green-800', text: t('subscription.status.active') },
+      pending: { color: 'bg-yellow-100 text-yellow-800', text: t('subscription.status.pending') },
+      payment_failed: { color: 'bg-red-100 text-red-800', text: t('subscription.status.payment_failed') },
+      cancelled: { color: 'bg-gray-100 text-gray-800', text: t('subscription.status.cancelled') },
+      expired: { color: 'bg-gray-100 text-gray-800', text: t('subscription.status.expired') },
     };
 
     const badge = badges[status] || badges.active;
@@ -96,13 +94,14 @@ export default function SubscriptionCard() {
   if (!subscription) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <p className="text-gray-600">No subscription found</p>
+        <p className="text-gray-600">{t('subscription.errors.noSubscription')}</p>
       </div>
     );
   }
 
   const isPaidPlan = subscription.plan.price_usd > 0;
-  const canCancel = isPaidPlan && subscription.status === 'active';
+  const isCancelled = subscription.cancelled_at !== null;
+  const canCancel = isPaidPlan && subscription.status === 'active' && !isCancelled;
 
   return (
     <>
@@ -111,8 +110,8 @@ export default function SubscriptionCard() {
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
-              <p className="mt-1 text-sm text-gray-600">Your subscription details and status</p>
+              <h2 className="text-lg font-semibold text-gray-900">{t('subscription.currentPlan')}</h2>
+              <p className="mt-1 text-sm text-gray-600">{t('subscription.planDetails')}</p>
             </div>
             {getStatusBadge(subscription.status)}
           </div>
@@ -126,7 +125,7 @@ export default function SubscriptionCard() {
               <h3 className="text-2xl font-bold text-gray-900">{subscription.plan.name}</h3>
               {subscription.plan.is_free && (
                 <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded">
-                  FREE
+                  {t('subscription.plans.free')}
                 </span>
               )}
             </div>
@@ -137,13 +136,13 @@ export default function SubscriptionCard() {
               <span className="text-3xl font-bold text-gray-900">
                 {formatPrice(subscription.plan.price_usd)}
               </span>
-              <span className="text-gray-600">/month</span>
+              <span className="text-gray-600">{t('subscription.plans.perMonth')}</span>
             </div>
           </div>
 
           {/* Plan Features */}
           <div className="border-t border-gray-200 pt-6">
-            <h4 className="text-sm font-medium text-gray-900 mb-3">Plan Features</h4>
+            <h4 className="text-sm font-medium text-gray-900 mb-3">{t('subscription.planFeatures')}</h4>
             <div className="space-y-2">
               <div className="flex items-center text-sm">
                 <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,8 +150,8 @@ export default function SubscriptionCard() {
                 </svg>
                 <span className="text-gray-700">
                   {subscription.plan.max_projects === null || subscription.plan.max_projects === -1
-                    ? 'Unlimited projects'
-                    : `Up to ${subscription.plan.max_projects} project${subscription.plan.max_projects !== 1 ? 's' : ''}`}
+                    ? t('subscription.features.unlimitedProjects')
+                    : t('subscription.features.upToProjects', { count: subscription.plan.max_projects })}
                 </span>
               </div>
               <div className="flex items-center text-sm">
@@ -161,8 +160,8 @@ export default function SubscriptionCard() {
                 </svg>
                 <span className="text-gray-700">
                   {subscription.plan.max_diagrams === null || subscription.plan.max_diagrams === -1
-                    ? 'Unlimited diagrams'
-                    : `Up to ${subscription.plan.max_diagrams} diagram${subscription.plan.max_diagrams !== 1 ? 's' : ''}`}
+                    ? t('subscription.features.unlimitedDiagrams')
+                    : t('subscription.features.upToDiagrams', { count: subscription.plan.max_diagrams })}
                 </span>
               </div>
             </div>
@@ -171,24 +170,43 @@ export default function SubscriptionCard() {
           {/* Subscription Dates */}
           {isPaidPlan && (
             <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">Billing Information</h4>
+              <h4 className="text-sm font-medium text-gray-900 mb-3">{t('subscription.billingInformation')}</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Started:</span>
+                  <span className="text-gray-600">{t('subscription.started')}:</span>
                   <span className="text-gray-900 font-medium">{formatDate(subscription.started_at)}</span>
                 </div>
                 {subscription.current_period_end && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Next billing date:</span>
+                    <span className="text-gray-600">{t('subscription.nextBillingDate')}:</span>
                     <span className="text-gray-900 font-medium">{formatDate(subscription.current_period_end)}</span>
                   </div>
                 )}
                 {subscription.cancelled_at && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Cancelled on:</span>
+                    <span className="text-gray-600">{t('subscription.cancelledOn')}:</span>
                     <span className="text-gray-900 font-medium">{formatDate(subscription.cancelled_at)}</span>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Cancellation Notice */}
+          {isCancelled && subscription.current_period_end && (
+            <div className="border-t border-gray-200 pt-6">
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex">
+                  <svg className="w-5 h-5 text-yellow-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <h5 className="text-sm font-medium text-yellow-800 mb-1">{t('subscription.cancellation.title')}</h5>
+                    <p className="text-sm text-yellow-700">
+                      {t('subscription.cancellation.message', { date: formatDate(subscription.current_period_end) })}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -200,26 +218,25 @@ export default function SubscriptionCard() {
                 onClick={() => setShowCancelModal(true)}
                 className="w-full px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
               >
-                Cancel Subscription
+                {t('subscription.cancelSubscription')}
               </button>
-              <p className="mt-2 text-xs text-gray-500 text-center">
-                You'll keep access until {formatDate(subscription.current_period_end)}
-              </p>
+              {subscription.current_period_end && (
+                <p className="mt-2 text-xs text-gray-500 text-center">
+                  {t('subscription.cancellation.keepAccessUntil', { date: formatDate(subscription.current_period_end) })}
+                </p>
+              )}
             </div>
           )}
         </div>
       </div>
 
       {/* Cancel Confirmation Modal */}
-      <ConfirmModal
+      <CancelSubscriptionModal
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelSubscription}
-        title="Cancel Subscription"
-        message={`Are you sure you want to cancel your ${subscription.plan.name} subscription? You'll keep access until ${formatDate(subscription.current_period_end)}, then you'll be moved to the FREE plan.`}
-        confirmText={cancelling ? 'Cancelling...' : 'Cancel Subscription'}
-        cancelText="Keep Subscription"
-        isDangerous={true}
+        planName={subscription.plan.name}
+        periodEndDate={subscription.current_period_end}
       />
     </>
   );

@@ -8,6 +8,7 @@ from .exceptions import ResourceLimitError, NotFoundError
 from .constants import FREE_PLAN_NAME, STATUS_ACTIVE, RESOURCE_TYPE_PROJECT, RESOURCE_TYPE_DIAGRAM
 from ..projects.interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
+from .logger import SubscriptionLogger
 
 
 class UsageLimiter:
@@ -181,6 +182,14 @@ class UsageLimiter:
         """
         check = await self.check_project_limit(user_id)
         if not check["allowed"]:
+            # Log limit exceeded
+            SubscriptionLogger.resource_limit_exceeded(
+                user_id=user_id,
+                resource_type=RESOURCE_TYPE_PROJECT,
+                current_usage=check["current_usage"],
+                limit=check["limit"],
+                plan_name=check["plan_name"]
+            )
             raise ResourceLimitError(
                 resource_type=RESOURCE_TYPE_PROJECT,
                 current=check["current_usage"],
@@ -196,6 +205,14 @@ class UsageLimiter:
         """
         check = await self.check_diagram_limit(user_id)
         if not check["allowed"]:
+            # Log limit exceeded
+            SubscriptionLogger.resource_limit_exceeded(
+                user_id=user_id,
+                resource_type=RESOURCE_TYPE_DIAGRAM,
+                current_usage=check["current_usage"],
+                limit=check["limit"],
+                plan_name=check["plan_name"]
+            )
             raise ResourceLimitError(
                 resource_type=RESOURCE_TYPE_DIAGRAM,
                 current=check["current_usage"],

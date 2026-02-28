@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from .subscription_service import SubscriptionService
 from .payment_providers.interfaces import IPaymentProvider
 from .constants import FREE_PLAN_NAME
+from .logger import SubscriptionLogger
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,10 @@ class WebhookHandler:
         # Procesar según tipo de evento
         event_type = event["event_type"]
         data = event["data"]
+        event_id = data.get("id", "unknown")
+        
+        # Log webhook received
+        SubscriptionLogger.webhook_received(event_type, event_id)
         
         logger.info(f"Processing webhook event: {event_type}")
         
@@ -64,10 +69,14 @@ class WebhookHandler:
             else:
                 logger.info(f"Unhandled webhook event type: {event_type}")
             
+            # Log successful processing
+            SubscriptionLogger.webhook_processed(event_type, event_id, success=True)
             logger.info(f"Webhook processed successfully: {event_type}")
             return {"status": "processed"}
         
         except Exception as e:
+            # Log failed processing
+            SubscriptionLogger.webhook_processed(event_type, event_id, success=False)
             logger.error(f"Error processing webhook {event_type}: {str(e)}")
             # No lanzar excepción para que Stripe no reintente
             return {"status": "error", "message": str(e)}
@@ -80,8 +89,12 @@ class WebhookHandler:
         1. Extraer user_id de metadata
         2. Extraer plan_id de metadata
         3. Extraer customer_id y subscription_id
-        4. Llamar subscription_service.activate_subscription()
+        4. Obtener detalles de la suscripción de Stripe
+        5. Llamar subscription_service.activate_subscription()
         """
+        import stripe
+        from datetime import datetime
+        
         metadata = data.get("metadata", {})
         user_id = metadata.get("user_id")
         plan_id = metadata.get("plan_id")
@@ -97,11 +110,22 @@ class WebhookHandler:
             f"plan {plan_id}, stripe_sub {subscription_id}"
         )
         
+        # Obtener detalles de la suscripción de Stripe para current_period_end
+        current_period_end = None
+        if subscription_id:
+            try:
+                stripe_subscription = stripe.Subscription.retrieve(subscription_id)
+                if stripe_subscription.current_period_end:
+                    current_period_end = datetime.fromtimestamp(stripe_subscription.current_period_end)
+            except Exception as e:
+                logger.warning(f"Could not retrieve subscription details from Stripe: {str(e)}")
+        
         await self.subscription_service.activate_subscription(
             user_id=user_id,
             plan_id=plan_id,
             stripe_customer_id=customer_id,
-            stripe_subscription_id=subscription_id
+            stripe_subscription_id=subscription_id,
+            current_period_end=current_period_end
         )
     
     async def _handle_subscription_updated(self, data: dict):
@@ -110,10 +134,14 @@ class WebhookHandler:
         
         Proceso:
         1. Buscar suscripción por stripe_subscription_id
-        2. Actualizar estado según data.status
+        2. Actualizar estado y períodos según data
         """
+        from datetime import datetime
+        
         subscription_id = data.get("id")
         status = data.get("status")
+        current_period_start = data.get("current_period_start")
+        current_period_end = data.get("current_period_end")
         
         logger.info(f"Updating subscription {subscription_id} to status {status}")
         
@@ -123,8 +151,19 @@ class WebhookHandler:
         )
         
         if subscription:
-            await self.subscription_service.update_subscription_status(
-                str(subscription.id), status
+            # Preparar datos de actualización
+            update_data = {"status": status}
+            
+            if current_period_start:
+                update_data["current_period_start"] = datetime.fromtimestamp(current_period_start)
+            
+            if current_period_end:
+                update_data["current_period_end"] = datetime.fromtimestamp(current_period_end)
+            
+            # Actualizar suscripción
+            await self.subscription_service.repository.update(
+                str(subscription.id),
+                update_data
             )
         else:
             logger.warning(f"Subscription not found for stripe_id {subscription_id}")

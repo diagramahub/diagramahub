@@ -1,22 +1,41 @@
 import { useState, useEffect } from 'react';
-
-interface Payment {
-  id: string;
-  amount: number;
-  currency: string;
-  status: 'succeeded' | 'failed' | 'pending';
-  created_at: string;
-  description: string;
-}
+import { useTranslation } from 'react-i18next';
+import apiService from '../../services/api';
+import { Invoice } from '../../types/subscription';
 
 export default function BillingHistory() {
-  const [payments] = useState<Payment[]>([]);
-  const [loading] = useState(false);
+  const { t } = useTranslation();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // TODO: Implement API call when backend endpoint is ready
-    // loadPaymentHistory();
+    loadBillingHistory();
   }, []);
+
+  const loadBillingHistory = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getBillingHistory(10);
+      setInvoices(data.invoices);
+      setError('');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || t('subscription.billing.error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadInvoice = async (invoiceId: string) => {
+    try {
+      // Hacer la petición con autenticación para obtener la URL del PDF
+      const response = await apiService.downloadInvoice(invoiceId);
+      // Abrir el PDF de Stripe en nueva pestaña
+      window.open(response.pdf_url, '_blank');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || t('subscription.billing.error'));
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -35,12 +54,13 @@ export default function BillingHistory() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { color: string; text: string }> = {
-      succeeded: { color: 'bg-green-100 text-green-800', text: 'Exitoso' },
-      failed: { color: 'bg-red-100 text-red-800', text: 'Fallido' },
-      pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pendiente' },
+      paid: { color: 'bg-green-100 text-green-800', text: t('subscription.billing.paid') },
+      open: { color: 'bg-yellow-100 text-yellow-800', text: t('subscription.billing.pending') },
+      void: { color: 'bg-gray-100 text-gray-800', text: t('subscription.billing.failed') },
+      uncollectible: { color: 'bg-red-100 text-red-800', text: t('subscription.billing.failed') },
     };
 
-    const badge = badges[status] || badges.pending;
+    const badge = badges[status] || badges.open;
     return (
       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}>
         {badge.text}
@@ -64,14 +84,30 @@ export default function BillingHistory() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Historial de Pagos</h2>
+          <p className="mt-1 text-sm text-gray-600">Revisa tus transacciones anteriores</p>
+        </div>
+        <div className="px-6 py-6">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Historial de Pagos</h2>
-        <p className="mt-1 text-sm text-gray-600">Revisa tus transacciones anteriores</p>
+        <h2 className="text-lg font-semibold text-gray-900">{t('subscription.billing.title')}</h2>
+        <p className="mt-1 text-sm text-gray-600">{t('subscription.billing.subtitle')}</p>
       </div>
       <div className="px-6 py-6">
-        {payments.length === 0 ? (
+        {invoices.length === 0 ? (
           <div className="text-center py-8">
             <svg
               className="mx-auto h-12 w-12 text-gray-400"
@@ -86,9 +122,9 @@ export default function BillingHistory() {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <p className="mt-4 text-sm text-gray-500">No hay historial de pagos disponible</p>
+            <p className="mt-4 text-sm text-gray-500">{t('subscription.billing.noHistory')}</p>
             <p className="mt-1 text-xs text-gray-400">
-              Los pagos aparecerán aquí una vez que realices tu primera transacción
+              {t('subscription.billing.noHistoryDescription')}
             </p>
           </div>
         ) : (
@@ -97,33 +133,49 @@ export default function BillingHistory() {
               <thead>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
+                    {t('subscription.billing.date')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Descripción
+                    {t('subscription.billing.description')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Monto
+                    {t('subscription.billing.amount')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
+                    {t('subscription.billing.status')}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('common.actions')}
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-gray-50">
+                {invoices.map((invoice) => (
+                  <tr key={invoice.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(payment.created_at)}
+                      {formatDate(invoice.created_at)}
                     </td>
                     <td className="px-4 py-4 text-sm text-gray-900">
-                      {payment.description}
+                      {invoice.description}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatAmount(payment.amount, payment.currency)}
+                      {formatAmount(invoice.amount, invoice.currency)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm">
-                      {getStatusBadge(payment.status)}
+                      {getStatusBadge(invoice.status)}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm">
+                      {invoice.invoice_pdf && (
+                        <button
+                          onClick={() => handleDownloadInvoice(invoice.id)}
+                          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          {t('subscription.billing.download')}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
