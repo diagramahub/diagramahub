@@ -185,14 +185,39 @@ async def get_current_user(
         service: User service instance
 
     Returns:
-        Current user information
+        Current user information with subscription data
     """
+    from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+    from app.api.v1.subscriptions.plan_repository import PlanRepository
+    
     user = await service.get_current_user(current_user_email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+
+    # Get user's subscription info
+    subscription_data = None
+    try:
+        subscription_repo = SubscriptionRepository()
+        plan_repo = PlanRepository()
+        
+        subscription = await subscription_repo.get_active_by_user(str(user.id))
+        if subscription:
+            plan = await plan_repo.get_by_id(subscription.plan_id)
+            if plan:
+                subscription_data = {
+                    "plan": {
+                        "name": plan.name,
+                        "price_usd": plan.price_usd,
+                        "max_projects": plan.max_projects,
+                        "max_diagrams": plan.max_diagrams
+                    }
+                }
+    except Exception as e:
+        # If subscription fetch fails, continue without it
+        print(f"Error fetching subscription: {e}")
 
     return UserResponse(
         id=str(user.id),
@@ -203,6 +228,7 @@ async def get_current_user(
         role=user.role,
         is_active=user.is_active,
         created_at=user.created_at,
+        subscription=subscription_data,
     )
 
 
@@ -221,14 +247,39 @@ async def update_current_user(
         service: User service instance
 
     Returns:
-        Updated user information
+        Updated user information with subscription data
     """
+    from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+    from app.api.v1.subscriptions.plan_repository import PlanRepository
+    
     user = await service.update_user_profile(current_user_email, update_data)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+
+    # Get user's subscription info
+    subscription_data = None
+    try:
+        subscription_repo = SubscriptionRepository()
+        plan_repo = PlanRepository()
+        
+        subscription = await subscription_repo.get_active_by_user(str(user.id))
+        if subscription:
+            plan = await plan_repo.get_by_id(subscription.plan_id)
+            if plan:
+                subscription_data = {
+                    "plan": {
+                        "name": plan.name,
+                        "price_usd": plan.price_usd,
+                        "max_projects": plan.max_projects,
+                        "max_diagrams": plan.max_diagrams
+                    }
+                }
+    except Exception as e:
+        # If subscription fetch fails, continue without it
+        print(f"Error fetching subscription: {e}")
 
     return UserResponse(
         id=str(user.id),
@@ -239,4 +290,5 @@ async def update_current_user(
         role=user.role,
         is_active=user.is_active,
         created_at=user.created_at,
+        subscription=subscription_data,
     )

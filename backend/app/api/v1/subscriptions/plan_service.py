@@ -12,6 +12,7 @@ from .exceptions import (
     NotFoundError
 )
 from .constants import FREE_PLAN_NAME
+from .logger import SubscriptionLogger
 
 
 class PlanService:
@@ -40,6 +41,14 @@ class PlanService:
         
         # Crear plan
         plan = await self.repository.create(plan_data)
+        
+        # Log creation
+        SubscriptionLogger.plan_created(
+            plan_id=str(plan.id),
+            plan_name=plan.name,
+            price=plan.price_usd,
+            created_by=admin_user_id
+        )
         
         # Contar suscripciones activas (será 0 para plan nuevo)
         active_subs = await self.repository.count_active_subscriptions(str(plan.id))
@@ -79,6 +88,15 @@ class PlanService:
         if not updated_plan:
             raise NotFoundError("Plan", plan_id)
         
+        # Log update
+        changes = plan_data.model_dump(exclude_unset=True)
+        SubscriptionLogger.plan_updated(
+            plan_id=plan_id,
+            plan_name=updated_plan.name,
+            updated_by=admin_user_id,
+            changes=changes
+        )
+        
         # Contar suscripciones activas
         active_subs = await self.repository.count_active_subscriptions(plan_id)
         
@@ -109,6 +127,13 @@ class PlanService:
         deactivated_plan = await self.repository.deactivate(plan_id)
         if not deactivated_plan:
             raise NotFoundError("Plan", plan_id)
+        
+        # Log deactivation
+        SubscriptionLogger.plan_deactivated(
+            plan_id=plan_id,
+            plan_name=deactivated_plan.name,
+            deactivated_by=admin_user_id
+        )
         
         # Contar suscripciones activas (se mantienen)
         active_subs = await self.repository.count_active_subscriptions(plan_id)

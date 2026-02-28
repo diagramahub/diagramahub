@@ -59,3 +59,20 @@ export type UsageSummary = {
     diagrams: number;
   };
 }
+
+export type Invoice = {
+  id: string;
+  amount: number;
+  currency: string;
+  status: 'paid' | 'open' | 'void' | 'uncollectible';
+  description: string;
+  invoice_pdf: string | null;
+  hosted_invoice_url: string | null;
+  created_at: string;
+  paid_at: string | null;
+}
+
+export type BillingHistory = {
+  invoices: Invoice[];
+  total_count: number;
+}

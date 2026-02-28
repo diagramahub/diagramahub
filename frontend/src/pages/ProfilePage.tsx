@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,8 @@ import SubscriptionCard from '../components/subscription/SubscriptionCard';
 import UsageIndicator from '../components/subscription/UsageIndicator';
 import PlanSelector from '../components/subscription/PlanSelector';
 import BillingHistory from '../components/subscription/BillingHistory';
+import SuccessCelebrationModal from '../components/subscription/SuccessCelebrationModal';
+import PremiumAvatar from '../components/PremiumAvatar';
 import { Subscription } from '../types/subscription';
 
 // Lista de zonas horarias comunes
@@ -59,6 +61,8 @@ export default function ProfilePage() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationPlan, setCelebrationPlan] = useState<any>(null);
 
   // Estados para edición de perfil
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -208,10 +212,32 @@ export default function ProfilePage() {
     try {
       const data = await apiService.getMySubscription();
       setSubscription(data);
+      
+      // Check if we should show celebration modal
+      // This happens when user returns from successful payment
+      const urlParams = new URLSearchParams(window.location.search);
+      const showSuccess = urlParams.get('success');
+      const sessionId = urlParams.get('session_id');
+      
+      if (showSuccess === 'true' && sessionId && data.plan.price_usd > 0) {
+        // Only show celebration for paid plans
+        setCelebrationPlan(data.plan);
+        setShowCelebration(true);
+        
+        // Clean up URL
+        window.history.replaceState({}, '', '/profile?tab=subscription');
+      }
     } catch (err) {
       console.error('Error loading subscription:', err);
     }
   };
+
+  // Load subscription on mount if on subscription tab
+  useEffect(() => {
+    if (activeTab === 'subscription') {
+      loadSubscription();
+    }
+  }, [activeTab]);
 
   return (
     <>
@@ -317,17 +343,7 @@ export default function ProfilePage() {
               <div className="space-y-6">
                 {/* Avatar */}
                 <div className="flex items-center gap-4">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt={t('profile.profilePicture')}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-semibold">
-                      {getUserInitials()}
-                    </div>
-                  )}
+                  <PremiumAvatar size="xl" showPremiumBadge={true} />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{t('profile.profilePicture')}</p>
                     <p className="text-xs text-gray-500">{t('profile.photoLimitInfo')}</p>
@@ -640,7 +656,7 @@ export default function ProfilePage() {
                   onClick={() => setShowPlanSelector(true)}
                   className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                 >
-                  Cambiar Plan
+                  {t('subscription.changePlan')}
                 </button>
               </div>
             )}
@@ -649,12 +665,12 @@ export default function ProfilePage() {
             {showPlanSelector && (
               <div key={`plans-${refreshKey}`}>
                 <div className="mb-4 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">Seleccionar Nuevo Plan</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('subscription.selectNewPlan')}</h3>
                   <button
                     onClick={() => setShowPlanSelector(false)}
                     className="text-sm text-gray-600 hover:text-gray-800"
                   >
-                    Cancelar
+                    {t('subscription.cancelSelection')}
                   </button>
                 </div>
                 <PlanSelector 
@@ -692,6 +708,18 @@ export default function ProfilePage() {
       cancelText={t('common.cancel')}
       isDangerous={true}
     />
+
+    {/* Success Celebration Modal */}
+    {celebrationPlan && (
+      <SuccessCelebrationModal
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        planName={celebrationPlan.name}
+        planPrice={celebrationPlan.price_usd}
+        maxProjects={celebrationPlan.max_projects}
+        maxDiagrams={celebrationPlan.max_diagrams}
+      />
+    )}
     </>
   );
 }

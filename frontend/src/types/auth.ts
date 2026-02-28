@@ -10,6 +10,14 @@ export type User = {
   role?: UserRole;  // User role (admin or regular user)
   is_active: boolean;
   created_at: string;
+  subscription?: {
+    plan: {
+      price_usd: number;
+      name: string;
+      max_projects: number | null;
+      max_diagrams: number | null;
+    };
+  };
 }
 
 export type InstallationStatus = {

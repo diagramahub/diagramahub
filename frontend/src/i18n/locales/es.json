@@ -310,6 +310,101 @@
     "tryAgain": "Intentar de nuevo",
     "contactSupport": "Contactar soporte"
   },
+  "subscription": {
+    "title": "Mi Suscripción",
+    "currentPlan": "Plan Actual",
+    "planDetails": "Detalles de tu suscripción y estado",
+    "planFeatures": "Características del Plan",
+    "billingInformation": "Información de Facturación",
+    "started": "Iniciado",
+    "nextBillingDate": "Próxima fecha de cobro",
+    "cancelledOn": "Cancelado el",
+    "cancelSubscription": "Cancelar Suscripción",
+    "changePlan": "Cambiar Plan",
+    "selectNewPlan": "Seleccionar Nuevo Plan",
+    "cancelSelection": "Cancelar",
+    "status": {
+      "active": "Activo",
+      "pending": "Pendiente",
+      "payment_failed": "Pago Fallido",
+      "cancelled": "Cancelado",
+      "expired": "Expirado"
+    },
+    "features": {
+      "unlimitedProjects": "Proyectos ilimitados",
+      "unlimitedDiagrams": "Diagramas ilimitados",
+      "upToProjects": "Hasta {{count}} proyecto",
+      "upToProjects_plural": "Hasta {{count}} proyectos",
+      "upToDiagrams": "Hasta {{count}} diagrama",
+      "upToDiagrams_plural": "Hasta {{count}} diagramas",
+      "premiumBadge": "Insignia premium en tu perfil",
+      "prioritySupport": "Soporte prioritario"
+    },
+    "cancellation": {
+      "title": "Suscripción Cancelada",
+      "message": "Tu suscripción ha sido cancelada. Mantendrás acceso a tu plan actual hasta el {{date}}. Después de eso, serás movido automáticamente al plan GRATUITO.",
+      "keepAccessUntil": "Mantendrás acceso hasta {{date}}",
+      "confirmTitle": "Cancelar Suscripción",
+      "confirmMessage": "¿Estás seguro de que quieres cancelar tu suscripción de {{planName}}? Mantendrás acceso hasta {{date}}, luego serás movido al plan GRATUITO.",
+      "confirmButton": "Cancelar Suscripción",
+      "cancelButton": "Mantener Suscripción",
+      "cancelling": "Cancelando...",
+      "whenToCancel": "¿Cuándo quieres que termine tu suscripción?",
+      "endOfPeriod": "Al final del período ({{date}})",
+      "endOfPeriodDescription": "Recomendado - Mantén acceso por lo que pagaste",
+      "immediately": "Inmediatamente",
+      "immediatelyDescription": "Cambia a plan GRATUITO ahora mismo (sin reembolso)",
+      "immediateWarning": "Perderás acceso premium de inmediato y no habrá reembolso por el tiempo restante."
+    },
+    "usage": {
+      "title": "Uso de Recursos",
+      "subtitle": "Tu uso actual de proyectos y diagramas",
+      "projects": "Proyectos",
+      "diagrams": "Diagramas",
+      "of": "de",
+      "unlimited": "Ilimitado",
+      "warning": "Estás cerca del límite",
+      "limitReached": "Límite alcanzado",
+      "upgradePrompt": "Actualiza tu plan para crear más recursos"
+    },
+    "plans": {
+      "title": "Planes Disponibles",
+      "selectPlan": "Seleccionar Plan",
+      "currentPlan": "Plan Actual",
+      "free": "GRATUITO",
+      "premium": "PREMIUM",
+      "perMonth": "/mes",
+      "mostPopular": "Más Popular",
+      "recommended": "Recomendado"
+    },
+    "billing": {
+      "title": "Historial de Facturación",
+      "subtitle": "Tus facturas y pagos anteriores",
+      "date": "Fecha",
+      "description": "Descripción",
+      "amount": "Monto",
+      "status": "Estado",
+      "download": "Descargar",
+      "noHistory": "No hay historial de facturación",
+      "noHistoryDescription": "Tus facturas aparecerán aquí una vez que realices un pago",
+      "paid": "Pagado",
+      "pending": "Pendiente",
+      "failed": "Fallido",
+      "loading": "Cargando historial...",
+      "error": "Error al cargar historial de facturación"
+    },
+    "celebration": {
+      "title": "¡Felicidades! 🎉",
+      "subtitle": "Tu suscripción ha sido activada exitosamente",
+      "newBenefits": "Tus nuevos beneficios:",
+      "startUsing": "¡Empezar a usar mi plan!"
+    },
+    "errors": {
+      "loadingSubscription": "Error al cargar suscripción",
+      "cancellingSubscription": "Error al cancelar suscripción",
+      "noSubscription": "No se encontró suscripción"
+    }
+  },
   "ai": {
     "title": "Integraciones de IA",
     "subtitle": "Conecta proveedores de IA para generar descripciones automáticas de tus diagramas",

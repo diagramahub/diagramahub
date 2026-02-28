@@ -260,3 +260,29 @@ class ResourceLimitCheckResponse(BaseModel):
     current_usage: int
     limit: Optional[int]
     plan_name: str
+
+
+# ============================================================================
+# Billing History Schemas
+# ============================================================================
+
+class InvoiceResponse(BaseModel):
+    """Model for invoice/payment API responses."""
+    id: str
+    amount: float  # En USD
+    currency: str
+    status: str  # "paid", "open", "void", "uncollectible"
+    description: str
+    invoice_pdf: Optional[str] = None  # URL del PDF en Stripe
+    hosted_invoice_url: Optional[str] = None  # URL para ver en Stripe
+    created_at: datetime
+    paid_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class BillingHistoryResponse(BaseModel):
+    """Response with list of invoices."""
+    invoices: list[InvoiceResponse]
+    total_count: int

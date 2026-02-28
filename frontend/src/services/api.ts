@@ -305,8 +305,19 @@ class ApiService {
     return response.data;
   }
 
-  async cancelSubscription(): Promise<Subscription> {
-    const response = await this.api.post<Subscription>('/api/v1/subscriptions/cancel');
+  async cancelSubscription(immediate: boolean = false): Promise<any> {
+    const response = await this.api.post(`/api/v1/subscriptions/cancel?immediate=${immediate}`);
+    return response.data;
+  }
+
+  // Billing History
+  async getBillingHistory(limit: number = 10): Promise<{ invoices: any[]; total_count: number }> {
+    const response = await this.api.get(`/api/v1/subscriptions/billing-history?limit=${limit}`);
+    return response.data;
+  }
+
+  async downloadInvoice(invoiceId: string): Promise<{ pdf_url: string }> {
+    const response = await this.api.get(`/api/v1/subscriptions/invoices/${invoiceId}/pdf-url`);
     return response.data;
   }
 }
