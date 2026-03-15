@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Frontend URL (for Stripe redirects)
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # App environment
+    APP_ENV: str = "production"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
