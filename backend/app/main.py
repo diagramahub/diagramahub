@@ -87,10 +87,11 @@ app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX, tags=["Webhoo
 
 @app.get("/")
 async def root():
-    """Root endpoint for health check."""
+    """Root endpoint."""
     return {
         "message": f"Welcome to {settings.PROJECT_NAME}",
         "version": settings.VERSION,
+        "environment": settings.APP_ENV,
         "status": "running",
     }
 
@@ -98,4 +99,4 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "healthy"}
+    return {"status": "ok"}

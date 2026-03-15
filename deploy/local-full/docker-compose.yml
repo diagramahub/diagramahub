@@ -20,6 +20,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        APP_ENV: development
     container_name: diagramahub-backend
     restart: unless-stopped
     ports:
@@ -31,11 +33,13 @@ services:
       - ./backend/run-tests.sh:/app/run-tests.sh
     env_file:
       - ./backend/.env
+    environment:
+      - APP_ENV=development
+      - PORT=5172
     depends_on:
       - mongodb
     networks:
       - diagramahub-network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 5172 --reload
 
   frontend:
     build:
