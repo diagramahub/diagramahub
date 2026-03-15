@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import apiService from '../../services/api';
 import { Plan, PlanCreate, PlanUpdate } from '../../types/subscription';
 
@@ -10,7 +9,6 @@ interface PlanFormProps {
 }
 
 export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 

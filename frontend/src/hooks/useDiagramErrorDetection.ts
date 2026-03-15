@@ -87,7 +87,6 @@ export function useDiagramErrorDetection(
       
       // Try to parse with Mermaid to catch syntax errors
       try {
-        const id = `mermaid-validation-${Date.now()}`;
         await mermaid.parse(code, { suppressErrors: false });
         
         // If parse succeeds, no error
@@ -111,99 +110,6 @@ export function useDiagramErrorDetection(
           errorLine: errorLine
         });
       }
-      
-    } catch (e) {
-      setError({
-        hasError: true,
-        errorMessage: 'Error al validar sintaxis de Mermaid',
-        errorContext: `Error al validar sintaxis: ${e instanceof Error ? e.message : String(e)}`
-      });
-    }
-  };
-
-  const validateMermaid = (code: string) => {
-    try {
-      const lines = code.trim().split('\n');
-      
-      // Check for valid diagram type
-      const validTypes = [
-        'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-        'stateDiagram', 'stateDiagram-v2', 'erDiagram', 'gantt',
-        'pie', 'journey', 'gitGraph', 'mindmap', 'timeline',
-        'quadrantChart', 'requirementDiagram', 'C4Context'
-      ];
-      
-      // Find first non-comment line
-      let firstLine = '';
-      for (const line of lines) {
-        const cleanLine = line.replace(/%%.*$/, '').trim();
-        if (cleanLine) {
-          firstLine = cleanLine;
-          break;
-        }
-      }
-      
-      if (!firstLine) {
-        setError({
-          hasError: true,
-          errorMessage: 'El diagrama está vacío o solo contiene comentarios',
-          errorContext: 'El diagrama está vacío o solo contiene comentarios',
-          errorLine: 1
-        });
-        return;
-      }
-      
-      // Check if starts with valid type
-      const hasValidType = validTypes.some(type => firstLine.startsWith(type));
-      
-      if (!hasValidType) {
-        setError({
-          hasError: true,
-          errorMessage: `Tipo de diagrama no reconocido: "${firstLine}"`,
-          errorContext: `Tipo de diagrama no reconocido: "${firstLine}". Debe comenzar con uno de: ${validTypes.join(', ')}`,
-          errorLine: 1
-        });
-        return;
-      }
-      
-      // Check for balanced subgraphs
-      let subgraphCount = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].replace(/%%.*$/, '').trim();
-        
-        if (line.toLowerCase().includes('subgraph')) {
-          subgraphCount++;
-        }
-        if (line.toLowerCase() === 'end') {
-          subgraphCount--;
-        }
-        
-        if (subgraphCount < 0) {
-          setError({
-            hasError: true,
-            errorMessage: "'end' sin 'subgraph' correspondiente",
-            errorContext: `'end' sin 'subgraph' correspondiente en línea ${i + 1}`,
-            errorLine: i + 1
-          });
-          return;
-        }
-      }
-      
-      if (subgraphCount > 0) {
-        setError({
-          hasError: true,
-          errorMessage: `${subgraphCount} subgraph(s) sin cerrar`,
-          errorContext: `${subgraphCount} subgraph(s) sin cerrar (falta 'end')`,
-        });
-        return;
-      }
-      
-      // If we get here, no errors detected
-      setError({
-        hasError: false,
-        errorMessage: '',
-        errorContext: ''
-      });
       
     } catch (e) {
       setError({

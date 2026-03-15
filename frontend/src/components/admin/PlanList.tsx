@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan } from '../../types/subscription';
 import PlanForm from './PlanForm';
 import ConfirmModal from '../ConfirmModal';
 
 export default function PlanList() {
-  const { t } = useTranslation();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

@@ -14,7 +14,7 @@ export default function PremiumAvatar({
   const { user } = useAuth();
 
   // Determinar si el usuario tiene un plan de paga
-  const isPremium = user?.subscription?.plan?.price_usd > 0;
+  const isPremium = (user?.subscription?.plan?.price_usd ?? 0) > 0;
 
   // Función para obtener las iniciales del usuario
   const getUserInitials = () => {
