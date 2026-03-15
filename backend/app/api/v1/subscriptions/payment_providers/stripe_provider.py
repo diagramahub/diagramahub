@@ -114,6 +114,30 @@ class StripePaymentProvider(IPaymentProvider):
         except Exception as e:
             raise PaymentProviderError("stripe", f"Unexpected error: {str(e)}")
     
+    async def create_setup_session(
+        self,
+        customer_id: str,
+        success_url: str,
+        cancel_url: str
+    ) -> dict:
+        """
+        Crea Stripe Checkout Session en modo setup para actualizar método de pago.
+        """
+        try:
+            session = stripe.checkout.Session.create(
+                customer=customer_id,
+                mode='setup',
+                payment_method_types=['card'],
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+            return {
+                "session_id": session.id,
+                "session_url": session.url
+            }
+        except stripe.error.StripeError as e:
+            raise PaymentProviderError("stripe", str(e))
+
     async def cancel_subscription(
         self,
         subscription_id: str

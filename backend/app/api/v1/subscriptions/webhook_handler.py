@@ -85,16 +85,21 @@ class WebhookHandler:
         """
         Maneja evento checkout.session.completed.
         
-        Proceso:
-        1. Extraer user_id de metadata
-        2. Extraer plan_id de metadata
-        3. Extraer customer_id y subscription_id
-        4. Obtener detalles de la suscripción de Stripe
-        5. Llamar subscription_service.activate_subscription()
+        Distingue entre:
+        - mode='subscription': Activar nueva suscripción
+        - mode='setup': Actualizar método de pago por defecto
         """
         import stripe
         from datetime import datetime
         
+        mode = data.get("mode")
+        
+        if mode == "setup":
+            # Actualizar método de pago
+            await self._handle_setup_completed(data)
+            return
+        
+        # mode='subscription' — flujo original
         metadata = data.get("metadata", {})
         user_id = metadata.get("user_id")
         plan_id = metadata.get("plan_id")
@@ -127,6 +132,45 @@ class WebhookHandler:
             stripe_subscription_id=subscription_id,
             current_period_end=current_period_end
         )
+    
+    async def _handle_setup_completed(self, data: dict):
+        """
+        Maneja checkout.session.completed en modo setup.
+        
+        Establece el nuevo método de pago como default en el customer
+        y en la suscripción activa.
+        """
+        import stripe
+        
+        customer_id = data.get("customer")
+        setup_intent_id = data.get("setup_intent")
+        
+        if not customer_id or not setup_intent_id:
+            logger.error("Missing customer or setup_intent in setup checkout")
+            return
+        
+        try:
+            # Obtener el setup intent para extraer el payment method
+            setup_intent = stripe.SetupIntent.retrieve(setup_intent_id)
+            payment_method_id = setup_intent.payment_method
+            
+            # Establecer como default en el customer
+            stripe.Customer.modify(
+                customer_id,
+                invoice_settings={"default_payment_method": payment_method_id}
+            )
+            
+            # También actualizar la suscripción activa si existe
+            subscriptions = stripe.Subscription.list(customer=customer_id, status="active", limit=1)
+            if subscriptions.data:
+                stripe.Subscription.modify(
+                    subscriptions.data[0].id,
+                    default_payment_method=payment_method_id
+                )
+            
+            logger.info(f"Payment method updated for customer {customer_id}")
+        except Exception as e:
+            logger.error(f"Error updating payment method: {str(e)}")
     
     async def _handle_subscription_updated(self, data: dict):
         """

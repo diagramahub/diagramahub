@@ -310,6 +310,11 @@ class ApiService {
     return response.data;
   }
 
+  async updatePaymentMethod(): Promise<{ session_id: string; session_url: string }> {
+    const response = await this.api.post('/api/v1/subscriptions/update-payment-method');
+    return response.data;
+  }
+
   // Billing History
   async getBillingHistory(limit: number = 10): Promise<{ invoices: any[]; total_count: number }> {
     const response = await this.api.get(`/api/v1/subscriptions/billing-history?limit=${limit}`);
