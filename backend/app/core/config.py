@@ -2,7 +2,9 @@
 Core configuration module for Diagramahub backend.
 Manages environment variables and application settings.
 """
+import json
 from functools import lru_cache
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +28,23 @@ class Settings(BaseSettings):
 
     # CORS
     BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            # Try JSON array first: '["https://example.com"]'
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, ValueError):
+                pass
+            # Fallback: comma-separated string
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     # Frontend URL (for Stripe redirects)
     FRONTEND_URL: str = "http://localhost:5173"
