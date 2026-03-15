@@ -141,7 +141,7 @@ export default function AIIntegrationsSection() {
                   if (!aIsDefault && bIsDefault) return 1;
                   return 0;
                 })
-                .map((provider, sortedIndex) => {
+                .map((provider) => {
                   // Find original index for API calls
                   const originalIndex = settings.providers.findIndex(p => p === provider);
                   const isDefault = settings.default_provider === provider.provider;

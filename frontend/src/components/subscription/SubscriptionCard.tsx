@@ -235,7 +235,7 @@ export default function SubscriptionCard() {
         isOpen={showCancelModal}
         onClose={() => setShowCancelModal(false)}
         onConfirm={handleCancelSubscription}
-        planName={subscription.plan.name}
+
         periodEndDate={subscription.current_period_end}
       />
     </>

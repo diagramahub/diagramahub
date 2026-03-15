@@ -8,12 +8,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import SimpleMDE from 'react-simplemde-editor';
-import 'easymde/dist/easymde.min.css';
 import api from '../services/api';
 import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest } from '../types/project';
 import { UserAISettings, AI_PROVIDER_NAMES } from '../types/ai';
-import Tabs from '../components/Tabs';
 import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Tooltip from '../components/Tooltip';
@@ -30,7 +27,7 @@ import { plantUMLConfigManager } from '../utils/plantUMLConfigManager';
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation();
   const [project, setProject] = useState<ProjectWithDiagrams | null>(null);
   const [currentDiagram, setCurrentDiagram] = useState<Diagram | null>(null);
@@ -182,8 +179,6 @@ export default function DiagramEditorPage() {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   // Collapsible panels state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isEditorCollapsed, setIsEditorCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Floating panels state
@@ -315,35 +310,6 @@ export default function DiagramEditorPage() {
     diagramId: null,
     diagramName: ''
   });
-
-  // SimpleMDE options
-  const editorOptions = useMemo(() => {
-    return {
-      spellChecker: false,
-      placeholder: 'Escribe la descripción del diagrama usando Markdown...',
-      status: false,
-      toolbar: [
-        'bold',
-        'italic',
-        'heading',
-        '|',
-        'quote',
-        'unordered-list',
-        'ordered-list',
-        '|',
-        'link',
-        'image',
-        '|',
-        'preview',
-        'side-by-side',
-        'fullscreen',
-        '|',
-        'guide',
-      ],
-      minHeight: '300px',
-      maxHeight: '600px',
-    };
-  }, []);
 
   // Helper functions for localStorage
   const getLastViewedDiagram = (projectId: string): string | null => {
@@ -562,8 +528,7 @@ export default function DiagramEditorPage() {
           // Note: Mermaid will read the frontmatter automatically
           mermaid.initialize({
             startOnLoad: true,
-            securityLevel: 'loose',
-            suppressErrors: true, // Suppress multiple error messages
+            securityLevel: 'loose'
           });
 
           const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1055,19 +1020,19 @@ export default function DiagramEditorPage() {
   // Improve diagram with AI
   const handleImproveAccept = async (improvedCode: string) => {
     setDiagramCode(improvedCode);
-    setSaveStatus('unsaved');
+    setSaveStatus('idle');
 
     // Auto-save if we have a current diagram
     if (currentDiagram && projectId) {
       try {
         await api.updateDiagram(currentDiagram.id, {
-          code: improvedCode
+          content: improvedCode
         });
         setSaveStatus('saved');
         setLastSavedTime(new Date());
       } catch (error: any) {
         console.error('Error saving improved diagram:', error);
-        setSaveStatus('unsaved');
+        setSaveStatus('idle');
       }
     }
   };

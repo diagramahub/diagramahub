@@ -22,8 +22,16 @@ export default function UsageBadge() {
 
   if (!usage) return null;
 
-  const isNearLimit = usage.projects.percentage >= 80 || usage.diagrams.percentage >= 80;
-  const isAtLimit = usage.projects.percentage >= 100 || usage.diagrams.percentage >= 100;
+  const getPercentage = (current: number, limit: number | null) => {
+    if (!limit || limit === -1 || limit === 0) return 0;
+    return (current / limit) * 100;
+  };
+  
+  const projPercentage = getPercentage(usage.projects.current, usage.projects.limit);
+  const diagPercentage = getPercentage(usage.diagrams.current, usage.diagrams.limit);
+
+  const isNearLimit = projPercentage >= 80 || diagPercentage >= 80;
+  const isAtLimit = projPercentage >= 100 || diagPercentage >= 100;
 
   const getBadgeColor = () => {
     if (isAtLimit) return 'bg-red-100 text-red-700 border-red-200';

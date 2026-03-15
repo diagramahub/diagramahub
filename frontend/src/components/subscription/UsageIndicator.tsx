@@ -65,6 +65,14 @@ export default function UsageIndicator() {
     return null;
   }
 
+  const getPercentage = (current: number, limit: number | null) => {
+    if (!limit || limit === -1 || limit === 0) return 0;
+    return (current / limit) * 100;
+  };
+
+  const projPercentage = getPercentage(usage.projects.current, usage.projects.limit);
+  const diagPercentage = getPercentage(usage.diagrams.current, usage.diagrams.limit);
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
@@ -83,15 +91,15 @@ export default function UsageIndicator() {
               {usage.projects.current} / {formatLimit(usage.projects.limit)}
             </span>
           </div>
-          <div className={`w-full h-2 rounded-full ${getProgressBarColor(usage.projects.percentage)}`}>
+          <div className={`w-full h-2 rounded-full ${getProgressBarColor(projPercentage)}`}>
             <div
-              className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(usage.projects.percentage)}`}
-              style={{ width: `${Math.min(usage.projects.percentage, 100)}%` }}
+              className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(projPercentage)}`}
+              style={{ width: `${Math.min(projPercentage, 100)}%` }}
             />
           </div>
-          {usage.projects.percentage >= 80 && (
+          {projPercentage >= 80 && (
             <p className="mt-2 text-xs text-yellow-600">
-              {usage.projects.percentage >= 100
+              {projPercentage >= 100
                 ? 'You have reached your project limit. Upgrade to create more projects.'
                 : 'You are approaching your project limit.'}
             </p>
@@ -106,15 +114,15 @@ export default function UsageIndicator() {
               {usage.diagrams.current} / {formatLimit(usage.diagrams.limit)}
             </span>
           </div>
-          <div className={`w-full h-2 rounded-full ${getProgressBarColor(usage.diagrams.percentage)}`}>
+          <div className={`w-full h-2 rounded-full ${getProgressBarColor(diagPercentage)}`}>
             <div
-              className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(usage.diagrams.percentage)}`}
-              style={{ width: `${Math.min(usage.diagrams.percentage, 100)}%` }}
+              className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(diagPercentage)}`}
+              style={{ width: `${Math.min(diagPercentage, 100)}%` }}
             />
           </div>
-          {usage.diagrams.percentage >= 80 && (
+          {diagPercentage >= 80 && (
             <p className="mt-2 text-xs text-yellow-600">
-              {usage.diagrams.percentage >= 100
+              {diagPercentage >= 100
                 ? 'You have reached your diagram limit. Upgrade to create more diagrams.'
                 : 'You are approaching your diagram limit.'}
             </p>

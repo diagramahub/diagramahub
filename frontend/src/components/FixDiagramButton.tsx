@@ -7,8 +7,6 @@ import apiService from '../services/api';
 
 interface FixDiagramButtonProps {
   diagramId: string;
-  diagramCode: string;
-  diagramType: string;
   errorContext: string;
   onFixSuccess: (response: FixDiagramResponse) => void;
   onFixError: (error: string) => void;
@@ -16,8 +14,6 @@ interface FixDiagramButtonProps {
 
 export const FixDiagramButton: React.FC<FixDiagramButtonProps> = ({
   diagramId,
-  diagramCode,
-  diagramType,
   errorContext,
   onFixSuccess,
   onFixError

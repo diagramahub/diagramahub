@@ -5,7 +5,6 @@ interface CancelSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (immediate: boolean) => Promise<void>;
-  planName: string;
   periodEndDate: string | null;
 }
 
@@ -13,7 +12,6 @@ export default function CancelSubscriptionModal({
   isOpen,
   onClose,
   onConfirm,
-  planName,
   periodEndDate
 }: CancelSubscriptionModalProps) {
   const { t } = useTranslation();
