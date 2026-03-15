@@ -240,6 +240,7 @@ async def get_my_subscription(
 async def create_checkout_session(
     request: CheckoutSessionRequest,
     user_id: str = Depends(get_current_user_id),
+    current_user = Depends(get_current_user),
     service: SubscriptionService = Depends(get_subscription_service)
 ):
     """
@@ -248,7 +249,7 @@ async def create_checkout_session(
     If the new plan is FREE, changes immediately.
     If the new plan is paid, returns Stripe checkout URL.
     """
-    result = await service.initiate_plan_change(user_id, request.plan_id)
+    result = await service.initiate_plan_change(user_id, request.plan_id, user_email=current_user.email)
     
     if result["type"] == "immediate":
         # Plan FREE, cambio inmediato
