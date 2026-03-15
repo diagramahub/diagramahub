@@ -287,6 +287,23 @@ async def cancel_subscription(
     return await service.cancel_subscription(user_id, immediate=immediate)
 
 
+@router.post(
+    "/subscriptions/update-payment-method",
+    tags=["subscriptions"]
+)
+async def update_payment_method(
+    user_id: str = Depends(get_current_user_id),
+    service: SubscriptionService = Depends(get_subscription_service)
+):
+    """
+    Create a Stripe Checkout session in setup mode to update payment method.
+    
+    Returns session_url to redirect the user to Stripe.
+    """
+    result = await service.create_setup_session(user_id)
+    return result
+
+
 @router.get(
     "/subscriptions/usage",
     response_model=UsageSummaryResponse,

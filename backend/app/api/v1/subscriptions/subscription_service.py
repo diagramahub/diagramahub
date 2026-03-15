@@ -309,6 +309,30 @@ class SubscriptionService:
                 "immediate": False
             }
     
+    async def create_setup_session(self, user_id: str) -> dict:
+        """
+        Crea sesión de Stripe Checkout en modo setup para cambiar método de pago.
+        """
+        # Obtener suscripción activa
+        subscription = await self.repository.get_active_by_user(user_id)
+        if not subscription:
+            raise NotFoundError("Subscription", user_id)
+        
+        if not subscription.stripe_customer_id:
+            raise ValidationError("No payment method to update on free plan")
+        
+        if not self.payment_provider:
+            raise ValidationError("Payment provider not configured")
+        
+        success_url = f"{settings.FRONTEND_URL}/profile?tab=subscription&payment_updated=true"
+        cancel_url = f"{settings.FRONTEND_URL}/profile?tab=subscription"
+        
+        return await self.payment_provider.create_setup_session(
+            customer_id=subscription.stripe_customer_id,
+            success_url=success_url,
+            cancel_url=cancel_url
+        )
+
     async def get_user_subscription(
         self,
         user_id: str
