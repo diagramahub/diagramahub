@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { Project } from '../types/project';
+import UpgradePlanModal from './UpgradePlanModal';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const [selectedEmoji, setSelectedEmoji] = useState('📊');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradePlan, setUpgradePlan] = useState<{ resourceType: string; currentUsage: number; limit: number } | null>(null);
 
   const emojiOptions = ['📊', '📈', '📉', '🎯', '💡', '🚀', '⚡', '🔥', '💼', '🎨', '📱', '💻', '🌟', '🎓', '🏆', '🔧', '📝', '🗂️', '📦', '🎭'];
 
@@ -78,7 +80,16 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error(`Error ${editMode ? 'updating' : 'creating'} project:`, err);
-      setError(err.response?.data?.detail || t(editMode ? 'project.updateError' : 'project.createError'));
+      const detail = err.response?.data?.detail;
+      if (detail?.error === 'resource_limit_exceeded') {
+        setUpgradePlan({
+          resourceType: detail.resource_type,
+          currentUsage: detail.current_usage,
+          limit: detail.limit,
+        });
+      } else {
+        setError(typeof detail === 'string' ? detail : t(editMode ? 'project.updateError' : 'project.createError'));
+      }
     } finally {
       setLoading(false);
     }
@@ -232,6 +243,17 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           </form>
         </div>
       </div>
+
+      <UpgradePlanModal
+        isOpen={!!upgradePlan}
+        onClose={() => {
+          setUpgradePlan(null);
+          onClose();
+        }}
+        resourceType={upgradePlan?.resourceType || ''}
+        currentUsage={upgradePlan?.currentUsage || 0}
+        limit={upgradePlan?.limit || 0}
+      />
     </div>
   );
 };
