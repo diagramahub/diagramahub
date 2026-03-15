@@ -367,6 +367,11 @@
       "limitReached": "Límite alcanzado",
       "upgradePrompt": "Actualiza tu plan para crear más recursos"
     },
+    "upgradePlan": {
+      "title": "Límite de plan alcanzado",
+      "message": "Has alcanzado el límite de {{resource}} de tu plan actual. Actualiza tu plan para seguir creando.",
+      "action": "Ver planes disponibles"
+    },
     "plans": {
       "title": "Planes Disponibles",
       "selectPlan": "Seleccionar Plan",

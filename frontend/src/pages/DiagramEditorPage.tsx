@@ -17,6 +17,7 @@ import Tooltip from '../components/Tooltip';
 import CodeEditor from '../components/CodeEditor';
 import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
 import NoAIProviderModal from '../components/NoAIProviderModal';
+import UpgradePlanModal from '../components/UpgradePlanModal';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { DiagramDiffView } from '../components/DiagramDiffView';
 import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
@@ -170,6 +171,7 @@ export default function DiagramEditorPage() {
   const [newDiagramType, setNewDiagramType] = useState<'mermaid' | 'plantuml'>('mermaid');
   const [creatingDiagram, setCreatingDiagram] = useState(false);
   const [isFirstDiagram, setIsFirstDiagram] = useState(false);
+  const [upgradePlan, setUpgradePlan] = useState<{ resourceType: string; currentUsage: number; limit: number } | null>(null);
 
   // Autosave state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -877,9 +879,19 @@ export default function DiagramEditorPage() {
 
       await loadProject();
       navigate(`/projects/${projectId}/diagrams/${created.id}`, { replace: true });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating diagram:', err);
-      setError('Error al crear diagrama');
+      const detail = err.response?.data?.detail;
+      if (detail?.error === 'resource_limit_exceeded') {
+        setShowNewDiagramModal(false);
+        setUpgradePlan({
+          resourceType: detail.resource_type,
+          currentUsage: detail.current_usage,
+          limit: detail.limit,
+        });
+      } else {
+        setError('Error al crear diagrama');
+      }
     } finally {
       setCreatingDiagram(false);
     }
@@ -3022,6 +3034,14 @@ export default function DiagramEditorPage() {
       <NoAIProviderModal
         isOpen={showNoAIModal}
         onClose={() => setShowNoAIModal(false)}
+      />
+
+      <UpgradePlanModal
+        isOpen={!!upgradePlan}
+        onClose={() => setUpgradePlan(null)}
+        resourceType={upgradePlan?.resourceType || ''}
+        currentUsage={upgradePlan?.currentUsage || 0}
+        limit={upgradePlan?.limit || 0}
       />
 
       {/* Fix Diagram Diff Modal */}
