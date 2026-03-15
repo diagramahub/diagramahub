@@ -65,7 +65,8 @@ class SubscriptionService:
     async def initiate_plan_change(
         self,
         user_id: str,
-        new_plan_id: str
+        new_plan_id: str,
+        user_email: str = ""
     ) -> dict:
         """
         Inicia cambio de plan.
@@ -96,7 +97,7 @@ class SubscriptionService:
             }
         
         # Si el plan es de pago, crear checkout session
-        checkout_data = await self.create_checkout_session(user_id, new_plan_id)
+        checkout_data = await self.create_checkout_session(user_id, new_plan_id, user_email)
         
         return {
             "type": "checkout",
@@ -106,7 +107,8 @@ class SubscriptionService:
     async def create_checkout_session(
         self,
         user_id: str,
-        plan_id: str
+        plan_id: str,
+        user_email: str = ""
     ) -> dict:
         """
         Crea sesión de Stripe Checkout.
@@ -122,9 +124,8 @@ class SubscriptionService:
         if plan.price_usd == 0:
             raise ValidationError("Cannot create checkout session for free plan")
         
-        # Obtener email del usuario (necesitamos acceso al user repository)
-        # Por ahora, usaremos un placeholder - esto se debe mejorar
-        user_email = f"user_{user_id}@placeholder.com"  # TODO: Get real email
+        if not user_email:
+            user_email = f"user_{user_id}@placeholder.com"
         
         # Configurar URLs usando settings
         success_url = f"{settings.FRONTEND_URL}/profile?tab=subscription&success=true&session_id={{CHECKOUT_SESSION_ID}}"
