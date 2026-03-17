@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import PromptHistoryPanel from './PromptHistoryPanel';
 
 interface CreateDiagramWithAIModalProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export default function CreateDiagramWithAIModal({ isOpen, onClose, onSuccess }:
         language: user?.language || 'es'
       });
 
+      apiService.savePromptHistory({ prompt_text: description.trim(), operation_type: 'creation' }).catch(() => {});
+
       onSuccess(response.diagram_code, diagramType);
       onClose();
       setDescription('');
@@ -51,9 +54,9 @@ export default function CreateDiagramWithAIModal({ isOpen, onClose, onSuccess }:
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full h-[70vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{t('ai.createDiagram.title')}</h2>
@@ -71,79 +74,91 @@ export default function CreateDiagramWithAIModal({ isOpen, onClose, onSuccess }:
           </div>
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-4 space-y-4">
-          {/* Diagram Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('ai.createDiagram.diagramType')}
-            </label>
-            <select
-              value={diagramType}
-              onChange={(e) => setDiagramType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={generating}
-            >
-              <option value="mermaid">{t('ai.createDiagram.mermaid')}</option>
-              <option value="plantuml">{t('ai.createDiagram.plantuml')}</option>
-            </select>
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('ai.createDiagram.description')} *
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => {
-                setDescription(e.target.value);
-                setError('');
-              }}
-              placeholder={t('ai.createDiagram.descriptionPlaceholder')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              rows={5}
-              disabled={generating}
+        {/* Two-column content */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: History panel */}
+          <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col overflow-hidden flex-shrink-0">
+            <PromptHistoryPanel
+              onSelectPrompt={(text) => { setDescription(text); setError(''); }}
+              operationType="creation"
             />
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-        </div>
+          {/* Right: Form */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="px-6 py-4 space-y-4 flex-1 flex flex-col overflow-hidden">
+              {/* Diagram Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('ai.createDiagram.diagramType')}
+                </label>
+                <select
+                  value={diagramType}
+                  onChange={(e) => setDiagramType(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={generating}
+                >
+                  <option value="mermaid">{t('ai.createDiagram.mermaid')}</option>
+                  <option value="plantuml">{t('ai.createDiagram.plantuml')}</option>
+                </select>
+              </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-          <button
-            onClick={onClose}
-            disabled={generating}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 disabled:opacity-50"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !description.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
-          >
-            {generating ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>{t('ai.createDiagram.generating')}</span>
-              </>
-            ) : (
-              <>
-                <span>⚡</span>
-                <span>{t('ai.createDiagram.button')}</span>
-              </>
-            )}
-          </button>
+              {/* Description */}
+              <div className="flex-1 flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('ai.createDiagram.description')} *
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    setError('');
+                  }}
+                  placeholder={t('ai.createDiagram.descriptionPlaceholder')}
+                  className="w-full flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  disabled={generating}
+                />
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 flex-shrink-0">
+              <button
+                onClick={onClose}
+                disabled={generating}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleGenerate}
+                disabled={generating || !description.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
+              >
+                {generating ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>{t('ai.createDiagram.generating')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚡</span>
+                    <span>{t('ai.createDiagram.button')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
