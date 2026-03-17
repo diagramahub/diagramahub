@@ -45,7 +45,8 @@ def get_usage_limiter() -> UsageLimiter:
         subscription_repository=SubscriptionRepository(),
         plan_repository=PlanRepository(),
         project_repository=ProjectRepository(),
-        diagram_repository=DiagramRepository()
+        diagram_repository=DiagramRepository(),
+        user_repository=UserRepository()
     )
 
 

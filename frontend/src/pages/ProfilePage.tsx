@@ -649,8 +649,8 @@ export default function ProfilePage() {
               <UsageIndicator />
             </div>
 
-            {/* Change Plan Button */}
-            {!showPlanSelector && (
+            {/* Change Plan Button - hide for admin */}
+            {user?.role !== 'admin' && !showPlanSelector && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <button
                   onClick={() => setShowPlanSelector(true)}
@@ -683,8 +683,8 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Billing History */}
-            <BillingHistory />
+            {/* Billing History - hide for admin */}
+            {user?.role !== 'admin' && <BillingHistory />}
           </div>
         )}
 

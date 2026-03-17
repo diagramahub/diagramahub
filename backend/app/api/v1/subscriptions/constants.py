@@ -3,7 +3,7 @@ Constants for subscription system.
 """
 
 # Plan FREE predefinido
-FREE_PLAN_NAME = "FREE"
+FREE_PLAN_NAME = "Gratuito"
 FREE_PLAN_DESCRIPTION = "Plan gratuito con límites básicos"
 FREE_PLAN_PRICE = 0.0
 FREE_PLAN_MAX_PROJECTS = 1

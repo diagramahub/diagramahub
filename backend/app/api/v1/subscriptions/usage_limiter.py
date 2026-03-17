@@ -8,6 +8,7 @@ from .exceptions import ResourceLimitError, NotFoundError
 from .constants import FREE_PLAN_NAME, STATUS_ACTIVE, RESOURCE_TYPE_PROJECT, RESOURCE_TYPE_DIAGRAM
 from ..projects.interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
+from ..users.interfaces import IUserRepository
 from .logger import SubscriptionLogger
 
 
@@ -19,25 +20,30 @@ class UsageLimiter:
         subscription_repository: ISubscriptionRepository,
         plan_repository: IPlanRepository,
         project_repository: IProjectRepository,
-        diagram_repository: IDiagramRepository
+        diagram_repository: IDiagramRepository,
+        user_repository: Optional[IUserRepository] = None
     ):
         self.subscription_repository = subscription_repository
         self.plan_repository = plan_repository
         self.project_repository = project_repository
         self.diagram_repository = diagram_repository
+        self.user_repository = user_repository
+    
+    async def _is_admin(self, user_id: str) -> bool:
+        """Verifica si el usuario es administrador."""
+        if not self.user_repository:
+            return False
+        try:
+            user = await self.user_repository.get_by_id(user_id)
+            return user is not None and user.role == "admin"
+        except Exception:
+            return False
     
     async def check_project_limit(self, user_id: str) -> dict:
         """
         Verifica si el usuario puede crear un proyecto.
         
-        Proceso:
-        1. Obtener suscripción activa del usuario
-        2. Si estado != "active", usar límites de FREE
-        3. Obtener max_projects del plan
-        4. Si max_projects == -1 o None, retornar allowed=True
-        5. Contar proyectos activos del usuario
-        6. Si count < max_projects, retornar allowed=True
-        7. Sino, retornar allowed=False con detalles
+        Admin users have no limits.
         
         Returns:
             {
@@ -47,6 +53,16 @@ class UsageLimiter:
                 "plan_name": str
             }
         """
+        # Admin sin límites
+        if await self._is_admin(user_id):
+            projects = await self.project_repository.get_by_user_id(user_id)
+            return {
+                "allowed": True,
+                "current_usage": len(projects),
+                "limit": None,
+                "plan_name": "Administrador"
+            }
+        
         subscription = await self.subscription_repository.get_active_by_user(user_id)
         
         # Si no hay suscripción activa, usar FREE
@@ -85,7 +101,7 @@ class UsageLimiter:
         """
         Verifica si el usuario puede crear un diagrama.
         
-        Lógica similar a check_project_limit pero para diagramas.
+        Admin users have no limits.
         
         Returns:
             {
@@ -95,6 +111,20 @@ class UsageLimiter:
                 "plan_name": str
             }
         """
+        # Admin sin límites
+        if await self._is_admin(user_id):
+            projects = await self.project_repository.get_by_user_id(user_id)
+            total_diagrams = 0
+            for project in projects:
+                diagrams = await self.diagram_repository.get_by_project_id(str(project.id))
+                total_diagrams += len(diagrams)
+            return {
+                "allowed": True,
+                "current_usage": total_diagrams,
+                "limit": None,
+                "plan_name": "Administrador"
+            }
+        
         subscription = await self.subscription_repository.get_active_by_user(user_id)
         
         # Si no hay suscripción activa, usar FREE
