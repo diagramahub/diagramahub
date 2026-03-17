@@ -525,6 +525,23 @@
       "apiKeyUpdate": "Deja este campo vacío si no deseas cambiar la clave API actual",
       "clickToChangeApiKey": "Haz clic en el campo o en 'Cambiar' para actualizar la clave API",
       "getApiKey": "Obtener clave API"
+    },
+    "promptHistory": {
+      "title": "Historial de prompts",
+      "searchPlaceholder": "Buscar en el historial...",
+      "emptyMessage": "No hay prompts anteriores",
+      "noResults": "No se encontraron coincidencias",
+      "confirmDelete": "¿Estás seguro de que deseas eliminar este prompt del historial?",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "load": "Usar este prompt",
+      "delete": "Eliminar",
+      "creation": "Creación",
+      "improvement": "Mejora",
+      "page": "Página",
+      "of": "de",
+      "showHistory": "Historial",
+      "hideHistory": "Ocultar historial"
     }
   }
 }
