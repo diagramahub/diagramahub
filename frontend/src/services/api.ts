@@ -46,6 +46,10 @@ import {
   Subscription,
   UsageSummary
 } from '../types/subscription';
+import {
+  PaginatedPromptHistory,
+  PromptHistoryEntry
+} from '../types/promptHistory';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -324,6 +328,24 @@ class ApiService {
   async downloadInvoice(invoiceId: string): Promise<{ pdf_url: string }> {
     const response = await this.api.get(`/api/v1/subscriptions/invoices/${invoiceId}/pdf-url`);
     return response.data;
+  }
+
+  // ============================================================================
+  // Prompt History API
+  // ============================================================================
+
+  async getPromptHistory(params: { page?: number; page_size?: number; search?: string }): Promise<PaginatedPromptHistory> {
+    const response = await this.api.get<PaginatedPromptHistory>('/api/v1/prompt-history', { params });
+    return response.data;
+  }
+
+  async savePromptHistory(data: { prompt_text: string; operation_type: string }): Promise<PromptHistoryEntry> {
+    const response = await this.api.post<PromptHistoryEntry>('/api/v1/prompt-history', data);
+    return response.data;
+  }
+
+  async deletePromptHistory(entryId: string): Promise<void> {
+    await this.api.delete(`/api/v1/prompt-history/${entryId}`);
   }
 }
 

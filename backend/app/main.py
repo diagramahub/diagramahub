@@ -14,6 +14,8 @@ from app.api.v1.projects.routes import router as projects_router
 from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.diagrams.routes import router as diagrams_router
 from app.api.v1.diagrams.schemas import DiagramInDB
+from app.api.v1.prompt_history.routes import router as prompt_history_router
+from app.api.v1.prompt_history.schemas import PromptHistoryInDB
 from app.api.v1.folders.routes import router as folders_router
 from app.api.v1.folders.schemas import FolderInDB
 from app.api.v1.ai_providers.routes import router as ai_providers_router
@@ -49,7 +51,8 @@ async def lifespan(app: FastAPI):
             PlanInDB,
             SubscriptionInDB,
             StripeConfigInDB,
-            WebhookEventInDB
+            WebhookEventInDB,
+            PromptHistoryInDB
         ],
     )
 
@@ -83,6 +86,7 @@ app.include_router(folders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"])
 app.include_router(subscriptions_router, prefix=settings.API_V1_PREFIX, tags=["Subscriptions"])
 app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX, tags=["Webhooks"])
+app.include_router(prompt_history_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")
