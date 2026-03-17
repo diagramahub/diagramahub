@@ -83,32 +83,78 @@ class UserService:
 
         user = await self.repository.create(user_data)
 
-        # Create FREE subscription for new user
-        try:
-            from app.api.v1.subscriptions.subscription_service import SubscriptionService
-            from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
-            from app.api.v1.subscriptions.plan_repository import PlanRepository
-            from app.api.v1.subscriptions.payment_providers.stripe_provider import StripePaymentProvider
-            
-            # Create subscription service
+        # Create FREE subscription for new user (skip for admin)
+        if user.role != "admin":
             try:
-                payment_provider = StripePaymentProvider.from_env()
-            except ValueError:
-                payment_provider = None
-            
-            subscription_service = SubscriptionService(
-                repository=SubscriptionRepository(),
-                plan_repository=PlanRepository(),
-                payment_provider=payment_provider
-            )
-            
-            # Create FREE subscription
-            await subscription_service.create_free_subscription(str(user.id))
-        except Exception as e:
-            # Log error but don't fail registration
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Failed to create FREE subscription for user {user.email}: {str(e)}")
+                from app.api.v1.subscriptions.subscription_service import SubscriptionService
+                from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+                from app.api.v1.subscriptions.plan_repository import PlanRepository
+                from app.api.v1.subscriptions.payment_providers.stripe_provider import StripePaymentProvider
+                from app.api.v1.subscriptions.constants import (
+                    FREE_PLAN_NAME, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
+                    FREE_PLAN_MAX_PROJECTS, FREE_PLAN_MAX_DIAGRAMS
+                )
+                
+                plan_repo = PlanRepository()
+                
+                # Ensure FREE plan exists (first regular user or first user after admin)
+                existing_free = await plan_repo.get_by_name(FREE_PLAN_NAME)
+                if not existing_free:
+                    from app.api.v1.subscriptions.schemas import PlanCreate as PlanCreateSchema
+                    await plan_repo.create(PlanCreateSchema(
+                        name=FREE_PLAN_NAME,
+                        description=FREE_PLAN_DESCRIPTION,
+                        price_usd=FREE_PLAN_PRICE,
+                        max_projects=FREE_PLAN_MAX_PROJECTS,
+                        max_diagrams=FREE_PLAN_MAX_DIAGRAMS
+                    ))
+                    free_plan = await plan_repo.get_by_name(FREE_PLAN_NAME)
+                    if free_plan:
+                        await free_plan.set({"is_free": True})
+                
+                try:
+                    payment_provider = StripePaymentProvider.from_env()
+                except ValueError:
+                    payment_provider = None
+                
+                subscription_service = SubscriptionService(
+                    repository=SubscriptionRepository(),
+                    plan_repository=plan_repo,
+                    payment_provider=payment_provider
+                )
+                
+                await subscription_service.create_free_subscription(str(user.id))
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to create FREE subscription for user {user.email}: {str(e)}")
+        else:
+            # Admin: just ensure FREE plan exists for future users
+            try:
+                from app.api.v1.subscriptions.plan_repository import PlanRepository
+                from app.api.v1.subscriptions.constants import (
+                    FREE_PLAN_NAME, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
+                    FREE_PLAN_MAX_PROJECTS, FREE_PLAN_MAX_DIAGRAMS
+                )
+                
+                plan_repo = PlanRepository()
+                existing_free = await plan_repo.get_by_name(FREE_PLAN_NAME)
+                if not existing_free:
+                    from app.api.v1.subscriptions.schemas import PlanCreate as PlanCreateSchema
+                    await plan_repo.create(PlanCreateSchema(
+                        name=FREE_PLAN_NAME,
+                        description=FREE_PLAN_DESCRIPTION,
+                        price_usd=FREE_PLAN_PRICE,
+                        max_projects=FREE_PLAN_MAX_PROJECTS,
+                        max_diagrams=FREE_PLAN_MAX_DIAGRAMS
+                    ))
+                    free_plan = await plan_repo.get_by_name(FREE_PLAN_NAME)
+                    if free_plan:
+                        await free_plan.set({"is_free": True})
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to create FREE plan: {str(e)}")
 
         return UserResponse(
             id=str(user.id),

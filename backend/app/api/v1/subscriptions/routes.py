@@ -81,7 +81,8 @@ def get_usage_limiter() -> UsageLimiter:
         subscription_repository=SubscriptionRepository(),
         plan_repository=PlanRepository(),
         project_repository=ProjectRepository(),
-        diagram_repository=DiagramRepository()
+        diagram_repository=DiagramRepository(),
+        user_repository=UserRepository()
     )
 
 
@@ -224,11 +225,41 @@ async def get_plan(
 )
 async def get_my_subscription(
     user_id: str = Depends(get_current_user_id),
+    current_user = Depends(get_current_user),
     service: SubscriptionService = Depends(get_subscription_service)
 ):
     """
     Get current user's subscription.
+    Admin users get a virtual unlimited response.
     """
+    if current_user.role == UserRole.ADMIN:
+        return {
+            "id": None,
+            "user_id": user_id,
+            "plan": {
+                "id": None,
+                "name": "Administrador",
+                "description": "Acceso completo sin límites",
+                "price_usd": 0,
+                "max_projects": None,
+                "max_diagrams": None,
+                "is_active": True,
+                "is_free": False,
+                "active_subscriptions": 0,
+                "created_at": None,
+                "updated_at": None
+            },
+            "status": "active",
+            "stripe_customer_id": None,
+            "stripe_subscription_id": None,
+            "payment_provider": None,
+            "started_at": None,
+            "current_period_start": None,
+            "current_period_end": None,
+            "cancelled_at": None,
+            "created_at": None,
+            "updated_at": None
+        }
     return await service.get_user_subscription(user_id)
 
 
