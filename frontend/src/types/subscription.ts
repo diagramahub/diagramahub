@@ -1,6 +1,7 @@
 export type Plan = {
   id: string;
   name: string;
+  code: string;
   description: string | null;
   price_usd: number;
   max_projects: number | null;  // null = unlimited
@@ -14,6 +15,7 @@ export type Plan = {
 
 export type PlanCreate = {
   name: string;
+  code: string;
   description?: string;
   price_usd: number;
   max_projects: number | null;
@@ -22,10 +24,12 @@ export type PlanCreate = {
 
 export type PlanUpdate = {
   name?: string;
+  code?: string;
   description?: string;
   price_usd?: number;
   max_projects?: number | null;
   max_diagrams?: number | null;
+  is_active?: boolean;
 }
 
 export type Subscription = {

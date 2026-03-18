@@ -28,6 +28,11 @@ class IPlanRepository(ABC):
         pass
     
     @abstractmethod
+    async def get_by_code(self, code: str) -> Optional[PlanInDB]:
+        """Get plan by code."""
+        pass
+    
+    @abstractmethod
     async def get_all_active(self) -> list[PlanInDB]:
         """Get all active plans."""
         pass

@@ -14,6 +14,7 @@ export default function PlanList() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [deactivatingPlan, setDeactivatingPlan] = useState<Plan | null>(null);
+  const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlans();
@@ -52,6 +53,25 @@ export default function PlanList() {
       loadPlans();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error deactivating plan');
+    }
+  };
+
+  const handleToggleActive = async (plan: Plan) => {
+    const newActive = !plan.is_active;
+    // Si va a desactivar, pedir confirmación
+    if (!newActive) {
+      setDeactivatingPlan(plan);
+      return;
+    }
+    try {
+      setTogglingPlanId(plan.id);
+      await apiService.updatePlan(plan.id, { is_active: true });
+      setSuccess(`Plan "${plan.name}" activado`);
+      loadPlans();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Error activando plan');
+    } finally {
+      setTogglingPlanId(null);
     }
   };
 
@@ -117,115 +137,69 @@ export default function PlanList() {
         </div>
       )}
 
-      {/* Plans Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Plan
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Price
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Projects
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Diagrams
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Subscriptions
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {plans.map((plan) => (
-              <tr key={plan.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                        {plan.name}
-                        {plan.is_free && (
-                          <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded">
-                            FREE
-                          </span>
-                        )}
-                      </div>
-                      {plan.description && (
-                        <div className="text-sm text-gray-500">{plan.description}</div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{formatPrice(plan.price_usd)}/mo</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{formatLimit(plan.max_projects)}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{formatLimit(plan.max_diagrams)}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{plan.active_subscriptions}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+      {/* Plans Cards */}
+      <div className="grid gap-4">
+        {plans.map((plan) => (
+          <div key={plan.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+            <div className="flex items-start justify-between gap-4">
+              {/* Plan info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                  {plan.code && (
+                    <code className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded font-mono">{plan.code}</code>
+                  )}
+                  {plan.is_free && (
+                    <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">FREE</span>
+                  )}
                   {plan.is_active ? (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      Active
-                    </span>
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-800 rounded-full">Activo</span>
                   ) : (
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                      Inactive
-                    </span>
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 rounded-full">Inactivo</span>
                   )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                </div>
+                {plan.description && (
+                  <p className="mt-1 text-sm text-gray-500">{plan.description}</p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
+                  <span>Precio: <span className="font-medium text-gray-900">{formatPrice(plan.price_usd)}/mes</span></span>
+                  <span>Proyectos: <span className="font-medium text-gray-900">{formatLimit(plan.max_projects)}</span></span>
+                  <span>Diagramas: <span className="font-medium text-gray-900">{formatLimit(plan.max_diagrams)}</span></span>
+                  <span>Suscriptores: <span className="font-medium text-gray-900">{plan.active_subscriptions}</span></span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {!plan.is_free && (
                   <button
-                    onClick={() => handleEditPlan(plan)}
-                    className="text-purple-600 hover:text-purple-900 mr-4"
+                    type="button"
+                    disabled={togglingPlanId === plan.id}
+                    onClick={() => handleToggleActive(plan)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${plan.is_active ? 'bg-green-500' : 'bg-gray-300'} ${togglingPlanId === plan.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                    title={plan.is_active ? 'Desactivar plan' : 'Activar plan'}
                   >
-                    Edit
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${plan.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
-                  {!plan.is_free && plan.is_active && (
-                    <button
-                      onClick={() => setDeactivatingPlan(plan)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Deactivate
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                )}
+                <button
+                  onClick={() => handleEditPlan(plan)}
+                  className="px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  Editar
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
 
         {plans.length === 0 && (
-          <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No plans</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new plan.</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay planes</h3>
+            <p className="mt-1 text-sm text-gray-500">Comienza creando un nuevo plan.</p>
           </div>
         )}
       </div>

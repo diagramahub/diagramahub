@@ -91,7 +91,7 @@ class UserService:
                 from app.api.v1.subscriptions.plan_repository import PlanRepository
                 from app.api.v1.subscriptions.payment_providers.stripe_provider import StripePaymentProvider
                 from app.api.v1.subscriptions.constants import (
-                    FREE_PLAN_NAME, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
+                    FREE_PLAN_NAME, FREE_PLAN_CODE, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
                     FREE_PLAN_MAX_PROJECTS, FREE_PLAN_MAX_DIAGRAMS
                 )
                 
@@ -103,14 +103,12 @@ class UserService:
                     from app.api.v1.subscriptions.schemas import PlanCreate as PlanCreateSchema
                     await plan_repo.create(PlanCreateSchema(
                         name=FREE_PLAN_NAME,
+                        code=FREE_PLAN_CODE,
                         description=FREE_PLAN_DESCRIPTION,
                         price_usd=FREE_PLAN_PRICE,
                         max_projects=FREE_PLAN_MAX_PROJECTS,
                         max_diagrams=FREE_PLAN_MAX_DIAGRAMS
                     ))
-                    free_plan = await plan_repo.get_by_name(FREE_PLAN_NAME)
-                    if free_plan:
-                        await free_plan.set({"is_free": True})
                 
                 try:
                     payment_provider = StripePaymentProvider.from_env()
@@ -133,7 +131,7 @@ class UserService:
             try:
                 from app.api.v1.subscriptions.plan_repository import PlanRepository
                 from app.api.v1.subscriptions.constants import (
-                    FREE_PLAN_NAME, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
+                    FREE_PLAN_NAME, FREE_PLAN_CODE, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
                     FREE_PLAN_MAX_PROJECTS, FREE_PLAN_MAX_DIAGRAMS
                 )
                 
@@ -143,14 +141,12 @@ class UserService:
                     from app.api.v1.subscriptions.schemas import PlanCreate as PlanCreateSchema
                     await plan_repo.create(PlanCreateSchema(
                         name=FREE_PLAN_NAME,
+                        code=FREE_PLAN_CODE,
                         description=FREE_PLAN_DESCRIPTION,
                         price_usd=FREE_PLAN_PRICE,
                         max_projects=FREE_PLAN_MAX_PROJECTS,
                         max_diagrams=FREE_PLAN_MAX_DIAGRAMS
                     ))
-                    free_plan = await plan_repo.get_by_name(FREE_PLAN_NAME)
-                    if free_plan:
-                        await free_plan.set({"is_free": True})
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
