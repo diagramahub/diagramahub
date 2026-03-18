@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.api.v1.subscriptions.schemas import PlanInDB
 from app.api.v1.subscriptions.constants import (
     FREE_PLAN_NAME,
+    FREE_PLAN_CODE,
     FREE_PLAN_DESCRIPTION,
     FREE_PLAN_PRICE,
     FREE_PLAN_MAX_PROJECTS,
@@ -50,12 +51,12 @@ async def create_free_plan():
     # Create FREE plan
     free_plan = PlanInDB(
         name=FREE_PLAN_NAME,
+        code=FREE_PLAN_CODE,
         description=FREE_PLAN_DESCRIPTION,
         price_usd=FREE_PLAN_PRICE,
         max_projects=FREE_PLAN_MAX_PROJECTS,
         max_diagrams=FREE_PLAN_MAX_DIAGRAMS,
-        is_active=True,
-        is_free=True
+        is_active=True
     )
     
     await free_plan.insert()
