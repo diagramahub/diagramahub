@@ -412,6 +412,33 @@
       "noSubscription": "No se encontró suscripción"
     }
   },
+  "dangerZone": {
+    "title": "Zona de peligro",
+    "description": "Una vez que elimines tu cuenta, no hay vuelta atrás. Se eliminarán permanentemente todos tus datos, proyectos, diagramas y configuraciones.",
+    "deleteButton": "Eliminar mi cuenta",
+    "disabledMessage": "Debes cambiar al plan gratuito antes de poder eliminar tu cuenta.",
+    "soleAdminMessage": "Eres el único administrador. Para eliminar tu cuenta, desinstala DiagramHub de tu infraestructura.",
+    "modalTitle": "¿Eliminar tu cuenta?",
+    "modalDescription": "Esta acción es permanente e irreversible. Se eliminarán todos tus datos, proyectos, diagramas y configuraciones.",
+    "modalInputLabel": "Escribe \"elimíname\" para confirmar",
+    "modalInputPlaceholder": "elimíname",
+    "modalConfirmButton": "Eliminar cuenta permanentemente",
+    "modalCancelButton": "Cancelar",
+    "modalDeleting": "Eliminando cuenta...",
+    "confirmationPhrase": "elimíname",
+    "successMessage": "Tu cuenta ha sido eliminada correctamente.",
+    "errorMessage": "Ocurrió un error al eliminar tu cuenta. Por favor intenta de nuevo.",
+    "deletedModalTitle": "Cuenta eliminada",
+    "deletedModalDescription": "Tu cuenta y todos los datos asociados han sido eliminados permanentemente:",
+    "deletedModalFarewell": "Estamos tristes de verte partir. Esperamos volver a verte pronto. 💙",
+    "deletedItemProjects": "Proyectos",
+    "deletedItemDiagrams": "Diagramas",
+    "deletedItemFolders": "Carpetas",
+    "deletedItemSettings": "Configuración de IA y suscripción",
+    "deletedItemHistory": "Historial de prompts",
+    "redirectCountdown": "Serás redirigido al inicio de sesión en {{seconds}} segundos.",
+    "understoodButton": "Entendido"
+  },
   "ai": {
     "title": "Integraciones de IA",
     "subtitle": "Conecta proveedores de IA para generar descripciones automáticas de tus diagramas",
