@@ -137,7 +137,7 @@ export default function ImproveDiagramWithAIModal({
                     setError('');
                   }}
                   placeholder={t('ai.improveDiagram.improvementPlaceholder')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   rows={4}
                   disabled={generating}
                   readOnly={!!improvedCode}
@@ -159,7 +159,7 @@ export default function ImproveDiagramWithAIModal({
                       checked={useExistingCode}
                       onChange={(e) => setUseExistingCode(e.target.checked)}
                       disabled={generating}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                     />
                   </div>
                   <div className="ml-3">
@@ -243,7 +243,7 @@ export default function ImproveDiagramWithAIModal({
                       <textarea
                         value={improvedCode}
                         onChange={(e) => setImprovedCode(e.target.value)}
-                        className="w-full flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
+                        className="w-full flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none font-mono text-sm"
                         placeholder="Código del diagrama mejorado..."
                       />
                       <p className="mt-2 text-xs text-gray-500">
@@ -280,7 +280,7 @@ export default function ImproveDiagramWithAIModal({
                   <button
                     onClick={handleGenerate}
                     disabled={generating || !improvementRequest.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
                   >
                     {generating ? (
                       <>

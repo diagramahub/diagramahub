@@ -108,7 +108,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-          <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           {t('ai.promptHistory.title')}
@@ -143,7 +143,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
                 <button
                   type="button"
                   onClick={() => handleCopy(selectedEntry.prompt_text, selectedEntry.id)}
-                  className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-md hover:bg-gray-100 transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-purple-600 rounded-md hover:bg-gray-100 transition-colors"
                   title={t('ai.promptHistory.copy')}
                 >
                   {copiedId === selectedEntry.id ? (
@@ -176,7 +176,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   selectedEntry.operation_type === 'creation'
                     ? 'bg-purple-100 text-purple-700'
-                    : 'bg-blue-100 text-blue-700'
+                    : 'bg-purple-100 text-purple-700'
                 }`}>
                   {selectedEntry.operation_type === 'creation'
                     ? t('ai.promptHistory.creation')
@@ -195,7 +195,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
             <button
               type="button"
               onClick={() => handleLoad(selectedEntry.prompt_text)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all flex-shrink-0"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 transition-all flex-shrink-0"
             >
               {t('ai.promptHistory.load')}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,14 +212,14 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t('ai.promptHistory.searchPlaceholder')}
-                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
               />
             </div>
 
             {/* Loading */}
             {loading && (
               <div className="flex justify-center py-6 flex-1">
-                <svg className="animate-spin h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
@@ -254,7 +254,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleCopy(entry.prompt_text, entry.id); }}
-                      className="flex-shrink-0 p-1 text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-all"
+                      className="flex-shrink-0 p-1 text-gray-400 hover:text-purple-600 opacity-0 group-hover:opacity-100 transition-all"
                       title={t('ai.promptHistory.copy')}
                     >
                       {copiedId === entry.id ? (
