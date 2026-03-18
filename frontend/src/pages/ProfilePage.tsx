@@ -293,7 +293,7 @@ export default function ProfilePage() {
               onClick={() => setActiveTab('profile')}
               className={`${
                 activeTab === 'profile'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
@@ -303,7 +303,7 @@ export default function ProfilePage() {
               onClick={() => setActiveTab('settings')}
               className={`${
                 activeTab === 'settings'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
@@ -316,7 +316,7 @@ export default function ProfilePage() {
               }}
               className={`${
                 activeTab === 'subscription'
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
@@ -327,7 +327,7 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('admin')}
                 className={`${
                   activeTab === 'admin'
-                    ? 'border-blue-500 text-blue-600'
+                    ? 'border-purple-500 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
               >
@@ -365,7 +365,7 @@ export default function ProfilePage() {
             {!isEditingProfile && (
               <button
                 onClick={() => setIsEditingProfile(true)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
               >
                 {t('profile.edit')}
               </button>
@@ -424,7 +424,7 @@ export default function ProfilePage() {
                         className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
                       />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-semibold">
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-2xl font-semibold">
                         {getUserInitials()}
                       </div>
                     )}
@@ -467,7 +467,7 @@ export default function ProfilePage() {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder={t('installation.fullNamePlaceholder')}
                   />
                 </div>
@@ -481,7 +481,7 @@ export default function ProfilePage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
                     disabled
                   />
                   <p className="mt-1 text-xs text-gray-500">{t('profile.emailCannotChange')}</p>
@@ -495,7 +495,7 @@ export default function ProfilePage() {
                     id="timezone"
                     value={timezone}
                     onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   >
                     {TIMEZONES.map((tz) => (
                       <option key={tz.value} value={tz.value}>
@@ -510,7 +510,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? t('profile.saving') : t('profile.saveChanges')}
                   </button>
@@ -542,7 +542,7 @@ export default function ProfilePage() {
             {!isChangingPassword && (
               <button
                 onClick={() => setIsChangingPassword(true)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
               >
                 {t('profile.changePassword')}
               </button>
@@ -567,7 +567,7 @@ export default function ProfilePage() {
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="••••••••"
                   />
                 </div>
@@ -581,7 +581,7 @@ export default function ProfilePage() {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="••••••••"
                   />
                   <p className="mt-1 text-xs text-gray-500">{t('profile.passwordMinLength')}</p>
@@ -596,7 +596,7 @@ export default function ProfilePage() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     placeholder="••••••••"
                   />
                 </div>
@@ -605,7 +605,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     {loading ? t('profile.updating') : t('profile.updatePassword')}
                   </button>
@@ -682,7 +682,7 @@ export default function ProfilePage() {
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <button
                   onClick={() => setShowPlanSelector(true)}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  className="w-full px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
                 >
                   {t('subscription.changePlan')}
                 </button>

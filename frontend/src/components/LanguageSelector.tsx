@@ -8,8 +8,8 @@ interface Language {
 }
 
 const languages: Language[] = [
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'es', name: 'Español', flag: '🇲🇽' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
 ];
 
 export default function LanguageSelector() {
@@ -64,7 +64,7 @@ export default function LanguageSelector() {
             <button
               key={language.code}
               onClick={() => handleLanguageChange(language.code)}
-              className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${currentLanguage.code === language.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+              className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${currentLanguage.code === language.code ? 'bg-purple-50 text-purple-600' : 'text-gray-700'
                 }`}
             >
               <span className="text-lg">{language.flag}</span>

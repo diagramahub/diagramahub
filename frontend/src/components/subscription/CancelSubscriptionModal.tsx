@@ -76,14 +76,14 @@ export default function CancelSubscriptionModal({
                   value="end_of_period"
                   checked={cancellationType === 'end_of_period'}
                   onChange={() => setCancellationType('end_of_period')}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500"
                 />
                 <div className="ml-3 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-900">
                       {t('subscription.cancellation.endOfPeriod', { date: formatDate(periodEndDate) })}
                     </span>
-                    <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                    <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 rounded">
                       {t('subscription.plans.recommended')}
                     </span>
                   </div>
@@ -102,7 +102,7 @@ export default function CancelSubscriptionModal({
                   value="immediate"
                   checked={cancellationType === 'immediate'}
                   onChange={() => setCancellationType('immediate')}
-                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500"
                 />
                 <div className="ml-3 flex-1">
                   <span className="text-sm font-medium text-gray-900">

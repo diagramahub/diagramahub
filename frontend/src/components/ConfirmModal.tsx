@@ -81,7 +81,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
               isDangerous
                 ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-indigo-600 hover:bg-indigo-700'
+                : 'bg-purple-600 hover:bg-purple-700 btn-glass'
             }`}
           >
             {isConfirming && (

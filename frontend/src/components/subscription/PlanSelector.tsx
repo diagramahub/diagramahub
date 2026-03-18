@@ -70,7 +70,7 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       </div>
     );
@@ -106,8 +106,8 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                 key={plan.id}
                 className={`relative rounded-lg border-2 p-6 transition-all flex items-center justify-between ${
                   isCurrent
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
                 }`}
               >
                 {/* Left side - Plan info */}
@@ -115,7 +115,7 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                     {isCurrent && (
-                      <span className="px-2 py-1 text-xs font-semibold bg-blue-500 text-white rounded">
+                      <span className="px-2 py-1 text-xs font-semibold bg-purple-500 text-white rounded">
                         Plan Actual
                       </span>
                     )}
@@ -190,8 +190,8 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                       isCurrent
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         : isChanging
-                        ? 'bg-blue-400 text-white cursor-wait'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                        ? 'bg-purple-400 text-white cursor-wait'
+                        : 'bg-purple-600 text-white btn-glass hover:bg-purple-700'
                     }`}
                   >
                     {isCurrent

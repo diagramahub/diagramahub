@@ -203,7 +203,7 @@ export default function EditProviderModal({
                   href={AI_PROVIDER_API_KEY_URLS[provider.provider]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
                 >
                   {t('ai.help.getApiKey')}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +232,7 @@ export default function EditProviderModal({
                     setFormData({ ...formData, api_key: '' });
                     setTestResult(null);
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-600 hover:text-purple-700 text-sm font-medium"
                 >
                   {t('ai.form.changeApiKey')}
                 </button>
@@ -247,7 +247,7 @@ export default function EditProviderModal({
                     setTestResult(null);
                   }}
                   placeholder={t('ai.form.apiKeyPlaceholder')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                     errors.api_key ? 'border-red-500' : 'border-gray-300'
                   }`}
                   autoFocus
@@ -282,7 +282,7 @@ export default function EditProviderModal({
             <select
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                 errors.model ? 'border-red-500' : 'border-gray-300'
               }`}
             >
@@ -307,7 +307,7 @@ export default function EditProviderModal({
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               placeholder={t('ai.form.displayNamePlaceholder')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
 
@@ -318,7 +318,7 @@ export default function EditProviderModal({
               id="is_active"
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
             />
             <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
               {t('ai.form.isActive')}
@@ -375,7 +375,7 @@ export default function EditProviderModal({
             type="button"
             onClick={handleTestConnection}
             disabled={loading || testing || !isEditingApiKey || !formData.api_key}
-            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {testing ? t('common.loading') : t('ai.testProvider')}
           </button>
@@ -391,7 +391,7 @@ export default function EditProviderModal({
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? t('common.loading') : t('common.save')}
             </button>

@@ -124,7 +124,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="e.g., Pro, Enterprise"
               disabled={plan?.is_free}
             />
@@ -143,7 +143,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="Brief description of the plan features"
             />
           </div>
@@ -162,7 +162,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 min="0"
                 value={priceUsd}
                 onChange={(e) => setPriceUsd(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="0.00"
               />
             </div>
@@ -179,7 +179,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                   type="checkbox"
                   checked={unlimitedProjects}
                   onChange={(e) => setUnlimitedProjects(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="ml-2 text-sm text-gray-700">Unlimited</span>
               </label>
@@ -190,7 +190,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 min="0"
                 value={maxProjects}
                 onChange={(e) => setMaxProjects(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="e.g., 10"
               />
             )}
@@ -207,7 +207,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                   type="checkbox"
                   checked={unlimitedDiagrams}
                   onChange={(e) => setUnlimitedDiagrams(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="ml-2 text-sm text-gray-700">Unlimited</span>
               </label>
@@ -218,7 +218,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 min="0"
                 value={maxDiagrams}
                 onChange={(e) => setMaxDiagrams(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="e.g., 100"
               />
             )}
@@ -229,7 +229,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Saving...' : plan ? 'Update Plan' : 'Create Plan'}
             </button>
