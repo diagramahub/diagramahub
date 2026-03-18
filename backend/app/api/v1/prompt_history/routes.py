@@ -39,11 +39,12 @@ async def list_prompt_history(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     search: Optional[str] = Query(default=None),
+    diagram_id: Optional[str] = Query(default=None),
     user_id: str = Depends(get_current_user_id),
     service: PromptHistoryService = Depends(get_prompt_history_service),
 ):
     """List paginated prompt history for the authenticated user."""
-    return await service.list_prompts(user_id, page, page_size, search)
+    return await service.list_prompts(user_id, page, page_size, search, diagram_id)
 
 
 @router.post("", response_model=PromptHistoryResponse, status_code=status.HTTP_201_CREATED)
@@ -53,7 +54,7 @@ async def save_prompt(
     service: PromptHistoryService = Depends(get_prompt_history_service),
 ):
     """Save a prompt to the user's history."""
-    return await service.save_prompt(user_id, body.prompt_text, body.operation_type)
+    return await service.save_prompt(user_id, body.prompt_text, body.operation_type, body.diagram_id)
 
 
 @router.delete("/{entry_id}")
