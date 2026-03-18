@@ -5,7 +5,7 @@ from typing import Optional
 
 from .interfaces import ISubscriptionRepository, IPlanRepository
 from .exceptions import ResourceLimitError, NotFoundError
-from .constants import FREE_PLAN_NAME, STATUS_ACTIVE, RESOURCE_TYPE_PROJECT, RESOURCE_TYPE_DIAGRAM
+from .constants import FREE_PLAN_NAME, FREE_PLAN_CODE, STATUS_ACTIVE, RESOURCE_TYPE_PROJECT, RESOURCE_TYPE_DIAGRAM
 from ..projects.interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
 from ..users.interfaces import IUserRepository
@@ -250,8 +250,10 @@ class UsageLimiter:
             )
     
     async def _get_free_plan(self):
-        """Obtiene el plan FREE."""
-        plan = await self.plan_repository.get_by_name(FREE_PLAN_NAME)
+        """Obtiene el plan FREE por código, con fallback por nombre."""
+        plan = await self.plan_repository.get_by_code(FREE_PLAN_CODE)
         if not plan:
-            raise NotFoundError("Plan", FREE_PLAN_NAME)
+            plan = await self.plan_repository.get_by_name(FREE_PLAN_NAME)
+        if not plan:
+            raise NotFoundError("Plan", FREE_PLAN_CODE)
         return plan

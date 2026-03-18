@@ -16,12 +16,12 @@ class PlanRepository(IPlanRepository):
         """Create a new plan."""
         plan = PlanInDB(
             name=plan_data.name,
+            code=plan_data.code,
             description=plan_data.description,
             price_usd=plan_data.price_usd,
             max_projects=plan_data.max_projects,
             max_diagrams=plan_data.max_diagrams,
             is_active=True,
-            is_free=False,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -38,6 +38,10 @@ class PlanRepository(IPlanRepository):
     async def get_by_name(self, name: str) -> Optional[PlanInDB]:
         """Get plan by name."""
         return await PlanInDB.find_one(PlanInDB.name == name)
+    
+    async def get_by_code(self, code: str) -> Optional[PlanInDB]:
+        """Get plan by code."""
+        return await PlanInDB.find_one(PlanInDB.code == code)
     
     async def get_all_active(self) -> list[PlanInDB]:
         """Get all active plans."""
