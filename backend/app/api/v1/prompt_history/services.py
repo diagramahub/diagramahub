@@ -16,22 +16,15 @@ class PromptHistoryService:
         self.repository = repository
 
     async def save_prompt(
-        self, user_id: str, prompt_text: str, operation_type: str
+        self, user_id: str, prompt_text: str, operation_type: str, diagram_id: str | None = None
     ) -> PromptHistoryResponse:
         """
         Save a prompt to the user's history (upsert with deduplication).
-
-        Args:
-            user_id: ID of the authenticated user
-            prompt_text: The prompt text to save
-            operation_type: "creation" or "improvement"
-
-        Returns:
-            PromptHistoryResponse with the saved entry data
         """
-        entry = await self.repository.upsert(user_id, prompt_text, operation_type)
+        entry = await self.repository.upsert(user_id, prompt_text, operation_type, diagram_id)
         return PromptHistoryResponse(
             id=str(entry.id),
+            diagram_id=entry.diagram_id,
             prompt_text=entry.prompt_text,
             operation_type=entry.operation_type,
             created_at=entry.created_at,
@@ -39,28 +32,20 @@ class PromptHistoryService:
         )
 
     async def list_prompts(
-        self, user_id: str, page: int, page_size: int, search: str | None = None
+        self, user_id: str, page: int, page_size: int, search: str | None = None, diagram_id: str | None = None
     ) -> PaginatedPromptHistoryResponse:
         """
-        List paginated prompt history for a user with optional search.
-
-        Args:
-            user_id: ID of the authenticated user
-            page: Page number (1-based)
-            page_size: Number of items per page
-            search: Optional search term for filtering
-
-        Returns:
-            PaginatedPromptHistoryResponse with items and pagination metadata
+        List paginated prompt history for a user with optional search and diagram filter.
         """
         skip = (page - 1) * page_size
-        entries = await self.repository.get_by_user(user_id, skip, page_size, search)
-        total = await self.repository.count_by_user(user_id, search)
+        entries = await self.repository.get_by_user(user_id, skip, page_size, search, diagram_id)
+        total = await self.repository.count_by_user(user_id, search, diagram_id)
         total_pages = ceil(total / page_size) if page_size > 0 else 0
 
         items = [
             PromptHistoryResponse(
                 id=str(entry.id),
+                diagram_id=entry.diagram_id,
                 prompt_text=entry.prompt_text,
                 operation_type=entry.operation_type,
                 created_at=entry.created_at,

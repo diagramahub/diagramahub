@@ -3028,6 +3028,7 @@ export default function DiagramEditorPage() {
         onAccept={handleImproveAccept}
         currentCode={diagramCode}
         diagramType={currentDiagram?.diagram_type || 'mermaid'}
+        diagramId={diagramId}
         aiSettings={aiSettings}
       />
 

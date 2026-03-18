@@ -7,6 +7,7 @@ import { PromptHistoryEntry, PaginatedPromptHistory } from '../types/promptHisto
 interface PromptHistoryPanelProps {
   onSelectPrompt: (text: string) => void;
   operationType?: 'creation' | 'improvement';
+  diagramId?: string;
 }
 
 function formatRelativeDate(dateStr: string): string {
@@ -28,7 +29,7 @@ function formatRelativeDate(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
-export default function PromptHistoryPanel({ onSelectPrompt, operationType }: PromptHistoryPanelProps) {
+export default function PromptHistoryPanel({ onSelectPrompt, operationType, diagramId }: PromptHistoryPanelProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -56,6 +57,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
         page,
         page_size: 20,
         search: debouncedSearch || undefined,
+        diagram_id: diagramId,
       });
       setData(result);
     } catch {
@@ -63,7 +65,7 @@ export default function PromptHistoryPanel({ onSelectPrompt, operationType }: Pr
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, t]);
+  }, [page, debouncedSearch, diagramId, t]);
 
   useEffect(() => {
     fetchHistory();

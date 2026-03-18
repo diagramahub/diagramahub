@@ -12,6 +12,7 @@ interface ImproveDiagramWithAIModalProps {
   onAccept: (improvedCode: string) => void;
   currentCode: string;
   diagramType: string;
+  diagramId?: string;
   aiSettings?: UserAISettings | null;
 }
 
@@ -21,6 +22,7 @@ export default function ImproveDiagramWithAIModal({
   onAccept,
   currentCode,
   diagramType,
+  diagramId,
   aiSettings
 }: ImproveDiagramWithAIModalProps) {
   const { t } = useTranslation();
@@ -49,7 +51,7 @@ export default function ImproveDiagramWithAIModal({
         language: user?.language || 'es'
       });
       setImprovedCode(response.diagram_code);
-      apiService.savePromptHistory({ prompt_text: improvementRequest.trim(), operation_type: 'improvement' }).catch(() => {});
+      apiService.savePromptHistory({ prompt_text: improvementRequest.trim(), operation_type: 'improvement', diagram_id: diagramId }).catch(() => {});
     } catch (err: any) {
       if (err.response?.status === 404) {
         setError(t('ai.messages.noProvidersError'));
@@ -63,7 +65,11 @@ export default function ImproveDiagramWithAIModal({
 
   const handleAccept = () => {
     onAccept(improvedCode);
-    handleClose();
+    setImprovedCode('');
+    setImprovementRequest('');
+    setError('');
+    setCopied(false);
+    onClose();
   };
 
   const handleClose = () => {
@@ -119,6 +125,7 @@ export default function ImproveDiagramWithAIModal({
             <PromptHistoryPanel
               onSelectPrompt={(text) => { setImprovementRequest(text); setError(''); }}
               operationType="improvement"
+              diagramId={diagramId}
             />
           </div>
 

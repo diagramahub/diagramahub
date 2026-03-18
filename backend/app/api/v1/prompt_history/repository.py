@@ -13,13 +13,17 @@ from .schemas import PromptHistoryInDB, compute_prompt_hash
 class PromptHistoryRepository(IPromptHistoryRepository):
     """MongoDB implementation of prompt history repository using Beanie."""
 
-    async def upsert(self, user_id: str, prompt_text: str, operation_type: str) -> PromptHistoryInDB:
-        """Insert or update a prompt history entry (deduplication by hash)."""
+    async def upsert(self, user_id: str, prompt_text: str, operation_type: str, diagram_id: str | None = None) -> PromptHistoryInDB:
+        """Insert or update a prompt history entry (deduplication by hash + diagram)."""
         prompt_hash = compute_prompt_hash(prompt_text)
-        existing = await PromptHistoryInDB.find_one(
-            PromptHistoryInDB.user_id == user_id,
-            PromptHistoryInDB.prompt_hash == prompt_hash,
-        )
+        query = {
+            "user_id": user_id,
+            "prompt_hash": prompt_hash,
+        }
+        if diagram_id:
+            query["diagram_id"] = diagram_id
+
+        existing = await PromptHistoryInDB.find_one(query)
 
         if existing:
             existing.used_at = datetime.now(timezone.utc)
@@ -28,6 +32,7 @@ class PromptHistoryRepository(IPromptHistoryRepository):
 
         entry = PromptHistoryInDB(
             user_id=user_id,
+            diagram_id=diagram_id,
             prompt_text=prompt_text,
             prompt_hash=prompt_hash,
             operation_type=operation_type,
@@ -38,10 +43,12 @@ class PromptHistoryRepository(IPromptHistoryRepository):
         return entry
 
     async def get_by_user(
-        self, user_id: str, skip: int, limit: int, search: str | None
+        self, user_id: str, skip: int, limit: int, search: str | None, diagram_id: str | None = None
     ) -> list[PromptHistoryInDB]:
-        """Get paginated prompt history entries for a user with optional search."""
-        query = {"user_id": user_id}
+        """Get paginated prompt history entries for a user with optional search and diagram filter."""
+        query: dict = {"user_id": user_id}
+        if diagram_id:
+            query["diagram_id"] = diagram_id
         if search:
             query["prompt_text"] = {"$regex": search, "$options": "i"}
 
@@ -54,9 +61,11 @@ class PromptHistoryRepository(IPromptHistoryRepository):
         )
         return entries
 
-    async def count_by_user(self, user_id: str, search: str | None) -> int:
-        """Count prompt history entries for a user with optional search filter."""
-        query = {"user_id": user_id}
+    async def count_by_user(self, user_id: str, search: str | None, diagram_id: str | None = None) -> int:
+        """Count prompt history entries for a user with optional search and diagram filter."""
+        query: dict = {"user_id": user_id}
+        if diagram_id:
+            query["diagram_id"] = diagram_id
         if search:
             query["prompt_text"] = {"$regex": search, "$options": "i"}
 
