@@ -100,7 +100,7 @@ const DashboardPage: React.FC = () => {
           </div>
           <button
             onClick={handleCreateProject}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -126,17 +126,17 @@ const DashboardPage: React.FC = () => {
             {projects.map(project => (
               <div
                 key={project.id}
-                className="relative bg-white rounded-lg border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all group cursor-pointer"
+                className="relative bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group cursor-pointer"
                 onClick={() => handleProjectClick(project.id)}
               >
                 {/* Header with emoji and name */}
                 <div className="p-5 border-b border-gray-100">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center text-2xl">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-50 to-purple-50 flex items-center justify-center text-2xl">
                       {project.emoji}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors truncate">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors truncate">
                         {project.name}
                       </h3>
                       {project.description ? (
@@ -180,7 +180,7 @@ const DashboardPage: React.FC = () => {
                       e.stopPropagation();
                       handleEditProject(project);
                     }}
-                    className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                     title={t('dashboard.editProject')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

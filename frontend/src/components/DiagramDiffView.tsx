@@ -76,11 +76,11 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-auto p-6 space-y-6">
           {/* Explanation */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-purple-900 mb-2">
               Explicación de los cambios:
             </h3>
-            <p className="text-sm text-blue-800 whitespace-pre-wrap">
+            <p className="text-sm text-purple-800 whitespace-pre-wrap">
               {explanation}
             </p>
           </div>
@@ -211,7 +211,7 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
           </button>
           <button
             onClick={onApply}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white btn-glass rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm"
           >
             Aplicar Corrección
           </button>

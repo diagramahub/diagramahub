@@ -41,8 +41,8 @@
   "auth": {
     "login": "Iniciar sesión",
     "register": "Registrarse",
-    "loginTitle": "Iniciar sesión en DiagramaHub",
-    "registerTitle": "Crear cuenta en DiagramaHub",
+    "loginTitle": "Iniciar sesión en",
+    "registerTitle": "Crear cuenta en",
     "loginSubtitle": "Ingresa tus credenciales para continuar",
     "registerSubtitle": "Crea una cuenta para comenzar",
     "forgotPassword": "¿Olvidaste tu contraseña?",

@@ -14,7 +14,13 @@ export default function Navbar() {
           <div className="flex items-center">
             <button
               onClick={() => navigate('/dashboard')}
-              className="text-lg font-bold text-gray-900 hover:text-gray-600 transition-colors"
+              className="text-lg font-bold transition-opacity hover:opacity-80"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7, #9333ea)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
             >
               DiagramaHub
             </button>

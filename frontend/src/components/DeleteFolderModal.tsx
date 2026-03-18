@@ -63,8 +63,8 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
 
           {diagramCount > 0 && (
             <>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <p className="text-sm text-purple-800">
                   Esta carpeta contiene <span className="font-semibold">{diagramCount}</span> {diagramCount === 1 ? 'diagrama' : 'diagramas'}.
                 </p>
               </div>
@@ -77,7 +77,7 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
                     name="deleteOption"
                     checked={!deleteDiagrams}
                     onChange={() => setDeleteDiagrams(false)}
-                    className="mt-1 w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                    className="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500"
                   />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">Mover a la raíz</p>

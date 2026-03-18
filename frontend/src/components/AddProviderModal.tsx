@@ -171,7 +171,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                     disabled={!isAvailable}
                     className={`relative p-4 border-2 rounded-lg text-left transition-all flex items-center space-x-3 ${
                       formData.provider === provider
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-purple-500 bg-purple-50'
                         : isAvailable
                         ? 'border-gray-200 hover:border-gray-300'
                         : 'border-gray-200 opacity-50 cursor-not-allowed'
@@ -179,7 +179,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                   >
                     {isAvailable && formData.provider === provider && (
                       <div className="absolute top-2 right-2">
-                        <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
                           <path
                             fillRule="evenodd"
                             d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -231,7 +231,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                 href={AI_PROVIDER_API_KEY_URLS[formData.provider]}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
               >
                 {t('ai.help.getApiKey')}
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,7 +247,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                 setTestResult(null);
               }}
               placeholder={t('ai.form.apiKeyPlaceholder')}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                 errors.api_key ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={!isProviderAvailable}
@@ -266,7 +266,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             <select
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
                 errors.model ? 'border-red-500' : 'border-gray-300'
               }`}
               disabled={!isProviderAvailable}
@@ -292,7 +292,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               placeholder={t('ai.form.displayNamePlaceholder')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={!isProviderAvailable}
             />
           </div>
@@ -304,7 +304,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               id="is_default"
               checked={formData.is_default}
               onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
               disabled={!isProviderAvailable}
             />
             <label htmlFor="is_default" className="ml-2 text-sm text-gray-700">
@@ -363,7 +363,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             type="button"
             onClick={handleTestConnection}
             disabled={loading || testing || !isProviderAvailable || !formData.api_key}
-            className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {testing ? t('common.loading') : t('ai.testProvider')}
           </button>
@@ -379,7 +379,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             <button
               onClick={handleSubmit}
               disabled={loading || !isProviderAvailable}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? t('common.loading') : t('common.save')}
             </button>

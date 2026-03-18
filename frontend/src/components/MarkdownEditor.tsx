@@ -27,7 +27,7 @@ export default function MarkdownEditor({
           onClick={() => setActiveTab('preview')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'preview'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+              ? 'text-purple-600 border-b-2 border-purple-600 bg-white'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
@@ -37,7 +37,7 @@ export default function MarkdownEditor({
           onClick={() => setActiveTab('write')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             activeTab === 'write'
-              ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+              ? 'text-purple-600 border-b-2 border-purple-600 bg-white'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
