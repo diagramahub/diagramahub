@@ -1,0 +1,60 @@
+site_name: Documentación de DiagramaHub
+site_description: Documentación oficial de DiagramaHub
+site_author: DiagramaHub Team
+
+theme:
+  name: material
+  language: es
+  features:
+    - navigation.tabs # Pestañas en la navegación
+    - navigation.indexes # Hace clickeables las secciones
+    - navigation.top # Botón de "volver arriba"
+    - content.code.copy # Botón para copiar código
+
+  # Configuración del modo Claro/Oscuro dinámico
+  palette:
+    # Modo Claro
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Cambiar a modo oscuro
+
+    # Modo Oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: purple
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Cambiar a modo claro
+
+# Selector de idiomas
+extra:
+  alternate:
+    - name: Español
+      link: /es/
+      lang: es
+    - name: English
+      link: /en/
+      lang: en
+
+# Configuración de los menús
+nav:
+  - Español:
+      - Inicio: es/index.md
+      - Guía de Instalación: es/instalacion.md
+  - English:
+      - Home: en/index.md
+      - Installation: en/installation.md
+
+# Funcionalidades adicionales
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
