@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import Navbar from '../components/Navbar';
 import ConfirmModal from '../components/ConfirmModal';
+import DeleteAccountModal from '../components/DeleteAccountModal';
+import AccountDeletedModal from '../components/AccountDeletedModal';
 import AIIntegrationsSection from '../components/AIIntegrationsSection';
 import PlanList from '../components/admin/PlanList';
 import SubscriptionCard from '../components/subscription/SubscriptionCard';
@@ -63,6 +65,9 @@ export default function ProfilePage() {
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationPlan, setCelebrationPlan] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
+  const [isSoleAdmin, setIsSoleAdmin] = useState(false);
 
   // Estados para edición de perfil
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -238,6 +243,35 @@ export default function ProfilePage() {
       loadSubscription();
     }
   }, [activeTab]);
+
+  // Load subscription on mount for profile tab (needed for danger zone)
+  useEffect(() => {
+    loadSubscription();
+    // Check if user is the sole admin
+    if (user?.role === 'admin') {
+      apiService.getAdminCount().then(data => {
+        setIsSoleAdmin(data.count <= 1);
+      }).catch(() => {});
+    }
+  }, []);
+
+  const hasActivePaidPlan = subscription?.status === 'active' && subscription.plan.price_usd > 0;
+  const cannotDelete = hasActivePaidPlan || isSoleAdmin;
+
+  const handleDeleteAccount = async (confirmationPhrase: string) => {
+    await apiService.deleteAccount(confirmationPhrase);
+    // Clear session data immediately
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Close confirmation modal, show deleted modal
+    setShowDeleteModal(false);
+    setShowDeletedModal(true);
+  };
+
+  const handleDeletedAcknowledged = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <>
@@ -593,6 +627,7 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
           </>
         )}
 
@@ -604,34 +639,27 @@ export default function ProfilePage() {
               <AIIntegrationsSection />
             </div>
 
-            {/* Secciones futuras (preview) */}
-            <div className="mt-6 space-y-4">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('settings.appearance')}</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-sm text-gray-500">{t('settings.appearanceDescription')}</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('settings.notifications')}</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-sm text-gray-500">{t('settings.notificationsDescription')}</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 opacity-50">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('settings.privacy')}</h3>
-                </div>
-                <div className="px-6 py-4">
-                  <p className="text-sm text-gray-500">{t('settings.privacyDescription')}</p>
-                </div>
-              </div>
+            {/* Zona de Peligro */}
+            <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-6">
+              <h2 className="text-lg font-semibold text-red-800">{t('dangerZone.title')}</h2>
+              <p className="mt-2 text-sm text-red-700">{t('dangerZone.description')}</p>
+              {hasActivePaidPlan && (
+                <p className="mt-3 text-sm text-red-600 font-medium">
+                  {t('dangerZone.disabledMessage')}
+                </p>
+              )}
+              {isSoleAdmin && (
+                <p className="mt-3 text-sm text-red-600 font-medium">
+                  {t('dangerZone.soleAdminMessage')}
+                </p>
+              )}
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                disabled={cannotDelete}
+                className="mt-4 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {t('dangerZone.deleteButton')}
+              </button>
             </div>
           </>
         )}
@@ -720,6 +748,19 @@ export default function ProfilePage() {
         maxDiagrams={celebrationPlan.max_diagrams}
       />
     )}
+
+    {/* Delete Account Modal */}
+    <DeleteAccountModal
+      isOpen={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      onConfirm={handleDeleteAccount}
+    />
+
+    {/* Account Deleted Modal */}
+    <AccountDeletedModal
+      isOpen={showDeletedModal}
+      onConfirm={handleDeletedAcknowledged}
+    />
     </>
   );
 }

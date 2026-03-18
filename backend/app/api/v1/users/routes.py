@@ -10,11 +10,13 @@ from jose import JWTError
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import (
     ChangePasswordRequest,
+    DeleteAccountRequest,
     LoginRequest,
     ResetPasswordConfirm,
     ResetPasswordRequest,
     Token,
     UserCreate,
+    UserInDB,
     UserUpdate,
     UserResponse,
     UserRole,
@@ -292,3 +294,95 @@ async def update_current_user(
         created_at=user.created_at,
         subscription=subscription_data,
     )
+
+
+@router.get("/admin-count")
+async def get_admin_count(
+    current_user_email: Annotated[str, Depends(get_current_user_email)],
+) -> dict:
+    """Get the number of admin users in the system."""
+    count = await UserInDB.find(UserInDB.role == "admin").count()
+    return {"count": count}
+
+
+@router.delete("/me")
+async def delete_account(
+    request_body: DeleteAccountRequest,
+    current_user_email: Annotated[str, Depends(get_current_user_email)],
+    service: Annotated[UserService, Depends(get_user_service)],
+) -> dict:
+    """
+    Delete the current user's account and all associated data.
+
+    Requires a valid confirmation phrase ("elimíname" or "delete me").
+    Rejects deletion if the user has an active paid subscription.
+    """
+    # Validate confirmation phrase
+    valid_phrases = {"elimíname", "delete me"}
+    if request_body.confirmation_phrase not in valid_phrases:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid confirmation phrase",
+        )
+
+    # Get user
+    user = await service.get_current_user(current_user_email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    user_id = str(user.id)
+
+    # Check if user is the only admin
+    if user.role == "admin":
+        admin_count = await UserInDB.find(UserInDB.role == "admin").count()
+        if admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot delete the only administrator account. To remove this account, uninstall DiagramHub from your infrastructure.",
+            )
+
+    # Check for active paid subscription
+    from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+    from app.api.v1.subscriptions.plan_repository import PlanRepository
+
+    subscription_repo = SubscriptionRepository()
+    plan_repo = PlanRepository()
+
+    subscription = await subscription_repo.get_active_by_user(user_id)
+    if subscription:
+        plan = await plan_repo.get_by_id(subscription.plan_id)
+        if plan and plan.price_usd > 0:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Cannot delete account with active paid subscription. Please switch to the free plan first.",
+            )
+
+    # Perform account deletion
+    try:
+        from app.api.v1.users.deletion_service import AccountDeletionService
+        from app.api.v1.projects.repository import ProjectRepository
+        from app.api.v1.diagrams.repository import DiagramRepository
+        from app.api.v1.folders.repository import FolderRepository
+        from app.api.v1.ai_providers.repository import AIProviderRepository
+        from app.api.v1.prompt_history.repository import PromptHistoryRepository
+
+        deletion_service = AccountDeletionService(
+            user_repository=UserRepository(),
+            project_repository=ProjectRepository(),
+            diagram_repository=DiagramRepository(),
+            folder_repository=FolderRepository(),
+            subscription_repository=subscription_repo,
+            ai_provider_repository=AIProviderRepository(),
+            prompt_history_repository=PromptHistoryRepository(),
+        )
+        await deletion_service.delete_user_account(user_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting account: {str(e)}",
+        )
+
+    return {"message": "Account deleted successfully"}

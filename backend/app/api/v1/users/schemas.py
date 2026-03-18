@@ -143,3 +143,8 @@ class ResetPasswordConfirm(BaseModel):
         if not any(char.islower() for char in v):
             raise ValueError("Password must contain at least one lowercase letter")
         return v
+
+
+class DeleteAccountRequest(BaseModel):
+    """Schema for account deletion request. Requires a confirmation phrase."""
+    confirmation_phrase: str
