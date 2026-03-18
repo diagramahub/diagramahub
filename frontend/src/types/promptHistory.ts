@@ -1,5 +1,6 @@
 export interface PromptHistoryEntry {
   id: string;
+  diagram_id?: string | null;
   prompt_text: string;
   operation_type: 'creation' | 'improvement';
   created_at: string;
