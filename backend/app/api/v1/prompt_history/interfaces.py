@@ -12,17 +12,17 @@ class IPromptHistoryRepository(ABC):
     """Abstract interface for prompt history data access."""
 
     @abstractmethod
-    async def upsert(self, user_id: str, prompt_text: str, operation_type: str) -> PromptHistoryInDB:
+    async def upsert(self, user_id: str, prompt_text: str, operation_type: str, diagram_id: str | None = None) -> PromptHistoryInDB:
         """Insert or update a prompt history entry (deduplication by hash)."""
         pass
 
     @abstractmethod
-    async def get_by_user(self, user_id: str, skip: int, limit: int, search: str | None) -> list[PromptHistoryInDB]:
+    async def get_by_user(self, user_id: str, skip: int, limit: int, search: str | None, diagram_id: str | None = None) -> list[PromptHistoryInDB]:
         """Get paginated prompt history entries for a user with optional search."""
         pass
 
     @abstractmethod
-    async def count_by_user(self, user_id: str, search: str | None) -> int:
+    async def count_by_user(self, user_id: str, search: str | None, diagram_id: str | None = None) -> int:
         """Count prompt history entries for a user with optional search filter."""
         pass
 

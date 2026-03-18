@@ -334,12 +334,12 @@ class ApiService {
   // Prompt History API
   // ============================================================================
 
-  async getPromptHistory(params: { page?: number; page_size?: number; search?: string }): Promise<PaginatedPromptHistory> {
+  async getPromptHistory(params: { page?: number; page_size?: number; search?: string; diagram_id?: string }): Promise<PaginatedPromptHistory> {
     const response = await this.api.get<PaginatedPromptHistory>('/api/v1/prompt-history', { params });
     return response.data;
   }
 
-  async savePromptHistory(data: { prompt_text: string; operation_type: string }): Promise<PromptHistoryEntry> {
+  async savePromptHistory(data: { prompt_text: string; operation_type: string; diagram_id?: string }): Promise<PromptHistoryEntry> {
     const response = await this.api.post<PromptHistoryEntry>('/api/v1/prompt-history', data);
     return response.data;
   }
