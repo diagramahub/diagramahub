@@ -347,6 +347,22 @@ class ApiService {
   async deletePromptHistory(entryId: string): Promise<void> {
     await this.api.delete(`/api/v1/prompt-history/${entryId}`);
   }
+
+  // ============================================================================
+  // Account Deletion API
+  // ============================================================================
+
+  async deleteAccount(confirmationPhrase: string): Promise<{ message: string }> {
+    const response = await this.api.delete<{ message: string }>('/api/v1/users/me', {
+      data: { confirmation_phrase: confirmationPhrase }
+    });
+    return response.data;
+  }
+
+  async getAdminCount(): Promise<{ count: number }> {
+    const response = await this.api.get<{ count: number }>('/api/v1/users/admin-count');
+    return response.data;
+  }
 }
 
 const apiService = new ApiService();
