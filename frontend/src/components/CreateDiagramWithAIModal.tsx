@@ -95,7 +95,7 @@ export default function CreateDiagramWithAIModal({ isOpen, onClose, onSuccess }:
                 <select
                   value={diagramType}
                   onChange={(e) => setDiagramType(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   disabled={generating}
                 >
                   <option value="mermaid">{t('ai.createDiagram.mermaid')}</option>
@@ -115,7 +115,7 @@ export default function CreateDiagramWithAIModal({ isOpen, onClose, onSuccess }:
                     setError('');
                   }}
                   placeholder={t('ai.createDiagram.descriptionPlaceholder')}
-                  className="w-full flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   disabled={generating}
                 />
               </div>
@@ -140,7 +140,7 @@ export default function CreateDiagramWithAIModal({ isOpen, onClose, onSuccess }:
               <button
                 onClick={handleGenerate}
                 disabled={generating || !description.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all"
               >
                 {generating ? (
                   <>

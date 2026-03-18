@@ -119,7 +119,7 @@ export default function InstallationWizardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* Language Selector */}
         <div className="flex justify-end mb-4">
@@ -128,7 +128,7 @@ export default function InstallationWizardPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
@@ -147,13 +147,13 @@ export default function InstallationWizardPage() {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${step >= s
-                  ? 'bg-blue-500 border-blue-500 text-white'
+                  ? 'bg-purple-500 border-purple-500 text-white'
                   : 'bg-white border-gray-300 text-gray-400'
                   }`}>
                   {s}
                 </div>
                 {s < 3 && (
-                  <div className={`w-16 h-1 transition-all ${step > s ? 'bg-blue-500' : 'bg-gray-300'
+                  <div className={`w-16 h-1 transition-all ${step > s ? 'bg-purple-500' : 'bg-gray-300'
                     }`} />
                 )}
               </div>
@@ -194,7 +194,7 @@ export default function InstallationWizardPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder={t('installation.emailPlaceholder')}
                   autoFocus
                 />
@@ -208,7 +208,7 @@ export default function InstallationWizardPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder={t('installation.passwordPlaceholder')}
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -224,7 +224,7 @@ export default function InstallationWizardPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder={t('installation.repeatPassword')}
                 />
               </div>
@@ -251,20 +251,20 @@ export default function InstallationWizardPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   placeholder={t('installation.fullNamePlaceholder')}
                   autoFocus
                 />
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <div className="text-sm text-blue-800">
+                  <div className="text-sm text-purple-800">
                     <p className="font-medium mb-1">{t('installation.adminInfo')}</p>
-                    <p className="text-blue-700">
+                    <p className="text-purple-700">
                       {t('installation.adminDescription')}
                     </p>
                   </div>
@@ -292,7 +292,7 @@ export default function InstallationWizardPage() {
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   autoFocus
                 >
                   {TIMEZONES.map((tz) => (
@@ -347,7 +347,7 @@ export default function InstallationWizardPage() {
               <button
                 onClick={handleNext}
                 disabled={loading}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="px-6 py-2 bg-purple-500 text-white btn-glass rounded-lg font-medium hover:bg-purple-600 transition-colors disabled:opacity-50"
               >
                 {t('common.next')}
               </button>
@@ -355,7 +355,7 @@ export default function InstallationWizardPage() {
               <button
                 onClick={handleFinish}
                 disabled={loading}
-                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-lg"
+                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white btn-glass rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-lg"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

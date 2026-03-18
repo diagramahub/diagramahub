@@ -33,7 +33,7 @@ export default function NoAIProviderModal({ isOpen, onClose }: NoAIProviderModal
                 onClose();
                 navigate('/profile?tab=settings');
               }}
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              className="w-full px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 transition-colors"
             >
               {t('ai.validation.goToSettings')}
             </button>

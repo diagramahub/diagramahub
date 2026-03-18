@@ -105,7 +105,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           <div className="text-center mb-8">
             {isFirstProject ? (
               <>
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-full mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-full mb-4">
                   <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -140,7 +140,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     type="button"
                     onClick={() => setSelectedEmoji(emoji)}
                     className={`text-2xl p-2 rounded-lg transition-all ${selectedEmoji === emoji
-                      ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
+                      ? 'bg-purple-100 border-2 border-purple-500 scale-110'
                       : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
                       }`}
                   >
@@ -160,7 +160,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder={t('project.namePlaceholderExample')}
                 required
                 maxLength={100}
@@ -178,7 +178,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 value={projectDescription}
                 onChange={(e) => setProjectDescription(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 placeholder={t('project.descriptionPlaceholderExample')}
                 maxLength={500}
               />
@@ -196,13 +196,13 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
             {/* Info Box (only for first project) */}
             {isFirstProject && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <div className="flex items-start">
-                  <svg className="w-5 h-5 text-blue-500 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-purple-500 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
                   <div className="flex-1">
-                    <p className="text-sm text-blue-800">
+                    <p className="text-sm text-purple-800">
                       <strong>{t('project.whatNext')}</strong> {t('project.whatNextDescription')}
                     </p>
                   </div>
@@ -225,7 +225,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               <button
                 type="submit"
                 disabled={loading || !projectName.trim()}
-                className={`${isFirstProject ? 'w-full' : 'flex-1'} bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors`}
+                className={`${isFirstProject ? 'w-full' : 'flex-1'} bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors`}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">

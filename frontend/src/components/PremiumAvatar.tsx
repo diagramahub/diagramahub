@@ -62,7 +62,7 @@ export default function PremiumAvatar({
       className={`${sizeClasses[size]} rounded-full object-cover`}
     />
   ) : (
-    <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold`}>
+    <div className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-semibold`}>
       {getUserInitials()}
     </div>
   );

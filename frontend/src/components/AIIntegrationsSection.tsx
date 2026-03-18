@@ -73,7 +73,7 @@ export default function AIIntegrationsSection() {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function AIIntegrationsSection() {
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 flex items-center space-x-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -125,7 +125,7 @@ export default function AIIntegrationsSection() {
               <p className="text-gray-600 mb-4">{t('ai.noProvidersDescription')}</p>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700"
               >
                 {t('ai.addProvider')}
               </button>
@@ -151,7 +151,7 @@ export default function AIIntegrationsSection() {
                   <div
                     key={originalIndex}
                     className={`p-4 border rounded-lg ${
-                      isDefault ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      isDefault ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -166,7 +166,7 @@ export default function AIIntegrationsSection() {
                             {provider.display_name || AI_PROVIDER_NAMES[provider.provider]}
                           </h4>
                           {isDefault && (
-                            <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
+                            <span className="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded-full">
                               {t('ai.status.default')}
                             </span>
                           )}
@@ -207,7 +207,7 @@ export default function AIIntegrationsSection() {
                         <button
                           onClick={() => handleEditProvider(provider, originalIndex)}
                           disabled={actionLoading !== null}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-2 text-gray-600 hover:text-purple-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                           title={t('ai.editProvider')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +226,7 @@ export default function AIIntegrationsSection() {
                             className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
                               isDefault
                                 ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50'
-                                : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100'
+                                : 'text-gray-600 hover:text-purple-600 hover:bg-gray-100'
                             }`}
                             title={t('ai.form.isDefault')}
                           >

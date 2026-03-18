@@ -79,7 +79,7 @@ export const FixDiagramButton: React.FC<FixDiagramButtonProps> = ({
       onClick={handleFix}
       disabled={isFixing}
       data-fix-diagram-trigger="true"
-      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm"
+      className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white btn-glass rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm"
       title="Corregir diagrama con IA"
     >
       {isFixing ? (
