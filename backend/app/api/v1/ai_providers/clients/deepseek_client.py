@@ -330,6 +330,84 @@ INSTRUCCIONES CRÍTICAS:
         else:
             return "Usa sintaxis PlantUML válida. Comienza con @startuml y termina con @enduml."
 
+    async def chat_with_context(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es"
+    ) -> str:
+        """
+        Conversación con contexto de historial y diagrama usando DeepSeek.
+        """
+        if language == "es":
+            system_content = f"""Eres un asistente experto en diagramas {diagram_type}. El usuario está trabajando en el siguiente diagrama y quiere conversar sobre él.
+
+DIAGRAMA ACTUAL:
+```
+{diagram_code}
+```
+
+Responde de forma clara y útil en español. No modifiques el diagrama a menos que se te pida explícitamente."""
+        else:
+            system_content = f"""You are an expert assistant in {diagram_type} diagrams. The user is working on the following diagram and wants to discuss it.
+
+CURRENT DIAGRAM:
+```
+{diagram_code}
+```
+
+Respond clearly and helpfully in English. Do not modify the diagram unless explicitly asked."""
+
+        api_messages = [{"role": "system", "content": system_content}]
+        for msg in messages:
+            api_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        try:
+            return await self._make_request(api_messages)
+        except Exception as e:
+            raise ValueError(f"Error in chat with DeepSeek: {str(e)}")
+
+    async def summarize_conversation(
+        self,
+        messages: list[dict],
+        language: str = "es"
+    ) -> str:
+        """
+        Genera un resumen compacto de una conversación usando DeepSeek.
+        """
+        conversation_text = "\n".join(
+            f"{'Usuario' if m['role'] == 'user' else 'Asistente'}: {m['content']}"
+            if language == "es"
+            else f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+            for m in messages
+        )
+
+        if language == "es":
+            user_prompt = f"""Resume la siguiente conversación de forma compacta, capturando los puntos clave, decisiones tomadas y contexto importante. El resumen será usado como contexto inicial para continuar la conversación en una nueva sesión.
+
+CONVERSACIÓN:
+{conversation_text}
+
+RESUMEN COMPACTO:"""
+        else:
+            user_prompt = f"""Summarize the following conversation compactly, capturing key points, decisions made, and important context. The summary will be used as initial context to continue the conversation in a new session.
+
+CONVERSATION:
+{conversation_text}
+
+COMPACT SUMMARY:"""
+
+        api_messages = [
+            {"role": "system", "content": "You are a helpful assistant that creates concise conversation summaries."},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        try:
+            return await self._make_request(api_messages)
+        except Exception as e:
+            raise ValueError(f"Error summarizing conversation with DeepSeek: {str(e)}")
+
     @property
     def provider_name(self) -> str:
         """Provider name."""
