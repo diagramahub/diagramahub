@@ -4,20 +4,24 @@ OpenAI GPT client implementation.
 import httpx
 from typing import Dict, Any
 from .base import BaseAIClient
+from ..prompts import (
+    build_description_prompt,
+    build_generate_diagram_prompt,
+    build_improve_diagram_prompt,
+    build_chat_system_prompt,
+    build_summarize_prompt,
+    clean_code_response,
+    DESCRIPTION_SYSTEM_PROMPT,
+    SUMMARIZE_SYSTEM_PROMPT,
+    get_generate_diagram_system_prompt,
+    get_improve_diagram_system_prompt,
+)
 
 
 class OpenAIClient(BaseAIClient):
     """Client for OpenAI GPT."""
 
     def __init__(self, api_key: str, model: str = "gpt-4o-mini", parameters: Dict[str, Any] = None):
-        """
-        Initialize OpenAI client.
-
-        Args:
-            api_key: OpenAI API key
-            model: GPT model to use
-            parameters: Generation parameters
-        """
         super().__init__(api_key, model, parameters or {})
         self.base_url = "https://api.openai.com/v1"
         self.headers = {
@@ -25,236 +29,76 @@ class OpenAIClient(BaseAIClient):
             "Content-Type": "application/json"
         }
 
-    async def generate_description(
+    async def _chat_completion(
         self,
-        diagram_code: str,
-        diagram_type: str,
-        language: str = "es"
+        messages: list[dict],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
-        """
-        Generate diagram description using OpenAI GPT.
-
-        Args:
-            diagram_code: Diagram source code
-            diagram_type: Type of diagram
-            language: Target language (es, en)
-
-        Returns:
-            Generated description
-
-        Raises:
-            ValueError: If generation fails
-        """
-        # Build optimized prompt
-        prompt = self._build_prompt(diagram_code, diagram_type, language)
-
-        # Prepare request payload
+        """Llamada genérica al endpoint chat/completions de OpenAI."""
         payload = {
             "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are an expert in analyzing and describing technical diagrams. Provide clear, concise, and professional descriptions."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": self.parameters.get("temperature", 0.7),
-            "max_tokens": self.parameters.get("max_tokens", 2048),
-            "top_p": self.parameters.get("top_p", 1.0)
+            "messages": messages,
+            "temperature": temperature or self.parameters.get("temperature", 0.7),
+            "max_tokens": max_tokens or self.parameters.get("max_tokens", 2048),
+            "top_p": self.parameters.get("top_p", 1.0),
         }
 
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=payload,
+            )
+
+            if response.status_code == 429:
+                raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
+            if response.status_code != 200:
+                raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
+
+            result = response.json()
+            if not result.get("choices") or len(result["choices"]) == 0:
+                raise ValueError("OpenAI returned empty response")
+
+            return result["choices"][0]["message"]["content"].strip()
+
+    async def generate_description(
+        self, diagram_code: str, diagram_type: str, language: str = "es"
+    ) -> str:
+        prompt = build_description_prompt(diagram_code, diagram_type, language)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payload
-                )
-                
-                if response.status_code != 200:
-                    raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
-                
-                result = response.json()
-                
-                if not result.get("choices") or len(result["choices"]) == 0:
-                    raise ValueError("OpenAI returned empty response")
-                
-                description = result["choices"][0]["message"]["content"].strip()
-                
-                # Clean response: remove markdown code blocks if present
-                if description.startswith("```markdown"):
-                    description = description[len("```markdown"):].strip()
-                elif description.startswith("```"):
-                    description = description[3:].strip()
-
-                if description.endswith("```"):
-                    description = description[:-3].strip()
-
-                return description
-
+            response = await self._chat_completion([
+                {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ])
+            return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
             raise ValueError(f"Error generating description with OpenAI: {str(e)}")
 
     async def validate_api_key(self) -> bool:
-        """
-        Validate OpenAI API key.
-
-        Returns:
-            True if valid, False otherwise
-        """
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     f"{self.base_url}/models",
-                    headers=self.headers
+                    headers=self.headers,
                 )
-                
                 return response.status_code == 200
-
         except Exception as e:
             print(f"OpenAI API key validation failed: {str(e)}")
             return False
 
     async def generate_diagram(
-        self,
-        description: str,
-        diagram_type: str,
-        language: str = "es"
+        self, description: str, diagram_type: str, language: str = "es"
     ) -> str:
-        """
-        Generate diagram code from a description.
-
-        Args:
-            description: User's description of what they want to diagram
-            diagram_type: Type of diagram (mermaid, plantuml)
-            language: User's language (es, en)
-
-        Returns:
-            Generated diagram code
-
-        Raises:
-            ValueError: If generation fails
-        """
-        # Build context-specific prompt
-        if diagram_type == "mermaid":
-            context = self._get_mermaid_context(language)
-        else:
-            context = self._get_plantuml_context(language)
-
-        # Build prompt for diagram generation
-        if language == "es":
-            visual_instructions = """3. Usa sintaxis SIMPLE y CLARA:
-   - EVITA diseños complejos, colores excesivos y decoraciones innecesarias
-   - NO uses elementos visuales que no aporten valor (skinparams, estilos personalizados, etc.)
-   - Prioriza CLARIDAD y LEGIBILIDAD sobre estética
-   - Usa solo la sintaxis básica necesaria para representar la información
-   - El diagrama debe ser FUNCIONAL, no decorativo"""
-
-            prompt = f"""Eres un experto en crear diagramas {diagram_type}. Tu especialidad es crear diagramas claros, simples y funcionales.
-
-{context}
-
-DESCRIPCIÓN DEL USUARIO:
-{description}
-
-INSTRUCCIONES CRÍTICAS:
-1. Crea un diagrama SIMPLE y FUNCIONAL que capture los aspectos esenciales de la descripción
-2. Usa una estructura BÁSICA sin elementos decorativos innecesarios
-{visual_instructions}
-4. El diagrama debe ser COMPLETO pero MINIMALISTA, enfocándose en la información relevante
-5. Genera SOLO el código del diagrama, sin texto adicional
-6. NO incluyas markdown code blocks (```)
-7. El código debe ser 100% válido y renderizable
-8. Usa nombres descriptivos en español
-9. Organiza el código de forma legible con indentación apropiada
-10. NO agregues colores, estilos, íconos o elementos visuales que no sean estrictamente necesarios
-11. PROHIBIDO usar: classDef, style, class, cssClass, fill, stroke, o cualquier definición de estilos CSS
-12. Usa SOLO la sintaxis básica estándar sin personalizaciones visuales
-
-GENERA EL CÓDIGO DEL DIAGRAMA:"""
-        else:
-            visual_instructions = """3. Use SIMPLE and CLEAR syntax:
-   - AVOID complex designs, excessive colors, and unnecessary decorations
-   - DO NOT use visual elements that don't add value (skinparams, custom styles, etc.)
-   - Prioritize CLARITY and READABILITY over aesthetics
-   - Use only basic syntax necessary to represent the information
-   - The diagram should be FUNCTIONAL, not decorative"""
-
-            prompt = f"""You are an expert in creating {diagram_type} diagrams. Your specialty is creating clear, simple, and functional diagrams.
-
-{context}
-
-USER DESCRIPTION:
-{description}
-
-CRITICAL INSTRUCTIONS:
-1. Create a SIMPLE and FUNCTIONAL diagram that captures the essential aspects of the description
-2. Use a BASIC structure without unnecessary decorative elements
-{visual_instructions}
-4. The diagram must be COMPLETE but MINIMALIST, focusing on relevant information
-5. Generate ONLY the diagram code, no additional text
-6. DO NOT include markdown code blocks (```)
-7. The code must be 100% valid and renderable
-8. Use descriptive names in English
-9. Organize the code in a readable format with proper indentation
-10. DO NOT add colors, styles, icons, or visual elements that are not strictly necessary
-11. FORBIDDEN to use: classDef, style, class, cssClass, fill, stroke, or any CSS style definitions
-12. Use ONLY basic standard syntax without visual customizations
-
-GENERATE THE DIAGRAM CODE:"""
-
-        # Prepare request payload
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"You are an expert in creating {diagram_type} diagrams. Generate clean, simple, and functional diagram code."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": self.parameters.get("temperature", 0.7),
-            "max_tokens": self.parameters.get("max_tokens", 2048),
-            "top_p": self.parameters.get("top_p", 1.0)
-        }
-
+        prompt = build_generate_diagram_prompt(description, diagram_type, language)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payload
-                )
-                
-                if response.status_code != 200:
-                    raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
-                
-                result = response.json()
-                
-                if not result.get("choices") or len(result["choices"]) == 0:
-                    raise ValueError("OpenAI returned empty response")
-                
-                diagram_code = result["choices"][0]["message"]["content"].strip()
-                
-                # Remove markdown code blocks if present
-                if diagram_code.startswith("```"):
-                    lines = diagram_code.split("\n")
-                    if lines[0].startswith("```"):
-                        lines = lines[1:]
-                    if lines and lines[-1].startswith("```"):
-                        lines = lines[:-1]
-                    diagram_code = "\n".join(lines).strip()
-
-                return diagram_code
-
+            response = await self._chat_completion([
+                {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
+                {"role": "user", "content": prompt},
+            ])
+            return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
@@ -265,106 +109,34 @@ GENERATE THE DIAGRAM CODE:"""
         diagram_code: str,
         diagram_type: str,
         error_context: str | None = None,
-        language: str = "es"
+        language: str = "es",
     ) -> Dict[str, str]:
-        """
-        Corregir errores de sintaxis en código de diagrama.
-
-        Args:
-            diagram_code: Código del diagrama con errores
-            diagram_type: Tipo de diagrama (mermaid, plantuml)
-            error_context: Información del error (mensaje, línea)
-            language: Idioma para la explicación (es, en)
-
-        Returns:
-            Dict con:
-            - corrected_code: Código corregido
-            - explanation: Explicación de los cambios
-            - changes_summary: Resumen breve de cambios
-
-        Raises:
-            ValueError: Si la corrección falla
-        """
-        # Import fix prompts module
-        from ...diagrams.fix_prompts import build_mermaid_fix_prompt, build_plantuml_fix_prompt
+        from ...diagrams.fix_prompts import build_fix_prompt
         import json
         import re
-        
-        # Build specialized prompt based on diagram type
-        if diagram_type.lower() in ['plantuml', 'uml']:
-            prompt = build_plantuml_fix_prompt(diagram_code, error_context, language)
-        else:
-            prompt = build_mermaid_fix_prompt(diagram_code, error_context, language)
-        
-        # Prepare request payload
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are an expert in fixing syntax errors in technical diagrams. Provide accurate corrections with clear explanations."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": self.parameters.get("temperature", 0.3),  # Lower temperature for more deterministic fixes
-            "max_tokens": self.parameters.get("max_tokens", 2048),
-            "top_p": self.parameters.get("top_p", 1.0)
-        }
-        
+
+        prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payload
-                )
-                
-                if response.status_code == 429:
-                    raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
-                
-                if response.status_code != 200:
-                    raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
-                
-                result = response.json()
-                
-                if not result.get("choices") or len(result["choices"]) == 0:
-                    raise ValueError("OpenAI returned empty response")
-                
-                response_text = result["choices"][0]["message"]["content"].strip()
-                
-                # Parse JSON response
-                # Try to extract JSON from response
-                json_match = re.search(r'\{[\s\S]*\}', response_text)
-                if not json_match:
-                    raise ValueError("No se pudo extraer JSON de la respuesta de OpenAI")
-                
-                fix_result = json.loads(json_match.group())
-                
-                # Validate required fields
-                if "corrected_code" not in fix_result:
-                    raise ValueError("Respuesta de OpenAI no contiene 'corrected_code'")
-                if "explanation" not in fix_result:
-                    raise ValueError("Respuesta de OpenAI no contiene 'explanation'")
-                if "changes_summary" not in fix_result:
-                    raise ValueError("Respuesta de OpenAI no contiene 'changes_summary'")
-                
-                # Clean corrected code (remove markdown blocks if present)
-                corrected_code = fix_result["corrected_code"].strip()
-                if corrected_code.startswith("```"):
-                    lines = corrected_code.split("\n")
-                    if lines[0].startswith("```"):
-                        lines = lines[1:]
-                    if lines and lines[-1].startswith("```"):
-                        lines = lines[:-1]
-                    corrected_code = "\n".join(lines).strip()
-                
-                fix_result["corrected_code"] = corrected_code
-                
-                return fix_result
-                
+            response_text = await self._chat_completion(
+                [
+                    {"role": "system", "content": "You are an expert in fixing syntax errors in technical diagrams. Provide accurate corrections with clear explanations."},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+            )
+
+            json_match = re.search(r'\{[\s\S]*\}', response_text)
+            if not json_match:
+                raise ValueError("No se pudo extraer JSON de la respuesta de OpenAI")
+
+            fix_result = json.loads(json_match.group())
+            for field in ("corrected_code", "explanation", "changes_summary"):
+                if field not in fix_result:
+                    raise ValueError(f"Respuesta de OpenAI no contiene '{field}'")
+
+            fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
+            return fix_result
+
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except json.JSONDecodeError as e:
@@ -377,366 +149,52 @@ GENERATE THE DIAGRAM CODE:"""
         diagram_code: str,
         improvement_request: str,
         diagram_type: str,
-        language: str = "es"
+        language: str = "es",
     ) -> str:
-        """
-        Improve an existing diagram based on user's request.
-
-        Args:
-            diagram_code: Current diagram code
-            improvement_request: User's improvement request
-            diagram_type: Type of diagram (mermaid, plantuml)
-            language: User's language (es, en)
-
-        Returns:
-            Improved diagram code
-
-        Raises:
-            ValueError: If improvement fails
-        """
-        # Build context-specific prompt
-        if diagram_type == "mermaid":
-            context = self._get_mermaid_context(language)
-        else:
-            context = self._get_plantuml_context(language)
-
-        # Build prompt for diagram improvement
-        if language == "es":
-            visual_instructions = """6. Aplica mejoras SIMPLES y FUNCIONALES:
-   - EVITA agregar diseños complejos, colores o decoraciones innecesarias
-   - NO agregues elementos visuales que no aporten valor funcional
-   - Prioriza CLARIDAD y LEGIBILIDAD sobre estética
-   - Mantén la sintaxis SIMPLE y básica
-   - Solo agrega elementos visuales si el usuario EXPLÍCITAMENTE lo solicita"""
-
-            prompt = f"""Eres un experto en diagramas {diagram_type}. Tu especialidad es mejorar diagramas existentes manteniendo la simplicidad y funcionalidad.
-
-{context}
-
-DIAGRAMA ACTUAL:
-```
-{diagram_code}
-```
-
-SOLICITUD DE MEJORA DEL USUARIO:
-{improvement_request}
-
-INSTRUCCIONES CRÍTICAS PARA LA MEJORA:
-1. PRESERVA la estructura y lógica fundamental del diagrama original
-2. Aplica ÚNICAMENTE las mejoras solicitadas por el usuario, sin agregar elementos extras
-3. Si el usuario NO menciona elementos visuales (colores, estilos, formas), NO los agregues
-4. Si el usuario pide más detalle, EXPANDE el diagrama con información relevante de forma SIMPLE
-5. Si el usuario pide simplificación, CONSOLIDA elementos manteniendo la claridad
-{visual_instructions}
-7. El diagrama mejorado debe ser MEJOR pero MANTENER LA SIMPLICIDAD
-8. Genera SOLO el código del diagrama mejorado, sin texto adicional
-9. NO incluyas markdown code blocks (```)
-10. El código debe ser 100% válido y renderizable
-11. Mantén la coherencia del idioma (español/inglés) del diagrama original
-12. Usa indentación apropiada para código legible
-13. NO agregues colores, estilos o decoraciones a menos que el usuario ESPECÍFICAMENTE lo pida
-14. PROHIBIDO usar: classDef, style, class, cssClass, fill, stroke, o cualquier definición de estilos CSS
-15. ELIMINA cualquier classDef o style que exista en el diagrama original, a menos que el usuario pida conservarlos
-
-GENERA EL CÓDIGO DEL DIAGRAMA MEJORADO:"""
-        else:
-            visual_instructions = """6. Apply SIMPLE and FUNCTIONAL improvements:
-   - AVOID adding complex designs, colors, or unnecessary decorations
-   - DO NOT add visual elements that don't provide functional value
-   - Prioritize CLARITY and READABILITY over aesthetics
-   - Keep syntax SIMPLE and basic
-   - Only add visual elements if the user EXPLICITLY requests them"""
-
-            prompt = f"""You are an expert in {diagram_type} diagrams. Your specialty is improving existing diagrams while maintaining simplicity and functionality.
-
-{context}
-
-CURRENT DIAGRAM:
-```
-{diagram_code}
-```
-
-USER'S IMPROVEMENT REQUEST:
-{improvement_request}
-
-CRITICAL INSTRUCTIONS FOR IMPROVEMENT:
-1. PRESERVE the fundamental structure and logic of the original diagram
-2. Apply ONLY the improvements requested by the user, without adding extra elements
-3. If the user does NOT mention visual elements (colors, styles, shapes), DO NOT add them
-4. If user requests more detail, EXPAND the diagram with relevant information in a SIMPLE way
-5. If user requests simplification, CONSOLIDATE elements while maintaining clarity
-{visual_instructions}
-7. The improved diagram must be BETTER but MAINTAIN SIMPLICITY
-8. Generate ONLY the improved diagram code, no additional text
-9. DO NOT include markdown code blocks (```)
-10. The code must be 100% valid and renderable
-11. Maintain language consistency (Spanish/English) from the original diagram
-12. Use proper indentation for readable code
-13. DO NOT add colors, styles, or decorations unless the user SPECIFICALLY requests them
-14. FORBIDDEN to use: classDef, style, class, cssClass, fill, stroke, or any CSS style definitions
-15. REMOVE any classDef or style that exists in the original diagram, unless the user asks to keep them
-
-GENERATE THE IMPROVED DIAGRAM CODE:"""
-
-        # Prepare request payload
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": f"You are an expert in improving {diagram_type} diagrams. Maintain simplicity while applying requested improvements."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "temperature": self.parameters.get("temperature", 0.7),
-            "max_tokens": self.parameters.get("max_tokens", 2048),
-            "top_p": self.parameters.get("top_p", 1.0)
-        }
-
+        prompt = build_improve_diagram_prompt(diagram_code, improvement_request, diagram_type, language)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payload
-                )
-                
-                if response.status_code != 200:
-                    raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
-                
-                result = response.json()
-                
-                if not result.get("choices") or len(result["choices"]) == 0:
-                    raise ValueError("OpenAI returned empty response")
-                
-                improved_code = result["choices"][0]["message"]["content"].strip()
-                
-                # Remove markdown code blocks if present
-                if improved_code.startswith("```"):
-                    lines = improved_code.split("\n")
-                    if lines[0].startswith("```"):
-                        lines = lines[1:]
-                    if lines and lines[-1].startswith("```"):
-                        lines = lines[:-1]
-                    improved_code = "\n".join(lines).strip()
-
-                return improved_code
-
+            response = await self._chat_completion([
+                {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
+                {"role": "user", "content": prompt},
+            ])
+            return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
             raise ValueError(f"Error improving diagram with OpenAI: {str(e)}")
-
-    def _get_mermaid_context(self, language: str) -> str:
-        """Get Mermaid-specific context and best practices."""
-        if language == "es":
-            return """CONTEXTO MERMAID:
-Mermaid soporta múltiples tipos de diagramas:
-- flowchart/graph: Diagramas de flujo (usa TD, LR, TB para dirección)
-- sequenceDiagram: Diagramas de secuencia con actores y mensajes
-- classDiagram: Diagramas de clases UML
-- stateDiagram-v2: Máquinas de estado
-- erDiagram: Diagramas entidad-relación
-- gantt: Diagramas de Gantt para cronogramas
-- pie: Gráficos circulares
-- gitGraph: Grafos de Git
-
-REGLAS IMPORTANTES:
-- Usa SOLO la sintaxis básica de Mermaid
-- NO uses classDef, style, o cualquier definición de estilos CSS
-- NO agregues colores (fill, stroke, etc.)
-- NO uses cssClass o class para aplicar estilos
-- Usa solo nodos básicos: [], {}, (), [[]], [()]
-- Flechas simples: -->, ---|texto|, etc.
-- Subgrafos SOLO si son necesarios para la organización lógica"""
-        else:
-            return """MERMAID CONTEXT:
-Mermaid supports multiple diagram types:
-- flowchart/graph: Flow diagrams (use TD, LR, TB for direction)
-- sequenceDiagram: Sequence diagrams with actors and messages
-- classDiagram: UML class diagrams
-- stateDiagram-v2: State machines
-- erDiagram: Entity-relationship diagrams
-- gantt: Gantt charts for timelines
-- pie: Pie charts
-- gitGraph: Git graphs
-
-IMPORTANT RULES:
-- Use ONLY basic Mermaid syntax
-- DO NOT use classDef, style, or any CSS style definitions
-- DO NOT add colors (fill, stroke, etc.)
-- DO NOT use cssClass or class to apply styles
-- Use only basic nodes: [], {}, (), [[]], [()]
-- Simple arrows: -->, ---|text|, etc.
-- Subgraphs ONLY if necessary for logical organization"""
-
-    def _get_plantuml_context(self, language: str) -> str:
-        """Get PlantUML-specific context and best practices."""
-        if language == "es":
-            return """CONTEXTO PLANTUML:
-PlantUML es una herramienta para diagramas UML y técnicos:
-- Diagramas de secuencia
-- Diagramas de casos de uso
-- Diagramas de clases
-- Diagramas de actividad
-- Diagramas de componentes
-- Diagramas de estado
-- Diagramas de objetos
-
-REGLAS IMPORTANTES PARA PLANTUML:
-1. SIEMPRE usa la sintaxis MÁS SIMPLE Y COMPATIBLE
-2. EVITA diseños complejos, colores excesivos y skinparams innecesarios
-3. Prioriza CLARIDAD y COMPATIBILIDAD sobre estética
-4. Solo usa features básicas que funcionen en cualquier versión de PlantUML
-5. Minimiza el uso de skinparam (solo si es absolutamente necesario)
-6. Usa nombres cortos y descriptivos
-7. Prefiere diagramas simples y legibles"""
-        else:
-            return """PLANTUML CONTEXT:
-PlantUML is a tool for UML and technical diagrams:
-- Sequence diagrams
-- Use case diagrams
-- Class diagrams
-- Activity diagrams
-- Component diagrams
-- State diagrams
-- Object diagrams
-
-IMPORTANT RULES FOR PLANTUML:
-1. ALWAYS use the SIMPLEST AND MOST COMPATIBLE syntax
-2. AVOID complex designs, excessive colors, and unnecessary skinparams
-3. Prioritize CLARITY and COMPATIBILITY over aesthetics
-4. Only use basic features that work in any PlantUML version
-5. Minimize skinparam usage (only if absolutely necessary)
-6. Use short and descriptive names
-7. Prefer simple and readable diagrams"""
 
     async def chat_with_context(
         self,
         messages: list[dict],
         diagram_code: str,
         diagram_type: str,
-        language: str = "es"
+        language: str = "es",
     ) -> str:
-        """
-        Conversación con contexto de historial y diagrama usando OpenAI.
-        """
-        if language == "es":
-            system_content = f"""Eres un asistente experto en diagramas {diagram_type}. El usuario está trabajando en el siguiente diagrama y quiere conversar sobre él.
-
-DIAGRAMA ACTUAL:
-```
-{diagram_code}
-```
-
-Responde de forma clara y útil en español. No modifiques el diagrama a menos que se te pida explícitamente."""
-        else:
-            system_content = f"""You are an expert assistant in {diagram_type} diagrams. The user is working on the following diagram and wants to discuss it.
-
-CURRENT DIAGRAM:
-```
-{diagram_code}
-```
-
-Respond clearly and helpfully in English. Do not modify the diagram unless explicitly asked."""
-
+        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
         api_messages = [{"role": "system", "content": system_content}]
         for msg in messages:
             api_messages.append({"role": msg["role"], "content": msg["content"]})
 
-        payload = {
-            "model": self.model,
-            "messages": api_messages,
-            "temperature": self.parameters.get("temperature", 0.7),
-            "max_tokens": self.parameters.get("max_tokens", 2048),
-            "top_p": self.parameters.get("top_p", 1.0)
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payload
-                )
-
-                if response.status_code != 200:
-                    raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
-
-                result = response.json()
-
-                if not result.get("choices") or len(result["choices"]) == 0:
-                    raise ValueError("OpenAI returned empty response")
-
-                return result["choices"][0]["message"]["content"].strip()
-
+            return await self._chat_completion(api_messages)
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
             raise ValueError(f"Error in chat with OpenAI: {str(e)}")
 
     async def summarize_conversation(
-        self,
-        messages: list[dict],
-        language: str = "es"
+        self, messages: list[dict], language: str = "es"
     ) -> str:
-        """
-        Genera un resumen compacto de una conversación usando OpenAI.
-        """
-        conversation_text = "\n".join(
-            f"{'Usuario' if m['role'] == 'user' else 'Asistente'}: {m['content']}"
-            if language == "es"
-            else f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
-            for m in messages
-        )
-
-        if language == "es":
-            user_prompt = f"""Resume la siguiente conversación de forma compacta, capturando los puntos clave, decisiones tomadas y contexto importante. El resumen será usado como contexto inicial para continuar la conversación en una nueva sesión.
-
-CONVERSACIÓN:
-{conversation_text}
-
-RESUMEN COMPACTO:"""
-        else:
-            user_prompt = f"""Summarize the following conversation compactly, capturing key points, decisions made, and important context. The summary will be used as initial context to continue the conversation in a new session.
-
-CONVERSATION:
-{conversation_text}
-
-COMPACT SUMMARY:"""
-
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": "You are a helpful assistant that creates concise conversation summaries."},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": self.parameters.get("temperature", 0.5),
-            "max_tokens": self.parameters.get("max_tokens", 1024),
-            "top_p": self.parameters.get("top_p", 1.0)
-        }
-
+        user_prompt = build_summarize_prompt(messages, language)
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    json=payload
-                )
-
-                if response.status_code != 200:
-                    raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
-
-                result = response.json()
-
-                if not result.get("choices") or len(result["choices"]) == 0:
-                    raise ValueError("OpenAI returned empty response")
-
-                return result["choices"][0]["message"]["content"].strip()
-
+            return await self._chat_completion(
+                [
+                    {"role": "system", "content": SUMMARIZE_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.5,
+                max_tokens=1024,
+            )
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
@@ -744,5 +202,4 @@ COMPACT SUMMARY:"""
 
     @property
     def provider_name(self) -> str:
-        """Provider name."""
         return "OpenAI GPT"
