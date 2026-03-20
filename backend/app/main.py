@@ -20,6 +20,8 @@ from app.api.v1.folders.routes import router as folders_router
 from app.api.v1.folders.schemas import FolderInDB
 from app.api.v1.ai_providers.routes import router as ai_providers_router
 from app.api.v1.ai_providers.schemas import UserAISettingsInDB
+from app.api.v1.chat_sessions.routes import router as chat_sessions_router
+from app.api.v1.chat_sessions.schemas import ChatSessionInDB, ChatMessageInDB
 from app.api.v1.subscriptions.routes import router as subscriptions_router
 from app.api.v1.subscriptions.webhook_routes import router as webhooks_router
 from app.api.v1.subscriptions.schemas import (
@@ -52,7 +54,9 @@ async def lifespan(app: FastAPI):
             SubscriptionInDB,
             StripeConfigInDB,
             WebhookEventInDB,
-            PromptHistoryInDB
+            PromptHistoryInDB,
+            ChatSessionInDB,
+            ChatMessageInDB,
         ],
     )
 
@@ -87,6 +91,7 @@ app.include_router(ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", t
 app.include_router(subscriptions_router, prefix=settings.API_V1_PREFIX, tags=["Subscriptions"])
 app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX, tags=["Webhooks"])
 app.include_router(prompt_history_router, prefix=settings.API_V1_PREFIX)
+app.include_router(chat_sessions_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

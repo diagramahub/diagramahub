@@ -50,6 +50,16 @@ import {
   PaginatedPromptHistory,
   PromptHistoryEntry
 } from '../types/promptHistory';
+import {
+  ChatSession,
+  ChatMessage,
+  ChatSessionWithMessages,
+  CreateChatSessionRequest,
+  SendMessageRequest,
+  UpdateMessageStatusRequest,
+  UpdateSessionTitleRequest,
+  UpdateSessionModelRequest
+} from '../types/chat';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -361,6 +371,55 @@ class ApiService {
 
   async getAdminCount(): Promise<{ count: number }> {
     const response = await this.api.get<{ count: number }>('/api/v1/users/admin-count');
+    return response.data;
+  }
+
+  // ============================================================================
+  // Chat Sessions API
+  // ============================================================================
+
+  async createChatSession(data: CreateChatSessionRequest): Promise<ChatSession> {
+    const response = await this.api.post<ChatSession>('/api/v1/chat-sessions', data);
+    return response.data;
+  }
+
+  async getChatSessions(diagramId: string): Promise<ChatSession[]> {
+    const response = await this.api.get<ChatSession[]>('/api/v1/chat-sessions', {
+      params: { diagram_id: diagramId }
+    });
+    return response.data;
+  }
+
+  async getChatSessionWithMessages(sessionId: string): Promise<ChatSessionWithMessages> {
+    const response = await this.api.get<ChatSessionWithMessages>(`/api/v1/chat-sessions/${sessionId}`);
+    return response.data;
+  }
+
+  async updateChatSessionTitle(sessionId: string, data: UpdateSessionTitleRequest): Promise<ChatSession> {
+    const response = await this.api.put<ChatSession>(`/api/v1/chat-sessions/${sessionId}`, data);
+    return response.data;
+  }
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    await this.api.delete(`/api/v1/chat-sessions/${sessionId}`);
+  }
+
+  async updateChatSessionModel(sessionId: string, data: UpdateSessionModelRequest): Promise<ChatSession> {
+    const response = await this.api.put<ChatSession>(`/api/v1/chat-sessions/${sessionId}/model`, data);
+    return response.data;
+  }
+
+  async sendChatMessage(sessionId: string, data: SendMessageRequest): Promise<ChatMessage> {
+    const response = await this.api.post<ChatMessage>(`/api/v1/chat-sessions/${sessionId}/messages`, data);
+    return response.data;
+  }
+
+  async deleteChatMessage(sessionId: string, messageId: string): Promise<void> {
+    await this.api.delete(`/api/v1/chat-sessions/${sessionId}/messages/${messageId}`);
+  }
+
+  async updateMessageStatus(sessionId: string, messageId: string, data: UpdateMessageStatusRequest): Promise<ChatMessage> {
+    const response = await this.api.put<ChatMessage>(`/api/v1/chat-sessions/${sessionId}/messages/${messageId}/status`, data);
     return response.data;
   }
 }
