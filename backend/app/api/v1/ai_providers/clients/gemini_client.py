@@ -654,6 +654,120 @@ User "1" -- "*" Order
 @enduml
 ```"""
 
+    async def chat_with_context(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es"
+    ) -> str:
+        """
+        Conversación con contexto de historial y diagrama usando Gemini.
+        """
+        if language == "es":
+            system_prompt = f"""Eres un asistente experto en diagramas {diagram_type}. El usuario está trabajando en el siguiente diagrama y quiere conversar sobre él.
+
+DIAGRAMA ACTUAL:
+```
+{diagram_code}
+```
+
+Responde de forma clara y útil en español. No modifiques el diagrama a menos que se te pida explícitamente."""
+        else:
+            system_prompt = f"""You are an expert assistant in {diagram_type} diagrams. The user is working on the following diagram and wants to discuss it.
+
+CURRENT DIAGRAM:
+```
+{diagram_code}
+```
+
+Respond clearly and helpfully in English. Do not modify the diagram unless explicitly asked."""
+
+        # Build conversation text for Gemini (single prompt with history)
+        conversation_parts = [system_prompt, ""]
+        for msg in messages:
+            role_label = "Usuario" if msg["role"] == "user" else "Asistente"
+            if language != "es":
+                role_label = "User" if msg["role"] == "user" else "Assistant"
+            conversation_parts.append(f"{role_label}: {msg['content']}")
+
+        if language == "es":
+            conversation_parts.append("Asistente:")
+        else:
+            conversation_parts.append("Assistant:")
+
+        full_prompt = "\n".join(conversation_parts)
+
+        generation_config = genai.GenerationConfig(
+            temperature=self.parameters.get("temperature", 0.7),
+            top_p=self.parameters.get("top_p", 0.95),
+            max_output_tokens=self.parameters.get("max_output_tokens", 2048),
+        )
+
+        try:
+            response = self.model_instance.generate_content(
+                full_prompt,
+                generation_config=generation_config
+            )
+
+            if not response or not response.text:
+                raise ValueError("Gemini returned empty response")
+
+            return response.text.strip()
+
+        except Exception as e:
+            raise ValueError(f"Error in chat with Gemini: {str(e)}")
+
+    async def summarize_conversation(
+        self,
+        messages: list[dict],
+        language: str = "es"
+    ) -> str:
+        """
+        Genera un resumen compacto de una conversación usando Gemini.
+        """
+        conversation_text = "\n".join(
+            f"{'Usuario' if m['role'] == 'user' else 'Asistente'}: {m['content']}"
+            if language == "es"
+            else f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+            for m in messages
+        )
+
+        if language == "es":
+            prompt = f"""Resume la siguiente conversación de forma compacta, capturando los puntos clave, decisiones tomadas y contexto importante. El resumen será usado como contexto inicial para continuar la conversación en una nueva sesión.
+
+CONVERSACIÓN:
+{conversation_text}
+
+RESUMEN COMPACTO:"""
+        else:
+            prompt = f"""Summarize the following conversation compactly, capturing key points, decisions made, and important context. The summary will be used as initial context to continue the conversation in a new session.
+
+CONVERSATION:
+{conversation_text}
+
+COMPACT SUMMARY:"""
+
+        generation_config = genai.GenerationConfig(
+            temperature=self.parameters.get("temperature", 0.5),
+            top_p=self.parameters.get("top_p", 0.95),
+            max_output_tokens=self.parameters.get("max_output_tokens", 1024),
+        )
+
+        try:
+            response = self.model_instance.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+
+            if not response or not response.text:
+                raise ValueError("Gemini returned empty response")
+
+            return response.text.strip()
+
+        except Exception as e:
+            raise ValueError(f"Error summarizing conversation with Gemini: {str(e)}")
+
     @property
     def provider_name(self) -> str:
         """Provider name."""

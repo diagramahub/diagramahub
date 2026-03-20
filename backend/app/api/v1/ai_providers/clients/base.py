@@ -130,6 +130,52 @@ class BaseAIClient(ABC):
         """
         pass
 
+    @abstractmethod
+    async def chat_with_context(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es"
+    ) -> str:
+        """
+        Conversación con contexto de historial y diagrama.
+
+        Args:
+            messages: Lista de mensajes [{"role": "user"|"assistant", "content": "..."}]
+            diagram_code: Código del diagrama actual
+            diagram_type: Tipo de diagrama (mermaid, plantuml)
+            language: Idioma (es, en)
+
+        Returns:
+            Respuesta textual de la IA
+
+        Raises:
+            ValueError: Si la generación falla
+        """
+        pass
+
+    @abstractmethod
+    async def summarize_conversation(
+        self,
+        messages: list[dict],
+        language: str = "es"
+    ) -> str:
+        """
+        Genera un resumen compacto de una conversación para compactación de contexto.
+
+        Args:
+            messages: Lista de mensajes [{"role": "user"|"assistant", "content": "..."}]
+            language: Idioma (es, en)
+
+        Returns:
+            Resumen compacto de la conversación
+
+        Raises:
+            ValueError: Si la generación falla
+        """
+        pass
+
     @property
     @abstractmethod
     def provider_name(self) -> str:

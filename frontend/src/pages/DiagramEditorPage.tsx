@@ -10,12 +10,13 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import api from '../services/api';
 import { ProjectWithDiagrams, Diagram, CreateDiagramRequest, UpdateDiagramRequest } from '../types/project';
-import { UserAISettings, AI_PROVIDER_NAMES } from '../types/ai';
+import { UserAISettings } from '../types/ai';
 import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Tooltip from '../components/Tooltip';
 import CodeEditor from '../components/CodeEditor';
 import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
+import AIChatPanel from '../components/AIChatPanel';
 import NoAIProviderModal from '../components/NoAIProviderModal';
 import UpgradePlanModal from '../components/UpgradePlanModal';
 import MarkdownEditor from '../components/MarkdownEditor';
@@ -146,6 +147,7 @@ export default function DiagramEditorPage() {
   // Export options state
   const [showExportModal, setShowExportModal] = useState(false);
   const [showImproveAIModal, setShowImproveAIModal] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
   const [exportOptions, setExportOptions] = useState({
     includeDescription: true,
     includeProjectInfo: true,
@@ -1447,7 +1449,7 @@ export default function DiagramEditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
       {/* Navbar Unificado */}
       {!isFullscreen && (
         <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
@@ -1660,28 +1662,20 @@ export default function DiagramEditorPage() {
 
               {/* Grupo de acciones */}
               <div className="flex items-center gap-2">
-                <Tooltip content={t('ai.improveDiagram.button')} position="bottom">
-                  <button
+                <button
                     onClick={() => {
                       if (validateAIConfiguration()) {
-                        setShowImproveAIModal(true);
+                        setShowChatPanel(true);
                       }
                     }}
-                    disabled={!diagramCode.trim()}
-                    className="px-3 py-1.5 text-xs font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                    className="p-1.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
                   >
-                    {aiSettings?.default_provider ? (
-                       <img 
-                         src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
-                         alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
-                         className="w-4 h-4 object-contain brightness-0 invert"
-                       />
-                    ) : (
-                       <span>⚡</span>
-                    )}
-                    <span className="hidden lg:inline">{t('ai.improveDiagram.button')}</span>
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                      <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                      <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
+                    </svg>
                   </button>
-                </Tooltip>
                 <Tooltip content="Exportar como PNG o PDF" position="bottom">
                   <button
                     onClick={() => setShowExportModal(true)}
@@ -2103,17 +2097,11 @@ export default function DiagramEditorPage() {
                             </>
                           ) : (
                             <>
-                              {aiSettings?.default_provider ? (
-                                <img 
-                                  src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
-                                  alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
-                                  className="w-3.5 h-3.5 object-contain brightness-0 invert"
-                                />
-                              ) : (
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                              )}
+                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                                <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                                <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
+                              </svg>
                               <span>Corregir</span>
                             </>
                           )}
@@ -2201,15 +2189,11 @@ export default function DiagramEditorPage() {
                       </>
                     ) : (
                       <>
-                        {aiSettings?.default_provider ? (
-                           <img 
-                             src={`/images/ai-providers/${aiSettings.default_provider}.svg`} 
-                             alt={AI_PROVIDER_NAMES[aiSettings.default_provider]}
-                             className="w-4 h-4 object-contain brightness-0 invert"
-                           />
-                        ) : (
-                           <span>⚡</span>
-                        )}
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                          <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                          <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
+                        </svg>
                         <span>{t('ai.generate.button')}</span>
                       </>
                     )}
@@ -2655,6 +2639,19 @@ export default function DiagramEditorPage() {
             )}
           </div>
         </main>
+
+        {/* Panel de Chat con IA */}
+        {showChatPanel && (
+          <AIChatPanel
+            isOpen={showChatPanel}
+            onClose={() => setShowChatPanel(false)}
+            diagramCode={diagramCode}
+            diagramType={currentDiagram?.diagram_type || 'mermaid'}
+            diagramId={diagramId || ''}
+            onAcceptImprovement={handleImproveAccept}
+            aiSettings={aiSettings}
+          />
+        )}
       </div>
 
       {/* Export Modal */}

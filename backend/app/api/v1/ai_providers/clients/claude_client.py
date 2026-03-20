@@ -608,6 +608,134 @@ IMPORTANT RULES FOR PLANTUML:
 6. Use short and descriptive names
 7. Prefer simple and readable diagrams"""
 
+    async def chat_with_context(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es"
+    ) -> str:
+        """
+        Conversación con contexto de historial y diagrama usando Claude.
+        """
+        if language == "es":
+            system_content = f"""Eres un asistente experto en diagramas {diagram_type}. El usuario está trabajando en el siguiente diagrama y quiere conversar sobre él.
+
+DIAGRAMA ACTUAL:
+```
+{diagram_code}
+```
+
+Responde de forma clara y útil en español. No modifiques el diagrama a menos que se te pida explícitamente."""
+        else:
+            system_content = f"""You are an expert assistant in {diagram_type} diagrams. The user is working on the following diagram and wants to discuss it.
+
+CURRENT DIAGRAM:
+```
+{diagram_code}
+```
+
+Respond clearly and helpfully in English. Do not modify the diagram unless explicitly asked."""
+
+        # Claude uses a top-level "system" field, not a system message in the array
+        api_messages = []
+        for msg in messages:
+            api_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        payload = {
+            "model": self.model,
+            "max_tokens": self.parameters.get("max_tokens", 2048),
+            "temperature": self.parameters.get("temperature", 0.7),
+            "system": system_content,
+            "messages": api_messages
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/messages",
+                    headers=self.headers,
+                    json=payload
+                )
+
+                if response.status_code != 200:
+                    raise ValueError(f"Claude API error: {response.status_code} - {response.text}")
+
+                result = response.json()
+
+                if not result.get("content") or len(result["content"]) == 0:
+                    raise ValueError("Claude returned empty response")
+
+                return result["content"][0]["text"].strip()
+
+        except httpx.TimeoutException:
+            raise ValueError("Claude API request timed out")
+        except Exception as e:
+            raise ValueError(f"Error in chat with Claude: {str(e)}")
+
+    async def summarize_conversation(
+        self,
+        messages: list[dict],
+        language: str = "es"
+    ) -> str:
+        """
+        Genera un resumen compacto de una conversación usando Claude.
+        """
+        conversation_text = "\n".join(
+            f"{'Usuario' if m['role'] == 'user' else 'Asistente'}: {m['content']}"
+            if language == "es"
+            else f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+            for m in messages
+        )
+
+        if language == "es":
+            user_prompt = f"""Resume la siguiente conversación de forma compacta, capturando los puntos clave, decisiones tomadas y contexto importante. El resumen será usado como contexto inicial para continuar la conversación en una nueva sesión.
+
+CONVERSACIÓN:
+{conversation_text}
+
+RESUMEN COMPACTO:"""
+        else:
+            user_prompt = f"""Summarize the following conversation compactly, capturing key points, decisions made, and important context. The summary will be used as initial context to continue the conversation in a new session.
+
+CONVERSATION:
+{conversation_text}
+
+COMPACT SUMMARY:"""
+
+        payload = {
+            "model": self.model,
+            "max_tokens": self.parameters.get("max_tokens", 1024),
+            "temperature": self.parameters.get("temperature", 0.5),
+            "system": "You are a helpful assistant that creates concise conversation summaries.",
+            "messages": [
+                {"role": "user", "content": user_prompt}
+            ]
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/messages",
+                    headers=self.headers,
+                    json=payload
+                )
+
+                if response.status_code != 200:
+                    raise ValueError(f"Claude API error: {response.status_code} - {response.text}")
+
+                result = response.json()
+
+                if not result.get("content") or len(result["content"]) == 0:
+                    raise ValueError("Claude returned empty response")
+
+                return result["content"][0]["text"].strip()
+
+        except httpx.TimeoutException:
+            raise ValueError("Claude API request timed out")
+        except Exception as e:
+            raise ValueError(f"Error summarizing conversation with Claude: {str(e)}")
+
     @property
     def provider_name(self) -> str:
         """Provider name."""
