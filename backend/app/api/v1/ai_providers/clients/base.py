@@ -190,34 +190,7 @@ class BaseAIClient(ABC):
     def _build_prompt(self, diagram_code: str, diagram_type: str, language: str) -> str:
         """
         Build optimized prompt for AI generation.
-
-        Args:
-            diagram_code: Diagram code
-            diagram_type: Type of diagram
-            language: Target language
-
-        Returns:
-            Formatted prompt
+        Delegado al módulo centralizado de prompts.
         """
-        lang_map = {
-            "es": "español",
-            "en": "English"
-        }
-        lang_text = lang_map.get(language, "español")
-
-        return f"""Eres un experto en análisis de diagramas técnicos. Analiza el siguiente código de diagrama tipo {diagram_type} y genera una descripción técnica clara y concisa en {lang_text}.
-
-Código del diagrama:
-```
-{diagram_code}
-```
-
-Genera una descripción profesional en formato Markdown que incluya:
-1. **Propósito**: Objetivo principal del diagrama
-2. **Componentes clave**: Elementos principales y su función
-3. **Flujo/Relaciones**: Cómo interactúan los componentes
-4. **Casos de uso**: Cuándo usar este diagrama
-
-La descripción debe ser técnica pero comprensible, entre 100-300 palabras.
-
-IMPORTANTE: Devuelve ÚNICAMENTE el contenido Markdown puro, SIN bloques de código (```markdown), SIN encabezados adicionales, SIN prefijos. Comienza directamente con el contenido de la descripción."""
+        from ..prompts import build_description_prompt
+        return build_description_prompt(diagram_code, diagram_type, language)
