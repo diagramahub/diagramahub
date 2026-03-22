@@ -1,7 +1,9 @@
 """
 Google Gemini AI client implementation.
+Usa el nuevo SDK google-genai (reemplaza al deprecado google-generativeai).
 """
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from typing import Dict, Any
 from .base import BaseAIClient
 from ..prompts import (
@@ -19,22 +21,22 @@ class GeminiClient(BaseAIClient):
 
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash-lite", parameters: Dict[str, Any] = None):
         super().__init__(api_key, model, parameters or {})
-        genai.configure(api_key=self.api_key)
-        self.model_instance = genai.GenerativeModel(self.model)
+        self.client = genai.Client(api_key=self.api_key)
 
-    def _gen_config(self, temperature: float | None = None, max_tokens: int | None = None) -> genai.GenerationConfig:
-        """Configuración de generación reutilizable."""
-        return genai.GenerationConfig(
+    def _gen_config(self, temperature: float | None = None, max_tokens: int | None = None) -> types.GenerateContentConfig:
+        """Configuracion de generacion reutilizable."""
+        return types.GenerateContentConfig(
             temperature=temperature or self.parameters.get("temperature", 0.7),
             top_p=self.parameters.get("top_p", 0.95),
             max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 2048),
         )
 
     async def _generate(self, prompt: str, temperature: float | None = None, max_tokens: int | None = None) -> str:
-        """Llamada genérica a generate_content de Gemini."""
-        response = self.model_instance.generate_content(
-            prompt,
-            generation_config=self._gen_config(temperature, max_tokens),
+        """Llamada generica async a generate_content de Gemini."""
+        response = await self.client.aio.models.generate_content(
+            model=self.model,
+            contents=prompt,
+            config=self._gen_config(temperature, max_tokens),
         )
         if not response or not response.text:
             raise ValueError("Gemini returned empty response")
@@ -51,9 +53,8 @@ class GeminiClient(BaseAIClient):
 
     async def validate_api_key(self) -> bool:
         try:
-            genai.configure(api_key=self.api_key)
-            models = genai.list_models()
-            return len(list(models)) > 0
+            result = self.client.models.list()
+            return len(list(result)) > 0
         except Exception as e:
             print(f"Gemini API key validation failed: {str(e)}")
             return False
@@ -77,42 +78,10 @@ class GeminiClient(BaseAIClient):
         from ...diagrams.fix_prompts import build_fix_prompt
         import json
         import re
-        import httpx
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
-
-        # Gemini fix usa la API REST directa para mayor control
-        base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.3,
-                "maxOutputTokens": self.parameters.get("max_tokens", 2048),
-                "topP": self.parameters.get("top_p", 1.0),
-            },
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(
-                    f"{base_url}:generateContent?key={self.api_key}",
-                    json=payload,
-                )
-
-                if response.status_code == 429:
-                    raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
-                if response.status_code != 200:
-                    raise ValueError(f"Gemini API error: {response.status_code} - {response.text}")
-
-                result = response.json()
-                if not result.get("candidates") or len(result["candidates"]) == 0:
-                    raise ValueError("Gemini returned empty response")
-
-                candidate = result["candidates"][0]
-                if not candidate.get("content") or not candidate["content"].get("parts"):
-                    raise ValueError("Gemini response missing content")
-
-                response_text = candidate["content"]["parts"][0]["text"].strip()
+            response_text = await self._generate(prompt, temperature=0.3)
 
             json_match = re.search(r'\{[\s\S]*\}', response_text)
             if not json_match:
@@ -153,7 +122,7 @@ class GeminiClient(BaseAIClient):
     ) -> str:
         system_prompt = build_chat_system_prompt(diagram_code, diagram_type, language)
 
-        # Gemini usa un prompt único con historial concatenado
+        # Gemini usa un prompt unico con historial concatenado
         conversation_parts = [system_prompt, ""]
         for msg in messages:
             role_label = "Usuario" if msg["role"] == "user" else "Asistente"
