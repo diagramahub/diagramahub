@@ -1,10 +1,13 @@
 """
 Business logic layer for diagrams.
 """
+from typing import Optional
+
 from fastapi import HTTPException, status
 from .interfaces import IDiagramRepository
 from .schemas import DiagramCreate, DiagramUpdate, DiagramResponse, MermaidConfig
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
+from ..shared_links.interfaces import ISharedLinkRepository
 
 
 class DiagramService:
@@ -15,12 +18,14 @@ class DiagramService:
         diagram_repository: IDiagramRepository,
         project_repository,
         config_embedder: MermaidConfigEmbedder = None,
-        config_parser: MermaidConfigParser = None
+        config_parser: MermaidConfigParser = None,
+        shared_link_repository: Optional[ISharedLinkRepository] = None,
     ):
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
         self.config_embedder = config_embedder or MermaidConfigEmbedder()
         self.config_parser = config_parser or MermaidConfigParser()
+        self.shared_link_repository = shared_link_repository
 
     async def create_diagram(
         self, diagram_data: DiagramCreate, project_id: str, user_id: str
@@ -203,6 +208,12 @@ class DiagramService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this diagram"
             )
+
+        # Revoke any active shared links for this diagram before deleting
+        if self.shared_link_repository:
+            active_link = await self.shared_link_repository.get_active_by_diagram(diagram_id)
+            if active_link:
+                await self.shared_link_repository.revoke(str(active_link.id))
 
         await self.diagram_repository.delete(diagram_id)
         return {"message": "Diagram deleted successfully"}
