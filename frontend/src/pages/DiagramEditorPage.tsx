@@ -21,6 +21,7 @@ import NoAIProviderModal from '../components/NoAIProviderModal';
 import UpgradePlanModal from '../components/UpgradePlanModal';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { DiagramDiffView } from '../components/DiagramDiffView';
+import ShareDiagramModal from '../components/ShareDiagramModal';
 import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
 import { FixDiagramResponse } from '../types/ai';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
@@ -207,6 +208,10 @@ export default function DiagramEditorPage() {
   const [fixError, setFixError] = useState<string | null>(null);
   const [isFixing, setIsFixing] = useState(false);
 
+  // Share diagram state
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+
   // Use error detection hook
   const diagramError = useDiagramErrorDetection(
     diagramCode,
@@ -238,6 +243,27 @@ export default function DiagramEditorPage() {
     }
     return true;
   };
+
+  // Check shared status when diagram loads
+  const checkSharedStatus = async (id: string) => {
+    try {
+      const link = await api.getSharedLinkByDiagram(id);
+      // Check if link is active and not expired
+      const isActive = link.is_active;
+      const isNotExpired = !link.expires_at || new Date(link.expires_at) > new Date();
+      setIsShared(isActive && isNotExpired);
+    } catch {
+      setIsShared(false);
+    }
+  };
+
+  useEffect(() => {
+    if (diagramId) {
+      checkSharedStatus(diagramId);
+    } else {
+      setIsShared(false);
+    }
+  }, [diagramId]);
 
   // Inline editing state
   const [isEditingDiagramTitle, setIsEditingDiagramTitle] = useState(false);
@@ -1550,6 +1576,7 @@ export default function DiagramEditorPage() {
                   style={{ width: `${Math.max(editingDiagramTitle.length * 8, 100)}px` }}
                 />
               ) : (
+                <>
                 <Tooltip content="Haz clic para editar el nombre" position="bottom">
                   <button
                     onClick={handleStartEditDiagramTitle}
@@ -1561,6 +1588,17 @@ export default function DiagramEditorPage() {
                     </svg>
                   </button>
                 </Tooltip>
+                {isShared && (
+                  <Tooltip content="Este diagrama tiene un enlace compartido activo" position="bottom">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                      Compartido
+                    </span>
+                  </Tooltip>
+                )}
+                </>
               )}
             </div>
             {/* Controles centrales */}
@@ -1683,6 +1721,23 @@ export default function DiagramEditorPage() {
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                </Tooltip>
+                <Tooltip content={!diagramId ? "Guarda el diagrama primero para compartir" : "Compartir diagrama"} position="bottom">
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    disabled={!diagramId}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
+                      !diagramId
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : isShared
+                          ? 'text-purple-700 hover:bg-purple-50'
+                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                     </svg>
                   </button>
                 </Tooltip>
@@ -3041,6 +3096,19 @@ export default function DiagramEditorPage() {
         currentUsage={upgradePlan?.currentUsage || 0}
         limit={upgradePlan?.limit || 0}
       />
+
+      {/* Share Diagram Modal */}
+      {diagramId && (
+        <ShareDiagramModal
+          isOpen={showShareModal}
+          onClose={() => {
+            setShowShareModal(false);
+            checkSharedStatus(diagramId);
+          }}
+          diagramId={diagramId}
+          diagramTitle={diagramTitle}
+        />
+      )}
 
       {/* Fix Diagram Diff Modal */}
       {showFixDiffModal && fixResult && (
