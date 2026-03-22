@@ -27,6 +27,9 @@ from app.api.v1.subscriptions.webhook_routes import router as webhooks_router
 from app.api.v1.subscriptions.schemas import (
     PlanInDB, SubscriptionInDB, StripeConfigInDB, WebhookEventInDB
 )
+from app.api.v1.shared_links.schemas import SharedLinkInDB, AccessLogInDB
+from app.api.v1.shared_links.routes import router as shared_links_router
+from app.api.v1.shared_links.public_routes import router as shared_links_public_router
 from app.core.config import settings
 
 
@@ -57,6 +60,8 @@ async def lifespan(app: FastAPI):
             PromptHistoryInDB,
             ChatSessionInDB,
             ChatMessageInDB,
+            SharedLinkInDB,
+            AccessLogInDB,
         ],
     )
 
@@ -92,6 +97,8 @@ app.include_router(subscriptions_router, prefix=settings.API_V1_PREFIX, tags=["S
 app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX, tags=["Webhooks"])
 app.include_router(prompt_history_router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat_sessions_router, prefix=settings.API_V1_PREFIX)
+app.include_router(shared_links_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links"])
+app.include_router(shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"])
 
 
 @app.get("/")

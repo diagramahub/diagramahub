@@ -60,14 +60,31 @@ import {
   UpdateSessionTitleRequest,
   UpdateSessionModelRequest
 } from '../types/chat';
+import {
+  SharedLink,
+  SharedLinkInfo,
+  SharedDiagram,
+  CreateSharedLinkRequest,
+  UpdateSharedLinkRequest,
+  VerifyAccessCodeRequest
+} from '../types/sharing';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
 class ApiService {
   private api: AxiosInstance;
+  private publicApi: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
+      baseURL: API_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Public axios instance without auth interceptor (for shared link public endpoints)
+    this.publicApi = axios.create({
       baseURL: API_URL,
       headers: {
         'Content-Type': 'application/json',
@@ -420,6 +437,48 @@ class ApiService {
 
   async updateMessageStatus(sessionId: string, messageId: string, data: UpdateMessageStatusRequest): Promise<ChatMessage> {
     const response = await this.api.put<ChatMessage>(`/api/v1/chat-sessions/${sessionId}/messages/${messageId}/status`, data);
+    return response.data;
+  }
+
+  // ============================================================================
+  // Shared Links API (Authenticated - for diagram owners)
+  // ============================================================================
+
+  async createSharedLink(data: CreateSharedLinkRequest): Promise<SharedLink> {
+    const response = await this.api.post<SharedLink>('/api/v1/shared-links', data);
+    return response.data;
+  }
+
+  async getSharedLinkByDiagram(diagramId: string): Promise<SharedLink> {
+    const response = await this.api.get<SharedLink>(`/api/v1/shared-links/diagram/${diagramId}`);
+    return response.data;
+  }
+
+  async updateSharedLink(linkId: string, data: UpdateSharedLinkRequest): Promise<SharedLink> {
+    const response = await this.api.put<SharedLink>(`/api/v1/shared-links/${linkId}`, data);
+    return response.data;
+  }
+
+  async revokeSharedLink(linkId: string): Promise<void> {
+    await this.api.delete(`/api/v1/shared-links/${linkId}`);
+  }
+
+  // ============================================================================
+  // Shared Links API (Public - no auth, for visitors)
+  // ============================================================================
+
+  async getSharedLinkInfo(token: string): Promise<SharedLinkInfo> {
+    const response = await this.publicApi.get<SharedLinkInfo>(`/api/v1/shared/${token}/info`);
+    return response.data;
+  }
+
+  async getSharedDiagram(token: string): Promise<SharedDiagram> {
+    const response = await this.publicApi.get<SharedDiagram>(`/api/v1/shared/${token}/diagram`);
+    return response.data;
+  }
+
+  async verifyAccessCode(token: string, data: VerifyAccessCodeRequest): Promise<SharedDiagram> {
+    const response = await this.publicApi.post<SharedDiagram>(`/api/v1/shared/${token}/verify`, data);
     return response.data;
   }
 }
