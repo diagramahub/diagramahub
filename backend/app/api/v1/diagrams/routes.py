@@ -9,6 +9,7 @@ from app.api.v1.ai_providers.repository import AIProviderRepository
 from app.api.v1.subscriptions.usage_limiter import UsageLimiter
 from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
 from app.api.v1.subscriptions.plan_repository import PlanRepository
+from app.api.v1.shared_links.repository import SharedLinkRepository
 from .repository import DiagramRepository
 from .services import DiagramService
 from .fix_service import (
@@ -27,7 +28,8 @@ def get_diagram_service() -> DiagramService:
     """Get diagram service instance."""
     return DiagramService(
         diagram_repository=DiagramRepository(),
-        project_repository=ProjectRepository()
+        project_repository=ProjectRepository(),
+        shared_link_repository=SharedLinkRepository(),
     )
 
 
