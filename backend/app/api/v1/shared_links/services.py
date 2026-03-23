@@ -345,6 +345,19 @@ class SharedLinkService:
             diagram_title=diagram.title,
         )
 
+    async def _get_owner_display_name(self, user_id: str) -> Optional[str]:
+        """Get the display name of a user by their ID."""
+        from beanie import PydanticObjectId
+        from ..users.schemas import UserInDB
+
+        try:
+            user = await UserInDB.get(PydanticObjectId(user_id))
+            if user:
+                return user.full_name or user.email.split("@")[0]
+        except Exception:
+            pass
+        return None
+
     async def get_shared_diagram(
         self, token: str, client_ip: str
     ) -> SharedDiagramResponse:
@@ -385,6 +398,8 @@ class SharedLinkService:
 
         await self._log_access(token, client_ip, "success")
 
+        owner_name = await self._get_owner_display_name(link.user_id)
+
         return SharedDiagramResponse(
             title=diagram.title,
             description=diagram.description or None,
@@ -393,6 +408,7 @@ class SharedLinkService:
             rendered_content=diagram.content,
             config=diagram.config.model_dump() if diagram.config else {},
             allow_copy_code=link.allow_copy_code,
+            owner_name=owner_name,
         )
 
     async def verify_access_code(
@@ -456,6 +472,8 @@ class SharedLinkService:
 
         await self._log_access(token, client_ip, "success")
 
+        owner_name = await self._get_owner_display_name(link.user_id)
+
         return SharedDiagramResponse(
             title=diagram.title,
             description=diagram.description or None,
@@ -464,6 +482,7 @@ class SharedLinkService:
             rendered_content=diagram.content,
             config=diagram.config.model_dump() if diagram.config else {},
             allow_copy_code=link.allow_copy_code,
+            owner_name=owner_name,
         )
 
     async def _log_access(self, token: str, client_ip: str, result: str) -> None:

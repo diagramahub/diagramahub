@@ -1307,6 +1307,22 @@ export default function DiagramEditorPage() {
     }
   };
 
+  const handleDownloadSource = () => {
+    const isPlantuml = currentDiagram?.diagram_type === 'plantuml';
+    const extension = isPlantuml ? '.puml' : '.mmd';
+    const mimeType = 'text/plain;charset=utf-8';
+    const filename = `${diagramTitle.replace(/\s+/g, '_')}${extension}`;
+
+    const blob = new Blob([diagramCode], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    setShowExportModal(false);
+  };
+
   // Folder functions
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => {
@@ -2766,6 +2782,20 @@ export default function DiagramEditorPage() {
                     {exporting ? 'Exportando...' : 'PDF'}
                   </button>
                 </div>
+              </div>
+
+              {/* Download source file */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500 mb-3">Descargar código fuente</p>
+                <button
+                  onClick={handleDownloadSource}
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  {currentDiagram?.diagram_type === 'plantuml' ? '.puml (PlantUML)' : '.mmd (Mermaid)'}
+                </button>
               </div>
             </div>
 
