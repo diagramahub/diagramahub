@@ -661,6 +661,65 @@ export default function SharedDiagramPage() {
         )}
       </div>
 
+      {/* Footer - Status bar similar to editor */}
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-2 flex-shrink-0">
+        <div className="flex items-center justify-between text-xs">
+          {/* Left side info */}
+          <div className="flex items-center gap-4">
+            {/* Diagram type */}
+            <div className="flex items-center gap-1.5 text-gray-500">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : 'Mermaid'}</span>
+            </div>
+
+            <div className="h-3 w-px bg-gray-300"></div>
+
+            {/* Zoom */}
+            <div className="flex items-center gap-1 text-gray-500">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+              <span>Zoom: {zoomPercent}%</span>
+            </div>
+
+            <div className="h-3 w-px bg-gray-300"></div>
+
+            {/* Shared badge */}
+            <div className="flex items-center gap-1.5 text-purple-600">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              <span>Vista compartida</span>
+            </div>
+          </div>
+
+          {/* Right side - Owner name */}
+          <div className="flex items-center gap-2">
+            {diagram?.owner_name && (
+              <div className="flex items-center gap-1.5 text-gray-500">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Creado por <span className="font-medium text-gray-700">{diagram.owner_name}</span></span>
+              </div>
+            )}
+            <span className="text-xs text-gray-400">•</span>
+            <span
+              className="text-xs font-semibold"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              DiagramaHub
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

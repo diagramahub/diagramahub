@@ -34,6 +34,7 @@ export interface SharedDiagram {
   rendered_content: string;
   config: Record<string, unknown>;
   allow_copy_code: boolean;
+  owner_name: string | null;
 }
 
 /** Request model for creating a shared link - matches CreateSharedLinkRequest */
