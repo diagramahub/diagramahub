@@ -9,6 +9,9 @@ echo "  DiagramaHub Backend"
 echo "  Environment: ${APP_ENV:-production}"
 echo "  Port: ${PORT}"
 echo "============================================"
+echo "DEBUG: JWT_SECRET is set: $([ -n \"$JWT_SECRET\" ] && echo 'YES' || echo 'NO')"
+echo "DEBUG: MONGO_URI is set: $([ -n \"$MONGO_URI\" ] && echo 'YES' || echo 'NO')"
+echo "DEBUG: Total env vars: $(env | wc -l)"
 
 if [ "${APP_ENV}" = "development" ] || [ "${APP_ENV}" = "dev" ]; then
     echo "Starting in DEVELOPMENT mode (with hot reload)..."
