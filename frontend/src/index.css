@@ -193,3 +193,63 @@ code {
   border-top: 1px solid rgba(0,0,0,0.1);
   margin: 0.5em 0;
 }
+
+/* EasyMDE WYSIWYG overrides for description panel */
+.markdown-wysiwyg .EasyMDEContainer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.markdown-wysiwyg .EasyMDEContainer .CodeMirror {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  font-size: 14px;
+  padding: 8px;
+}
+
+.markdown-wysiwyg .EasyMDEContainer .CodeMirror-focused {
+  border: none;
+  box-shadow: none;
+}
+
+.markdown-wysiwyg .editor-toolbar {
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 4px 8px;
+  opacity: 1;
+}
+
+.markdown-wysiwyg .editor-toolbar button {
+  color: #6b7280 !important;
+  border: none !important;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+}
+
+.markdown-wysiwyg .editor-toolbar button:hover {
+  background: #ede9fe !important;
+  color: #7c3aed !important;
+}
+
+.markdown-wysiwyg .editor-toolbar button.active {
+  background: #ede9fe !important;
+  color: #7c3aed !important;
+}
+
+.markdown-wysiwyg .editor-toolbar i.separator {
+  border-left-color: #e5e7eb;
+}
+
+.markdown-wysiwyg .editor-statusbar {
+  display: none;
+}
+
+.markdown-wysiwyg .editor-preview,
+.markdown-wysiwyg .editor-preview-side {
+  padding: 16px;
+  font-size: 14px;
+}
