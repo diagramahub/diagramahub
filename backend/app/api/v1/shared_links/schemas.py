@@ -143,3 +143,4 @@ class SharedDiagramResponse(BaseModel):
     rendered_content: str
     config: dict
     allow_copy_code: bool
+    owner_name: Optional[str] = None  # Display name of the diagram owner
