@@ -9,6 +9,7 @@ import OnboardingWizardPage from './pages/OnboardingWizardPage';
 import InstallationWizardPage from './pages/InstallationWizardPage';
 import ProfilePage from './pages/ProfilePage';
 import SharedDiagramPage from './pages/SharedDiagramPage';
+import NotFoundPage from './pages/NotFoundPage';
 import InstallationGuard from './components/InstallationGuard';
 
 function App() {
@@ -69,7 +70,7 @@ function App() {
                     }
                   />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </InstallationGuard>
             </AuthProvider>
