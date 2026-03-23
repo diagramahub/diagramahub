@@ -190,6 +190,7 @@ export default function DiagramEditorPage() {
   const [showFloatingSidebar, setShowFloatingSidebar] = useState(false);
   const [showCodeView, setShowCodeView] = useState(false);
   const [showDescriptionView, setShowDescriptionView] = useState(false);
+  const [isDescriptionPinned, setIsDescriptionPinned] = useState(false);
   const [showAppearanceEditor, setShowAppearanceEditor] = useState(false);
 
   // AI generation state
@@ -280,7 +281,9 @@ export default function DiagramEditorPage() {
         setShowCodeView(false);
       }
       if (!target.closest('.floating-description') && !target.closest('.floating-description-button')) {
-        setShowDescriptionView(false);
+        if (!isDescriptionPinned) {
+          setShowDescriptionView(false);
+        }
       }
       if (!target.closest('.floating-appearance') && !target.closest('.floating-appearance-button')) {
         setShowAppearanceEditor(false);
@@ -289,7 +292,7 @@ export default function DiagramEditorPage() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isDescriptionPinned]);
 
   // Update current time every second
   useEffect(() => {
@@ -2230,56 +2233,7 @@ export default function DiagramEditorPage() {
               </div>
             )}
 
-            {/* Description View Modal */}
-            {showDescriptionView && (
-              <div className="floating-description absolute top-4 left-4 z-30 w-[32rem] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramDescription')}</h3>
-                    <button
-                      onClick={() => setShowDescriptionView(false)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  <button
-                    onClick={handleGenerateDescription}
-                    disabled={generatingDescription || !diagramCode.trim()}
-                    className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                  >
-                    {generatingDescription ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>{t('ai.generate.generating')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
-                          <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
-                          <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
-                        </svg>
-                        <span>{t('ai.generate.button')}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <MarkdownEditor
-                    value={diagramDescription}
-                    onChange={setDiagramDescription}
-                    placeholder={t('editor.descriptionPlaceholder')}
-                    minHeight="500px"
-                  />
-                </div>
-              </div>
-            )}
+            {/* Description View - removed, now a side panel outside main */}
 
             {/* Appearance Editor Modal */}
             {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml') && (
@@ -2710,6 +2664,83 @@ export default function DiagramEditorPage() {
             )}
           </div>
         </main>
+
+        {/* Description Side Panel */}
+        {showDescriptionView && (
+          <div className="floating-description w-[24rem] border-l border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramDescription')}</h3>
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* Pin button */}
+                  <button
+                    onClick={() => setIsDescriptionPinned(!isDescriptionPinned)}
+                    className={`p-1.5 rounded transition-colors ${
+                      isDescriptionPinned
+                        ? 'text-purple-600 bg-purple-50 hover:bg-purple-100'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    }`}
+                    title={isDescriptionPinned ? 'Desfijar panel' : 'Fijar panel'}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isDescriptionPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="17" x2="12" y2="22" />
+                      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+                    </svg>
+                  </button>
+                  {/* Close button */}
+                  <button
+                    onClick={() => { setShowDescriptionView(false); setIsDescriptionPinned(false); }}
+                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded hover:bg-gray-100 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {/* AI Generate button */}
+              <button
+                onClick={handleGenerateDescription}
+                disabled={generatingDescription || !diagramCode.trim()}
+                className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                {generatingDescription ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>{t('ai.generate.generating')}</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                      <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                      <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
+                    </svg>
+                    <span>{t('ai.generate.button')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {/* Markdown Editor */}
+            <div className="flex-1 overflow-hidden">
+              <MarkdownEditor
+                value={diagramDescription}
+                onChange={setDiagramDescription}
+                placeholder={t('editor.descriptionPlaceholder')}
+                minHeight="100%"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Panel de Chat con IA */}
         {showChatPanel && (
