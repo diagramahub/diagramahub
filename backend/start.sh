@@ -5,7 +5,7 @@ set -e
 PORT="${PORT:-8000}"
 
 echo "============================================"
-echo "  DiagramaHub Backend"
+echo "  DiagramaHub Backend by Alex Dzul"
 echo "  Environment: ${APP_ENV:-production}"
 echo "  Port: ${PORT}"
 echo "============================================"
