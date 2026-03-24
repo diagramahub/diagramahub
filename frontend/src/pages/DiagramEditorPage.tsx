@@ -191,6 +191,8 @@ export default function DiagramEditorPage() {
   const [showCodeView, setShowCodeView] = useState(false);
   const [showDescriptionView, setShowDescriptionView] = useState(false);
   const [isDescriptionPinned, setIsDescriptionPinned] = useState(false);
+  const [preferredProvider, setPreferredProvider] = useState<string | null>(null);
+  const [preferredModel, setPreferredModel] = useState<string | null>(null);
   const [showAppearanceEditor, setShowAppearanceEditor] = useState(false);
 
   // AI generation state
@@ -462,6 +464,20 @@ export default function DiagramEditorPage() {
           setZoom(diagram.viewport_zoom || 1);
           setPan({ x: diagram.viewport_x || 0, y: diagram.viewport_y || 0 });
 
+          // Restore user preferences
+          if (diagram.user_preferences) {
+            if (diagram.user_preferences.description_pinned) {
+              setIsDescriptionPinned(true);
+              setShowDescriptionView(true);
+            }
+            if (diagram.user_preferences.preferred_provider) {
+              setPreferredProvider(diagram.user_preferences.preferred_provider);
+            }
+            if (diagram.user_preferences.preferred_model) {
+              setPreferredModel(diagram.user_preferences.preferred_model);
+            }
+          }
+
           // If diagram is inside a folder, expand that folder
           if (diagramFolderId) {
             setExpandedFolders(prev => {
@@ -668,6 +684,11 @@ export default function DiagramEditorPage() {
             background_color: backgroundColor,
             background_pattern: backgroundPattern
           },
+          user_preferences: {
+            description_pinned: isDescriptionPinned,
+            preferred_provider: preferredProvider,
+            preferred_model: preferredModel,
+          },
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -723,7 +744,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, preferredProvider, preferredModel]);
 
   // Parse config from content when user manually edits Mermaid code with init block
   useEffect(() => {
@@ -1100,6 +1121,14 @@ export default function DiagramEditorPage() {
     setZoom(newZoom);
     setPan({ x: 0, y: 0 });
   };
+
+  // Ajustar diagrama cuando se abre/cierra el panel de descripción
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleFitToScreen();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [showDescriptionView]);
 
   // Fix diagram handlers
   const handleFixSuccess = (response: FixDiagramResponse) => {
@@ -2752,6 +2781,12 @@ export default function DiagramEditorPage() {
             diagramId={diagramId || ''}
             onAcceptImprovement={handleImproveAccept}
             aiSettings={aiSettings}
+            preferredProvider={preferredProvider}
+            preferredModel={preferredModel}
+            onPreferredModelChange={(provider, model) => {
+              setPreferredProvider(provider);
+              setPreferredModel(model);
+            }}
           />
         )}
       </div>

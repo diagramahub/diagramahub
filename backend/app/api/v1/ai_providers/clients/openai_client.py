@@ -21,7 +21,7 @@ from ..prompts import (
 class OpenAIClient(BaseAIClient):
     """Client for OpenAI GPT."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini", parameters: Dict[str, Any] = None):
+    def __init__(self, api_key: str, model: str = "gpt-4.1-mini", parameters: Dict[str, Any] = None):
         super().__init__(api_key, model, parameters or {})
         self.base_url = "https://api.openai.com/v1"
         self.headers = {
@@ -29,22 +29,15 @@ class OpenAIClient(BaseAIClient):
             "Content-Type": "application/json"
         }
 
-    async def _chat_completion(
-        self,
-        messages: list[dict],
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-    ) -> str:
+    async def _chat_completion(self, messages: list[dict]) -> str:
         """Llamada genérica al endpoint chat/completions de OpenAI."""
-        payload = {
+        payload: dict = {
             "model": self.model,
             "messages": messages,
-            "temperature": temperature or self.parameters.get("temperature", 0.7),
-            "max_tokens": max_tokens or self.parameters.get("max_tokens", 2048),
-            "top_p": self.parameters.get("top_p", 1.0),
+            "max_completion_tokens": self.parameters.get("max_tokens", 2048),
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{self.base_url}/chat/completions",
                 headers=self.headers,
@@ -122,7 +115,6 @@ class OpenAIClient(BaseAIClient):
                     {"role": "system", "content": "You are an expert in fixing syntax errors in technical diagrams. Provide accurate corrections with clear explanations."},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,
             )
 
             json_match = re.search(r'\{[\s\S]*\}', response_text)
@@ -157,7 +149,13 @@ class OpenAIClient(BaseAIClient):
                 {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
                 {"role": "user", "content": prompt},
             ])
-            return clean_code_response(response)
+            cleaned = clean_code_response(response)
+            if not cleaned:
+                raise ValueError(
+                    f"El modelo {self.model} no generó código. "
+                    "Intenta con un modelo más capaz (ej: gpt-5.4-mini o gpt-4.1)."
+                )
+            return cleaned
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
@@ -192,8 +190,6 @@ class OpenAIClient(BaseAIClient):
                     {"role": "system", "content": SUMMARIZE_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.5,
-                max_tokens=1024,
             )
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")

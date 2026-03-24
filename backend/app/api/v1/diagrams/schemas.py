@@ -34,6 +34,13 @@ class DiagramConfig(BaseModel):
     background_pattern: str = Field(default="plain", description="Background pattern (plain, dots, grid)")
 
 
+class DiagramUserPreferences(BaseModel):
+    """Per-diagram user preferences that persist across sessions."""
+    description_pinned: bool = Field(default=False, description="Whether the description panel is pinned open")
+    preferred_provider: Optional[str] = Field(default=None, description="Preferred AI provider for this diagram")
+    preferred_model: Optional[str] = Field(default=None, description="Preferred AI model for this diagram")
+
+
 class DiagramBase(BaseModel):
     """Base diagram model."""
     title: str = Field(..., min_length=1, max_length=100)
@@ -55,6 +62,7 @@ class DiagramUpdate(BaseModel):
     description: Optional[str] = None
     diagram_type: Optional[str] = None
     config: Optional[DiagramConfig] = Field(default=None, description="Diagram configuration object")
+    user_preferences: Optional[DiagramUserPreferences] = Field(default=None, description="User preferences for this diagram")
     folder_id: Optional[str] = None
     viewport_zoom: Optional[float] = Field(None, ge=0.1, le=10.0, description="Zoom level (0.1 to 10.0)")
     viewport_x: Optional[float] = Field(None, description="Viewport X position")
@@ -68,6 +76,7 @@ class DiagramInDB(Document):
     description: Optional[str] = ""
     diagram_type: str
     config: DiagramConfig = Field(default_factory=DiagramConfig, description="Diagram configuration object")
+    user_preferences: DiagramUserPreferences = Field(default_factory=DiagramUserPreferences, description="User preferences")
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float = 1.0
@@ -89,6 +98,7 @@ class DiagramResponse(BaseModel):
     description: Optional[str]
     diagram_type: str
     config: DiagramConfig
+    user_preferences: DiagramUserPreferences = Field(default_factory=DiagramUserPreferences)
     project_id: str
     folder_id: Optional[str] = None
     viewport_zoom: float
