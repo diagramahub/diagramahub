@@ -114,35 +114,51 @@ export const AI_PROVIDER_NAMES: Record<AIProviderType, string> = {
   [AIProviderType.DEEPSEEK]: 'DeepSeek'
 };
 
-export const AI_PROVIDER_MODELS: Record<AIProviderType, string[]> = {
+export interface ModelOption {
+  id: string;
+  recommended?: boolean;
+}
+
+export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
   [AIProviderType.GEMINI]: [
-    'gemini-3.0-pro',
-    'gemini-3.0-flash',
-    'gemini-2.5-pro',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-pro'
+    { id: 'gemini-2.5-flash', recommended: true },
+    { id: 'gemini-2.5-pro' },
+    { id: 'gemini-2.0-flash' },
+    { id: 'gemini-1.5-pro' },
   ],
   [AIProviderType.OPENAI]: [
-  'gpt-4o',        // Balance potencia/costo (muy buena opción general)
-  'gpt-4o-mini',   // Más barato y rápido
-  'gpt-5',         // Más avanzado
-  'gpt-5-mini',    // Balance moderno
-  'gpt-5-nano'     // Ultra low cost / alta concurrencia
+    { id: 'gpt-4.1-mini', recommended: true },
+    { id: 'gpt-4.1-nano' },
+    { id: 'gpt-4.1' },
+    { id: 'gpt-4o-mini' },
+    { id: 'gpt-4o' },
+    { id: 'gpt-5.4-mini' },
+    { id: 'gpt-5.4-nano' },
+    { id: 'gpt-5.4' },
   ],
   [AIProviderType.CLAUDE]: [
-  'claude-haiku-4-5-20251001',
-  'claude-sonnet-4-5-20250929',
-  'claude-opus-4-1-20250805',
-  'claude-opus-4-20250514',
-  'claude-sonnet-4-20250514',
-  'claude-opus-4-5-20251101'
+    { id: 'claude-haiku-4-5-20251001', recommended: true },
+    { id: 'claude-sonnet-4-6' },
   ],
   [AIProviderType.DEEPSEEK]: [
-    'deepseek-chat',
-    'deepseek-coder'
-  ]
+    { id: 'deepseek-chat', recommended: true },
+    { id: 'deepseek-coder' },
+  ],
 };
+
+/** Helper: get the recommended (default) model for a provider */
+export function getRecommendedModel(provider: AIProviderType): string {
+  const models = AI_PROVIDER_MODELS[provider];
+  const rec = models.find((m) => m.recommended);
+  return rec ? rec.id : models[0].id;
+}
+
+/** Helper: check if a model is the recommended one */
+export function isRecommendedModel(provider: AIProviderType, modelId: string): boolean {
+  const models = AI_PROVIDER_MODELS[provider];
+  const rec = models.find((m) => m.recommended);
+  return rec?.id === modelId;
+}
 
 export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_soon'> = {
   [AIProviderType.GEMINI]: 'available',

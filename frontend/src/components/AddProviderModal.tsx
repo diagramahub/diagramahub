@@ -6,7 +6,8 @@ import {
   AI_PROVIDER_NAMES,
   AI_PROVIDER_MODELS,
   AI_PROVIDER_STATUS,
-  AI_PROVIDER_API_KEY_URLS
+  AI_PROVIDER_API_KEY_URLS,
+  getRecommendedModel,
 } from '../types/ai';
 import apiService from '../services/api';
 
@@ -25,7 +26,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
   const [formData, setFormData] = useState<CreateProviderRequest>({
     provider: AIProviderType.GEMINI,
     api_key: '',
-    model: 'gemini-2.0-flash-lite',
+    model: getRecommendedModel(AIProviderType.GEMINI),
     display_name: '',
     is_default: false,
     parameters: {
@@ -42,7 +43,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
       setFormData({
         provider: AIProviderType.GEMINI,
         api_key: '',
-        model: 'gemini-2.0-flash-lite',
+        model: getRecommendedModel(AIProviderType.GEMINI),
         display_name: '',
         is_default: false,
         parameters: {
@@ -56,7 +57,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
   }, [isOpen]);
 
   const handleProviderChange = (provider: AIProviderType) => {
-    const defaultModel = AI_PROVIDER_MODELS[provider][0];
+    const defaultModel = getRecommendedModel(provider);
     setFormData({
       ...formData,
       provider,
@@ -271,9 +272,9 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               }`}
               disabled={!isProviderAvailable}
             >
-              {AI_PROVIDER_MODELS[formData.provider].map((model) => (
-                <option key={model} value={model}>
-                  {model}
+              {AI_PROVIDER_MODELS[formData.provider].map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id}{m.recommended ? ' ★ Recomendado' : ''}
                 </option>
               ))}
             </select>
