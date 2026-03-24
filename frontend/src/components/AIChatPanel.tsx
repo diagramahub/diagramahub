@@ -15,6 +15,9 @@ interface AIChatPanelProps {
   diagramId: string;
   onAcceptImprovement: (code: string) => void;
   aiSettings?: UserAISettings | null;
+  preferredProvider?: string | null;
+  preferredModel?: string | null;
+  onPreferredModelChange?: (provider: string, model: string) => void;
 }
 
 export default function AIChatPanel({
@@ -25,6 +28,9 @@ export default function AIChatPanel({
   diagramId,
   onAcceptImprovement,
   aiSettings,
+  preferredProvider: preferredProviderProp,
+  preferredModel: preferredModelProp,
+  onPreferredModelChange,
 }: AIChatPanelProps) {
   const [activeMode, setActiveMode] = useState<ChatMode>('conversation');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -43,9 +49,11 @@ export default function AIChatPanel({
 
   // Estado para proveedor activo
   const [activeProvider, setActiveProvider] = useState<AIProviderType | null>(
-    aiSettings?.default_provider || null
+    (preferredProviderProp as AIProviderType) || aiSettings?.default_provider || null
   );
-  const [activeModel, setActiveModel] = useState<string | null>(null);
+  const [activeModel, setActiveModel] = useState<string | null>(
+    preferredModelProp || null
+  );
 
   // Sincronizar proveedor cuando cambian aiSettings
   useEffect(() => {
@@ -127,8 +135,11 @@ export default function AIChatPanel({
         const mostRecent = data[0]; // ya vienen ordenadas por updated_at desc
         setActiveSessionId(mostRecent.id);
         await loadMessages(mostRecent.id);
-        // Restaurar proveedor/modelo de la sesión más reciente
-        if (mostRecent.last_provider && mostRecent.last_model) {
+        // Prioridad: preferencia del diagrama > sesión > aiSettings
+        if (preferredProviderProp && preferredModelProp) {
+          setActiveProvider(preferredProviderProp as AIProviderType);
+          setActiveModel(preferredModelProp);
+        } else if (mostRecent.last_provider && mostRecent.last_model) {
           setActiveProvider(mostRecent.last_provider as AIProviderType);
           setActiveModel(mostRecent.last_model);
         }
@@ -198,6 +209,8 @@ export default function AIChatPanel({
   const handleModelChange = async (provider: AIProviderType, model: string) => {
     setActiveProvider(provider);
     setActiveModel(model);
+    // Propagar al diagrama para persistir preferencia
+    onPreferredModelChange?.(provider, model);
     if (activeSessionId) {
       try {
         await apiService.updateChatSessionModel(activeSessionId, { provider, model });

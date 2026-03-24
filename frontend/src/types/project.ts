@@ -14,6 +14,12 @@ export type DiagramConfig = {
   background_pattern?: string;
 };
 
+export type DiagramUserPreferences = {
+  description_pinned?: boolean;
+  preferred_provider?: string | null;
+  preferred_model?: string | null;
+};
+
 export type Diagram = {
   id: string;
   title: string;
@@ -21,6 +27,7 @@ export type Diagram = {
   description?: string;
   diagram_type: string;
   config: DiagramConfig;
+  user_preferences?: DiagramUserPreferences;
   project_id: string;
   folder_id?: string | null;
   viewport_zoom: number;
@@ -75,6 +82,7 @@ export type UpdateDiagramRequest = {
   description?: string;
   diagram_type?: string;
   config?: DiagramConfig;
+  user_preferences?: DiagramUserPreferences;
   folder_id?: string | null;
   viewport_zoom?: number;
   viewport_x?: number;

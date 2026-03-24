@@ -494,16 +494,27 @@ def build_summarize_prompt(
 
 def clean_code_response(text: str) -> str:
     """Limpiar respuesta de IA removiendo bloques de codigo markdown."""
+    import re
+
     text = text.strip()
-    if text.startswith("```markdown"):
-        text = text[len("```markdown"):].strip()
-    elif text.startswith("```"):
+    if not text:
+        return text
+
+    # Remove markdown code fences: ```lang\n...\n```
+    match = re.match(r'^```\w*\s*\n(.*?)```\s*$', text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+
+    # Handle opening fence without closing
+    if text.startswith("```"):
         lines = text.split("\n")
-        if lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].startswith("```"):
+        # Remove first line (```lang or ```)
+        lines = lines[1:]
+        # Remove last line if it's a closing fence
+        if lines and lines[-1].strip().startswith("```"):
             lines = lines[:-1]
         text = "\n".join(lines).strip()
     elif text.endswith("```"):
         text = text[:-3].strip()
+
     return text

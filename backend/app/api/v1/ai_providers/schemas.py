@@ -20,7 +20,7 @@ class AIProviderConfig(BaseModel):
     """Generic configuration for any AI provider."""
     provider: AIProviderType
     api_key: Optional[str] = None  # Will be encrypted in DB, None means keep current when updating
-    model: str = Field(..., description="Model name (e.g., 'gemini-1.5-flash', 'gpt-4')")
+    model: str = Field(..., description="Model name (e.g., 'gemini-2.5-flash', 'gpt-4.1-mini')")
     is_active: bool = True
     is_default: bool = False
 
@@ -54,7 +54,7 @@ class CreateProviderRequest(BaseModel):
     """Request to create a new AI provider configuration."""
     provider: AIProviderType
     api_key: str = Field(..., min_length=10, description="API key from the provider")
-    model: str = Field(default="gemini-1.5-flash", description="Model to use")
+    model: str = Field(default="gemini-2.5-flash", description="Model to use")
     display_name: Optional[str] = None
     parameters: Dict[str, Any] = Field(default_factory=dict)
     is_default: bool = False
@@ -91,7 +91,7 @@ class TestProviderRequest(BaseModel):
     """Request to test an API key before saving."""
     provider: AIProviderType
     api_key: str
-    model: str = Field(default="gemini-1.5-flash")
+    model: str = Field(default="gemini-2.5-flash")
 
 
 class TestProviderResponse(BaseModel):

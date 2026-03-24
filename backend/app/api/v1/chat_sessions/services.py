@@ -32,11 +32,20 @@ CONTEXT_THRESHOLD = 0.80
 MODEL_TOKEN_LIMITS = {
     "gpt-4o": 128000,
     "gpt-4o-mini": 128000,
-    "claude-3-5-sonnet": 200000,
-    "gemini-1.5-pro": 1000000,
-    "gemini-1.5-flash": 1000000,
+    "gpt-5.4": 128000,
+    "gpt-5.4-mini": 128000,
+    "gpt-5.4-nano": 128000,
+    "gpt-4.1": 128000,
+    "gpt-4.1-mini": 128000,
+    "gpt-4.1-nano": 128000,
+    "claude-sonnet-4-6": 1000000,
+    "claude-haiku-4-5-20251001": 200000,
+    "gemini-2.5-flash": 1000000,
+    "gemini-2.5-pro": 1000000,
     "gemini-2.0-flash": 1000000,
+    "gemini-1.5-pro": 1000000,
     "deepseek-chat": 64000,
+    "deepseek-coder": 64000,
 }
 
 DEFAULT_TOKEN_LIMIT = 64000
@@ -200,23 +209,44 @@ class ChatSessionService:
             )
 
             start = time.time()
-            improved_code = await client.improve_diagram(
-                diagram_code=diagram_code,
-                improvement_request=content,
-                diagram_type=diagram_type,
-                language=language,
-            )
+            used_model = actual_model
+            try:
+                improved_code = await client.improve_diagram(
+                    diagram_code=diagram_code,
+                    improvement_request=content,
+                    diagram_type=diagram_type,
+                    language=language,
+                )
+            except ValueError as model_err:
+                # Si el modelo seleccionado falla y hay un modelo base diferente, reintentar
+                if actual_model != provider_config.model:
+                    logger.info("Model %s failed (%s), retrying with %s", actual_model, model_err, provider_config.model)
+                    fallback_client = AIClientFactory.create_client(
+                        provider=provider_config.provider,
+                        api_key=provider_config.api_key,
+                        model=provider_config.model,
+                        parameters=provider_config.parameters,
+                    )
+                    improved_code = await fallback_client.improve_diagram(
+                        diagram_code=diagram_code,
+                        improvement_request=content,
+                        diagram_type=diagram_type,
+                        language=language,
+                    )
+                    used_model = provider_config.model
+                else:
+                    raise
             generation_time = time.time() - start
 
             ai_msg = await self.message_repo.create_message(
                 session_id=session_id,
                 role=MessageRole.ASSISTANT,
-                content=content,
+                content=f"Diagrama mejorado según: {content}",
                 mode=MessageMode.IMPROVEMENT,
                 improved_code=improved_code,
                 improvement_status=ImprovementStatus.PENDING,
                 provider_used=provider_config.provider.value,
-                model_used=actual_model,
+                model_used=used_model,
                 generation_time=generation_time,
             )
 
