@@ -194,7 +194,7 @@ export default function ChatInput({ onSend, disabled = false, activeMode, onMode
             {showProviderMenu && (
               <div className="absolute bottom-full right-0 mb-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1 max-h-72 overflow-y-auto">
                 {activeProviders.map((p) => {
-                  const models = AI_PROVIDER_MODELS[p.provider] || [p.model];
+                  const models = AI_PROVIDER_MODELS[p.provider] || [{ id: p.model }];
                   return (
                     <div key={p.provider}>
                       <div className="px-3 py-1.5 flex items-center gap-2 border-b border-gray-100">
@@ -207,22 +207,27 @@ export default function ChatInput({ onSend, disabled = false, activeMode, onMode
                           {AI_PROVIDER_NAMES[p.provider]}
                         </span>
                       </div>
-                      {models.map((model) => {
-                        const isSelected = activeProvider === p.provider && activeModel === model;
+                      {models.map((m) => {
+                        const isSelected = activeProvider === p.provider && activeModel === m.id;
                         return (
                           <button
-                            key={`${p.provider}-${model}`}
+                            key={`${p.provider}-${m.id}`}
                             type="button"
-                            onClick={() => { onModelChange(p.provider, model); setShowProviderMenu(false); }}
+                            onClick={() => { onModelChange(p.provider, m.id); setShowProviderMenu(false); }}
                             className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left hover:bg-gray-50 transition-colors ${
                               isSelected ? 'bg-purple-50' : ''
                             }`}
                           >
-                            <span className={`text-xs truncate flex-1 ${isSelected ? 'text-purple-700 font-medium' : 'text-gray-600'}`}>
-                              {model}
+                            <span className={`text-xs truncate ${isSelected ? 'text-purple-700 font-medium' : 'text-gray-600'}`}>
+                              {m.id}
                             </span>
+                            {m.recommended && (
+                              <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-semibold bg-purple-100 text-purple-700 rounded-full">
+                                Recomendado
+                              </span>
+                            )}
                             {isSelected && (
-                              <svg className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5 text-purple-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                             )}

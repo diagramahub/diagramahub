@@ -5,7 +5,7 @@ import {
   UpdateProviderRequest,
   AI_PROVIDER_NAMES,
   AI_PROVIDER_MODELS,
-  AI_PROVIDER_API_KEY_URLS
+  AI_PROVIDER_API_KEY_URLS,
 } from '../types/ai';
 import apiService from '../services/api';
 
@@ -286,9 +286,9 @@ export default function EditProviderModal({
                 errors.model ? 'border-red-500' : 'border-gray-300'
               }`}
             >
-              {AI_PROVIDER_MODELS[provider.provider].map((model) => (
-                <option key={model} value={model}>
-                  {model}
+              {AI_PROVIDER_MODELS[provider.provider].map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id}{m.recommended ? ' ★ Recomendado' : ''}
                 </option>
               ))}
             </select>

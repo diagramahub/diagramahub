@@ -18,7 +18,7 @@ from ..prompts import (
 class ClaudeClient(BaseAIClient):
     """Client for Anthropic Claude."""
 
-    def __init__(self, api_key: str, model: str = "claude-3-5-sonnet-20241022", parameters: Dict[str, Any] = None):
+    def __init__(self, api_key: str, model: str = "claude-haiku-4-5-20251001", parameters: Dict[str, Any] = None):
         super().__init__(api_key, model, parameters or {})
         self.base_url = "https://api.anthropic.com/v1"
         self.headers = {
