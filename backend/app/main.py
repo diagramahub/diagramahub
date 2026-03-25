@@ -30,6 +30,8 @@ from app.api.v1.subscriptions.schemas import (
 from app.api.v1.shared_links.schemas import SharedLinkInDB, AccessLogInDB
 from app.api.v1.shared_links.routes import router as shared_links_router
 from app.api.v1.shared_links.public_routes import router as shared_links_public_router
+from app.api.v1.integrations.routes import router as integrations_router
+from app.api.v1.integrations.schemas import VendorConfigInDB
 from app.core.config import settings
 
 
@@ -62,6 +64,7 @@ async def lifespan(app: FastAPI):
             ChatMessageInDB,
             SharedLinkInDB,
             AccessLogInDB,
+            VendorConfigInDB,
         ],
     )
 
@@ -99,6 +102,7 @@ app.include_router(prompt_history_router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat_sessions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(shared_links_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links"])
 app.include_router(shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"])
+app.include_router(integrations_router, prefix=settings.API_V1_PREFIX, tags=["Integrations (Admin)"])
 
 
 @app.get("/")

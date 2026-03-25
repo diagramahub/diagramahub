@@ -53,7 +53,24 @@
     "loggingIn": "Iniciando sesión...",
     "registering": "Creando cuenta...",
     "logoutConfirm": "¿Estás seguro de cerrar sesión?",
-    "logoutMessage": "Tu sesión actual se cerrará"
+    "logoutMessage": "Tu sesión actual se cerrará",
+    "forgotPasswordTitle": "Recupera tu contraseña",
+    "forgotPasswordSubtitle": "Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña",
+    "sendResetLink": "Enviar enlace de recuperación",
+    "sendingResetLink": "Enviando...",
+    "resetLinkSent": "Si el correo existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.",
+    "backToLogin": "Volver a iniciar sesión",
+    "emailServiceUnavailable": "El servicio de correo no está disponible en este momento. Contacta al administrador.",
+    "resetRequestError": "Ocurrió un error al procesar tu solicitud. Intenta de nuevo más tarde.",
+    "resetPasswordSubtitle": "Ingresa tu nueva contraseña para restablecer el acceso a tu cuenta",
+    "newPassword": "Nueva contraseña",
+    "confirmNewPassword": "Confirmar nueva contraseña",
+    "resetPasswordButton": "Restablecer contraseña",
+    "resettingPassword": "Restableciendo...",
+    "resetPasswordSuccess": "Tu contraseña ha sido restablecida exitosamente. Serás redirigido al inicio de sesión.",
+    "redirectingToLogin": "Redirigiendo al inicio de sesión en {{seconds}} segundos...",
+    "resetTokenInvalid": "El enlace de restablecimiento es inválido o ha expirado.",
+    "requestNewResetLink": "Solicitar un nuevo enlace de recuperación"
   },
   "validation": {
     "required": "Este campo es requerido",
@@ -438,6 +455,77 @@
     "deletedItemHistory": "Historial de prompts",
     "redirectCountdown": "Serás redirigido al inicio de sesión en {{seconds}} segundos.",
     "understoodButton": "Entendido"
+  },
+  "integrations": {
+    "title": "Integraciones",
+    "subtitle": "Conecta y gestiona los servicios externos de tu plataforma",
+    "categories": {
+      "email": "Email",
+      "payment": "Pasarela de Pagos"
+    },
+    "tabs": {
+      "available": "Disponibles",
+      "connected": "Conectadas"
+    },
+    "filterCategory": "Categoría",
+    "filterAll": "Todas",
+    "status": {
+      "configured": "Configurado",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "default": "Predeterminado",
+      "activePayment": "Pasarela Activa",
+      "tested": "Probado",
+      "testFailed": "Test fallido",
+      "notTested": "No probado"
+    },
+    "connect": "Conectar",
+    "alreadyConnected": "Conectado",
+    "noConnected": "No tienes integraciones conectadas aún",
+    "goToAvailable": "Ver integraciones disponibles",
+    "noVendorsInCategory": "No hay integraciones en esta categoría",
+    "noDefaultEmailWarning": "No hay motor de email predeterminado configurado. Las funciones de envío de correo (recuperación de contraseña, notificaciones) están deshabilitadas.",
+    "editVendor": "Editar",
+    "deleteVendor": "Eliminar",
+    "testConnection": "Probar",
+    "setAsDefault": "Predeterminado",
+    "activateForPayments": "Activar",
+    "catalog": {
+      "resendDesc": "Servicio de envío de emails transaccionales con API moderna y fácil de integrar.",
+      "stripeDesc": "Pasarela de pagos para cobros recurrentes con tarjetas de crédito y débito."
+    },
+    "form": {
+      "vendorType": "Tipo de Vendor",
+      "selectVendor": "Selecciona un vendor",
+      "displayName": "Nombre para mostrar",
+      "displayNamePlaceholder": "Ej: Mi cuenta de Resend",
+      "apiKey": "Clave API",
+      "apiKeyPlaceholder": "Ingresa tu clave API",
+      "fromEmail": "Email remitente",
+      "fromEmailPlaceholder": "noreply@tudominio.com",
+      "secretKey": "Clave Secreta",
+      "secretKeyPlaceholder": "sk_...",
+      "publishableKey": "Clave Pública",
+      "publishableKeyPlaceholder": "pk_...",
+      "webhookSecret": "Webhook Secret",
+      "webhookSecretPlaceholder": "whsec_...",
+      "leaveBlankToKeep": "Dejar vacío para mantener el valor actual"
+    },
+    "messages": {
+      "vendorCreated": "Integración conectada exitosamente",
+      "vendorUpdated": "Integración actualizada exitosamente",
+      "vendorDeleted": "Integración eliminada exitosamente",
+      "testSuccess": "Conexión exitosa",
+      "testFailed": "Conexión fallida",
+      "setDefaultSuccess": "Integración establecida como predeterminada",
+      "activateSuccess": "Integración activada para pagos",
+      "deleteConfirm": "¿Estás seguro de que quieres eliminar esta integración?",
+      "mustTestFirst": "La integración debe pasar una prueba de conexión primero"
+    },
+    "vendors": {
+      "resend": "Resend",
+      "stripe": "Stripe"
+    }
   },
   "ai": {
     "title": "Integraciones de IA",

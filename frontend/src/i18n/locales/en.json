@@ -53,7 +53,24 @@
     "loggingIn": "Logging in...",
     "registering": "Creating account...",
     "logoutConfirm": "Are you sure you want to logout?",
-    "logoutMessage": "Your current session will be closed"
+    "logoutMessage": "Your current session will be closed",
+    "forgotPasswordTitle": "Recover your password",
+    "forgotPasswordSubtitle": "Enter your email address and we'll send you a link to reset your password",
+    "sendResetLink": "Send reset link",
+    "sendingResetLink": "Sending...",
+    "resetLinkSent": "If the email exists in our system, you'll receive a link to reset your password. Check your inbox.",
+    "backToLogin": "Back to login",
+    "emailServiceUnavailable": "The email service is currently unavailable. Contact the administrator.",
+    "resetRequestError": "An error occurred while processing your request. Please try again later.",
+    "resetPasswordSubtitle": "Enter your new password to reset access to your account",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "resetPasswordButton": "Reset password",
+    "resettingPassword": "Resetting...",
+    "resetPasswordSuccess": "Your password has been reset successfully. You will be redirected to login.",
+    "redirectingToLogin": "Redirecting to login in {{seconds}} seconds...",
+    "resetTokenInvalid": "The reset link is invalid or has expired.",
+    "requestNewResetLink": "Request a new reset link"
   },
   "validation": {
     "required": "This field is required",
@@ -336,6 +353,77 @@
     "deletedItemHistory": "Prompt history",
     "redirectCountdown": "You will be redirected to login in {{seconds}} seconds.",
     "understoodButton": "Got it"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "subtitle": "Connect and manage your platform's external services",
+    "categories": {
+      "email": "Email",
+      "payment": "Payment Gateway"
+    },
+    "tabs": {
+      "available": "Available",
+      "connected": "Connected"
+    },
+    "filterCategory": "Category",
+    "filterAll": "All",
+    "status": {
+      "configured": "Configured",
+      "active": "Active",
+      "inactive": "Inactive",
+      "default": "Default",
+      "activePayment": "Active Gateway",
+      "tested": "Tested",
+      "testFailed": "Test failed",
+      "notTested": "Not tested"
+    },
+    "connect": "Connect",
+    "alreadyConnected": "Connected",
+    "noConnected": "No integrations connected yet",
+    "goToAvailable": "Browse available integrations",
+    "noVendorsInCategory": "No integrations in this category",
+    "noDefaultEmailWarning": "No default email engine configured. Email sending features (password recovery, notifications) are disabled.",
+    "editVendor": "Edit",
+    "deleteVendor": "Delete",
+    "testConnection": "Test",
+    "setAsDefault": "Set Default",
+    "activateForPayments": "Activate",
+    "catalog": {
+      "resendDesc": "Transactional email service with a modern, easy-to-integrate API.",
+      "stripeDesc": "Payment gateway for recurring credit and debit card charges."
+    },
+    "form": {
+      "vendorType": "Vendor Type",
+      "selectVendor": "Select a vendor",
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "E.g: My Resend Account",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "Enter your API key",
+      "fromEmail": "From Email",
+      "fromEmailPlaceholder": "noreply@yourdomain.com",
+      "secretKey": "Secret Key",
+      "secretKeyPlaceholder": "sk_...",
+      "publishableKey": "Publishable Key",
+      "publishableKeyPlaceholder": "pk_...",
+      "webhookSecret": "Webhook Secret",
+      "webhookSecretPlaceholder": "whsec_...",
+      "leaveBlankToKeep": "Leave blank to keep current value"
+    },
+    "messages": {
+      "vendorCreated": "Integration connected successfully",
+      "vendorUpdated": "Integration updated successfully",
+      "vendorDeleted": "Integration removed successfully",
+      "testSuccess": "Connection successful",
+      "testFailed": "Connection failed",
+      "setDefaultSuccess": "Integration set as default",
+      "activateSuccess": "Integration activated for payments",
+      "deleteConfirm": "Are you sure you want to remove this integration?",
+      "mustTestFirst": "The integration must pass a connection test first"
+    },
+    "vendors": {
+      "resend": "Resend",
+      "stripe": "Stripe"
+    }
   },
   "ai": {
     "title": "AI Integrations",

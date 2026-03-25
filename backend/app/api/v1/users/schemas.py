@@ -103,9 +103,8 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class ChangePasswordRequest(BaseModel):
-    """Schema for authenticated password change."""
-    current_password: str
+class SimplifiedChangePasswordRequest(BaseModel):
+    """Schema for authenticated password change (no current password required)."""
     new_password: str = Field(..., min_length=8)
 
     @field_validator("new_password")

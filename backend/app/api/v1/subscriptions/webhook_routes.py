@@ -13,20 +13,20 @@ from .payment_providers.stripe_provider import StripePaymentProvider
 router = APIRouter()
 
 
-def get_webhook_handler() -> WebhookHandler:
-    """Get webhook handler instance."""
-    try:
-        payment_provider = StripePaymentProvider.from_env()
-    except ValueError:
-        # Si no hay credenciales, no se pueden procesar webhooks
-        payment_provider = None
-    
+async def get_webhook_handler() -> WebhookHandler:
+    """Get webhook handler instance.
+
+    Tries to load Stripe credentials from the DB first (active payment
+    vendor), falling back to .env for gradual migration.
+    """
+    payment_provider = await StripePaymentProvider.from_db_or_env()
+
     subscription_service = SubscriptionService(
         repository=SubscriptionRepository(),
         plan_repository=PlanRepository(),
         payment_provider=payment_provider
     )
-    
+
     return WebhookHandler(
         subscription_service=subscription_service,
         payment_provider=payment_provider
@@ -54,7 +54,7 @@ async def stripe_webhook(
     payload = await request.body()
     
     # Obtener handler
-    handler = get_webhook_handler()
+    handler = await get_webhook_handler()
     
     if not handler.payment_provider:
         return {
