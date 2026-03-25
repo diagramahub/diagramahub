@@ -9,6 +9,8 @@ import OnboardingWizardPage from './pages/OnboardingWizardPage';
 import InstallationWizardPage from './pages/InstallationWizardPage';
 import ProfilePage from './pages/ProfilePage';
 import SharedDiagramPage from './pages/SharedDiagramPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
 import InstallationGuard from './components/InstallationGuard';
 
@@ -29,6 +31,8 @@ function App() {
                   <Route path="/setup" element={<InstallationWizardPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route
                     path="/onboarding"
                     element={

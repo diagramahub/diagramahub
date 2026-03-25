@@ -98,7 +98,10 @@ const LoginPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
+            <Link to="/forgot-password" className="block font-medium text-purple-600 hover:text-purple-500 text-sm">
+              {t('auth.forgotPassword')}
+            </Link>
             <p className="text-sm text-gray-600">
               {t('auth.noAccount')}{' '}
               <Link to="/register" className="font-medium text-purple-600 hover:text-purple-500">

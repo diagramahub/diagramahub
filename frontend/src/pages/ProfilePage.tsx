@@ -9,6 +9,7 @@ import DeleteAccountModal from '../components/DeleteAccountModal';
 import AccountDeletedModal from '../components/AccountDeletedModal';
 import AIIntegrationsSection from '../components/AIIntegrationsSection';
 import PlanList from '../components/admin/PlanList';
+import IntegrationsSection from '../components/admin/IntegrationsSection';
 import SubscriptionCard from '../components/subscription/SubscriptionCard';
 import UsageIndicator from '../components/subscription/UsageIndicator';
 import PlanSelector from '../components/subscription/PlanSelector';
@@ -77,7 +78,6 @@ export default function ProfilePage() {
   const [timezone, setTimezone] = useState(user?.timezone || 'UTC');
 
   // Estados para cambio de contraseña
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -169,7 +169,7 @@ export default function ProfilePage() {
     setSuccess('');
 
     // Validaciones
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       setError(t('profile.allFieldsRequired'));
       return;
     }
@@ -188,11 +188,9 @@ export default function ProfilePage() {
 
     try {
       await apiService.changePassword({
-        current_password: currentPassword,
         new_password: newPassword
       });
       setSuccess(t('profile.passwordUpdated'));
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setIsChangingPassword(false);
@@ -559,20 +557,6 @@ export default function ProfilePage() {
             ) : (
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.currentPassword')}
-                  </label>
-                  <input
-                    id="currentPassword"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="••••••••"
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
                     {t('profile.newPassword')}
                   </label>
@@ -613,7 +597,6 @@ export default function ProfilePage() {
                     type="button"
                     onClick={() => {
                       setIsChangingPassword(false);
-                      setCurrentPassword('');
                       setNewPassword('');
                       setConfirmPassword('');
                       setError('');
@@ -718,8 +701,9 @@ export default function ProfilePage() {
 
         {/* Admin Tab Content */}
         {activeTab === 'admin' && user?.role === 'admin' && (
-          <div>
+          <div className="space-y-8">
             <PlanList />
+            <IntegrationsSection />
           </div>
         )}
       </div>
