@@ -118,7 +118,8 @@ class StripePaymentProvider(IPaymentProvider):
         plan_price: float,
         success_url: str,
         cancel_url: str,
-        metadata: dict
+        metadata: dict,
+        plan_description: Optional[str] = None
     ) -> dict:
         """
         Crea Stripe Checkout Session.
@@ -137,6 +138,11 @@ class StripePaymentProvider(IPaymentProvider):
                 # Crear nuevo customer
                 customer = stripe.Customer.create(email=user_email)
             
+            # Construir product_data con descripción opcional
+            product_data: dict = {'name': plan_name}
+            if plan_description:
+                product_data['description'] = plan_description
+
             # Crear sesión de checkout
             session = stripe.checkout.Session.create(
                 customer=customer.id,
@@ -144,7 +150,7 @@ class StripePaymentProvider(IPaymentProvider):
                 line_items=[{
                     'price_data': {
                         'currency': 'usd',
-                        'product_data': {'name': plan_name},
+                        'product_data': product_data,
                         'unit_amount': int(plan_price * 100),  # Convertir a centavos
                         'recurring': {'interval': 'month'}
                     },

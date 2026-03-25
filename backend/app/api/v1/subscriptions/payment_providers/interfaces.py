@@ -16,7 +16,8 @@ class IPaymentProvider(ABC):
         plan_price: float,
         success_url: str,
         cancel_url: str,
-        metadata: dict
+        metadata: dict,
+        plan_description: Optional[str] = None
     ) -> dict:
         """
         Crea sesión de checkout.
@@ -28,6 +29,7 @@ class IPaymentProvider(ABC):
             success_url: URL de retorno exitoso
             cancel_url: URL de cancelación
             metadata: Metadata adicional (user_id, plan_id, etc.)
+            plan_description: Descripción del plan (opcional)
         
         Returns:
             {"session_id": str, "session_url": str}
