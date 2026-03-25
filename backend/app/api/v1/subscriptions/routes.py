@@ -21,7 +21,6 @@ from .schemas import (
 )
 from ..projects.repository import ProjectRepository
 from ..diagrams.repository import DiagramRepository
-import os
 
 router = APIRouter()
 
@@ -59,15 +58,14 @@ def get_plan_service() -> PlanService:
     return PlanService(repository=PlanRepository())
 
 
-def get_subscription_service() -> SubscriptionService:
-    """Get subscription service instance."""
-    try:
-        payment_provider = StripePaymentProvider.from_env()
-    except ValueError:
-        # Si no hay credenciales de Stripe, usar un provider dummy
-        # Esto permite que el sistema funcione sin Stripe configurado
-        payment_provider = None
-    
+async def get_subscription_service() -> SubscriptionService:
+    """Get subscription service instance.
+
+    Tries to load Stripe credentials from the DB first (active payment
+    vendor), falling back to .env variables for gradual migration.
+    """
+    payment_provider = await StripePaymentProvider.from_db_or_env()
+
     return SubscriptionService(
         repository=SubscriptionRepository(),
         plan_repository=PlanRepository(),
@@ -86,18 +84,22 @@ def get_usage_limiter() -> UsageLimiter:
     )
 
 
-def get_billing_service() -> BillingService:
-    """Get billing service instance."""
-    stripe_api_key = os.getenv("STRIPE_SECRET_KEY")
-    if not stripe_api_key:
+async def get_billing_service() -> BillingService:
+    """Get billing service instance.
+
+    Tries to load Stripe API key from the DB first (active payment
+    vendor), falling back to .env for gradual migration.
+    """
+    payment_provider = await StripePaymentProvider.from_db_or_env()
+    if not payment_provider:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Billing service not configured"
         )
-    
+
     return BillingService(
         subscription_repository=SubscriptionRepository(),
-        stripe_api_key=stripe_api_key
+        stripe_api_key=payment_provider.secret_key
     )
 
 

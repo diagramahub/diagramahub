@@ -68,6 +68,13 @@ import {
   UpdateSharedLinkRequest,
   VerifyAccessCodeRequest
 } from '../types/sharing';
+import {
+  VendorConfigResponse,
+  VendorConfigCreate,
+  VendorConfigUpdate,
+  TestConnectionResponse,
+  IntegrationStatus
+} from '../types/integrations';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -479,6 +486,51 @@ class ApiService {
 
   async verifyAccessCode(token: string, data: VerifyAccessCodeRequest): Promise<SharedDiagram> {
     const response = await this.publicApi.post<SharedDiagram>(`/api/v1/shared/${token}/verify`, data);
+    return response.data;
+  }
+
+  // ============================================================================
+  // Admin Integrations API
+  // ============================================================================
+
+  async getIntegrationVendors(category?: string): Promise<VendorConfigResponse[]> {
+    const response = await this.api.get<VendorConfigResponse[]>('/api/v1/admin/integrations/vendors', {
+      params: category ? { category } : undefined,
+    });
+    return response.data;
+  }
+
+  async getIntegrationStatus(): Promise<IntegrationStatus> {
+    const response = await this.api.get<IntegrationStatus>('/api/v1/admin/integrations/status');
+    return response.data;
+  }
+
+  async createIntegrationVendor(data: VendorConfigCreate): Promise<VendorConfigResponse> {
+    const response = await this.api.post<VendorConfigResponse>('/api/v1/admin/integrations/vendors', data);
+    return response.data;
+  }
+
+  async updateIntegrationVendor(id: string, data: VendorConfigUpdate): Promise<VendorConfigResponse> {
+    const response = await this.api.put<VendorConfigResponse>(`/api/v1/admin/integrations/vendors/${id}`, data);
+    return response.data;
+  }
+
+  async deleteIntegrationVendor(id: string): Promise<void> {
+    await this.api.delete(`/api/v1/admin/integrations/vendors/${id}`);
+  }
+
+  async testIntegrationVendor(id: string): Promise<TestConnectionResponse> {
+    const response = await this.api.post<TestConnectionResponse>(`/api/v1/admin/integrations/vendors/${id}/test`);
+    return response.data;
+  }
+
+  async setDefaultIntegrationVendor(id: string): Promise<VendorConfigResponse> {
+    const response = await this.api.put<VendorConfigResponse>(`/api/v1/admin/integrations/vendors/${id}/set-default`);
+    return response.data;
+  }
+
+  async getIntegrationVendorConfig(id: string): Promise<{ vendor_id: string; config: Record<string, string> }> {
+    const response = await this.api.get<{ vendor_id: string; config: Record<string, string> }>(`/api/v1/admin/integrations/vendors/${id}/config`);
     return response.data;
   }
 }
