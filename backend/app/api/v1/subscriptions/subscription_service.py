@@ -136,6 +136,7 @@ class SubscriptionService:
             user_email=user_email,
             plan_name=plan.name,
             plan_price=plan.price_usd,
+            plan_description=plan.description,
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
@@ -372,6 +373,7 @@ class SubscriptionService:
         plan_response = PlanResponse(
             id=str(plan.id),
             name=plan.name,
+            code=plan.code or plan.name.upper().replace(" ", "_"),
             description=plan.description,
             price_usd=plan.price_usd,
             max_projects=plan.max_projects,

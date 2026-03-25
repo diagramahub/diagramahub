@@ -192,7 +192,7 @@ class PlanService:
         return PlanResponse(
             id=str(plan.id),
             name=plan.name,
-            code=plan.code,
+            code=plan.code or plan.name.upper().replace(" ", "_"),
             description=plan.description,
             price_usd=plan.price_usd,
             max_projects=plan.max_projects,

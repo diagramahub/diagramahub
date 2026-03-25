@@ -100,7 +100,7 @@ class PlanResponse(BaseModel):
     """Model for plan API responses."""
     id: str
     name: str
-    code: str
+    code: str = ""
     description: Optional[str]
     price_usd: float
     max_projects: Optional[int]
