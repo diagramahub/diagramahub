@@ -13,6 +13,7 @@ from faker import Faker
 from app.main import app
 from app.core.config import settings
 from app.api.v1.users.schemas import UserInDB as User
+from app.api.v1.integrations.schemas import VendorConfigInDB
 
 # Initialize Faker
 fake = Faker()
@@ -41,7 +42,7 @@ async def test_db() -> AsyncGenerator:
     # Initialize Beanie with test database
     await init_beanie(
         database=client[TEST_DATABASE_NAME],
-        document_models=[User]
+        document_models=[User, VendorConfigInDB]
     )
 
     yield client[TEST_DATABASE_NAME]

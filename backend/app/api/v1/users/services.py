@@ -1,6 +1,7 @@
 """
 User service layer implementing business logic.
 """
+import logging
 import secrets
 import time
 from typing import Optional
@@ -9,7 +10,7 @@ from fastapi import HTTPException, status
 
 from app.api.v1.users.interfaces import IUserRepository
 from app.api.v1.users.schemas import (
-    ChangePasswordRequest,
+    SimplifiedChangePasswordRequest,
     LoginRequest,
     ResetPasswordConfirm,
     ResetPasswordRequest,
@@ -24,6 +25,8 @@ from app.core.security import (
     get_password_hash,
     verify_password,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
@@ -111,8 +114,8 @@ class UserService:
                     ))
                 
                 try:
-                    payment_provider = StripePaymentProvider.from_env()
-                except ValueError:
+                    payment_provider = await StripePaymentProvider.from_db_or_env()
+                except Exception:
                     payment_provider = None
                 
                 subscription_service = SubscriptionService(
@@ -194,32 +197,26 @@ class UserService:
         return Token(access_token=access_token)
 
     async def change_password(
-        self, user_email: str, password_data: ChangePasswordRequest
+        self, user_email: str, password_data: SimplifiedChangePasswordRequest
     ) -> dict:
         """
         Change user password (authenticated endpoint).
 
         Args:
             user_email: Email of authenticated user
-            password_data: Current and new password
+            password_data: New password
 
         Returns:
             Success message
 
         Raises:
-            HTTPException: If current password is incorrect
+            HTTPException: If user not found
         """
         user = await self.repository.get_by_email(user_email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
-            )
-
-        if not verify_password(password_data.current_password, user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Incorrect current password",
             )
 
         new_hashed_password = get_password_hash(password_data.new_password)
@@ -229,24 +226,36 @@ class UserService:
 
     async def request_password_reset(self, reset_data: ResetPasswordRequest) -> dict:
         """
-        Request password reset token.
+        Request password reset token and send recovery email.
 
         Args:
             reset_data: Email for password reset
 
         Returns:
-            Success message and reset token
+            Generic success message (anti-enumeration)
 
-        Note:
-            In production, send token via email instead of returning it
+        Raises:
+            HTTPException 503: If no default email vendor is configured.
+            HTTPException 500: If the email fails to send.
         """
+        from app.api.v1.integrations.email_service import EmailService
+        from app.api.v1.integrations.repository import IntegrationsRepository
+
+        # Eagerly verify that an email vendor is available before doing
+        # any user lookup.  This raises HTTP 503 when no default vendor
+        # is configured, regardless of whether the email exists.
+        email_service = EmailService(IntegrationsRepository())
+        await email_service.get_default_email_vendor()
+
+        generic_message = "If the email exists, a reset token has been sent"
+
         user = await self.repository.get_by_email(reset_data.email)
         if not user:
-            # Return success to prevent user enumeration
-            return {
-                "message": "If the email exists, a reset token has been sent",
-                "token": None,
-            }
+            logger.info("Password reset requested for non-existent email")
+            return {"message": generic_message}
+
+        # Invalidate any previous reset token for this user
+        await self.repository.clear_reset_token(reset_data.email)
 
         # Generate secure reset token
         reset_token = secrets.token_urlsafe(32)
@@ -256,12 +265,13 @@ class UserService:
             reset_data.email, reset_token, expires_at
         )
 
-        # TODO: Send email with reset token in production
-        # For development, return the token
-        return {
-            "message": "If the email exists, a reset token has been sent",
-            "token": reset_token,  # Remove this in production
-        }
+        # Send recovery email (may raise HTTP 500 on failure)
+        logger.info("Sending password recovery email")
+        await email_service.send_password_recovery_email(
+            to=reset_data.email, token=reset_token, email=reset_data.email
+        )
+
+        return {"message": generic_message}
 
     async def confirm_password_reset(self, reset_data: ResetPasswordConfirm) -> dict:
         """

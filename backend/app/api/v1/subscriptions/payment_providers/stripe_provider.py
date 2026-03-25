@@ -1,6 +1,7 @@
 """
 Stripe payment provider implementation.
 """
+import logging
 import os
 from typing import Optional
 from datetime import datetime
@@ -8,6 +9,8 @@ import stripe
 
 from .interfaces import IPaymentProvider
 from ..exceptions import PaymentProviderError
+
+logger = logging.getLogger(__name__)
 
 
 class StripePaymentProvider(IPaymentProvider):
@@ -58,7 +61,56 @@ class StripePaymentProvider(IPaymentProvider):
             webhook_secret=webhook_secret,
             publishable_key=publishable_key
         )
-    
+
+    @classmethod
+    async def from_db_or_env(cls) -> Optional["StripePaymentProvider"]:
+        """
+        Crea instancia intentando primero obtener credenciales desde la BD
+        (VendorConfigInDB con category=payment, is_active_payment=True),
+        y si no hay vendor activo en BD, hace fallback a variables de entorno.
+
+        Returns:
+            StripePaymentProvider configurado, o None si no hay credenciales
+        """
+        # 1. Intentar obtener desde BD
+        try:
+            from app.api.v1.integrations.schemas import VendorCategory, VendorConfigInDB
+            from app.api.v1.integrations.repository import IntegrationsRepository
+
+            active_vendors = await VendorConfigInDB.find(
+                VendorConfigInDB.category == VendorCategory.PAYMENT,
+                VendorConfigInDB.is_active_payment == True,  # noqa: E712
+            ).to_list()
+
+            if active_vendors:
+                vendor = active_vendors[0]
+                repo = IntegrationsRepository()
+                config = repo._decrypt_config(vendor.encrypted_config)
+
+                secret_key = config.get("secret_key")
+                webhook_secret = config.get("webhook_secret")
+                publishable_key = config.get("publishable_key")
+
+                if secret_key and webhook_secret:
+                    logger.info(
+                        "Stripe provider loaded from DB (vendor_id=%s)", str(vendor.id)
+                    )
+                    return cls(
+                        secret_key=secret_key,
+                        webhook_secret=webhook_secret,
+                        publishable_key=publishable_key,
+                    )
+        except Exception as exc:
+            logger.debug(
+                "Could not load Stripe config from DB, falling back to .env: %s", exc
+            )
+
+        # 2. Fallback a variables de entorno
+        try:
+            return cls.from_env()
+        except ValueError:
+            return None
+
     async def create_checkout_session(
         self,
         user_email: str,

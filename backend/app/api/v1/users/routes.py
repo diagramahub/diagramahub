@@ -9,7 +9,7 @@ from jose import JWTError
 
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import (
-    ChangePasswordRequest,
+    SimplifiedChangePasswordRequest,
     DeleteAccountRequest,
     LoginRequest,
     ResetPasswordConfirm,
@@ -120,7 +120,7 @@ async def login(
 
 @router.put("/change-password")
 async def change_password(
-    password_data: ChangePasswordRequest,
+    password_data: SimplifiedChangePasswordRequest,
     current_user_email: Annotated[str, Depends(get_current_user_email)],
     service: Annotated[UserService, Depends(get_user_service)],
 ) -> dict:
@@ -128,7 +128,7 @@ async def change_password(
     Change password for authenticated user.
 
     Args:
-        password_data: Current and new password
+        password_data: New password
         current_user_email: Email of authenticated user
         service: User service instance
 
@@ -144,14 +144,14 @@ async def reset_password_request(
     service: Annotated[UserService, Depends(get_user_service)],
 ) -> dict:
     """
-    Request password reset token.
+    Request password reset. Sends a recovery email if the address is registered.
 
     Args:
         reset_data: Email for password reset
         service: User service instance
 
     Returns:
-        Success message (and token in development)
+        Generic success message (anti-enumeration)
     """
     return await service.request_password_reset(reset_data)
 
