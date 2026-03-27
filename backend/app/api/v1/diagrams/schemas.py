@@ -75,13 +75,13 @@ class DiagramInDB(Document):
     content: str
     description: Optional[str] = ""
     diagram_type: str
-    config: DiagramConfig = Field(default_factory=DiagramConfig, description="Diagram configuration object")
-    user_preferences: DiagramUserPreferences = Field(default_factory=DiagramUserPreferences, description="User preferences")
+    config: Optional[DiagramConfig] = Field(default_factory=DiagramConfig, description="Diagram configuration object")
+    user_preferences: Optional[DiagramUserPreferences] = Field(default_factory=DiagramUserPreferences, description="User preferences")
     project_id: str
     folder_id: Optional[str] = None
-    viewport_zoom: float = 1.0
-    viewport_x: float = 0.0
-    viewport_y: float = 0.0
+    viewport_zoom: Optional[float] = 1.0
+    viewport_x: Optional[float] = 0.0
+    viewport_y: Optional[float] = 0.0
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -101,9 +101,9 @@ class DiagramResponse(BaseModel):
     user_preferences: DiagramUserPreferences = Field(default_factory=DiagramUserPreferences)
     project_id: str
     folder_id: Optional[str] = None
-    viewport_zoom: float
-    viewport_x: float
-    viewport_y: float
+    viewport_zoom: Optional[float] = None
+    viewport_x: Optional[float] = None
+    viewport_y: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 
