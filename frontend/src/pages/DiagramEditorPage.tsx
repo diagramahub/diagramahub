@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -191,6 +191,9 @@ export default function DiagramEditorPage() {
   const [showCodeView, setShowCodeView] = useState(false);
   const [showDescriptionView, setShowDescriptionView] = useState(false);
   const [isDescriptionPinned, setIsDescriptionPinned] = useState(false);
+  const [descriptionPanelWidth, setDescriptionPanelWidth] = useState(384);
+  const [descriptionFontSize, setDescriptionFontSize] = useState(14);
+  const isResizingDescription = useRef(false);
   const [preferredProvider, setPreferredProvider] = useState<string | null>(null);
   const [preferredModel, setPreferredModel] = useState<string | null>(null);
   const [showAppearanceEditor, setShowAppearanceEditor] = useState(false);
@@ -295,6 +298,34 @@ export default function DiagramEditorPage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDescriptionPinned]);
+
+  // Description panel resize handler
+  const handleDescriptionResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingDescription.current = true;
+    const startX = e.clientX;
+    const startWidth = descriptionPanelWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingDescription.current) return;
+      const delta = startX - e.clientX;
+      const newWidth = Math.min(Math.max(startWidth + delta, 280), 700);
+      setDescriptionPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingDescription.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [descriptionPanelWidth]);
 
   // Update current time every second
   useEffect(() => {
@@ -469,6 +500,9 @@ export default function DiagramEditorPage() {
             if (diagram.user_preferences.description_pinned) {
               setIsDescriptionPinned(true);
               setShowDescriptionView(true);
+            }
+            if (diagram.user_preferences.description_font_size) {
+              setDescriptionFontSize(diagram.user_preferences.description_font_size);
             }
             if (diagram.user_preferences.preferred_provider) {
               setPreferredProvider(diagram.user_preferences.preferred_provider);
@@ -686,6 +720,7 @@ export default function DiagramEditorPage() {
           },
           user_preferences: {
             description_pinned: isDescriptionPinned,
+            description_font_size: descriptionFontSize,
             preferred_provider: preferredProvider,
             preferred_model: preferredModel,
           },
@@ -744,7 +779,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, preferredProvider, preferredModel]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, descriptionFontSize, preferredProvider, preferredModel]);
 
   // Parse config from content when user manually edits Mermaid code with init block
   useEffect(() => {
@@ -2696,7 +2731,16 @@ export default function DiagramEditorPage() {
 
         {/* Description Side Panel */}
         {showDescriptionView && (
-          <div className="floating-description w-[24rem] border-l border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden">
+          <div
+            className="floating-description border-l border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden relative"
+            style={{ width: descriptionPanelWidth }}
+          >
+            {/* Resize handle */}
+            <div
+              onMouseDown={handleDescriptionResizeMouseDown}
+              className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 transition-colors z-10"
+              title="Arrastrar para redimensionar"
+            />
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center justify-between mb-3">
@@ -2707,6 +2751,30 @@ export default function DiagramEditorPage() {
                   <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramDescription')}</h3>
                 </div>
                 <div className="flex items-center gap-1">
+                  {/* Font size controls */}
+                  <div className="flex items-center gap-0.5 bg-gray-100 rounded-md px-1 py-0.5 mr-1">
+                    <button
+                      onClick={() => setDescriptionFontSize(prev => Math.max(10, prev - 2))}
+                      disabled={descriptionFontSize <= 10}
+                      className="p-1 text-gray-500 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Reducir tamaño de texto"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                      </svg>
+                    </button>
+                    <span className="text-xs text-gray-500 font-mono min-w-[28px] text-center">{descriptionFontSize}</span>
+                    <button
+                      onClick={() => setDescriptionFontSize(prev => Math.min(32, prev + 2))}
+                      disabled={descriptionFontSize >= 32}
+                      className="p-1 text-gray-500 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Aumentar tamaño de texto"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  </div>
                   {/* Pin button */}
                   <button
                     onClick={() => setIsDescriptionPinned(!isDescriptionPinned)}
@@ -2766,6 +2834,7 @@ export default function DiagramEditorPage() {
                 onChange={setDiagramDescription}
                 placeholder={t('editor.descriptionPlaceholder')}
                 minHeight="100%"
+                fontSize={descriptionFontSize}
               />
             </div>
           </div>
