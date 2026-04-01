@@ -10,6 +10,7 @@ interface MarkdownEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  fontSize?: number;
 }
 
 export default function MarkdownEditor({
@@ -17,6 +18,7 @@ export default function MarkdownEditor({
   onChange,
   placeholder = 'Escribe tu descripción en Markdown...',
   className = '',
+  fontSize,
 }: MarkdownEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -84,7 +86,10 @@ export default function MarkdownEditor({
           </div>
           {/* Markdown preview */}
           <div className="flex-1 overflow-auto bg-white">
-            <div className="prose prose-sm max-w-none p-4 text-gray-800 prose-headings:text-gray-900 prose-a:text-purple-600 prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded">
+            <div
+              className="prose prose-sm max-w-none p-4 text-gray-800 prose-headings:text-gray-900 prose-a:text-purple-600 prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded"
+              style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
+            >
               {value ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {value}
