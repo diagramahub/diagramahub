@@ -37,6 +37,7 @@ class DiagramConfig(BaseModel):
 class DiagramUserPreferences(BaseModel):
     """Per-diagram user preferences that persist across sessions."""
     description_pinned: bool = Field(default=False, description="Whether the description panel is pinned open")
+    description_font_size: Optional[int] = Field(default=None, description="Font size for description panel (10-32)")
     preferred_provider: Optional[str] = Field(default=None, description="Preferred AI provider for this diagram")
     preferred_model: Optional[str] = Field(default=None, description="Preferred AI model for this diagram")
 

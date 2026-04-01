@@ -16,6 +16,7 @@ export type DiagramConfig = {
 
 export type DiagramUserPreferences = {
   description_pinned?: boolean;
+  description_font_size?: number | null;
   preferred_provider?: string | null;
   preferred_model?: string | null;
 };
