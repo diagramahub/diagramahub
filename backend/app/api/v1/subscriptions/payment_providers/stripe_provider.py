@@ -157,6 +157,7 @@ class StripePaymentProvider(IPaymentProvider):
                     'quantity': 1
                 }],
                 mode='subscription',
+                adaptive_pricing={'enabled': True},
                 success_url=success_url,
                 cancel_url=cancel_url,
                 metadata=metadata
