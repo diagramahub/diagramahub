@@ -146,7 +146,6 @@ class StripePaymentProvider(IPaymentProvider):
             # Crear sesión de checkout
             session = stripe.checkout.Session.create(
                 customer=customer.id,
-                payment_method_types=['card'],
                 line_items=[{
                     'price_data': {
                         'currency': 'usd',
@@ -157,7 +156,6 @@ class StripePaymentProvider(IPaymentProvider):
                     'quantity': 1
                 }],
                 mode='subscription',
-                adaptive_pricing={'enabled': True},
                 success_url=success_url,
                 cancel_url=cancel_url,
                 metadata=metadata
