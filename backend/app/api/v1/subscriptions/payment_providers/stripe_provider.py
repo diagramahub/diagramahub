@@ -161,14 +161,20 @@ class StripePaymentProvider(IPaymentProvider):
                 }]
 
             # Crear sesión de checkout
-            session = stripe.checkout.Session.create(
-                customer=customer.id,
-                line_items=line_items,
-                mode='subscription',
-                success_url=success_url,
-                cancel_url=cancel_url,
-                metadata=metadata
-            )
+            session_params = {
+                "customer": customer.id,
+                "line_items": line_items,
+                "mode": "subscription",
+                "success_url": success_url,
+                "cancel_url": cancel_url,
+                "metadata": metadata,
+            }
+
+            # Habilitar conversión de moneda si Adaptive Pricing está activo
+            if stripe_price_id:
+                session_params["currency_conversion"] = "if_required"
+
+            session = stripe.checkout.Session.create(**session_params)
             
             return {
                 "session_id": session.id,
