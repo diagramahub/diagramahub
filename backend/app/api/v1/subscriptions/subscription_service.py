@@ -127,6 +127,17 @@ class SubscriptionService:
         if not user_email:
             user_email = f"user_{user_id}@placeholder.com"
         
+        # Extract stripe_price_id for checkout (prefer USD price)
+        stripe_price_id = None
+        if hasattr(plan, 'stripe_prices') and plan.stripe_prices:
+            for price_entry in plan.stripe_prices:
+                if price_entry.currency == 'usd':
+                    stripe_price_id = price_entry.stripe_price_id
+                    break
+            # If no USD price found, use the first available
+            if not stripe_price_id and plan.stripe_prices:
+                stripe_price_id = plan.stripe_prices[0].stripe_price_id
+        
         # Configurar URLs usando settings
         success_url = f"{settings.FRONTEND_URL}/profile?tab=subscription&success=true&session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{settings.FRONTEND_URL}/profile?tab=subscription"
@@ -142,7 +153,8 @@ class SubscriptionService:
             metadata={
                 "user_id": user_id,
                 "plan_id": plan_id
-            }
+            },
+            stripe_price_id=stripe_price_id
         )
         
         # Log checkout session creation
@@ -375,12 +387,14 @@ class SubscriptionService:
             name=plan.name,
             code=plan.code or plan.name.upper().replace(" ", "_"),
             description=plan.description,
-            price_usd=plan.price_usd,
+            price_usd=plan.price_usd,  # computed from stripe_prices
             max_projects=plan.max_projects,
             max_diagrams=plan.max_diagrams,
             is_active=plan.is_active,
             is_free=plan.is_free,
             active_subscriptions=active_subs,
+            stripe_product_id=getattr(plan, 'stripe_product_id', None),
+            stripe_prices=getattr(plan, 'stripe_prices', []),
             created_at=plan.created_at,
             updated_at=plan.updated_at
         )

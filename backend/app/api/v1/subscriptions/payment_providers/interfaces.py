@@ -17,7 +17,8 @@ class IPaymentProvider(ABC):
         success_url: str,
         cancel_url: str,
         metadata: dict,
-        plan_description: Optional[str] = None
+        plan_description: Optional[str] = None,
+        stripe_price_id: Optional[str] = None
     ) -> dict:
         """
         Crea sesión de checkout.
@@ -30,6 +31,8 @@ class IPaymentProvider(ABC):
             cancel_url: URL de cancelación
             metadata: Metadata adicional (user_id, plan_id, etc.)
             plan_description: Descripción del plan (opcional)
+            stripe_price_id: ID de precio oficial de Stripe (opcional).
+                Si se proporciona, se usa en line_items en lugar de price_data inline.
         
         Returns:
             {"session_id": str, "session_url": str}
