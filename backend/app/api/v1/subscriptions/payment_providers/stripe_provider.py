@@ -171,12 +171,6 @@ class StripePaymentProvider(IPaymentProvider):
                 "payment_method_collection": "always",
             }
 
-            # Habilitar conversión de moneda si Adaptive Pricing está activo
-            if stripe_price_id:
-                session_params["currency_conversion"] = {
-                    "upfront_conversion": "enabled"
-                }
-
             session = stripe.checkout.Session.create(**session_params)
             
             return {
