@@ -1,10 +1,13 @@
 """
 Plan service with business logic.
 """
+from datetime import datetime
 from typing import Optional
 
 from .interfaces import IPlanRepository
+from .payment_providers.interfaces import IPaymentProvider
 from .schemas import PlanCreate, PlanUpdate, PlanResponse, PlanInDB
+from .stripe_catalog_service import sync_plan_to_stripe, archive_plan_in_stripe, reactivate_plan_in_stripe
 from .exceptions import (
     ValidationError,
     FreePlanProtectionError,
@@ -18,8 +21,9 @@ from .logger import SubscriptionLogger
 class PlanService:
     """Servicio para gestión de planes de suscripción."""
 
-    def __init__(self, repository: IPlanRepository):
+    def __init__(self, repository: IPlanRepository, payment_provider: Optional[IPaymentProvider] = None):
         self.repository = repository
+        self.payment_provider = payment_provider
 
     async def create_plan(
         self,
@@ -44,8 +48,27 @@ class PlanService:
         if existing_code:
             raise ValidationError(f"Ya existe un plan con el código '{plan_data.code}'")
 
+        # Validar que planes de pago requieren Stripe configurado
+        if plan_data.price_usd > 0 and self.payment_provider is None:
+            raise ValidationError(
+                "Se requiere una vinculación activa con Stripe para crear planes de pago"
+            )
+
         # Crear plan
         plan = await self.repository.create(plan_data)
+
+        # Sincronizar con Stripe si es plan de pago
+        if plan_data.price_usd > 0 and self.payment_provider:
+            stripe_product_id, stripe_prices = await sync_plan_to_stripe(
+                plan, plan_data.price_usd, self.payment_provider.secret_key
+            )
+            await plan.set({
+                "stripe_product_id": stripe_product_id,
+                "stripe_prices": [entry.model_dump() for entry in stripe_prices],
+                "updated_at": datetime.utcnow()
+            })
+            # Re-fetch to get updated data
+            plan = await self.repository.get_by_id(str(plan.id))
 
         # Log creation
         SubscriptionLogger.plan_created(
@@ -81,7 +104,8 @@ class PlanService:
         active_subs = await self.repository.count_active_subscriptions(plan_id)
 
         # Precio solo editable sin suscriptores
-        if plan_data.price_usd is not None and plan_data.price_usd != plan.price_usd:
+        current_price = plan.price_usd  # computed from stripe_prices
+        if plan_data.price_usd is not None and plan_data.price_usd != current_price:
             if active_subs > 0:
                 raise ValidationError(
                     "No se puede cambiar el precio de un plan con suscriptores activos"
@@ -112,6 +136,41 @@ class PlanService:
         if not updated_plan:
             raise NotFoundError("Plan", plan_id)
 
+        # Sincronizar con Stripe si es plan de pago y cambió algo relevante
+        current_price = plan.price_usd  # computed from stripe_prices
+        new_price = plan_data.price_usd
+        is_paid = current_price > 0 or (new_price is not None and new_price > 0)
+
+        if self.payment_provider and is_paid:
+            name_changed = plan_data.name is not None and plan_data.name != plan.name
+            desc_changed = plan_data.description is not None and plan_data.description != plan.description
+            price_usd_changed = new_price is not None and new_price != current_price
+
+            if name_changed or desc_changed or price_usd_changed:
+                effective_price_usd = new_price if new_price is not None else current_price
+
+                stripe_product_id, stripe_prices = await sync_plan_to_stripe(
+                    updated_plan, effective_price_usd, self.payment_provider.secret_key
+                )
+                await updated_plan.set({
+                    "stripe_product_id": stripe_product_id,
+                    "stripe_prices": [entry.model_dump() for entry in stripe_prices],
+                    "updated_at": datetime.utcnow()
+                })
+                # Re-fetch to get updated data
+                updated_plan = await self.repository.get_by_id(plan_id)
+
+        # Reactivar en Stripe si el plan pasó de inactivo a activo
+        if self.payment_provider and plan_data.is_active is True and not plan.is_active:
+            if updated_plan.stripe_product_id:
+                try:
+                    await reactivate_plan_in_stripe(updated_plan, self.payment_provider.secret_key)
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).error(
+                        "Failed to reactivate plan %s in Stripe: %s", plan_id, exc
+                    )
+
         changes = plan_data.model_dump(exclude_unset=True)
         SubscriptionLogger.plan_updated(
             plan_id=plan_id,
@@ -128,7 +187,7 @@ class PlanService:
         plan_id: str,
         admin_user_id: str
     ) -> dict:
-        """Desactiva un plan (soft delete). No aplica al plan FREE."""
+        """Desactiva un plan (soft delete) y archiva en Stripe. No aplica al plan FREE."""
         plan = await self.repository.get_by_id(plan_id)
         if not plan:
             raise NotFoundError("Plan", plan_id)
@@ -139,6 +198,16 @@ class PlanService:
         deactivated_plan = await self.repository.deactivate(plan_id)
         if not deactivated_plan:
             raise NotFoundError("Plan", plan_id)
+
+        # Archivar en Stripe (Product inactive + Prices inactive)
+        if self.payment_provider and plan.stripe_product_id:
+            try:
+                await archive_plan_in_stripe(plan, self.payment_provider.secret_key)
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to archive plan %s in Stripe: %s", plan_id, exc
+                )
 
         SubscriptionLogger.plan_deactivated(
             plan_id=plan_id,
@@ -151,6 +220,57 @@ class PlanService:
             "message": "Plan deactivated successfully",
             "plan_id": plan_id,
             "active_subscriptions_maintained": active_subs
+        }
+
+    async def delete_plan(
+        self,
+        plan_id: str,
+        admin_user_id: str
+    ) -> dict:
+        """
+        Elimina o desactiva un plan según tenga suscriptores.
+
+        - Sin suscriptores: hard delete en MongoDB + archivar en Stripe
+        - Con suscriptores: solo desactivar (soft delete + archivar en Stripe)
+        - No aplica al plan FREE
+        """
+        plan = await self.repository.get_by_id(plan_id)
+        if not plan:
+            raise NotFoundError("Plan", plan_id)
+
+        if plan.is_free:
+            raise FreePlanProtectionError()
+
+        active_subs = await self.repository.count_active_subscriptions(plan_id)
+
+        if active_subs > 0:
+            # Tiene suscriptores: solo desactivar
+            return await self.deactivate_plan(plan_id, admin_user_id)
+
+        # Sin suscriptores: archivar en Stripe y eliminar de MongoDB
+        if self.payment_provider and plan.stripe_product_id:
+            try:
+                await archive_plan_in_stripe(plan, self.payment_provider.secret_key)
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).error(
+                    "Failed to archive plan %s in Stripe: %s", plan_id, exc
+                )
+
+        deleted = await self.repository.delete(plan_id)
+        if not deleted:
+            raise NotFoundError("Plan", plan_id)
+
+        SubscriptionLogger.plan_deactivated(
+            plan_id=plan_id,
+            plan_name=plan.name,
+            deactivated_by=admin_user_id
+        )
+
+        return {
+            "message": "Plan deleted successfully",
+            "plan_id": plan_id,
+            "deleted": True
         }
 
     async def get_active_plans(self) -> list[PlanResponse]:
@@ -200,6 +320,8 @@ class PlanService:
             is_active=plan.is_active,
             is_free=plan.is_free,
             active_subscriptions=active_subscriptions,
+            stripe_product_id=plan.stripe_product_id,
+            stripe_prices=plan.stripe_prices,
             created_at=plan.created_at,
             updated_at=plan.updated_at
         )

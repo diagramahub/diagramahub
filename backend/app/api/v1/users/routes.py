@@ -212,7 +212,7 @@ async def get_current_user(
                 subscription_data = {
                     "plan": {
                         "name": plan.name,
-                        "price_usd": plan.price_usd,
+                        "price_usd": plan.price_usd,  # computed from stripe_prices
                         "max_projects": plan.max_projects,
                         "max_diagrams": plan.max_diagrams
                     }
@@ -274,7 +274,7 @@ async def update_current_user(
                 subscription_data = {
                     "plan": {
                         "name": plan.name,
-                        "price_usd": plan.price_usd,
+                        "price_usd": plan.price_usd,  # computed from stripe_prices
                         "max_projects": plan.max_projects,
                         "max_diagrams": plan.max_diagrams
                     }
@@ -354,7 +354,7 @@ async def delete_account(
     subscription = await subscription_repo.get_active_by_user(user_id)
     if subscription:
         plan = await plan_repo.get_by_id(subscription.plan_id)
-        if plan and plan.price_usd > 0:
+        if plan and plan.price_usd > 0:  # computed from stripe_prices
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Cannot delete account with active paid subscription. Please switch to the free plan first.",

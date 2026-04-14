@@ -1,3 +1,9 @@
+export type StripePriceEntry = {
+  stripe_price_id: string;
+  currency: string;
+  amount: number;
+}
+
 export type Plan = {
   id: string;
   name: string;
@@ -9,6 +15,8 @@ export type Plan = {
   is_active: boolean;
   is_free: boolean;
   active_subscriptions: number;
+  stripe_product_id?: string;
+  stripe_prices?: StripePriceEntry[];
   created_at: string;
   updated_at: string;
 }
