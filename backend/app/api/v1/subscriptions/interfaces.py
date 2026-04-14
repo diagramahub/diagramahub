@@ -53,6 +53,11 @@ class IPlanRepository(ABC):
         pass
     
     @abstractmethod
+    async def delete(self, plan_id: str) -> bool:
+        """Hard delete a plan from the database."""
+        pass
+    
+    @abstractmethod
     async def count_active_subscriptions(self, plan_id: str) -> int:
         """Count active subscriptions for a plan."""
         pass

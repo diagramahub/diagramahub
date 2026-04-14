@@ -25,6 +25,13 @@ class SubscriptionStatus:
 # Plan Schemas
 # ============================================================================
 
+class StripePriceEntry(BaseModel):
+    """Embedded model for a Stripe Price linked to a plan."""
+    stripe_price_id: str
+    currency: str
+    amount: float
+
+
 class PlanBase(BaseModel):
     """Base plan model."""
     name: str = Field(..., min_length=1, max_length=50)
@@ -64,7 +71,7 @@ class PlanUpdate(BaseModel):
         pattern=r'^[A-Z0-9_-]+$'
     )
     description: Optional[str] = None
-    price_usd: Optional[float] = Field(None, ge=0)
+    price_usd: Optional[float] = Field(None, ge=0, description="Precio mensual en USD (se sincroniza con Stripe)")
     max_projects: Optional[int] = Field(None, ge=-1)
     max_diagrams: Optional[int] = Field(None, ge=-1)
     is_active: Optional[bool] = None
@@ -75,10 +82,11 @@ class PlanInDB(Document):
     name: str
     code: str = ""
     description: Optional[str] = None
-    price_usd: float
     max_projects: Optional[int] = None
     max_diagrams: Optional[int] = None
     is_active: bool = True
+    stripe_product_id: Optional[str] = None
+    stripe_prices: list[StripePriceEntry] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -86,6 +94,14 @@ class PlanInDB(Document):
     def is_free(self) -> bool:
         """Plan is free if its code is FREE."""
         return self.code == "FREE"
+
+    @property
+    def price_usd(self) -> float:
+        """Derive USD price from stripe_prices array. Empty array = free (0)."""
+        for entry in self.stripe_prices:
+            if entry.currency == "usd":
+                return entry.amount
+        return 0.0
 
     class Settings:
         name = "plans"
@@ -108,6 +124,8 @@ class PlanResponse(BaseModel):
     is_active: bool
     is_free: bool = False
     active_subscriptions: int = 0
+    stripe_product_id: Optional[str] = None
+    stripe_prices: list[StripePriceEntry] = []
     created_at: datetime
     updated_at: datetime
 

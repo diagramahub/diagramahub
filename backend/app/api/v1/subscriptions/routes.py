@@ -53,9 +53,13 @@ async def require_admin(current_user = Depends(get_current_user)):
     return current_user
 
 
-def get_plan_service() -> PlanService:
+async def get_plan_service() -> PlanService:
     """Get plan service instance."""
-    return PlanService(repository=PlanRepository())
+    payment_provider = await StripePaymentProvider.from_db_or_env()
+    return PlanService(
+        repository=PlanRepository(),
+        payment_provider=payment_provider
+    )
 
 
 async def get_subscription_service() -> SubscriptionService:
@@ -167,19 +171,19 @@ async def update_plan(
     "/admin/plans/{plan_id}",
     tags=["admin", "plans"]
 )
-async def deactivate_plan(
+async def delete_plan(
     plan_id: str,
     admin_user = Depends(require_admin),
     service: PlanService = Depends(get_plan_service)
 ):
     """
-    Deactivate a plan (admin only).
+    Delete or deactivate a plan (admin only).
     
-    Requires admin role.
-    Cannot deactivate FREE plan.
-    Existing subscriptions are maintained.
+    - No active subscribers: hard delete from DB + archive in Stripe
+    - Has active subscribers: soft delete (deactivate) + archive in Stripe
+    - Cannot delete FREE plan.
     """
-    return await service.deactivate_plan(plan_id, str(admin_user.id))
+    return await service.delete_plan(plan_id, str(admin_user.id))
 
 
 # ============================================================================
