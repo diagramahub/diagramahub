@@ -18,7 +18,6 @@ class PlanRepository(IPlanRepository):
             name=plan_data.name,
             code=plan_data.code,
             description=plan_data.description,
-            price_usd=plan_data.price_usd,
             max_projects=plan_data.max_projects,
             max_diagrams=plan_data.max_diagrams,
             is_active=True,
@@ -60,6 +59,8 @@ class PlanRepository(IPlanRepository):
             return None
         
         update_data = plan_data.model_dump(exclude_unset=True)
+        # price_usd is managed via stripe_prices, not persisted directly
+        update_data.pop("price_usd", None)
         if update_data:
             update_data["updated_at"] = datetime.utcnow()
             await plan.set(update_data)
@@ -78,6 +79,14 @@ class PlanRepository(IPlanRepository):
         })
         
         return plan
+    
+    async def delete(self, plan_id: str) -> bool:
+        """Hard delete a plan from the database."""
+        plan = await self.get_by_id(plan_id)
+        if not plan:
+            return False
+        await plan.delete()
+        return True
     
     async def count_active_subscriptions(self, plan_id: str) -> int:
         """Count active subscriptions for a plan."""

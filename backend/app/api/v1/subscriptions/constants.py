@@ -24,6 +24,9 @@ RESOURCE_TYPE_DIAGRAM = "diagrams"
 # Payment providers
 PAYMENT_PROVIDER_STRIPE = "stripe"
 
+# Supported currencies for Stripe pricing
+SUPPORTED_CURRENCIES = ["usd"]
+
 # Usage thresholds for notifications
 USAGE_WARNING_THRESHOLD = 0.8  # 80%
 USAGE_LIMIT_THRESHOLD = 1.0    # 100%

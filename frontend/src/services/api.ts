@@ -323,8 +323,9 @@ class ApiService {
     return response.data;
   }
 
-  async deactivatePlan(planId: string): Promise<void> {
-    await this.api.delete(`/api/v1/admin/plans/${planId}`);
+  async deactivatePlan(planId: string): Promise<any> {
+    const response = await this.api.delete(`/api/v1/admin/plans/${planId}`);
+    return response.data;
   }
 
   // Subscriptions
