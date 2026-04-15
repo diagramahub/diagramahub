@@ -167,8 +167,7 @@ class StripePaymentProvider(IPaymentProvider):
                 "mode": "subscription",
                 "success_url": success_url,
                 "cancel_url": cancel_url,
-                "metadata": metadata,
-                "payment_method_collection": "always",
+                "metadata": metadata
             }
 
             session = stripe.checkout.Session.create(**session_params)
