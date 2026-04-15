@@ -25,7 +25,15 @@ RESOURCE_TYPE_DIAGRAM = "diagrams"
 PAYMENT_PROVIDER_STRIPE = "stripe"
 
 # Supported currencies for Stripe pricing
-SUPPORTED_CURRENCIES = ["usd"]
+SUPPORTED_CURRENCIES = ["usd", "eur", "gbp", "mxn", "brl"]
+
+CURRENCY_CONFIG = {
+    "usd": {"flag": "🇺🇸", "name": "US Dollar"},
+    "eur": {"flag": "🇪🇺", "name": "Euro"},
+    "gbp": {"flag": "🇬🇧", "name": "British Pound"},
+    "mxn": {"flag": "🇲🇽", "name": "Mexican Peso"},
+    "brl": {"flag": "🇧🇷", "name": "Brazilian Real"},
+}
 
 # Usage thresholds for notifications
 USAGE_WARNING_THRESHOLD = 0.8  # 80%
