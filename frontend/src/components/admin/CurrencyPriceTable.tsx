@@ -13,7 +13,6 @@ interface CurrencyPriceTableProps {
 export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPriceTableProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingCurrency, setDeletingCurrency] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
 
   const prices = plan.stripe_prices ?? [];
   const allCurrenciesConfigured = prices.length >= SUPPORTED_CURRENCIES.length;
@@ -28,15 +27,12 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
   const handleDelete = async () => {
     if (!deletingCurrency) return;
     try {
-      setDeleting(true);
       await apiService.removePlanPrice(plan.id, deletingCurrency);
       setDeletingCurrency(null);
       onPriceChanged();
     } catch (err: any) {
       console.error('Error removing price:', err);
       setDeletingCurrency(null);
-    } finally {
-      setDeleting(false);
     }
   };
 
