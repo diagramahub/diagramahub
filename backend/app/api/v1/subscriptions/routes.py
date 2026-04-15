@@ -15,7 +15,7 @@ from .billing_service import BillingService
 from .usage_limiter import UsageLimiter
 from .payment_providers.stripe_provider import StripePaymentProvider
 from .schemas import (
-    PlanCreate, PlanUpdate, PlanResponse,
+    PlanCreate, PlanUpdate, PlanResponse, CurrencyPriceRequest,
     CheckoutSessionRequest, CheckoutSessionResponse,
     UsageSummaryResponse, BillingHistoryResponse
 )
@@ -184,6 +184,51 @@ async def delete_plan(
     - Cannot delete FREE plan.
     """
     return await service.delete_plan(plan_id, str(admin_user.id))
+
+
+@router.post(
+    "/admin/plans/{plan_id}/prices",
+    response_model=PlanResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["admin", "plans"]
+)
+async def add_plan_price(
+    plan_id: str,
+    price_data: CurrencyPriceRequest,
+    admin_user = Depends(require_admin),
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Add a currency price to a plan (admin only).
+    
+    Creates a Stripe Price for the specified currency and links it to the plan.
+    USD is managed through the plan edit flow and cannot be added here.
+    """
+    return await service.add_currency_price(
+        plan_id, price_data.currency, price_data.amount, str(admin_user.id)
+    )
+
+
+@router.delete(
+    "/admin/plans/{plan_id}/prices/{currency}",
+    response_model=PlanResponse,
+    tags=["admin", "plans"]
+)
+async def remove_plan_price(
+    plan_id: str,
+    currency: str,
+    admin_user = Depends(require_admin),
+    service: PlanService = Depends(get_plan_service)
+):
+    """
+    Remove a currency price from a plan (admin only).
+    
+    Deactivates the Stripe Price and removes it from the plan.
+    Cannot remove the USD base price.
+    """
+    return await service.remove_currency_price(
+        plan_id, currency, str(admin_user.id)
+    )
 
 
 # ============================================================================

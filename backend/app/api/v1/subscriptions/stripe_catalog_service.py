@@ -86,7 +86,8 @@ async def sync_plan_to_stripe(
             price_usd,
             existing_usd.stripe_price_id,
         )
-        return product_id, [existing_usd]
+        non_usd_entries = [e for e in plan.stripe_prices if e.currency != "usd"]
+        return product_id, [existing_usd] + non_usd_entries
 
     # ------------------------------------------------------------------
     # 3. Create new USD Price
@@ -129,7 +130,8 @@ async def sync_plan_to_stripe(
             )
             raise PaymentProviderError("stripe", str(exc))
 
-    return product_id, [new_entry]
+    non_usd_entries = [e for e in plan.stripe_prices if e.currency != "usd"]
+    return product_id, [new_entry] + non_usd_entries
 
 
 async def archive_plan_in_stripe(
@@ -239,3 +241,53 @@ async def reactivate_plan_in_stripe(
                 entry.stripe_price_id,
                 exc,
             )
+
+
+async def create_currency_price(
+    plan: PlanInDB,
+    currency: str,
+    amount: float,
+    stripe_api_key: str,
+) -> StripePriceEntry:
+    """Create a single Stripe Price for a specific currency."""
+    stripe.api_key = stripe_api_key
+    metadata = {"created_by": "diagramahub", "plan_id": str(plan.id)}
+    try:
+        price_obj = stripe.Price.create(
+            product=plan.stripe_product_id,
+            unit_amount=int(amount * 100),
+            currency=currency,
+            recurring={"interval": "month"},
+            metadata=metadata,
+        )
+        logger.info(
+            "Created Stripe Price %s for %s %s", price_obj.id, currency.upper(), amount
+        )
+        return StripePriceEntry(
+            stripe_price_id=price_obj.id, currency=currency, amount=amount
+        )
+    except stripe.error.StripeError as exc:
+        logger.error("Failed to create Stripe Price for %s: %s", currency.upper(), exc)
+        raise PaymentProviderError("stripe", str(exc))
+
+
+async def deactivate_currency_price(
+    stripe_price_id: str,
+    stripe_api_key: str,
+) -> None:
+    """
+    Archive a Stripe Price by setting active=False.
+
+    Note: Stripe does not expose a delete endpoint for Prices via the API.
+    Prices can only be deleted from the Dashboard. The API only supports
+    archiving (active=False).
+    """
+    stripe.api_key = stripe_api_key
+    try:
+        stripe.Price.modify(stripe_price_id, active=False)
+        logger.info("Archived Stripe Price %s", stripe_price_id)
+    except stripe.error.StripeError as exc:
+        logger.error(
+            "Failed to archive Stripe Price %s: %s", stripe_price_id, exc
+        )
+        raise PaymentProviderError("stripe", str(exc))

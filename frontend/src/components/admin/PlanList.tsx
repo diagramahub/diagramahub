@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import { Plan } from '../../types/subscription';
 import PlanForm from './PlanForm';
+import CurrencyPriceTable from './CurrencyPriceTable';
 import ConfirmModal from '../ConfirmModal';
 
 export default function PlanList() {
@@ -200,11 +201,18 @@ export default function PlanList() {
                   <p className="mt-1 text-sm text-gray-500">{plan.description}</p>
                 )}
                 <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
-                  <span>Precio: <span className="font-medium text-gray-900">{formatPrice(plan.price_usd)}/mes</span></span>
+                  {(plan.is_free || plan.price_usd === 0) && (
+                    <span>Precio: <span className="font-medium text-gray-900">{formatPrice(plan.price_usd)}/mes</span></span>
+                  )}
                   <span>Proyectos: <span className="font-medium text-gray-900">{formatLimit(plan.max_projects)}</span></span>
                   <span>Diagramas: <span className="font-medium text-gray-900">{formatLimit(plan.max_diagrams)}</span></span>
                   <span>Suscriptores: <span className="font-medium text-gray-900">{plan.active_subscriptions}</span></span>
                 </div>
+                {!plan.is_free && plan.price_usd > 0 && (
+                  <div className="mt-3">
+                    <CurrencyPriceTable plan={plan} onPriceChanged={loadPlans} />
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
