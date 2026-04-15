@@ -44,7 +44,8 @@ import {
   PlanCreate,
   PlanUpdate,
   Subscription,
-  UsageSummary
+  UsageSummary,
+  CurrencyPriceRequest
 } from '../types/subscription';
 import {
   PaginatedPromptHistory,
@@ -325,6 +326,16 @@ class ApiService {
 
   async deactivatePlan(planId: string): Promise<any> {
     const response = await this.api.delete(`/api/v1/admin/plans/${planId}`);
+    return response.data;
+  }
+
+  async addPlanPrice(planId: string, data: CurrencyPriceRequest): Promise<Plan> {
+    const response = await this.api.post<Plan>(`/api/v1/admin/plans/${planId}/prices`, data);
+    return response.data;
+  }
+
+  async removePlanPrice(planId: string, currency: string): Promise<Plan> {
+    const response = await this.api.delete<Plan>(`/api/v1/admin/plans/${planId}/prices/${currency}`);
     return response.data;
   }
 

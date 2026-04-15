@@ -88,3 +88,18 @@ export type BillingHistory = {
   invoices: Invoice[];
   total_count: number;
 }
+
+export type CurrencyPriceRequest = {
+  currency: string;
+  amount: number;
+};
+
+export const CURRENCY_FLAGS: Record<string, string> = {
+  usd: '🇺🇸',
+  eur: '🇪🇺',
+  gbp: '🇬🇧',
+  mxn: '🇲🇽',
+  brl: '🇧🇷',
+};
+
+export const SUPPORTED_CURRENCIES = ['usd', 'eur', 'gbp', 'mxn', 'brl'];

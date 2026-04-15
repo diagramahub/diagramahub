@@ -271,6 +271,12 @@ class WebhookEventInDB(Document):
 # Request/Response Schemas
 # ============================================================================
 
+class CurrencyPriceRequest(BaseModel):
+    """Request body for adding a currency price to a plan."""
+    currency: str = Field(..., min_length=3, max_length=3)
+    amount: float = Field(..., gt=0)
+
+
 class CheckoutSessionRequest(BaseModel):
     """Request to create a checkout session."""
     plan_id: str
