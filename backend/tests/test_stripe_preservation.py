@@ -88,8 +88,9 @@ def _make_plan_in_db(
     plan.max_diagrams = 10
     plan.is_active = True
     plan.is_free = price_usd == 0.0 and code == "FREE"
-    plan.stripe_product_id = None
-    plan.stripe_prices = []
+    plan.gateway_config = None
+    plan.parsed_gateway_config = None
+    plan.prices = {}
     plan.created_at = datetime.utcnow()
     plan.updated_at = datetime.utcnow()
     return plan

@@ -12,7 +12,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const configuredCurrencies = (plan.stripe_prices ?? []).map((p) => p.currency);
+  const configuredCurrencies = Object.keys(plan.prices ?? {});
   const availableCurrencies = SUPPORTED_CURRENCIES.filter(
     (c) => c !== 'usd' && !configuredCurrencies.includes(c)
   );

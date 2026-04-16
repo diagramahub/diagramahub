@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import apiService from '../../services/api';
-import { Plan, PlanCreate, PlanUpdate } from '../../types/subscription';
+import { Plan, PlanCreate, PlanUpdate, CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
+
+const NON_USD_CURRENCIES = SUPPORTED_CURRENCIES.filter(c => c !== 'usd');
 
 interface PlanFormProps {
   plan: Plan | null;
@@ -23,8 +25,23 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
   const [unlimitedDiagrams, setUnlimitedDiagrams] = useState(plan?.max_diagrams === null || plan?.max_diagrams === -1);
   const [isActive, setIsActive] = useState(plan?.is_active ?? true);
 
+  // Multi-currency prices state
+  const [currencyPrices, setCurrencyPrices] = useState<Record<string, string>>(() => {
+    const existing: Record<string, string> = {};
+    if (plan?.prices) {
+      Object.entries(plan.prices).forEach(([currency, amount]) => {
+        if (currency !== 'usd') {
+          existing[currency] = amount.toString();
+        }
+      });
+    }
+    return existing;
+  });
+  const [newCurrency, setNewCurrency] = useState('');
+
   const hasSubscribers = plan ? plan.active_subscriptions > 0 : false;
   const isFreePlan = plan?.is_free || false;
+  const availableCurrencies = NON_USD_CURRENCIES.filter(c => !(c in currencyPrices));
 
   const handleCodeChange = (value: string) => {
     // Auto-format: uppercase, no spaces, only alphanumeric, hyphens and underscores
@@ -88,6 +105,15 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
         }
         await apiService.updatePlan(plan.id, updateData);
       } else {
+        // Build prices dict from currency inputs
+        const additionalPrices: Record<string, number> = {};
+        Object.entries(currencyPrices).forEach(([currency, amountStr]) => {
+          const amt = parseFloat(amountStr);
+          if (!isNaN(amt) && amt > 0) {
+            additionalPrices[currency] = amt;
+          }
+        });
+
         const createData: PlanCreate = {
           name: name.trim(),
           code: code.trim(),
@@ -95,6 +121,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
           price_usd: price,
           max_projects: projects,
           max_diagrams: diagrams,
+          prices: Object.keys(additionalPrices).length > 0 ? additionalPrices : undefined,
         };
         await apiService.createPlan(createData);
       }
@@ -205,6 +232,87 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               </p>
             )}
           </div>
+
+          {/* Multi-currency Prices */}
+          {parseFloat(priceUsd) > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Precios en otras monedas
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Agrega precios en monedas adicionales. Stripe mostrará automáticamente el precio correcto según la ubicación del usuario.
+              </p>
+
+              {/* Currency price rows */}
+              <div className="space-y-2">
+                {Object.entries(currencyPrices).map(([currency, amount]) => (
+                  <div key={currency} className="flex items-center gap-2">
+                    <span className="text-lg w-8">{CURRENCY_FLAGS[currency] ?? '🏳️'}</span>
+                    <span className="text-sm font-medium text-gray-700 w-12">{currency.toUpperCase()}</span>
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-2 text-gray-500 text-sm">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={amount}
+                        onChange={(e) => setCurrencyPrices(prev => ({...prev, [currency]: e.target.value}))}
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = {...currencyPrices};
+                        delete updated[currency];
+                        setCurrencyPrices(updated);
+                      }}
+                      className="text-red-500 hover:text-red-700 p-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add currency button */}
+              {availableCurrencies.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <select
+                    value={newCurrency}
+                    onChange={(e) => setNewCurrency(e.target.value)}
+                    className="px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccionar moneda...</option>
+                    {availableCurrencies.map(c => (
+                      <option key={c} value={c}>
+                        {CURRENCY_FLAGS[c] ?? '🏳️'} {c.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    disabled={!newCurrency}
+                    onClick={() => {
+                      if (newCurrency) {
+                        setCurrencyPrices(prev => ({...prev, [newCurrency]: ''}));
+                        setNewCurrency('');
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Agregar moneda
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Max Projects */}
           <div>

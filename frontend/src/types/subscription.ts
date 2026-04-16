@@ -1,8 +1,16 @@
-export type StripePriceEntry = {
-  stripe_price_id: string;
-  currency: string;
-  amount: number;
-}
+export type StripeGatewayConfig = {
+  provider: 'stripe';
+  external_product_id: string;
+  external_price_id: string;
+};
+
+export type ConektaGatewayConfig = {
+  provider: 'conekta';
+  external_product_id: string;
+  external_price_id: string;
+};
+
+export type GatewayConfig = StripeGatewayConfig | ConektaGatewayConfig;
 
 export type Plan = {
   id: string;
@@ -15,8 +23,8 @@ export type Plan = {
   is_active: boolean;
   is_free: boolean;
   active_subscriptions: number;
-  stripe_product_id?: string;
-  stripe_prices?: StripePriceEntry[];
+  gateway_config?: GatewayConfig | null;
+  prices?: Record<string, number>;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +36,7 @@ export type PlanCreate = {
   price_usd: number;
   max_projects: number | null;
   max_diagrams: number | null;
+  prices?: Record<string, number>;
 }
 
 export type PlanUpdate = {
