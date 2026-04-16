@@ -59,13 +59,10 @@ async def test_checkout_uses_stripe_price_id_not_inline_price_data():
         # plan.stripe_price_id and passes it to the provider.
         result = await provider.create_checkout_session(
             user_email="testuser@example.com",
-            plan_name="Pro",
-            plan_price=2.0,
+            stripe_price_id="price_test_usd_123",
             success_url="https://app.example.com/success",
             cancel_url="https://app.example.com/cancel",
             metadata={"user_id": "user_001", "plan_id": "plan_pro"},
-            plan_description="Pro plan — $2/month",
-            stripe_price_id="price_test_usd_123",
         )
 
         # Verify the session was created
