@@ -48,13 +48,13 @@ nav:
       - Guía de Instalación: es/instalacion.md
       - Notas de Versión:
           - es/release-notes/index.md
-          - v0.1.0: es/release-notes/v0.1.0.md
+          - 0.1.0: es/release-notes/0.1.0.md
   - English:
       - Home: en/index.md
       - Installation: en/installation.md
       - Release Notes:
           - en/release-notes/index.md
-          - v0.1.0: en/release-notes/v0.1.0.md
+          - 0.1.0: en/release-notes/0.1.0.md
 
 # Funcionalidades adicionales
 plugins:
