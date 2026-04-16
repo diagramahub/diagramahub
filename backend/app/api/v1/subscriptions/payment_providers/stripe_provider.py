@@ -114,75 +114,45 @@ class StripePaymentProvider(IPaymentProvider):
     async def create_checkout_session(
         self,
         user_email: str,
-        plan_name: str,
-        plan_price: float,
+        stripe_price_id: str,
         success_url: str,
         cancel_url: str,
         metadata: dict,
-        plan_description: Optional[str] = None,
-        stripe_price_id: Optional[str] = None
     ) -> dict:
         """
-        Crea Stripe Checkout Session.
-        
-        Proceso:
-        1. Buscar o crear Stripe Customer por email
-        2. Crear Checkout Session con mode='subscription'
-        3. Retornar session_id y session_url
-        
-        Si stripe_price_id se proporciona, se usa directamente en line_items
-        (permite resolución multi-moneda por Stripe). Si no, se usa price_data
-        inline con USD (comportamiento legacy).
+        Crea Stripe Checkout Session para suscripción.
+
+        Requiere un stripe_price_id pre-registrado (con currency_options
+        para multi-moneda). Usa customer_email para que Stripe detecte
+        automáticamente la moneda del cliente por IP.
+
+        Args:
+            user_email: Email del usuario.
+            stripe_price_id: ID del Price registrado en Stripe.
+            success_url: URL de retorno exitoso.
+            cancel_url: URL de cancelación.
+            metadata: Metadata adicional (user_id, plan_id, etc.)
+
+        Returns:
+            {"session_id": str, "session_url": str}
         """
         try:
-            # Buscar customer existente
-            customers = stripe.Customer.list(email=user_email, limit=1)
-            if customers.data:
-                customer = customers.data[0]
-            else:
-                # Crear nuevo customer
-                customer = stripe.Customer.create(email=user_email)
-            
-            # Construir line_items según si tenemos stripe_price_id oficial
-            if stripe_price_id:
-                line_items = [{'price': stripe_price_id, 'quantity': 1}]
-            else:
-                product_data: dict = {'name': plan_name}
-                if plan_description:
-                    product_data['description'] = plan_description
-                line_items = [{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': product_data,
-                        'unit_amount': int(plan_price * 100),  # Convertir a centavos
-                        'recurring': {'interval': 'month'}
-                    },
-                    'quantity': 1
-                }]
+            session = stripe.checkout.Session.create(
+                customer_email=user_email,
+                line_items=[{"price": stripe_price_id, "quantity": 1}],
+                mode="subscription",
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata=metadata,
+                locale="auto",
+                payment_method_collection="always",
+            )
 
-            # Crear sesión de checkout
-            session_params = {
-                "customer": customer.id,
-                "line_items": line_items,
-                "mode": "subscription",
-                "success_url": success_url,
-                "cancel_url": cancel_url,
-                "metadata": metadata,
-                "locale": "auto",
-            }
-
-            # When using a pre-created Price (multi-currency), ensure
-            # payment method is always collected
-            if stripe_price_id:
-                session_params["payment_method_collection"] = "always"
-
-            session = stripe.checkout.Session.create(**session_params)
-            
             return {
                 "session_id": session.id,
-                "session_url": session.url
+                "session_url": session.url,
             }
-        
+
         except stripe.error.StripeError as e:
             raise PaymentProviderError("stripe", str(e))
         except Exception as e:

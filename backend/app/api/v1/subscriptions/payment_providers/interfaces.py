@@ -12,28 +12,21 @@ class IPaymentProvider(ABC):
     async def create_checkout_session(
         self,
         user_email: str,
-        plan_name: str,
-        plan_price: float,
+        stripe_price_id: str,
         success_url: str,
         cancel_url: str,
         metadata: dict,
-        plan_description: Optional[str] = None,
-        stripe_price_id: Optional[str] = None
     ) -> dict:
         """
-        Crea sesión de checkout.
-        
+        Crea sesión de checkout para suscripción.
+
         Args:
             user_email: Email del usuario
-            plan_name: Nombre del plan
-            plan_price: Precio del plan en USD
+            stripe_price_id: ID del Price pre-registrado en el gateway
             success_url: URL de retorno exitoso
             cancel_url: URL de cancelación
             metadata: Metadata adicional (user_id, plan_id, etc.)
-            plan_description: Descripción del plan (opcional)
-            stripe_price_id: ID de precio oficial de Stripe (opcional).
-                Si se proporciona, se usa en line_items en lugar de price_data inline.
-        
+
         Returns:
             {"session_id": str, "session_url": str}
         """
