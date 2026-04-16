@@ -127,16 +127,9 @@ class SubscriptionService:
         if not user_email:
             user_email = f"user_{user_id}@placeholder.com"
         
-        # Extract stripe_price_id for checkout (prefer USD price)
-        stripe_price_id = None
-        if hasattr(plan, 'stripe_prices') and plan.stripe_prices:
-            for price_entry in plan.stripe_prices:
-                if price_entry.currency == 'usd':
-                    stripe_price_id = price_entry.stripe_price_id
-                    break
-            # If no USD price found, use the first available
-            if not stripe_price_id and plan.stripe_prices:
-                stripe_price_id = plan.stripe_prices[0].stripe_price_id
+        # Use the single multi-currency price_id from gateway_config
+        gw = plan.parsed_gateway_config if hasattr(plan, 'parsed_gateway_config') else None
+        stripe_price_id = gw.external_price_id if gw else None
         
         # Configurar URLs usando settings
         success_url = f"{settings.FRONTEND_URL}/profile?tab=subscription&success=true&session_id={{CHECKOUT_SESSION_ID}}"
@@ -387,14 +380,14 @@ class SubscriptionService:
             name=plan.name,
             code=plan.code or plan.name.upper().replace(" ", "_"),
             description=plan.description,
-            price_usd=plan.price_usd,  # computed from stripe_prices
+            price_usd=plan.price_usd,
             max_projects=plan.max_projects,
             max_diagrams=plan.max_diagrams,
             is_active=plan.is_active,
             is_free=plan.is_free,
             active_subscriptions=active_subs,
-            stripe_product_id=getattr(plan, 'stripe_product_id', None),
-            stripe_prices=getattr(plan, 'stripe_prices', []),
+            gateway_config=getattr(plan, 'gateway_config', None),
+            prices=getattr(plan, 'prices', {}),
             created_at=plan.created_at,
             updated_at=plan.updated_at
         )

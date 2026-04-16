@@ -56,7 +56,7 @@ async def test_checkout_uses_stripe_price_id_not_inline_price_data():
 
         # Act: call create_checkout_session for a $2 USD paid plan
         # After the fix, SubscriptionService extracts stripe_price_id from
-        # plan.stripe_prices and passes it to the provider.
+        # plan.stripe_price_id and passes it to the provider.
         result = await provider.create_checkout_session(
             user_email="testuser@example.com",
             plan_name="Pro",

@@ -45,7 +45,7 @@ async def create_free_plan():
         print(f"✓ FREE plan already exists (ID: {existing_plan.id})")
         print(f"  - Max Projects: {existing_plan.max_projects}")
         print(f"  - Max Diagrams: {existing_plan.max_diagrams}")
-        print(f"  - Price: ${existing_plan.price_usd}/month (derived from stripe_prices)")
+        print(f"  - Price: ${existing_plan.price_usd}/month (derived from prices dict)")
         return existing_plan
     
     # Create FREE plan
@@ -63,7 +63,7 @@ async def create_free_plan():
     print(f"✓ FREE plan created successfully (ID: {free_plan.id})")
     print(f"  - Max Projects: {free_plan.max_projects}")
     print(f"  - Max Diagrams: {free_plan.max_diagrams}")
-    print(f"  - Price: ${free_plan.price_usd}/month (derived from stripe_prices)")
+    print(f"  - Price: ${free_plan.price_usd}/month (derived from prices dict)")
     
     # Close connection
     client.close()

@@ -59,7 +59,7 @@ class PlanRepository(IPlanRepository):
             return None
         
         update_data = plan_data.model_dump(exclude_unset=True)
-        # price_usd is managed via stripe_prices, not persisted directly
+        # price_usd is managed via prices dict, not persisted directly
         update_data.pop("price_usd", None)
         if update_data:
             update_data["updated_at"] = datetime.utcnow()
