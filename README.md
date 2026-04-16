@@ -4,6 +4,8 @@
 
 Self-hostable via Docker Compose. No vendor lock-in. Apache 2.0 licensed.
 
+> ⚠️ **Beta Software** — DiagramaHub is in early development (v0.x). It is not yet considered stable software. APIs, data structures, and features may change between versions. Use in production at your own risk.
+
 ---
 
 ## ✨ Features
