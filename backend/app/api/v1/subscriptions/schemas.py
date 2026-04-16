@@ -2,7 +2,7 @@
 Pydantic models for subscription and plan management.
 """
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union, Literal
 from pydantic import BaseModel, Field
 from beanie import Document
 from pymongo import IndexModel, ASCENDING
@@ -22,15 +22,40 @@ class SubscriptionStatus:
 
 
 # ============================================================================
-# Plan Schemas
+# Gateway Config Schemas (provider-agnostic)
 # ============================================================================
 
-class StripePriceEntry(BaseModel):
-    """Embedded model for a Stripe Price linked to a plan."""
-    stripe_price_id: str
-    currency: str
-    amount: float
+class StripeGatewayConfig(BaseModel):
+    """Stripe-specific gateway configuration for a plan."""
+    provider: Literal["stripe"] = "stripe"
+    external_product_id: str
+    external_price_id: str
 
+
+class ConektaGatewayConfig(BaseModel):
+    """Conekta-specific gateway configuration for a plan (placeholder)."""
+    provider: Literal["conekta"] = "conekta"
+    external_product_id: str
+    external_price_id: str
+
+
+def parse_gateway_config(
+    data: Optional[dict],
+) -> Optional[Union[StripeGatewayConfig, ConektaGatewayConfig]]:
+    """Parse a raw gateway_config dict into the correct typed model."""
+    if not data:
+        return None
+    provider = data.get("provider")
+    if provider == "stripe":
+        return StripeGatewayConfig(**data)
+    if provider == "conekta":
+        return ConektaGatewayConfig(**data)
+    return None
+
+
+# ============================================================================
+# Plan Schemas
+# ============================================================================
 
 class PlanBase(BaseModel):
     """Base plan model."""
@@ -58,7 +83,9 @@ class PlanBase(BaseModel):
 
 class PlanCreate(PlanBase):
     """Model for creating a new plan."""
-    pass
+    prices: Optional[dict] = Field(
+        None, description="Optional multi-currency prices dict, e.g. {'mxn': 40, 'eur': 2}"
+    )
 
 
 class PlanUpdate(BaseModel):
@@ -75,6 +102,9 @@ class PlanUpdate(BaseModel):
     max_projects: Optional[int] = Field(None, ge=-1)
     max_diagrams: Optional[int] = Field(None, ge=-1)
     is_active: Optional[bool] = None
+    prices: Optional[dict] = Field(
+        None, description="Optional multi-currency prices dict, e.g. {'mxn': 40, 'eur': 2}"
+    )
 
 
 class PlanInDB(Document):
@@ -85,8 +115,8 @@ class PlanInDB(Document):
     max_projects: Optional[int] = None
     max_diagrams: Optional[int] = None
     is_active: bool = True
-    stripe_product_id: Optional[str] = None
-    stripe_prices: list[StripePriceEntry] = []
+    gateway_config: Optional[dict] = None
+    prices: dict = {}
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -96,12 +126,16 @@ class PlanInDB(Document):
         return self.code == "FREE"
 
     @property
+    def parsed_gateway_config(
+        self,
+    ) -> Optional[Union[StripeGatewayConfig, ConektaGatewayConfig]]:
+        """Parse the raw gateway_config dict into a typed model."""
+        return parse_gateway_config(self.gateway_config)
+
+    @property
     def price_usd(self) -> float:
-        """Derive USD price from stripe_prices array. Empty array = free (0)."""
-        for entry in self.stripe_prices:
-            if entry.currency == "usd":
-                return entry.amount
-        return 0.0
+        """Derive USD price from prices dict. Empty dict = free (0)."""
+        return float(self.prices.get("usd", 0.0))
 
     class Settings:
         name = "plans"
@@ -124,8 +158,8 @@ class PlanResponse(BaseModel):
     is_active: bool
     is_free: bool = False
     active_subscriptions: int = 0
-    stripe_product_id: Optional[str] = None
-    stripe_prices: list[StripePriceEntry] = []
+    gateway_config: Optional[dict] = None
+    prices: dict = {}
     created_at: datetime
     updated_at: datetime
 
