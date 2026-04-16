@@ -167,7 +167,8 @@ class StripePaymentProvider(IPaymentProvider):
                 "mode": "subscription",
                 "success_url": success_url,
                 "cancel_url": cancel_url,
-                "metadata": metadata
+                "metadata": metadata,
+                "locale": "auto",
             }
 
             # When using a pre-created Price (multi-currency), ensure

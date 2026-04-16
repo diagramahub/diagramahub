@@ -162,7 +162,7 @@ export default function PlanList() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-                  {plan.code && (
+                  {plan.code && !plan.is_free && (
                     <code className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded font-mono">{plan.code}</code>
                   )}
                   {plan.is_free && (
