@@ -87,7 +87,7 @@ Resumen breve del release.
 ## Convenciones adicionales
 
 1. Toda versión debe poder explicarse en `CHANGELOG.md`.
-2. Toda versión oficial debe etiquetarse en Git con el formato: `v0.1.0`, `v0.1.1`, `v0.2.0`, etc.
+2. Toda versión oficial debe etiquetarse en Git con el formato: `0.1.0`, `0.1.1`, `0.2.0`, etc.
 3. A partir de `1.0.0`, cualquier cambio incompatible requiere incrementar **MAJOR**.
 
 ## Checklist de release
@@ -99,7 +99,7 @@ Al crear una nueva versión:
 3. Agregar la nueva versión al índice en `docs/es/release-notes/index.md` y `docs/en/release-notes/index.md`.
 4. Agregar las nuevas páginas de release notes al `nav` en `mkdocs.yml` bajo las secciones "Notas de Versión" / "Release Notes".
 5. Actualizar `CHANGELOG.md`.
-6. Etiquetar el commit como `v{VERSION}`.
+6. Etiquetar el commit como `{VERSION}`.
 
 ## Referencia
 
