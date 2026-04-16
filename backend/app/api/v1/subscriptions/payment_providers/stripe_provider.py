@@ -170,6 +170,11 @@ class StripePaymentProvider(IPaymentProvider):
                 "metadata": metadata
             }
 
+            # When using a pre-created Price (multi-currency), ensure
+            # payment method is always collected
+            if stripe_price_id:
+                session_params["payment_method_collection"] = "always"
+
             session = stripe.checkout.Session.create(**session_params)
             
             return {
