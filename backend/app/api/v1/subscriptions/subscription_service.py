@@ -129,8 +129,9 @@ class SubscriptionService:
         
         # Use the single multi-currency price_id from gateway_config
         gw = plan.parsed_gateway_config if hasattr(plan, 'parsed_gateway_config') else None
-        stripe_price_id = gw.external_price_id if gw else None
-        
+        if not gw or not gw.external_price_id:
+            raise ValidationError("Plan must be synced with a payment gateway before checkout")
+
         # Configurar URLs usando settings
         success_url = f"{settings.FRONTEND_URL}/profile?tab=subscription&success=true&session_id={{CHECKOUT_SESSION_ID}}"
         cancel_url = f"{settings.FRONTEND_URL}/profile?tab=subscription"
@@ -138,16 +139,13 @@ class SubscriptionService:
         # Crear sesión de checkout
         session = await self.payment_provider.create_checkout_session(
             user_email=user_email,
-            plan_name=plan.name,
-            plan_price=plan.price_usd,
-            plan_description=plan.description,
+            stripe_price_id=gw.external_price_id,
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
                 "user_id": user_id,
                 "plan_id": plan_id
             },
-            stripe_price_id=stripe_price_id
         )
         
         # Log checkout session creation
