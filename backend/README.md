@@ -122,7 +122,7 @@ curl -X POST http://localhost:5172/api/v1/users/register \
   "email": "user@example.com",
   "full_name": "John Doe",
   "is_active": true,
-  "created_at": "2025-10-10T04:40:33.753000"
+  "created_at": "2026-10-10T04:40:33.753000"
 }
 ```
 

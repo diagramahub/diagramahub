@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { Project } from '../types/project';
 import Navbar from '../components/Navbar';
+import MfaBanner from '../components/MfaBanner';
 import CreateProjectModal from '../components/CreateProjectModal';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -86,6 +87,7 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 transition-colors">
       <Navbar />
+      <MfaBanner />
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-12">

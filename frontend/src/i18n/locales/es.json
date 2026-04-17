@@ -75,12 +75,44 @@
   "validation": {
     "required": "Este campo es requerido",
     "emailInvalid": "Correo electrónica inválido",
-    "passwordMin": "La contraseña debe tener al menos 8 caracteres",
+    "passwordMin": "La contraseña debe tener al menos 12 caracteres",
     "passwordUppercase": "La contraseña debe contener al menos una letra mayúscula",
     "passwordLowercase": "La contraseña debe contener al menos una letra minúscula",
     "passwordNumber": "La contraseña debe contener al menos un número",
+    "passwordSpecial": "La contraseña debe contener al menos un carácter especial",
+    "passwordNotEmail": "La contraseña no puede ser igual al correo electrónico",
     "passwordMismatch": "Las contraseñas no coinciden",
     "allFieldsRequired": "Todos los campos son requeridos"
+  },
+  "password": {
+    "strength": {
+      "minLength": "Al menos 12 caracteres",
+      "uppercase": "Al menos una letra mayúscula",
+      "lowercase": "Al menos una letra minúscula",
+      "digit": "Al menos un número",
+      "special": "Al menos un carácter especial",
+      "notEmail": "No puede ser igual al correo electrónico"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "Gestión de usuarios y MFA",
+      "description": "Administra la autenticación multi-factor de los usuarios de la plataforma",
+      "totalUsers": "{{count}} usuarios",
+      "searchPlaceholder": "Buscar por nombre o correo...",
+      "resetMfa": "Desactivar MFA",
+      "confirmReset": "Confirmar",
+      "mfaDisabled": "MFA no activo",
+      "recoveryCodes": "{{count}} códigos restantes",
+      "errorLoading": "Error al cargar usuarios",
+      "errorResetting": "Error al desactivar MFA",
+      "noResults": "No se encontraron usuarios",
+      "pageInfo": "{{from}}-{{to}} de {{total}}",
+      "exportExcel": "Exportar Excel",
+      "exporting": "Exportando...",
+      "errorExporting": "Error al exportar usuarios",
+      "registered": "Registro:"
+    }
   },
   "installation": {
     "title": "Bienvenido a DiagramaHub",
@@ -247,10 +279,10 @@
     "imageTooLarge": "La imagen debe ser menor a 2MB",
     "allFieldsRequired": "Todos los campos son obligatorios",
     "passwordsDoNotMatch": "Las contraseñas no coinciden",
-    "passwordTooShort": "La nueva contraseña debe tener al menos 8 caracteres",
+    "passwordTooShort": "La nueva contraseña debe tener al menos 12 caracteres",
     "profileUpdateError": "Error al actualizar el perfil",
     "passwordChangeError": "Error al cambiar la contraseña",
-    "passwordMinLength": "Mínimo 8 caracteres"
+    "passwordMinLength": "Mínimo 12 caracteres"
   },
   "settings": {
     "title": "Configuraciones",
@@ -525,6 +557,110 @@
     "vendors": {
       "resend": "Resend",
       "stripe": "Stripe"
+    }
+  },
+  "mfa": {
+    "banner": {
+      "message": "Protege tu cuenta activando la autenticación de dos factores (MFA)",
+      "enable": "Activar MFA"
+    },
+    "setup": {
+      "title": "Autenticación de Dos Factores (MFA)",
+      "description": "Agrega una capa adicional de seguridad a tu cuenta",
+      "statusDisabled": "MFA no está habilitado",
+      "statusEnabled": "MFA habilitado",
+      "statusEmail": "Email",
+      "statusTotp": "Aplicación autenticadora",
+      "defaultMethod": "Método predeterminado",
+      "enableEmail": "Habilitar MFA por email",
+      "enableTotp": "Habilitar aplicación autenticadora",
+      "emailDescription": "Recibe un código de verificación en tu correo electrónico cada vez que inicies sesión",
+      "totpDescription": "Usa una aplicación como Google Authenticator o Authy para generar códigos temporales",
+      "disableEmail": "Deshabilitar MFA por email",
+      "disableTotp": "Deshabilitar aplicación autenticadora",
+      "setDefaultEmail": "Establecer email como predeterminado",
+      "setDefaultTotp": "Establecer autenticador como predeterminado",
+      "regenerateCodes": "Regenerar códigos de recuperación",
+      "recoveryCodesRemaining": "{{count}} códigos de recuperación restantes",
+      "confirmDisableTitle": "Deshabilitar MFA",
+      "confirmDisableMessage": "Ingresa tu contraseña para confirmar la desactivación de MFA por {{method}}",
+      "passwordPlaceholder": "Tu contraseña actual",
+      "disabling": "Deshabilitando...",
+      "methodDisabled": "Método MFA deshabilitado exitosamente",
+      "defaultMethodUpdated": "Método predeterminado actualizado",
+      "codesRegenerated": "Códigos de recuperación regenerados",
+      "errorLoadingStatus": "Error al cargar estado MFA",
+      "errorDisabling": "Error al deshabilitar MFA",
+      "errorSettingDefault": "Error al cambiar método predeterminado",
+      "errorRegenerating": "Error al regenerar códigos"
+    },
+    "email": {
+      "title": "Habilitar MFA por Email",
+      "description": "Se enviará un código de verificación a tu correo electrónico cada vez que inicies sesión",
+      "sendCode": "Enviar código de verificación",
+      "sendingCode": "Enviando código...",
+      "codeSent": "Se envió un código de verificación a tu correo electrónico",
+      "enterCode": "Ingresa el código de 6 dígitos",
+      "codePlaceholder": "000000",
+      "verifyCode": "Verificar código",
+      "verifying": "Verificando...",
+      "emailUnavailable": "El servicio de correo no está disponible en este momento",
+      "errorSending": "Error al enviar código de verificación",
+      "errorVerifying": "Error al verificar código",
+      "cancel": "Cancelar"
+    },
+    "totp": {
+      "title": "Habilitar Aplicación Autenticadora",
+      "description": "Usa una aplicación como Google Authenticator o Authy para generar códigos de verificación",
+      "step1": "Paso 1: Escanea el código QR",
+      "step1Description": "Escanea este código QR con tu aplicación autenticadora",
+      "secretKey": "Clave secreta",
+      "copySecret": "Copiar",
+      "secretCopied": "Clave copiada",
+      "cantScanQr": "¿No puedes escanear el QR? Ingresa la clave secreta manualmente en tu aplicación",
+      "step2": "Paso 2: Verifica el código",
+      "step2Description": "Ingresa el código de 6 dígitos que muestra tu aplicación autenticadora",
+      "codePlaceholder": "000000",
+      "verifyCode": "Verificar y activar",
+      "verifying": "Verificando...",
+      "loading": "Generando código QR...",
+      "errorSetup": "Error al configurar autenticador",
+      "errorVerifying": "Error al verificar código",
+      "cancel": "Cancelar"
+    },
+    "recoveryCodes": {
+      "title": "Códigos de Recuperación",
+      "description": "Guarda estos códigos en un lugar seguro. Los necesitarás si pierdes acceso a tu método MFA principal.",
+      "warning": "Estos códigos solo se mostrarán una vez. Si los pierdes, no podrás recuperarlos.",
+      "copyAll": "Copiar todos",
+      "copied": "Códigos copiados",
+      "confirmSaved": "He guardado mis códigos de recuperación",
+      "close": "Cerrar"
+    },
+    "verify": {
+      "title": "Verificación de dos factores",
+      "emailSent": "Se envió un código de verificación a tu correo electrónico",
+      "totpPrompt": "Ingresa el código de tu aplicación autenticadora",
+      "recoveryPrompt": "Ingresa uno de tus códigos de recuperación",
+      "codeLabel": "Código de verificación",
+      "recoveryCodeLabel": "Código de recuperación",
+      "resend": "Reenviar código",
+      "resendsRemaining": "{{count}} reenvíos restantes",
+      "verifying": "Verificando...",
+      "submit": "Verificar",
+      "backToCode": "Volver al código de verificación",
+      "useRecoveryCode": "Usar código de recuperación",
+      "tryAnotherMethod": "Probar otro método",
+      "invalidCode": "Código inválido. Intenta de nuevo.",
+      "tokenExpired": "Tu sesión de verificación ha expirado. Inicia sesión nuevamente.",
+      "resendError": "Error al reenviar el código",
+      "switchError": "Error al cambiar de método",
+      "chooseMethod": "Elige un método de verificación",
+      "methodTotp": "Aplicación autenticadora",
+      "methodTotpDesc": "Ingresa el código de tu app (Google Authenticator, Authy, etc.)",
+      "methodEmail": "Enviar código por correo",
+      "methodEmailDesc": "Se enviará un código de 6 dígitos a tu correo electrónico",
+      "sendingEmailCode": "Enviando código..."
     }
   },
   "ai": {
