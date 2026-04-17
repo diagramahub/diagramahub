@@ -98,7 +98,9 @@ export default function InstallationWizardPage() {
 
       // Login automatically
       const authResponse = await apiService.login({ email, password });
-      localStorage.setItem('token', authResponse.access_token);
+      if (authResponse.access_token) {
+        localStorage.setItem('token', authResponse.access_token);
+      }
 
       // Get user data
       const user = await apiService.getCurrentUser();
