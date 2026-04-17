@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 
 const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -38,10 +39,12 @@ const ResetPasswordPage: React.FC = () => {
 
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
-    if (password.length < 8) errors.push(t('validation.passwordMin'));
+    if (password.length < 12) errors.push(t('validation.passwordMin'));
     if (!/[A-Z]/.test(password)) errors.push(t('validation.passwordUppercase'));
     if (!/[a-z]/.test(password)) errors.push(t('validation.passwordLowercase'));
     if (!/\d/.test(password)) errors.push(t('validation.passwordNumber'));
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(password)) errors.push(t('validation.passwordSpecial'));
+    if (email && password.toLowerCase() === email.toLowerCase()) errors.push(t('validation.passwordNotEmail'));
     return errors;
   };
 
@@ -170,6 +173,7 @@ const ResetPasswordPage: React.FC = () => {
                     )}
                   </button>
                 </div>
+                <PasswordStrengthIndicator password={newPassword} email={email} />
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">

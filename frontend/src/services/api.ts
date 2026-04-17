@@ -8,7 +8,15 @@ import {
   ResetPasswordRequest,
   ResetPasswordConfirm,
   UpdateProfileRequest,
-  InstallationStatus
+  InstallationStatus,
+  LoginResponse,
+  MfaSetupTotpResponse,
+  RecoveryCodesResponse,
+  MfaVerifyResponse,
+  MfaResendResponse,
+  MfaStatusResponse,
+  AdminUserMfaInfo,
+  PaginatedAdminUsers
 } from '../types/auth';
 import {
   Project,
@@ -99,12 +107,29 @@ class ApiService {
       },
     });
 
-    // Request interceptor to add token
+    // Request interceptor to add token and language
     this.api.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
         const token = localStorage.getItem('token');
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        // Send current i18n language so backend can localize emails
+        const lang = localStorage.getItem('i18nextLng') || 'es';
+        if (config.headers) {
+          config.headers['Accept-Language'] = lang;
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Public API also sends language header
+    this.publicApi.interceptors.request.use(
+      (config: InternalAxiosRequestConfig) => {
+        const lang = localStorage.getItem('i18nextLng') || 'es';
+        if (config.headers) {
+          config.headers['Accept-Language'] = lang;
         }
         return config;
       },
@@ -137,8 +162,8 @@ class ApiService {
     return response.data;
   }
 
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.api.post<AuthResponse>('/api/v1/users/login', data);
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    const response = await this.api.post<LoginResponse>('/api/v1/users/login', data);
     return response.data;
   }
 
@@ -543,6 +568,96 @@ class ApiService {
 
   async getIntegrationVendorConfig(id: string): Promise<{ vendor_id: string; config: Record<string, string> }> {
     const response = await this.api.get<{ vendor_id: string; config: Record<string, string> }>(`/api/v1/admin/integrations/vendors/${id}/config`);
+    return response.data;
+  }
+
+  // ============================================================================
+  // MFA API
+  // ============================================================================
+
+  async setupTotp(): Promise<MfaSetupTotpResponse> {
+    const response = await this.api.post<MfaSetupTotpResponse>('/api/v1/mfa/setup-totp');
+    return response.data;
+  }
+
+  async enableTotp(code: string, setAsDefault?: boolean): Promise<RecoveryCodesResponse> {
+    const response = await this.api.post<RecoveryCodesResponse>('/api/v1/mfa/enable-totp', { code, set_as_default: setAsDefault });
+    return response.data;
+  }
+
+  async enableEmailMfa(): Promise<{ message: string }> {
+    const response = await this.api.post<{ message: string }>('/api/v1/mfa/enable-email');
+    return response.data;
+  }
+
+  async verifyEmailActivation(code: string): Promise<RecoveryCodesResponse> {
+    const response = await this.api.post<RecoveryCodesResponse>('/api/v1/mfa/verify-email-activation', { code });
+    return response.data;
+  }
+
+  async disableMfa(password: string, method: string): Promise<{ message: string }> {
+    const response = await this.api.post<{ message: string }>('/api/v1/mfa/disable', { password, method });
+    return response.data;
+  }
+
+  async verifyMfaCode(mfaToken: string, code: string, method?: string, isRecoveryCode?: boolean): Promise<MfaVerifyResponse> {
+    const response = await this.publicApi.post<MfaVerifyResponse>('/api/v1/mfa/verify', {
+      mfa_token: mfaToken,
+      code,
+      method,
+      is_recovery_code: isRecoveryCode,
+    });
+    return response.data;
+  }
+
+  async switchMfaMethod(mfaToken: string, method: string): Promise<{ message: string }> {
+    const response = await this.publicApi.post<{ message: string }>('/api/v1/mfa/switch-method', {
+      mfa_token: mfaToken,
+      method,
+    });
+    return response.data;
+  }
+
+  async resendEmailCode(mfaToken: string): Promise<MfaResendResponse> {
+    const response = await this.publicApi.post<MfaResendResponse>('/api/v1/mfa/resend-email-code', {
+      mfa_token: mfaToken,
+    });
+    return response.data;
+  }
+
+  async getMfaStatus(): Promise<MfaStatusResponse> {
+    const response = await this.api.get<MfaStatusResponse>('/api/v1/mfa/status');
+    return response.data;
+  }
+
+  async regenerateRecoveryCodes(): Promise<RecoveryCodesResponse> {
+    const response = await this.api.post<RecoveryCodesResponse>('/api/v1/mfa/regenerate-recovery-codes');
+    return response.data;
+  }
+
+  async setDefaultMfaMethod(method: string): Promise<{ message: string }> {
+    const response = await this.api.put<{ message: string }>('/api/v1/mfa/default-method', { method });
+    return response.data;
+  }
+
+  // ============================================================================
+  // Admin MFA Management API
+  // ============================================================================
+
+  async adminGetUsersWithMfa(params: { page?: number; page_size?: number; search?: string } = {}): Promise<PaginatedAdminUsers> {
+    const response = await this.api.get<PaginatedAdminUsers>('/api/v1/mfa/admin/users', { params });
+    return response.data;
+  }
+
+  async adminResetUserMfa(userId: string): Promise<{ message: string }> {
+    const response = await this.api.post<{ message: string }>(`/api/v1/mfa/admin/users/${userId}/reset-mfa`);
+    return response.data;
+  }
+
+  async adminExportUsersExcel(): Promise<Blob> {
+    const response = await this.api.get('/api/v1/mfa/admin/users/export', {
+      responseType: 'blob',
+    });
     return response.data;
   }
 }

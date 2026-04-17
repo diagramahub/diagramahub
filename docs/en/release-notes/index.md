@@ -6,4 +6,5 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
-| [0.1.0](0.1.0.md) | 2025-04-16 | Initial release |
+| [0.2.0](0.2.0.md) | 2026-04-16 | Security & MFA |
+| [0.1.0](0.1.0.md) | 2026-04-16 | Initial release |

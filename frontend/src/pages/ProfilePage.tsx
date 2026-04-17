@@ -16,6 +16,9 @@ import PlanSelector from '../components/subscription/PlanSelector';
 import BillingHistory from '../components/subscription/BillingHistory';
 import SuccessCelebrationModal from '../components/subscription/SuccessCelebrationModal';
 import PremiumAvatar from '../components/PremiumAvatar';
+import MfaSetupSection from '../components/mfa/MfaSetupSection';
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import UserMfaManagement from '../components/admin/UserMfaManagement';
 import { Subscription } from '../types/subscription';
 
 // Lista de zonas horarias comunes
@@ -179,8 +182,13 @@ export default function ProfilePage() {
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (newPassword.length < 12) {
       setError(t('profile.passwordTooShort'));
+      return;
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(newPassword)) {
+      setError(t('validation.passwordSpecial'));
       return;
     }
 
@@ -569,6 +577,7 @@ export default function ProfilePage() {
                     placeholder="••••••••"
                   />
                   <p className="mt-1 text-xs text-gray-500">{t('profile.passwordMinLength')}</p>
+                  <PasswordStrengthIndicator password={newPassword} email={user?.email} />
                 </div>
 
                 <div>
@@ -610,6 +619,9 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+          {/* MFA Setup Section */}
+          <MfaSetupSection />
 
           </>
         )}
@@ -702,6 +714,7 @@ export default function ProfilePage() {
         {/* Admin Tab Content */}
         {activeTab === 'admin' && user?.role === 'admin' && (
           <div className="space-y-8">
+            <UserMfaManagement />
             <PlanList />
             <IntegrationsSection />
           </div>

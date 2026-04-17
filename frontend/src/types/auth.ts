@@ -65,8 +65,84 @@ export type AuthContextType = {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  mfaEnabled: boolean;
+  login: (email: string, password: string) => Promise<LoginResponse | void>;
+  completeMfaLogin: (accessToken: string) => Promise<void>;
   register: (email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+}
+
+// MFA Types
+export interface MfaLoginResponse {
+  mfa_required: boolean;
+  mfa_token: string;
+  mfa_default_method: string;
+  available_methods: string[];
+}
+
+export interface MfaVerifyRequest {
+  mfa_token: string;
+  code: string;
+  method?: string;
+  is_recovery_code?: boolean;
+}
+
+export interface MfaStatusResponse {
+  enabled: boolean;
+  methods: string[];
+  default_method: string | null;
+  recovery_codes_remaining: number;
+}
+
+export interface MfaSetupTotpResponse {
+  qr_code_base64: string;
+  secret_key: string;
+}
+
+export interface RecoveryCodesResponse {
+  codes: string[];
+}
+
+export interface MfaResendResponse {
+  message: string;
+  resends_remaining: number;
+}
+
+export interface MfaVerifyResponse {
+  access_token: string;
+  token_type: string;
+  recovery_warning?: string;
+}
+
+export interface LoginResponse {
+  access_token?: string;
+  token_type?: string;
+  mfa_enabled?: boolean;
+  mfa_required?: boolean;
+  mfa_token?: string;
+  mfa_default_method?: string;
+  available_methods?: string[];
+}
+
+export interface AdminUserMfaInfo {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+  is_active: boolean;
+  mfa_enabled: boolean;
+  mfa_methods: string[];
+  mfa_default_method: string | null;
+  recovery_codes_remaining: number;
+  created_at: string | null;
+  plan_name: string | null;
+}
+
+export interface PaginatedAdminUsers {
+  items: AdminUserMfaInfo[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
