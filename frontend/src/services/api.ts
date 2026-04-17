@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import {
-  AuthResponse,
   LoginRequest,
   RegisterRequest,
   User,
@@ -15,7 +14,6 @@ import {
   MfaVerifyResponse,
   MfaResendResponse,
   MfaStatusResponse,
-  AdminUserMfaInfo,
   PaginatedAdminUsers
 } from '../types/auth';
 import {

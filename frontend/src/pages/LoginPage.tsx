@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { LoginResponse } from '../types/auth';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
