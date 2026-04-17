@@ -62,6 +62,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token } = response;
 
       // Standard login (no MFA required)
+      if (!access_token) {
+        throw new Error('No access token received');
+      }
       localStorage.setItem('token', access_token);
       setToken(access_token);
 
