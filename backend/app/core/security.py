@@ -4,7 +4,7 @@ Security utilities for authentication and password hashing.
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
 
@@ -75,23 +75,35 @@ def mask_api_key(api_key: str) -> str:
     return f"{api_key[:4]}...{api_key[-3:]}"
 
 
-def create_access_token(subject: str | Any, expires_delta: timedelta | None = None) -> str:
+def create_access_token(
+    subject: str | Any,
+    expires_delta: timedelta | None = None,
+    mfa_enabled: bool = False,
+) -> str:
     """
     Create JWT access token.
 
+    Token duration is determined by the following priority:
+    1. ``expires_delta`` if explicitly provided.
+    2. 5 days (120 h) when ``mfa_enabled`` is ``True``.
+    3. 2 days (48 h) when ``mfa_enabled`` is ``False``.
+
     Args:
-        subject: Token subject (typically user ID)
-        expires_delta: Optional custom expiration time
+        subject: Token subject (typically user email).
+        expires_delta: Optional custom expiration time. When provided it
+            takes precedence over the ``mfa_enabled`` flag.
+        mfa_enabled: Whether the user has MFA enabled. Used to select the
+            default token duration when ``expires_delta`` is not given.
 
     Returns:
-        Encoded JWT token
+        Encoded JWT token.
     """
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
+    elif mfa_enabled:
+        expire = datetime.now(timezone.utc) + timedelta(days=5)
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.now(timezone.utc) + timedelta(days=2)
 
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(
@@ -147,3 +159,96 @@ def decode_access_token(token: str) -> dict[str, Any]:
         settings.JWT_SECRET,
         algorithms=[settings.JWT_ALGORITHM]
     )
+
+
+# --- MFA Security Functions ---
+
+MFA_TEMP_TOKEN_EXPIRE_MINUTES = 5
+
+
+def create_mfa_temp_token(
+    subject: str, mfa_default_method: str, available_methods: list[str]
+) -> str:
+    """
+    Create a temporary MFA verification JWT token.
+
+    Issued after successful credential validation when MFA is enabled.
+    The token carries MFA context and expires in 5 minutes.
+
+    Args:
+        subject: User identifier (typically email)
+        mfa_default_method: The user's default MFA method ("email" or "totp")
+        available_methods: List of active MFA methods for the user
+
+    Returns:
+        Encoded JWT token with MFA claims
+    """
+    expire = datetime.now(timezone.utc) + timedelta(minutes=MFA_TEMP_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": str(subject),
+        "type": "mfa_temp",
+        "mfa_default_method": mfa_default_method,
+        "available_methods": available_methods,
+        "attempt_count": 0,
+        "exp": expire,
+    }
+    return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_mfa_temp_token(token: str) -> dict:
+    """
+    Decode and validate a temporary MFA verification token.
+
+    Verifies the token signature, expiration, and that it contains
+    the expected ``type: "mfa_temp"`` claim.
+
+    Args:
+        token: JWT token to decode
+
+    Returns:
+        Full claims dictionary from the token
+
+    Raises:
+        jose.JWTError: If the token is invalid, expired, or not an MFA temp token
+    """
+    payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+    if payload.get("type") != "mfa_temp":
+        raise JWTError("Invalid MFA token type")
+    return payload
+
+
+def encrypt_totp_secret(secret: str) -> str:
+    """
+    Encrypt a TOTP secret string using Fernet symmetric encryption.
+
+    Uses the same AI_ENCRYPTION_KEY used for encrypting AI provider API keys.
+
+    Args:
+        secret: Plain text TOTP secret (base32 string)
+
+    Returns:
+        Encrypted secret as a base64-encoded string
+
+    Raises:
+        ValueError: If AI_ENCRYPTION_KEY is not configured
+    """
+    cipher = get_cipher()
+    return cipher.encrypt(secret.encode()).decode()
+
+
+def decrypt_totp_secret(encrypted: str) -> str:
+    """
+    Decrypt a Fernet-encrypted TOTP secret.
+
+    Args:
+        encrypted: Encrypted TOTP secret (base64-encoded string)
+
+    Returns:
+        Original plain text TOTP secret
+
+    Raises:
+        ValueError: If AI_ENCRYPTION_KEY is not configured
+        cryptography.fernet.InvalidToken: If the encrypted data is invalid or corrupted
+    """
+    cipher = get_cipher()
+    return cipher.decrypt(encrypted.encode()).decode()

@@ -4,7 +4,8 @@ User service layer implementing business logic.
 import logging
 import secrets
 import time
-from typing import Optional
+from datetime import timedelta
+from typing import Optional, Union
 
 from fastapi import HTTPException, status
 
@@ -22,7 +23,9 @@ from app.api.v1.users.schemas import (
 )
 from app.core.security import (
     create_access_token,
+    create_mfa_temp_token,
     get_password_hash,
+    pwd_context,
     verify_password,
 )
 
@@ -166,18 +169,26 @@ class UserService:
             created_at=user.created_at,
         )
 
-    async def login(self, login_data: LoginRequest) -> Token:
+    async def login(self, login_data: LoginRequest) -> Union[dict, Token]:
         """
-        Authenticate user and generate access token.
+        Authenticate user and generate access token, or initiate MFA flow.
+
+        If the user has MFA enabled, returns a dict with ``mfa_required``,
+        a temporary MFA token, the default method, and available methods.
+        If the default method is email, a verification code is generated
+        and its plain-text value is included so the route layer can send it.
+
+        If MFA is not enabled, returns a dict containing the access token
+        (with 2-day expiration) and an ``mfa_enabled: False`` indicator.
 
         Args:
             login_data: Login credentials
 
         Returns:
-            JWT access token
+            Dict with MFA challenge info, or dict with access token
 
         Raises:
-            HTTPException: If credentials are invalid
+            HTTPException: If credentials are invalid or user is inactive
         """
         user = await self.repository.get_by_email(login_data.email)
         if not user or not verify_password(login_data.password, user.hashed_password):
@@ -193,8 +204,49 @@ class UserService:
                 detail="Inactive user",
             )
 
-        access_token = create_access_token(subject=user.email)
-        return Token(access_token=access_token)
+        if user.mfa_enabled:
+            mfa_token = create_mfa_temp_token(
+                user.email,
+                user.mfa_default_method,
+                user.mfa_methods,
+            )
+
+            response: dict = {
+                "mfa_required": True,
+                "mfa_token": mfa_token,
+                "mfa_default_method": user.mfa_default_method,
+                "available_methods": user.mfa_methods,
+            }
+
+            # If the default method is email, generate a code so the route
+            # layer can send it.  We inline the generation here to avoid a
+            # circular dependency on MfaService.
+            if user.mfa_default_method == "email":
+                plain_code = "".join(
+                    secrets.choice("0123456789") for _ in range(6)
+                )
+                hashed_code = pwd_context.hash(plain_code)
+                expires_at = time.time() + 600  # 10 minutes
+
+                from app.api.v1.mfa.repository import MfaRepository
+
+                mfa_repo = MfaRepository()
+                await mfa_repo.save_email_code(
+                    str(user.id), hashed_code, expires_at
+                )
+                response["email_code"] = plain_code
+
+            return response
+
+        # MFA not enabled — issue access token with 2-day expiration
+        access_token = create_access_token(
+            subject=user.email, expires_delta=timedelta(days=2)
+        )
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "mfa_enabled": False,
+        }
 
     async def change_password(
         self, user_email: str, password_data: SimplifiedChangePasswordRequest
