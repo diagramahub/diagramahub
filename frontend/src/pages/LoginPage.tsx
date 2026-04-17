@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { LoginResponse } from '../types/auth';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -19,8 +20,19 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const result = await login(email, password);
+
+      if (result && result.mfa_required) {
+        navigate('/mfa-verify', {
+          state: {
+            mfa_token: result.mfa_token,
+            mfa_default_method: result.mfa_default_method,
+            available_methods: result.available_methods,
+          },
+        });
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

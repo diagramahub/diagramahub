@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ const RegisterPage: React.FC = () => {
     }
 
     // Validate password strength
-    if (password.length < 8) {
+    if (password.length < 12) {
       setError(t('validation.passwordMin'));
       return;
     }
@@ -44,6 +45,16 @@ const RegisterPage: React.FC = () => {
 
     if (!/[0-9]/.test(password)) {
       setError(t('validation.passwordNumber'));
+      return;
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(password)) {
+      setError(t('validation.passwordSpecial'));
+      return;
+    }
+
+    if (email && password.toLowerCase() === email.toLowerCase()) {
+      setError(t('validation.passwordNotEmail'));
       return;
     }
 
@@ -154,6 +165,7 @@ const RegisterPage: React.FC = () => {
               <p className="mt-1 text-xs text-gray-500">
                 {t('installation.passwordHint')}
               </p>
+              <PasswordStrengthIndicator password={password} email={email} />
             </div>
             <div>
               <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">

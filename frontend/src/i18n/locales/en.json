@@ -75,12 +75,44 @@
   "validation": {
     "required": "This field is required",
     "emailInvalid": "Invalid email",
-    "passwordMin": "Password must be at least 8 characters",
+    "passwordMin": "Password must be at least 12 characters",
     "passwordUppercase": "Password must contain at least one uppercase letter",
     "passwordLowercase": "Password must contain at least one lowercase letter",
     "passwordNumber": "Password must contain at least one number",
+    "passwordSpecial": "Password must contain at least one special character",
+    "passwordNotEmail": "Password cannot be the same as your email",
     "passwordMismatch": "Passwords do not match",
     "allFieldsRequired": "All fields are required"
+  },
+  "password": {
+    "strength": {
+      "minLength": "At least 12 characters",
+      "uppercase": "At least one uppercase letter",
+      "lowercase": "At least one lowercase letter",
+      "digit": "At least one number",
+      "special": "At least one special character",
+      "notEmail": "Cannot be the same as your email"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "User & MFA management",
+      "description": "Manage multi-factor authentication for platform users",
+      "totalUsers": "{{count}} users",
+      "searchPlaceholder": "Search by name or email...",
+      "resetMfa": "Disable MFA",
+      "confirmReset": "Confirm",
+      "mfaDisabled": "MFA not active",
+      "recoveryCodes": "{{count}} codes remaining",
+      "errorLoading": "Error loading users",
+      "errorResetting": "Error disabling MFA",
+      "noResults": "No users found",
+      "pageInfo": "{{from}}-{{to}} of {{total}}",
+      "exportExcel": "Export Excel",
+      "exporting": "Exporting...",
+      "errorExporting": "Error exporting users",
+      "registered": "Registered:"
+    }
   },
   "installation": {
     "title": "Welcome to DiagramaHub",
@@ -247,10 +279,10 @@
     "imageTooLarge": "Image must be smaller than 2MB",
     "allFieldsRequired": "All fields are required",
     "passwordsDoNotMatch": "Passwords do not match",
-    "passwordTooShort": "New password must be at least 8 characters",
+    "passwordTooShort": "New password must be at least 12 characters",
     "profileUpdateError": "Error updating profile",
     "passwordChangeError": "Error changing password",
-    "passwordMinLength": "Minimum 8 characters"
+    "passwordMinLength": "Minimum 12 characters"
   },
   "settings": {
     "title": "Settings",
@@ -423,6 +455,110 @@
     "vendors": {
       "resend": "Resend",
       "stripe": "Stripe"
+    }
+  },
+  "mfa": {
+    "banner": {
+      "message": "Protect your account by enabling two-factor authentication (MFA)",
+      "enable": "Enable MFA"
+    },
+    "setup": {
+      "title": "Two-Factor Authentication (MFA)",
+      "description": "Add an extra layer of security to your account",
+      "statusDisabled": "MFA is not enabled",
+      "statusEnabled": "MFA enabled",
+      "statusEmail": "Email",
+      "statusTotp": "Authenticator app",
+      "defaultMethod": "Default method",
+      "enableEmail": "Enable email MFA",
+      "enableTotp": "Enable authenticator app",
+      "emailDescription": "Receive a verification code in your email each time you sign in",
+      "totpDescription": "Use an app like Google Authenticator or Authy to generate temporary codes",
+      "disableEmail": "Disable email MFA",
+      "disableTotp": "Disable authenticator app",
+      "setDefaultEmail": "Set email as default",
+      "setDefaultTotp": "Set authenticator as default",
+      "regenerateCodes": "Regenerate recovery codes",
+      "recoveryCodesRemaining": "{{count}} recovery codes remaining",
+      "confirmDisableTitle": "Disable MFA",
+      "confirmDisableMessage": "Enter your password to confirm disabling {{method}} MFA",
+      "passwordPlaceholder": "Your current password",
+      "disabling": "Disabling...",
+      "methodDisabled": "MFA method disabled successfully",
+      "defaultMethodUpdated": "Default method updated",
+      "codesRegenerated": "Recovery codes regenerated",
+      "errorLoadingStatus": "Error loading MFA status",
+      "errorDisabling": "Error disabling MFA",
+      "errorSettingDefault": "Error changing default method",
+      "errorRegenerating": "Error regenerating codes"
+    },
+    "email": {
+      "title": "Enable Email MFA",
+      "description": "A verification code will be sent to your email each time you log in",
+      "sendCode": "Send verification code",
+      "sendingCode": "Sending code...",
+      "codeSent": "A verification code was sent to your email",
+      "enterCode": "Enter the 6-digit code",
+      "codePlaceholder": "000000",
+      "verifyCode": "Verify code",
+      "verifying": "Verifying...",
+      "emailUnavailable": "Email service is not available at this time",
+      "errorSending": "Error sending verification code",
+      "errorVerifying": "Error verifying code",
+      "cancel": "Cancel"
+    },
+    "totp": {
+      "title": "Enable Authenticator App",
+      "description": "Use an app like Google Authenticator or Authy to generate verification codes",
+      "step1": "Step 1: Scan the QR code",
+      "step1Description": "Scan this QR code with your authenticator app",
+      "secretKey": "Secret key",
+      "copySecret": "Copy",
+      "secretCopied": "Key copied",
+      "cantScanQr": "Can't scan the QR? Enter the secret key manually in your app",
+      "step2": "Step 2: Verify the code",
+      "step2Description": "Enter the 6-digit code shown in your authenticator app",
+      "codePlaceholder": "000000",
+      "verifyCode": "Verify and activate",
+      "verifying": "Verifying...",
+      "loading": "Generating QR code...",
+      "errorSetup": "Error setting up authenticator",
+      "errorVerifying": "Error verifying code",
+      "cancel": "Cancel"
+    },
+    "recoveryCodes": {
+      "title": "Recovery Codes",
+      "description": "Save these codes in a safe place. You will need them if you lose access to your primary MFA method.",
+      "warning": "These codes will only be shown once. If you lose them, you won't be able to recover them.",
+      "copyAll": "Copy all",
+      "copied": "Codes copied",
+      "confirmSaved": "I have saved my recovery codes",
+      "close": "Close"
+    },
+    "verify": {
+      "title": "Two-factor verification",
+      "emailSent": "A verification code was sent to your email",
+      "totpPrompt": "Enter the code from your authenticator app",
+      "recoveryPrompt": "Enter one of your recovery codes",
+      "codeLabel": "Verification code",
+      "recoveryCodeLabel": "Recovery code",
+      "resend": "Resend code",
+      "resendsRemaining": "{{count}} resends remaining",
+      "verifying": "Verifying...",
+      "submit": "Verify",
+      "backToCode": "Back to verification code",
+      "useRecoveryCode": "Use recovery code",
+      "tryAnotherMethod": "Try another method",
+      "invalidCode": "Invalid code. Please try again.",
+      "tokenExpired": "Your verification session has expired. Please log in again.",
+      "resendError": "Error resending code",
+      "switchError": "Error switching method",
+      "chooseMethod": "Choose a verification method",
+      "methodTotp": "Authenticator app",
+      "methodTotpDesc": "Enter the code from your app (Google Authenticator, Authy, etc.)",
+      "methodEmail": "Send code by email",
+      "methodEmailDesc": "A 6-digit code will be sent to your email address",
+      "sendingEmailCode": "Sending code..."
     }
   },
   "ai": {
