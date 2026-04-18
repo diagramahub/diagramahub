@@ -216,6 +216,7 @@ class UserService:
                 "mfa_token": mfa_token,
                 "mfa_default_method": user.mfa_default_method,
                 "available_methods": user.mfa_methods,
+                "_user_id": str(user.id),
             }
 
             # If the default method is email, generate a code so the route
@@ -240,12 +241,15 @@ class UserService:
 
         # MFA not enabled — issue access token with 2-day expiration
         access_token = create_access_token(
-            subject=user.email, expires_delta=timedelta(days=2)
+            subject=user.email,
+            expires_delta=timedelta(days=2),
+            password_changed_at=user.password_changed_at,
         )
         return {
             "access_token": access_token,
             "token_type": "bearer",
             "mfa_enabled": False,
+            "_user_id": str(user.id),
         }
 
     async def change_password(
@@ -273,6 +277,14 @@ class UserService:
 
         new_hashed_password = get_password_hash(password_data.new_password)
         await self.repository.update_password(str(user.id), new_hashed_password)
+
+        # Invalidate all existing sessions by updating password_changed_at
+        user.password_changed_at = time.time()
+        await user.save()
+
+        # Audit log
+        from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_CHANGED
+        await log_event(EVENT_PASSWORD_CHANGED, user.email, user_id=str(user.id))
 
         return {"message": "Password changed successfully"}
 
@@ -357,6 +369,14 @@ class UserService:
         new_hashed_password = get_password_hash(reset_data.new_password)
         await self.repository.update_password(str(user.id), new_hashed_password)
         await self.repository.clear_reset_token(reset_data.email)
+
+        # Invalidate all existing sessions
+        user.password_changed_at = time.time()
+        await user.save()
+
+        # Audit log
+        from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_RESET_CONFIRMED
+        await log_event(EVENT_PASSWORD_RESET_CONFIRMED, user.email, user_id=str(user.id))
 
         return {"message": "Password reset successfully"}
 

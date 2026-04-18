@@ -111,7 +111,9 @@
       "exportExcel": "Export Excel",
       "exporting": "Exporting...",
       "errorExporting": "Error exporting users",
-      "registered": "Registered:"
+      "registered": "Registered:",
+      "diagram": "diagram",
+      "diagrams": "diagrams"
     }
   },
   "installation": {

@@ -34,6 +34,7 @@ from app.api.v1.shared_links.public_routes import router as shared_links_public_
 from app.api.v1.integrations.routes import router as integrations_router
 from app.api.v1.integrations.schemas import VendorConfigInDB
 from app.api.v1.mfa.routes import router as mfa_router
+from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.config import settings
 
 
@@ -67,6 +68,7 @@ async def lifespan(app: FastAPI):
             SharedLinkInDB,
             AccessLogInDB,
             VendorConfigInDB,
+            AuditLogEntry,
         ],
     )
 
@@ -76,11 +78,19 @@ async def lifespan(app: FastAPI):
     client.close()
 
 
+# ---------------------------------------------------------------------------
+# Point 6: Disable Swagger/OpenAPI docs in production (OWASP A05)
+# ---------------------------------------------------------------------------
+_is_production = settings.APP_ENV == "production"
+
 # Create FastAPI application
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     lifespan=lifespan,
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+    openapi_url=None if _is_production else "/openapi.json",
 )
 
 
@@ -107,6 +117,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+
+# ---------------------------------------------------------------------------
+# Point 5: Hide stack traces in production (OWASP A04)
+# ---------------------------------------------------------------------------
+if _is_production:
+    import logging as _logging
+    from fastapi.responses import JSONResponse
+
+    _err_logger = _logging.getLogger("uvicorn.error")
+
+    @app.exception_handler(Exception)
+    async def _production_exception_handler(request: Request, exc: Exception):
+        _err_logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
 
 # Configure CORS
 app.add_middleware(

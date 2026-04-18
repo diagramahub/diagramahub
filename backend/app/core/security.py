@@ -79,6 +79,7 @@ def create_access_token(
     subject: str | Any,
     expires_delta: timedelta | None = None,
     mfa_enabled: bool = False,
+    password_changed_at: float | None = None,
 ) -> str:
     """
     Create JWT access token.
@@ -90,10 +91,9 @@ def create_access_token(
 
     Args:
         subject: Token subject (typically user email).
-        expires_delta: Optional custom expiration time. When provided it
-            takes precedence over the ``mfa_enabled`` flag.
-        mfa_enabled: Whether the user has MFA enabled. Used to select the
-            default token duration when ``expires_delta`` is not given.
+        expires_delta: Optional custom expiration time.
+        mfa_enabled: Whether the user has MFA enabled.
+        password_changed_at: Timestamp of last password change (for session invalidation).
 
     Returns:
         Encoded JWT token.
@@ -105,7 +105,9 @@ def create_access_token(
     else:
         expire = datetime.now(timezone.utc) + timedelta(days=2)
 
-    to_encode = {"exp": expire, "sub": str(subject)}
+    to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject)}
+    if password_changed_at is not None:
+        to_encode["pca"] = password_changed_at
     encoded_jwt = jwt.encode(
         to_encode,
         settings.JWT_SECRET,
