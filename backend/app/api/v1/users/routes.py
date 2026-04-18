@@ -43,6 +43,9 @@ async def get_current_user_email(
     """
     Dependency to extract and validate current user from JWT token.
 
+    Also validates that the token was not issued before the last password
+    change (session invalidation on password change).
+
     Args:
         credentials: HTTP Bearer token from Authorization header
 
@@ -50,7 +53,7 @@ async def get_current_user_email(
         User email from token
 
     Raises:
-        HTTPException: If token is invalid or missing
+        HTTPException: If token is invalid, missing, or invalidated by password change
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -66,6 +69,17 @@ async def get_current_user_email(
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+
+    # Session invalidation: check if password was changed after token was issued
+    token_pca = payload.get("pca")
+    user = await UserInDB.find_one(UserInDB.email == email)
+    if user and user.password_changed_at is not None:
+        if token_pca is None or token_pca < user.password_changed_at:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session invalidated. Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     return email
 
@@ -151,7 +165,13 @@ async def login(
         if exc.status_code == status.HTTP_401_UNAUTHORIZED:
             # Record failed attempt
             now_locked, lockout_secs = account_lockout.record_failed_attempt(login_data.email)
+
+            # Audit log: failed login
+            from app.api.v1.users.audit_log import log_event, EVENT_LOGIN_FAILED, EVENT_LOGIN_LOCKED
+            await log_event(EVENT_LOGIN_FAILED, login_data.email, ip_address=client_ip)
+
             if now_locked:
+                await log_event(EVENT_LOGIN_LOCKED, login_data.email, ip_address=client_ip)
                 minutes = (lockout_secs + 59) // 60
                 raise HTTPException(
                     status_code=status.HTTP_423_LOCKED,
@@ -167,6 +187,11 @@ async def login(
 
     # Successful login — reset lockout counter
     account_lockout.record_successful_login(login_data.email)
+
+    # Audit log: successful login
+    from app.api.v1.users.audit_log import log_event, EVENT_LOGIN_SUCCESS
+    user_id = result.pop("_user_id", None)
+    await log_event(EVENT_LOGIN_SUCCESS, login_data.email, user_id=user_id, ip_address=client_ip)
 
     # MFA flow: the service includes an internal `email_code` field when the
     # default method is email.  We need to send it via the email service and

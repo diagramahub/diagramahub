@@ -392,7 +392,17 @@ async def verify_mfa(
         )
 
     # Issue full access token with 5-day expiry (MFA enabled)
-    access_token = create_access_token(email, mfa_enabled=True)
+    from app.api.v1.users.audit_log import log_event, EVENT_LOGIN_MFA_VERIFIED, EVENT_MFA_RECOVERY_USED
+    if request.is_recovery_code:
+        await log_event(EVENT_MFA_RECOVERY_USED, email, user_id=user_id)
+    else:
+        await log_event(EVENT_LOGIN_MFA_VERIFIED, email, user_id=user_id, details=f"method={method}")
+
+    access_token = create_access_token(
+        email,
+        mfa_enabled=True,
+        password_changed_at=user.password_changed_at,
+    )
 
     response: dict = {
         "access_token": access_token,
@@ -542,6 +552,22 @@ async def admin_list_users(
         except Exception:
             pass
 
+        # Count diagrams via projects
+        diagram_count = 0
+        try:
+            from app.api.v1.projects.schemas import ProjectInDB
+            from app.api.v1.diagrams.schemas import DiagramInDB
+            user_projects = await ProjectInDB.find(
+                ProjectInDB.user_id == str(u.id)
+            ).to_list()
+            if user_projects:
+                project_ids = [str(p.id) for p in user_projects]
+                diagram_count = await DiagramInDB.find(
+                    {"project_id": {"$in": project_ids}}
+                ).count()
+        except Exception:
+            pass
+
         items.append({
             "id": str(u.id),
             "email": u.email,
@@ -554,6 +580,7 @@ async def admin_list_users(
             "recovery_codes_remaining": unused_codes,
             "created_at": u.created_at.isoformat() if u.created_at else None,
             "plan_name": plan_name,
+            "diagram_count": diagram_count,
         })
 
     return {
@@ -594,6 +621,15 @@ async def admin_reset_user_mfa(
         user_id,
     )
 
+    # Audit log
+    from app.api.v1.users.audit_log import log_event, EVENT_ADMIN_MFA_RESET
+    await log_event(
+        EVENT_ADMIN_MFA_RESET,
+        target_user.email,
+        user_id=user_id,
+        details=f"reset_by={admin.email}",
+    )
+
     return {"message": f"MFA desactivado para {target_user.email}"}
 
 
@@ -621,13 +657,13 @@ async def admin_export_users_excel(
     # Headers
     if lang == "en":
         headers = [
-            "Email", "Full Name", "Role", "Plan", "Active", "MFA Enabled",
+            "Email", "Full Name", "Role", "Plan", "Diagrams", "Active", "MFA Enabled",
             "MFA Methods", "Default Method", "Recovery Codes Remaining",
             "Created At",
         ]
     else:
         headers = [
-            "Correo", "Nombre completo", "Rol", "Plan", "Activo", "MFA Habilitado",
+            "Correo", "Nombre completo", "Rol", "Plan", "Diagramas", "Activo", "MFA Habilitado",
             "Métodos MFA", "Método predeterminado", "Códigos de recuperación",
             "Fecha de registro",
         ]
@@ -675,6 +711,22 @@ async def admin_export_users_excel(
         except Exception:
             pass
 
+        # Count diagrams
+        diagram_count = 0
+        try:
+            from app.api.v1.projects.schemas import ProjectInDB
+            from app.api.v1.diagrams.schemas import DiagramInDB
+            user_projects = await ProjectInDB.find(
+                ProjectInDB.user_id == str(u.id)
+            ).to_list()
+            if user_projects:
+                project_ids = [str(p.id) for p in user_projects]
+                diagram_count = await DiagramInDB.find(
+                    {"project_id": {"$in": project_ids}}
+                ).count()
+        except Exception:
+            pass
+
         yes = "Yes" if lang == "en" else "Sí"
         no = "No"
 
@@ -683,6 +735,7 @@ async def admin_export_users_excel(
             u.full_name or "",
             u.role,
             plan_name,
+            diagram_count,
             yes if u.is_active else no,
             yes if u.mfa_enabled else no,
             methods_str,

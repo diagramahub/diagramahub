@@ -212,6 +212,9 @@ export default function UserMfaManagement() {
                             {u.plan_name}
                           </span>
                         )}
+                        <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                          {u.diagram_count} {u.diagram_count === 1 ? t('admin.users.diagram') : t('admin.users.diagrams')}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         {u.full_name && (

@@ -102,6 +102,9 @@ class UserInDB(Document):
     reset_token: Optional[str] = None
     reset_token_expires: Optional[float] = None
 
+    # Session invalidation: updated on every password change
+    password_changed_at: Optional[float] = None
+
     # MFA fields (all with defaults for backward compatibility)
     mfa_enabled: bool = False
     mfa_methods: list[str] = []  # ["email", "totp"] — active methods
