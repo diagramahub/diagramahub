@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.2.1] - 2026-04-18
+
+### Added
+- Audit log de eventos de seguridad con retención automática de 90 días (TTL index MongoDB).
+- Invalidación de sesiones al cambiar contraseña (claim `pca` en JWT).
+- Conteo de diagramas por usuario en panel admin y export Excel.
+- Security headers middleware (X-Content-Type-Options, X-Frame-Options, HSTS, etc.).
+- Rate limiting en login (10 intentos/IP/minuto).
+- Account lockout (15 minutos tras 5 intentos fallidos).
+- Swagger/OpenAPI deshabilitado en producción.
+- Stack traces ocultos en producción.
+
+### Fixed
+- Banner MFA aparecía después de activar MFA (estado no se recuperaba al recargar).
+- "Probar otro método" enviaba email automáticamente en lugar de mostrar selección.
+- Códigos de recuperación se regeneraban innecesariamente al activar segundo método MFA.
+- Errores de compilación TypeScript para deploy en Digital Ocean.
+
 ## [0.2.0] - 2026-04-16
 
 ### Added

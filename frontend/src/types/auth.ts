@@ -137,6 +137,7 @@ export interface AdminUserMfaInfo {
   recovery_codes_remaining: number;
   created_at: string | null;
   plan_name: string | null;
+  diagram_count: number;
 }
 
 export interface PaginatedAdminUsers {
