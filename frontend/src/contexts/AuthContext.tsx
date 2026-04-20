@@ -91,6 +91,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  const loginWithOAuth = async (accessToken: string) => {
+    localStorage.setItem('token', accessToken);
+    setToken(accessToken);
+
+    // Fetch user data
+    const userData = await apiService.getCurrentUser();
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+
+    // Fetch MFA status for banner accuracy
+    try {
+      const mfaStatus = await apiService.getMfaStatus();
+      setMfaEnabled(mfaStatus.enabled);
+    } catch {
+      // MFA status fetch failed — default to false
+    }
+  };
+
   const register = async (email: string, password: string, fullName?: string) => {
     try {
       await apiService.register({ email, password, full_name: fullName });
@@ -115,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     mfaEnabled,
     login,
     completeMfaLogin,
+    loginWithOAuth,
     register,
     logout,
     isAuthenticated: !!token && !!user,

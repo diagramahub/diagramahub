@@ -34,6 +34,8 @@ from app.api.v1.shared_links.public_routes import router as shared_links_public_
 from app.api.v1.integrations.routes import router as integrations_router
 from app.api.v1.integrations.schemas import VendorConfigInDB
 from app.api.v1.mfa.routes import router as mfa_router
+from app.api.v1.oauth.routes import router as oauth_router
+from app.api.v1.oauth.schemas import OAuthStateToken
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.config import settings
 
@@ -69,6 +71,7 @@ async def lifespan(app: FastAPI):
             AccessLogInDB,
             VendorConfigInDB,
             AuditLogEntry,
+            OAuthStateToken,
         ],
     )
 
@@ -158,6 +161,7 @@ app.include_router(shared_links_router, prefix=settings.API_V1_PREFIX, tags=["Sh
 app.include_router(shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"])
 app.include_router(integrations_router, prefix=settings.API_V1_PREFIX, tags=["Integrations (Admin)"])
 app.include_router(mfa_router, prefix=settings.API_V1_PREFIX, tags=["MFA"])
+app.include_router(oauth_router, prefix=settings.API_V1_PREFIX, tags=["OAuth"])
 
 
 @app.get("/")

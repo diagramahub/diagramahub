@@ -6,7 +6,7 @@ import { VendorConfigResponse, IntegrationStatus, VendorConfigCreate, VendorConf
 /* ── vendor catalogue (available to connect) ─────────────────────── */
 type VendorCatalogEntry = {
   vendor_type: string;
-  category: 'email' | 'payment';
+  category: 'email' | 'payment' | 'oauth';
   label: string;
   description: string;
   logo: string; // path to logo image in /integrations/
@@ -37,6 +37,18 @@ const VENDOR_CATALOG: VendorCatalogEntry[] = [
       { key: 'webhook_secret', label: 'integrations.form.webhookSecret', placeholder: 'integrations.form.webhookSecretPlaceholder' },
     ],
   },
+  {
+    vendor_type: 'google',
+    category: 'oauth',
+    label: 'Google OAuth',
+    description: 'integrations.catalog.googleOAuthDesc',
+    logo: '/integrations/google.svg',
+    fields: [
+      { key: 'client_id', label: 'integrations.form.clientId', placeholder: 'integrations.form.clientIdPlaceholder' },
+      { key: 'client_secret', label: 'integrations.form.clientSecret', placeholder: 'integrations.form.clientSecretPlaceholder' },
+      { key: 'redirect_uri', label: 'integrations.form.redirectUri', placeholder: 'integrations.form.redirectUriPlaceholder' },
+    ],
+  },
 ];
 
 /** Get the logo path for a vendor type */
@@ -61,7 +73,7 @@ const VendorLogo = ({ vendorType, size = 'md' }: { vendorType: string; size?: 's
 };
 
 type Tab = 'available' | 'connected';
-type CategoryFilter = 'all' | 'email' | 'payment';
+type CategoryFilter = 'all' | 'email' | 'payment' | 'oauth';
 
 export default function IntegrationsSection() {
   const { t } = useTranslation();
@@ -100,12 +112,13 @@ export default function IntegrationsSection() {
   const loadIntegrations = async () => {
     try {
       setLoading(true); setError('');
-      const [emailData, paymentData, statusData] = await Promise.all([
+      const [emailData, paymentData, oauthData, statusData] = await Promise.all([
         apiService.getIntegrationVendors('email'),
         apiService.getIntegrationVendors('payment'),
+        apiService.getIntegrationVendors('oauth'),
         apiService.getIntegrationStatus(),
       ]);
-      setVendors([...emailData, ...paymentData]);
+      setVendors([...emailData, ...paymentData, ...oauthData]);
       setStatus(statusData);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Error loading integrations');
@@ -195,7 +208,7 @@ export default function IntegrationsSection() {
     try {
       setSettingDefaultId(id);
       await apiService.setDefaultIntegrationVendor(id);
-      setSuccessMsg(cat === 'email' ? t('integrations.messages.setDefaultSuccess') : t('integrations.messages.activateSuccess'));
+      setSuccessMsg(cat === 'email' ? t('integrations.messages.setDefaultSuccess') : cat === 'oauth' ? t('integrations.messages.activateSuccess') : t('integrations.messages.activateSuccess'));
       await loadIntegrations();
     } catch (err: any) { setError(err.response?.data?.detail || t('integrations.messages.mustTestFirst')); }
     finally { setSettingDefaultId(null); }
@@ -216,11 +229,12 @@ export default function IntegrationsSection() {
   const statusBadge = (v: VendorConfigResponse) => {
     if (v.is_default) return <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full">{t('integrations.status.default')}</span>;
     if (v.is_active_payment) return <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full">{t('integrations.status.activePayment')}</span>;
+    if (v.is_active_oauth) return <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full">{t('integrations.status.activeOAuth')}</span>;
     return <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-800 rounded-full">{t('integrations.status.configured')}</span>;
   };
 
   const categoryBadge = (cat: string) => (
-    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full capitalize">{cat === 'email' ? t('integrations.categories.email') : t('integrations.categories.payment')}</span>
+    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full capitalize">{cat === 'email' ? t('integrations.categories.email') : cat === 'oauth' ? t('integrations.categories.oauth') : t('integrations.categories.payment')}</span>
   );
 
   /* ── loading ─────────────────────────────────────────────────── */
@@ -274,13 +288,13 @@ export default function IntegrationsSection() {
         {/* Category filter */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">{t('integrations.filterCategory')}:</span>
-          {(['all', 'email', 'payment'] as CategoryFilter[]).map(cat => (
+          {(['all', 'email', 'payment', 'oauth'] as CategoryFilter[]).map(cat => (
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat)}
               className={`px-3 py-1 text-xs rounded-full border transition-colors ${categoryFilter === cat ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400'}`}
             >
-              {cat === 'all' ? t('integrations.filterAll') : cat === 'email' ? t('integrations.categories.email') : t('integrations.categories.payment')}
+              {cat === 'all' ? t('integrations.filterAll') : cat === 'email' ? t('integrations.categories.email') : cat === 'oauth' ? t('integrations.categories.oauth') : t('integrations.categories.payment')}
             </button>
           ))}
         </div>
@@ -387,6 +401,13 @@ export default function IntegrationsSection() {
                         className="flex-1 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50 flex items-center justify-center gap-1">
                         {settingDefaultId === vendor.id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600" /> : null}
                         {t('integrations.activateForPayments')}
+                      </button>
+                    )}
+                    {vendor.category === 'oauth' && !vendor.is_active_oauth && (
+                      <button onClick={() => handleSetDefault(vendor.id, vendor.category)} disabled={settingDefaultId === vendor.id}
+                        className="flex-1 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50 flex items-center justify-center gap-1">
+                        {settingDefaultId === vendor.id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-600" /> : null}
+                        {t('integrations.activateOAuth')}
                       </button>
                     )}
                     <button onClick={() => openEdit(vendor)} className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-gray-100 rounded-lg" title={t('integrations.editVendor')}>

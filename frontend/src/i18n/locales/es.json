@@ -284,7 +284,11 @@
     "passwordTooShort": "La nueva contraseña debe tener al menos 12 caracteres",
     "profileUpdateError": "Error al actualizar el perfil",
     "passwordChangeError": "Error al cambiar la contraseña",
-    "passwordMinLength": "Mínimo 12 caracteres"
+    "passwordMinLength": "Mínimo 12 caracteres",
+    "linkedAccounts": "Cuentas Vinculadas",
+    "linkedAccountsDescription": "Cuentas externas vinculadas a tu perfil",
+    "noLinkedAccounts": "No hay cuentas externas vinculadas",
+    "linkedOn": "Vinculada el"
   },
   "settings": {
     "title": "Configuraciones",
@@ -495,7 +499,8 @@
     "subtitle": "Conecta y gestiona los servicios externos de tu plataforma",
     "categories": {
       "email": "Email",
-      "payment": "Pasarela de Pagos"
+      "payment": "Pasarela de Pagos",
+      "oauth": "OAuth / Login Social"
     },
     "tabs": {
       "available": "Disponibles",
@@ -509,6 +514,7 @@
       "inactive": "Inactivo",
       "default": "Predeterminado",
       "activePayment": "Pasarela Activa",
+      "activeOAuth": "Activo",
       "tested": "Probado",
       "testFailed": "Test fallido",
       "notTested": "No probado"
@@ -524,9 +530,11 @@
     "testConnection": "Probar",
     "setAsDefault": "Predeterminado",
     "activateForPayments": "Activar",
+    "activateOAuth": "Activar",
     "catalog": {
       "resendDesc": "Servicio de envío de emails transaccionales con API moderna y fácil de integrar.",
-      "stripeDesc": "Pasarela de pagos para cobros recurrentes con tarjetas de crédito y débito."
+      "stripeDesc": "Pasarela de pagos para cobros recurrentes con tarjetas de crédito y débito.",
+      "googleOAuthDesc": "Inicio de sesión con Google usando OAuth 2.0 / OpenID Connect."
     },
     "form": {
       "vendorType": "Tipo de Vendor",
@@ -543,7 +551,13 @@
       "publishableKeyPlaceholder": "pk_...",
       "webhookSecret": "Webhook Secret",
       "webhookSecretPlaceholder": "whsec_...",
-      "leaveBlankToKeep": "Dejar vacío para mantener el valor actual"
+      "leaveBlankToKeep": "Dejar vacío para mantener el valor actual",
+      "clientId": "Client ID",
+      "clientIdPlaceholder": "Tu Client ID de OAuth",
+      "clientSecret": "Client Secret",
+      "clientSecretPlaceholder": "Tu Client Secret de OAuth",
+      "redirectUri": "URI de Redirección",
+      "redirectUriPlaceholder": "https://tudominio.com/oauth/callback"
     },
     "messages": {
       "vendorCreated": "Integración conectada exitosamente",
@@ -558,7 +572,8 @@
     },
     "vendors": {
       "resend": "Resend",
-      "stripe": "Stripe"
+      "stripe": "Stripe",
+      "google": "Google OAuth"
     }
   },
   "mfa": {
@@ -796,5 +811,13 @@
       "showHistory": "Historial",
       "hideHistory": "Ocultar historial"
     }
+  },
+  "oauth": {
+    "divider": "o",
+    "signInWith": "Iniciar sesión con {{provider}}",
+    "signUpWith": "Registrarse con {{provider}}",
+    "authenticating": "Autenticando...",
+    "callbackError": "La autenticación OAuth falló. Por favor intenta de nuevo.",
+    "google": "Google"
   }
 }

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import OAuthButtons from '../components/OAuthButtons';
 
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -213,6 +214,8 @@ const RegisterPage: React.FC = () => {
               {loading ? t('auth.registering') : t('auth.registerButton')}
             </button>
           </div>
+
+          <OAuthButtons mode="register" />
 
           <div className="text-center">
             <p className="text-sm text-gray-600">

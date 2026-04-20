@@ -13,6 +13,7 @@ class VendorCategory(str, Enum):
     """Categories of vendor integrations."""
     EMAIL = "email"
     PAYMENT = "payment"
+    OAUTH = "oauth"
 
 
 class VendorConfigInDB(Document):
@@ -28,6 +29,7 @@ class VendorConfigInDB(Document):
     is_configured: bool = False
     is_default: bool = False  # For email: Motor_Default_de_Email
     is_active_payment: bool = False  # For payments: Pasarela_Activa_de_Pagos
+    is_active_oauth: bool = False  # For OAuth: active provider flag
     connection_tested: bool = False
     last_test_at: Optional[datetime] = None
     last_test_success: bool = False
@@ -65,6 +67,7 @@ class VendorConfigResponse(BaseModel):
     is_configured: bool
     is_default: bool
     is_active_payment: bool
+    is_active_oauth: bool
     connection_tested: bool
     last_test_at: Optional[datetime] = None
     last_test_success: bool
