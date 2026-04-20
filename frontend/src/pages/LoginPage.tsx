@@ -3,6 +3,7 @@ import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import OAuthButtons from '../components/OAuthButtons';
+import LanguageSelector from '../components/LanguageSelector';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -43,7 +44,10 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 px-4 relative">
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSelector />
+      </div>
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold">
