@@ -1065,7 +1065,8 @@ export default function DiagramEditorPage() {
       const response = await api.generateDescription({
         diagram_code: diagramCode,
         diagram_type: currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid',
-        language: user?.language || 'es'
+        language: user?.language || 'es',
+        ...(preferredProvider ? { provider: preferredProvider as any } : {}),
       });
 
       // Store generated description and show confirmation modal
@@ -1119,6 +1120,7 @@ export default function DiagramEditorPage() {
         current_description: generatedDescription,
         refinement_request: refineInput.trim(),
         language: user?.language || 'es',
+        ...(preferredProvider ? { provider: preferredProvider as any } : {}),
       });
       setGeneratedDescription(response.description);
       setRefineInput('');
