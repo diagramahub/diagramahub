@@ -32,7 +32,7 @@ export default function AIChatPanel({
   preferredModel: preferredModelProp,
   onPreferredModelChange,
 }: AIChatPanelProps) {
-  const [activeMode, setActiveMode] = useState<ChatMode>('conversation');
+  const [activeMode] = useState<ChatMode>('auto');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -417,8 +417,6 @@ export default function AIChatPanel({
         <ChatInput
           onSend={handleSendMessage}
           disabled={isLoading}
-          activeMode={activeMode}
-          onModeChange={setActiveMode}
           aiSettings={aiSettings}
           activeProvider={activeProvider}
           activeModel={activeModel}

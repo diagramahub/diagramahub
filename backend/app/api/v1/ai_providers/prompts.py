@@ -282,7 +282,7 @@ def build_description_prompt(
             "4. Usa **negritas** para resaltar nombres de componentes, servicios o conceptos clave\n"
             "5. Usa listas con viñetas (- ) para enumerar elementos cuando sea apropiado\n"
             "6. Explica las relaciones y flujos entre componentes\n"
-            "7. La descripcion debe tener entre 150-400 palabras\n"
+            "7. La descripcion debe tener entre 150-600 palabras\n"
             "8. Escribe de forma profesional pero comprensible\n\n"
             "FORMATO DE SALIDA: Devuelve UNICAMENTE Markdown puro. "
             "NO incluyas bloques de codigo (```), NO incluyas 'markdown' como prefijo. "
@@ -301,7 +301,7 @@ def build_description_prompt(
             "4. Use **bold** to highlight component names, services, or key concepts\n"
             "5. Use bullet lists (- ) to enumerate elements when appropriate\n"
             "6. Explain relationships and flows between components\n"
-            "7. The description should be between 150-400 words\n"
+            "7. The description should be between 150-600 words\n"
             "8. Write professionally but understandably\n\n"
             "OUTPUT FORMAT: Return ONLY pure Markdown. "
             "Do NOT include code blocks (```), do NOT include 'markdown' as prefix. "
@@ -521,6 +521,66 @@ def build_chat_system_prompt(
             f"the following diagram and wants to discuss it.\n\n"
             f"CURRENT DIAGRAM:\n```\n{diagram_code}\n```\n\n"
             "Respond clearly and helpfully in English. Do not modify the diagram unless explicitly asked."
+        )
+
+
+def build_unified_chat_prompt(
+    diagram_code: str,
+    diagram_type: str,
+    language: str = "es"
+) -> str:
+    """System prompt unificado que detecta intencion automaticamente."""
+    context = get_diagram_context(diagram_type, language)
+
+    if language == "es":
+        return (
+            f"Eres un asistente experto en diagramas {diagram_type}. El usuario esta trabajando "
+            f"en el siguiente diagrama.\n\n"
+            f"DIAGRAMA ACTUAL:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            f"{context}\n\n"
+            "INSTRUCCIONES DE COMPORTAMIENTO:\n"
+            "Debes detectar automaticamente la intencion del usuario:\n\n"
+            "1. Si el usuario PREGUNTA, ANALIZA o PIDE EXPLICACION sobre el diagrama "
+            "(ej: 'que hace este diagrama?', 'explicame el flujo', 'que componentes tiene?'), "
+            "responde con texto explicativo en espanol. NO incluyas codigo de diagrama.\n\n"
+            "2. Si el usuario PIDE MODIFICAR, CREAR, AGREGAR, QUITAR o CAMBIAR algo del diagrama "
+            "(ej: 'agrega un nodo', 'cambia el color', 'mejora el diagrama', 'agrega autenticacion'), "
+            "genera el diagrama completo modificado. En este caso tu respuesta DEBE seguir este formato exacto:\n\n"
+            "Breve explicacion de los cambios realizados.\n\n"
+            "<<<DIAGRAM>>>\n"
+            "(codigo completo del diagrama modificado aqui)\n"
+            "<<<END_DIAGRAM>>>\n\n"
+            "REGLAS CRITICAS:\n"
+            "- Los delimitadores <<<DIAGRAM>>> y <<<END_DIAGRAM>>> deben estar en lineas separadas\n"
+            "- El codigo del diagrama debe ser 100% valido segun la referencia de sintaxis\n"
+            "- Siempre incluye el diagrama COMPLETO, no solo los cambios\n"
+            "- Si no estas seguro de la intencion, responde con texto y pregunta si quiere que modifiques el diagrama\n"
+            "- Responde siempre en espanol"
+        )
+    else:
+        return (
+            f"You are an expert assistant in {diagram_type} diagrams. The user is working on "
+            f"the following diagram.\n\n"
+            f"CURRENT DIAGRAM:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            f"{context}\n\n"
+            "BEHAVIOR INSTRUCTIONS:\n"
+            "You must automatically detect the user's intent:\n\n"
+            "1. If the user ASKS, ANALYZES or REQUESTS EXPLANATION about the diagram "
+            "(e.g.: 'what does this diagram do?', 'explain the flow', 'what components does it have?'), "
+            "respond with explanatory text in English. Do NOT include diagram code.\n\n"
+            "2. If the user ASKS TO MODIFY, CREATE, ADD, REMOVE or CHANGE something in the diagram "
+            "(e.g.: 'add a node', 'change the color', 'improve the diagram', 'add authentication'), "
+            "generate the complete modified diagram. In this case your response MUST follow this exact format:\n\n"
+            "Brief explanation of the changes made.\n\n"
+            "<<<DIAGRAM>>>\n"
+            "(complete modified diagram code here)\n"
+            "<<<END_DIAGRAM>>>\n\n"
+            "CRITICAL RULES:\n"
+            "- The delimiters <<<DIAGRAM>>> and <<<END_DIAGRAM>>> must be on separate lines\n"
+            "- The diagram code must be 100% valid according to the syntax reference\n"
+            "- Always include the COMPLETE diagram, not just the changes\n"
+            "- If unsure about intent, respond with text and ask if they want you to modify the diagram\n"
+            "- Always respond in English"
         )
 
 

@@ -20,6 +20,7 @@ class MessageMode(str, Enum):
     """Mode of interaction for a chat message."""
     IMPROVEMENT = "improvement"
     CONVERSATION = "conversation"
+    AUTO = "auto"
 
 
 class ImprovementStatus(str, Enum):

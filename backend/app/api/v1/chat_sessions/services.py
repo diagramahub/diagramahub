@@ -391,6 +391,219 @@ class ChatSessionService:
             return self._message_to_response(error_msg)
 
     # ------------------------------------------------------------------ #
+    #  Auto mode – unified intent detection
+    # ------------------------------------------------------------------ #
+
+    DIAGRAM_START = "<<<DIAGRAM>>>"
+    DIAGRAM_END = "<<<END_DIAGRAM>>>"
+
+    async def _send_auto_message(
+        self,
+        session: ChatSessionInDB,
+        user_id: str,
+        content: str,
+        diagram_code: str,
+        diagram_type: str,
+        provider: Optional[str],
+        model: Optional[str],
+        language: str,
+    ) -> ChatMessageResponse:
+        """Handle a message in auto mode — detect intent from AI response.
+
+        Uses a unified prompt that instructs the AI to:
+        - Respond with text for questions/analysis
+        - Include <<<DIAGRAM>>>...<<<END_DIAGRAM>>> for modifications
+
+        The backend parses the response and stores improved_code if present.
+        """
+        from app.api.v1.ai_providers.prompts import (
+            build_unified_chat_prompt,
+            clean_code_response,
+        )
+
+        session_id = str(session.id)
+
+        # Save user message
+        await self.message_repo.create_message(
+            session_id=session_id,
+            role=MessageRole.USER,
+            content=content,
+            mode=MessageMode.AUTO,
+        )
+
+        await self._maybe_auto_title(session, content)
+
+        try:
+            # Build context from recent messages
+            recent = await self.message_repo.get_recent_messages(session_id, limit=20)
+            history = self._build_message_history(recent, session.summary)
+
+            # Get provider config
+            provider_type = AIProviderType(provider) if provider else None
+            provider_config = await self.ai_service.repository.get_active_provider(
+                user_id, provider_type
+            )
+            if not provider_config:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No hay proveedor de IA configurado.",
+                )
+
+            actual_model = model or provider_config.model
+            client = AIClientFactory.create_client(
+                provider=provider_config.provider,
+                api_key=provider_config.api_key,
+                model=actual_model,
+                parameters=provider_config.parameters,
+            )
+
+            # Context compaction check
+            compacted_session = await self._maybe_compact_context(
+                session=session,
+                user_id=user_id,
+                history=history,
+                diagram_code=diagram_code,
+                model=actual_model,
+                client=client,
+                language=language,
+            )
+            if compacted_session is not None:
+                new_session_id = str(compacted_session.id)
+                await self.message_repo.create_message(
+                    session_id=new_session_id,
+                    role=MessageRole.USER,
+                    content=content,
+                    mode=MessageMode.AUTO,
+                )
+                recent_new = await self.message_repo.get_recent_messages(
+                    new_session_id, limit=20
+                )
+                history = self._build_message_history(
+                    recent_new, compacted_session.summary
+                )
+                session = compacted_session
+                session_id = new_session_id
+
+            # Use unified prompt
+            system_prompt = build_unified_chat_prompt(
+                diagram_code, diagram_type, language
+            )
+
+            start = time.time()
+
+            # Call AI with unified system prompt + conversation history
+            # We can't use chat_with_context because it builds its own system prompt
+            if hasattr(client, '_generate'):
+                # Gemini: concatenate system + history into single prompt
+                conversation_parts = [system_prompt, ""]
+                for msg in history:
+                    role_label = (
+                        "Usuario" if msg["role"] == "user" else "Asistente"
+                    )
+                    if language != "es":
+                        role_label = (
+                            "User" if msg["role"] == "user" else "Assistant"
+                        )
+                    conversation_parts.append(
+                        f"{role_label}: {msg['content']}"
+                    )
+                role_suffix = "Asistente:" if language == "es" else "Assistant:"
+                conversation_parts.append(role_suffix)
+                full_prompt = "\n".join(conversation_parts)
+                ai_text = await client._generate(full_prompt)
+            elif hasattr(client, '_chat_completion'):
+                # OpenAI
+                api_messages = [
+                    {"role": "system", "content": system_prompt}
+                ]
+                for msg in history:
+                    api_messages.append(
+                        {"role": msg["role"], "content": msg["content"]}
+                    )
+                ai_text = await client._chat_completion(api_messages)
+            elif hasattr(client, '_make_request'):
+                # DeepSeek
+                api_messages = [
+                    {"role": "system", "content": system_prompt}
+                ]
+                for msg in history:
+                    api_messages.append(
+                        {"role": msg["role"], "content": msg["content"]}
+                    )
+                ai_text = await client._make_request(api_messages)
+            elif hasattr(client, '_messages_request'):
+                # Claude
+                api_messages = []
+                for msg in history:
+                    api_messages.append(
+                        {"role": msg["role"], "content": msg["content"]}
+                    )
+                ai_text = await client._messages_request(
+                    api_messages, system=system_prompt
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported client: {type(client).__name__}"
+                )
+
+            generation_time = time.time() - start
+
+            # Parse response: check for diagram code
+            improved_code = None
+            display_text = ai_text
+            improvement_status = None
+
+            if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                # Extract diagram code
+                start_idx = ai_text.index(self.DIAGRAM_START) + len(
+                    self.DIAGRAM_START
+                )
+                end_idx = ai_text.index(self.DIAGRAM_END)
+                raw_code = ai_text[start_idx:end_idx].strip()
+                improved_code = clean_code_response(raw_code)
+
+                # Extract explanation text (before the diagram block)
+                explanation_end = ai_text.index(self.DIAGRAM_START)
+                display_text = ai_text[:explanation_end].strip()
+                if not display_text:
+                    display_text = (
+                        "Diagrama modificado según tu solicitud."
+                        if language == "es"
+                        else "Diagram modified as requested."
+                    )
+                improvement_status = ImprovementStatus.PENDING
+
+            ai_msg = await self.message_repo.create_message(
+                session_id=session_id,
+                role=MessageRole.ASSISTANT,
+                content=display_text,
+                mode=MessageMode.AUTO,
+                improved_code=improved_code,
+                improvement_status=improvement_status,
+                provider_used=provider_config.provider.value,
+                model_used=actual_model,
+                generation_time=generation_time,
+            )
+
+            await self.session_repo.update_session_status(
+                session_id, session.status
+            )
+
+            return self._message_to_response(ai_msg)
+
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("Auto mode error: %s", exc)
+            error_msg = await self.message_repo.create_message(
+                session_id=session_id,
+                role=MessageRole.ERROR,
+                content=str(exc),
+                mode=MessageMode.AUTO,
+            )
+            return self._message_to_response(error_msg)
+
+    # ------------------------------------------------------------------ #
     #  Public send_message dispatcher
     # ------------------------------------------------------------------ #
 
@@ -421,6 +634,10 @@ class ChatSessionService:
 
         if mode == MessageMode.IMPROVEMENT:
             return await self._send_improvement_message(
+                session, user_id, content, diagram_code, diagram_type, provider, model, language
+            )
+        elif mode == MessageMode.AUTO:
+            return await self._send_auto_message(
                 session, user_id, content, diagram_code, diagram_type, provider, model, language
             )
         else:

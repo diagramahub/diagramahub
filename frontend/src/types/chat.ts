@@ -1,6 +1,6 @@
 // Tipos TypeScript para el módulo de chat sessions
 
-export type ChatMode = 'improvement' | 'conversation';
+export type ChatMode = 'improvement' | 'conversation' | 'auto';
 export type MessageRole = 'user' | 'assistant' | 'error';
 export type ImprovementStatus = 'pending' | 'accepted' | 'rejected';
 export type SessionStatus = 'active' | 'finalized';
