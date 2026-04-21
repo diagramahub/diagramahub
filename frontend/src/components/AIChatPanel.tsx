@@ -142,6 +142,8 @@ export default function AIChatPanel({
         } else if (mostRecent.last_provider && mostRecent.last_model) {
           setActiveProvider(mostRecent.last_provider as AIProviderType);
           setActiveModel(mostRecent.last_model);
+          // Propagate session's provider to diagram preferences
+          onPreferredModelChange?.(mostRecent.last_provider, mostRecent.last_model);
         }
       }
     };
@@ -174,6 +176,8 @@ export default function AIChatPanel({
     if (session?.last_provider && session?.last_model) {
       setActiveProvider(session.last_provider as AIProviderType);
       setActiveModel(session.last_model);
+      // Propagate to diagram preferences
+      onPreferredModelChange?.(session.last_provider, session.last_model);
     }
   };
 
