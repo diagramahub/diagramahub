@@ -153,6 +153,7 @@ const LoginPage: React.FC = () => {
                 {t('auth.register')}
               </Link>
             </p>
+            <p className="text-xs text-gray-400 pt-2">v{__APP_VERSION__}</p>
           </div>
         </form>
       </div>

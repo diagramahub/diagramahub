@@ -93,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithOAuth = async (accessToken: string) => {
     localStorage.setItem('token', accessToken);
+    localStorage.setItem('oauth_session', 'true');
     setToken(accessToken);
 
     // Fetch user data
@@ -122,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('oauth_session');
     setToken(null);
     setUser(null);
   };
