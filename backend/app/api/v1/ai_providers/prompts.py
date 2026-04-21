@@ -271,13 +271,11 @@ def build_description_prompt(
 
     return (
         f"Eres un experto en analisis de diagramas tecnicos. Analiza el siguiente codigo "
-        f"de diagrama tipo {diagram_type} y genera una descripcion tecnica clara y concisa en {lang_text}.\n\n"
+        f"de diagrama tipo {diagram_type} y genera una descripcion clara y concisa en {lang_text}.\n\n"
         f"Codigo del diagrama:\n```\n{diagram_code}\n```\n\n"
-        "Genera una descripcion profesional en formato Markdown que incluya:\n"
-        "1. **Proposito**: Objetivo principal del diagrama\n"
-        "2. **Componentes clave**: Elementos principales y su funcion\n"
-        "3. **Flujo/Relaciones**: Como interactuan los componentes\n"
-        "4. **Casos de uso**: Cuando usar este diagrama\n\n"
+        "Genera una descripcion profesional en formato Markdown que explique de forma natural "
+        "que representa el diagrama, que elementos contiene y como se relacionan entre si. "
+        "Escribe de forma libre y fluida, sin seguir una estructura rigida de secciones. "
         "La descripcion debe ser tecnica pero comprensible, entre 100-300 palabras.\n\n"
         "IMPORTANTE: Devuelve UNICAMENTE el contenido Markdown puro, SIN bloques de codigo "
         "(```markdown), SIN encabezados adicionales, SIN prefijos. Comienza directamente con "
@@ -286,6 +284,31 @@ def build_description_prompt(
 
 
 DESCRIPTION_SYSTEM_PROMPT = "You are an expert in analyzing and describing technical diagrams. Provide clear, concise, and professional descriptions."
+
+
+def build_refine_description_prompt(
+    diagram_code: str,
+    diagram_type: str,
+    current_description: str,
+    refinement_request: str,
+    language: str = "es"
+) -> str:
+    """Prompt para refinar una descripcion existente segun instrucciones del usuario."""
+    lang_map = {"es": "espanol", "en": "English"}
+    lang_text = lang_map.get(language, "espanol")
+
+    return (
+        f"Eres un experto en analisis de diagramas tecnicos. El usuario tiene un diagrama "
+        f"tipo {diagram_type} con una descripcion existente y quiere refinarla.\n\n"
+        f"Codigo del diagrama:\n```\n{diagram_code}\n```\n\n"
+        f"Descripcion actual:\n{current_description}\n\n"
+        f"Instruccion del usuario para refinar:\n{refinement_request}\n\n"
+        f"Genera la descripcion refinada en {lang_text}, aplicando los cambios solicitados. "
+        "Escribe de forma libre y fluida en formato Markdown.\n\n"
+        "IMPORTANTE: Devuelve UNICAMENTE el contenido Markdown puro, SIN bloques de codigo "
+        "(```markdown), SIN encabezados adicionales, SIN prefijos. Comienza directamente con "
+        "el contenido de la descripcion refinada."
+    )
 
 
 # ------------------------------------------------------------------ #

@@ -37,6 +37,8 @@ import {
   TestProviderResponse,
   GenerateDescriptionRequest,
   GenerateDescriptionResponse,
+  RefineDescriptionRequest,
+  RefineDescriptionResponse,
   GenerateDiagramRequest,
   GenerateDiagramResponse,
   ImproveDiagramRequest,
@@ -304,6 +306,11 @@ class ApiService {
 
   async generateDescription(data: GenerateDescriptionRequest): Promise<GenerateDescriptionResponse> {
     const response = await this.api.post<GenerateDescriptionResponse>('/api/v1/ai/generate-description', data);
+    return response.data;
+  }
+
+  async refineDescription(data: RefineDescriptionRequest): Promise<RefineDescriptionResponse> {
+    const response = await this.api.post<RefineDescriptionResponse>('/api/v1/ai/refine-description', data);
     return response.data;
   }
 

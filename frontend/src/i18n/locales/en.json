@@ -691,6 +691,15 @@
       "apiKeyUpdate": "Leave this field empty if you don't want to change the current API key",
       "clickToChangeApiKey": "Click on the field or 'Change' to update the API key",
       "getApiKey": "Get API Key"
+    },
+    "description": {
+      "modalTitle": "AI Description",
+      "modalSubtitle": "Review the description. You can refine it with instructions before accepting.",
+      "refinePlaceholder": "E.g.: Make it shorter, add more technical detail, focus on the flow...",
+      "refineButton": "Refine",
+      "refining": "Refining...",
+      "reject": "Cancel",
+      "accept": "Accept"
     }
   },
   "oauth": {

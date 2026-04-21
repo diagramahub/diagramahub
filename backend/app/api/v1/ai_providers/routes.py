@@ -19,7 +19,9 @@ from .schemas import (
     TestProviderRequest,
     TestProviderResponse,
     AIProviderType,
-    AIProviderConfig
+    AIProviderConfig,
+    RefineDescriptionRequest,
+    RefineDescriptionResponse,
 )
 
 router = APIRouter()
@@ -184,6 +186,25 @@ async def generate_description(
     or the user's default provider if not specified.
     """
     return await service.generate_description(user_id, request)
+
+
+@router.post(
+    "/refine-description",
+    response_model=RefineDescriptionResponse,
+    summary="Refine diagram description"
+)
+async def refine_description(
+    request: RefineDescriptionRequest,
+    user_id: str = Depends(get_current_user_id),
+    service: AIProviderService = Depends(get_ai_provider_service)
+):
+    """
+    Refine an existing diagram description using AI.
+
+    Takes the current description and a refinement instruction,
+    and returns an updated description.
+    """
+    return await service.refine_description(user_id, request)
 
 
 @router.post(

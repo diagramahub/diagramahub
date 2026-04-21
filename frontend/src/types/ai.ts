@@ -76,6 +76,22 @@ export interface GenerateDescriptionResponse {
   generation_time?: number;
 }
 
+export interface RefineDescriptionRequest {
+  diagram_code: string;
+  diagram_type: string;
+  current_description: string;
+  refinement_request: string;
+  provider?: AIProviderType;
+  language?: string;
+}
+
+export interface RefineDescriptionResponse {
+  description: string;
+  provider_used: AIProviderType;
+  model_used: string;
+  generation_time?: number;
+}
+
 export interface GenerateDiagramRequest {
   description: string;
   diagram_type: string;

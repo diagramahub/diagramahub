@@ -194,3 +194,18 @@ class BaseAIClient(ABC):
         """
         from ..prompts import build_description_prompt
         return build_description_prompt(diagram_code, diagram_type, language)
+
+    def _build_refine_prompt(
+        self,
+        diagram_code: str,
+        diagram_type: str,
+        current_description: str,
+        refinement_request: str,
+        language: str,
+    ) -> str:
+        """Build prompt for refining an existing description."""
+        from ..prompts import build_refine_description_prompt
+        return build_refine_description_prompt(
+            diagram_code, diagram_type, current_description,
+            refinement_request, language,
+        )

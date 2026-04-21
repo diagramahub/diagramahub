@@ -810,6 +810,15 @@
       "of": "de",
       "showHistory": "Historial",
       "hideHistory": "Ocultar historial"
+    },
+    "description": {
+      "modalTitle": "Descripción con IA",
+      "modalSubtitle": "Revisa la descripción. Puedes refinarla con instrucciones antes de aceptarla.",
+      "refinePlaceholder": "Ej: Hazla más corta, agrega más detalle técnico, enfócate en el flujo...",
+      "refineButton": "Refinar",
+      "refining": "Refinando...",
+      "reject": "Cancelar",
+      "accept": "Aceptar"
     }
   },
   "oauth": {

@@ -202,6 +202,8 @@ export default function DiagramEditorPage() {
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [showDescriptionConfirmModal, setShowDescriptionConfirmModal] = useState(false);
   const [generatedDescription, setGeneratedDescription] = useState('');
+  const [refineInput, setRefineInput] = useState('');
+  const [refining, setRefining] = useState(false);
   const [aiSettings, setAiSettings] = useState<UserAISettings | null>(null);
   const [showNoAIModal, setShowNoAIModal] = useState(false);
   
@@ -1103,6 +1105,28 @@ export default function DiagramEditorPage() {
   const handleRejectDescription = () => {
     setShowDescriptionConfirmModal(false);
     setGeneratedDescription('');
+    setRefineInput('');
+  };
+
+  const handleRefineDescription = async () => {
+    if (!refineInput.trim()) return;
+
+    setRefining(true);
+    try {
+      const response = await api.refineDescription({
+        diagram_code: diagramCode,
+        diagram_type: currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid',
+        current_description: generatedDescription,
+        refinement_request: refineInput.trim(),
+        language: user?.language || 'es',
+      });
+      setGeneratedDescription(response.description);
+      setRefineInput('');
+    } catch (error: any) {
+      alert(error.response?.data?.detail || t('ai.generate.error'));
+    } finally {
+      setRefining(false);
+    }
   };
 
   // Copy diagram code to clipboard
@@ -2801,31 +2825,47 @@ export default function DiagramEditorPage() {
                   </button>
                 </div>
               </div>
-              {/* AI Generate button */}
-              <button
-                onClick={handleGenerateDescription}
-                disabled={generatingDescription || !diagramCode.trim()}
-                className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
-                {generatingDescription ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>{t('ai.generate.generating')}</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
-                      <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
-                      <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
-                    </svg>
-                    <span>{t('ai.generate.button')}</span>
-                  </>
-                )}
-              </button>
+              {/* AI Generate / Refine button */}
+              {diagramDescription.trim() ? (
+                <button
+                  onClick={() => {
+                    setGeneratedDescription(diagramDescription);
+                    setShowDescriptionConfirmModal(true);
+                  }}
+                  disabled={generatingDescription || !diagramCode.trim()}
+                  className="w-full px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                  </svg>
+                  <span>{t('ai.description.refineButton')}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleGenerateDescription}
+                  disabled={generatingDescription || !diagramCode.trim()}
+                  className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {generatingDescription ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>{t('ai.generate.generating')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                        <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                        <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
+                      </svg>
+                      <span>{t('ai.generate.button')}</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
             {/* Markdown Editor */}
             <div className="flex-1 overflow-hidden">
@@ -3311,8 +3351,8 @@ export default function DiagramEditorPage() {
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Descripción generada con IA</h2>
-                  <p className="text-sm text-gray-500 mt-1">Revisa la descripción generada antes de aceptarla</p>
+                  <h2 className="text-xl font-semibold text-gray-900">{t('ai.description.modalTitle')}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{t('ai.description.modalSubtitle')}</p>
                 </div>
                 <button
                   onClick={handleRejectDescription}
@@ -3327,10 +3367,58 @@ export default function DiagramEditorPage() {
 
             {/* Content - Markdown Preview */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {generatedDescription}
-                </ReactMarkdown>
+              {refining ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <svg className="animate-spin h-8 w-8 text-purple-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p className="text-gray-500">{t('ai.description.refining')}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {generatedDescription}
+                  </ReactMarkdown>
+                </div>
+              )}
+            </div>
+
+            {/* Refine Input */}
+            <div className="px-6 py-3 border-t border-gray-100">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={refineInput}
+                  onChange={(e) => setRefineInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !refining && refineInput.trim()) {
+                      handleRefineDescription();
+                    }
+                  }}
+                  placeholder={t('ai.description.refinePlaceholder')}
+                  disabled={refining}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+                />
+                <button
+                  onClick={handleRefineDescription}
+                  disabled={refining || !refineInput.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                >
+                  {refining ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>{t('ai.description.refining')}</span>
+                    </>
+                  ) : (
+                    <span>{t('ai.description.refineButton')}</span>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -3340,13 +3428,13 @@ export default function DiagramEditorPage() {
                 onClick={handleRejectDescription}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Rechazar
+                {t('ai.description.reject')}
               </button>
               <button
                 onClick={handleAcceptDescription}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
               >
-                Aceptar y reemplazar descripción
+                {t('ai.description.accept')}
               </button>
             </div>
           </div>
