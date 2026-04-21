@@ -45,7 +45,6 @@ export interface CreateChatSessionRequest {
 
 export interface SendMessageRequest {
   content: string;
-  mode: ChatMode;
   diagram_code: string;
   diagram_type: string;
   provider?: string;

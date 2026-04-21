@@ -17,7 +17,11 @@ class MessageRole(str, Enum):
 
 
 class MessageMode(str, Enum):
-    """Mode of interaction for a chat message."""
+    """Mode of interaction for a chat message.
+
+    Legacy values (improvement, conversation) kept for backward compatibility
+    with existing messages in the database. New messages always use AUTO.
+    """
     IMPROVEMENT = "improvement"
     CONVERSATION = "conversation"
     AUTO = "auto"
@@ -81,7 +85,6 @@ class CreateChatSessionRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     """Request model for sending a message in a chat session."""
     content: str = Field(..., min_length=1, max_length=5000)
-    mode: MessageMode
     diagram_code: str
     diagram_type: str
     provider: Optional[str] = None

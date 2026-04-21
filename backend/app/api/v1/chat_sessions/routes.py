@@ -132,7 +132,6 @@ async def send_message(
         session_id=session_id,
         user_id=user_id,
         content=body.content,
-        mode=body.mode,
         diagram_code=body.diagram_code,
         diagram_type=body.diagram_type,
         provider=body.provider,

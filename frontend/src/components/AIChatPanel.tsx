@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api';
-import { ChatSession, ChatMessage, ChatMode } from '../types/chat';
+import { ChatSession, ChatMessage } from '../types/chat';
 import { UserAISettings, AIProviderType } from '../types/ai';
 import ChatSessionSelector from './ChatSessionSelector';
 import ChatMessageList from './ChatMessageList';
@@ -32,7 +32,6 @@ export default function AIChatPanel({
   preferredModel: preferredModelProp,
   onPreferredModelChange,
 }: AIChatPanelProps) {
-  const [activeMode] = useState<ChatMode>('auto');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -235,7 +234,7 @@ export default function AIChatPanel({
       session_id: activeSessionId,
       role: 'user',
       content,
-      mode: activeMode,
+      mode: 'auto',
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -246,7 +245,6 @@ export default function AIChatPanel({
     try {
       const aiMessage = await apiService.sendChatMessage(activeSessionId, {
         content,
-        mode: activeMode,
         diagram_code: diagramCode,
         diagram_type: diagramType,
         provider: activeProvider || aiSettings?.default_provider || undefined,
