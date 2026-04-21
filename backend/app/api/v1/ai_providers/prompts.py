@@ -269,21 +269,51 @@ def build_description_prompt(
     lang_map = {"es": "espanol", "en": "English"}
     lang_text = lang_map.get(language, "espanol")
 
-    return (
-        f"Eres un experto en analisis de diagramas tecnicos. Analiza el siguiente codigo "
-        f"de diagrama tipo {diagram_type} y genera una descripcion clara y concisa en {lang_text}.\n\n"
-        f"Codigo del diagrama:\n```\n{diagram_code}\n```\n\n"
-        "Genera una descripcion profesional en formato Markdown que explique de forma natural "
-        "que representa el diagrama, que elementos contiene y como se relacionan entre si. "
-        "Escribe de forma libre y fluida, sin seguir una estructura rigida de secciones. "
-        "La descripcion debe ser tecnica pero comprensible, entre 100-300 palabras.\n\n"
-        "IMPORTANTE: Devuelve UNICAMENTE el contenido Markdown puro, SIN bloques de codigo "
-        "(```markdown), SIN encabezados adicionales, SIN prefijos. Comienza directamente con "
-        "el contenido de la descripcion."
-    )
+    if language == "es":
+        return (
+            f"Eres un experto en documentacion tecnica de diagramas. Analiza el siguiente "
+            f"codigo de diagrama {diagram_type} y genera una descripcion profesional en {lang_text}.\n\n"
+            f"Codigo del diagrama:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            "INSTRUCCIONES:\n"
+            "1. Genera la descripcion en formato Markdown bien estructurado\n"
+            "2. Usa encabezados descriptivos con ## para organizar el contenido "
+            "(ej: ## Arquitectura del Sistema, ## Flujo de Autenticacion, ## Componentes Principales)\n"
+            "3. Los titulos deben ser especificos al contenido del diagrama, NO genericos\n"
+            "4. Usa **negritas** para resaltar nombres de componentes, servicios o conceptos clave\n"
+            "5. Usa listas con viñetas (- ) para enumerar elementos cuando sea apropiado\n"
+            "6. Explica las relaciones y flujos entre componentes\n"
+            "7. La descripcion debe tener entre 150-400 palabras\n"
+            "8. Escribe de forma profesional pero comprensible\n\n"
+            "FORMATO DE SALIDA: Devuelve UNICAMENTE Markdown puro. "
+            "NO incluyas bloques de codigo (```), NO incluyas 'markdown' como prefijo. "
+            "Comienza directamente con el primer encabezado ##."
+        )
+    else:
+        return (
+            f"You are an expert in technical diagram documentation. Analyze the following "
+            f"{diagram_type} diagram code and generate a professional description in {lang_text}.\n\n"
+            f"Diagram code:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            "INSTRUCTIONS:\n"
+            "1. Generate the description in well-structured Markdown format\n"
+            "2. Use descriptive ## headings to organize content "
+            "(e.g.: ## System Architecture, ## Authentication Flow, ## Main Components)\n"
+            "3. Headings must be specific to the diagram content, NOT generic\n"
+            "4. Use **bold** to highlight component names, services, or key concepts\n"
+            "5. Use bullet lists (- ) to enumerate elements when appropriate\n"
+            "6. Explain relationships and flows between components\n"
+            "7. The description should be between 150-400 words\n"
+            "8. Write professionally but understandably\n\n"
+            "OUTPUT FORMAT: Return ONLY pure Markdown. "
+            "Do NOT include code blocks (```), do NOT include 'markdown' as prefix. "
+            "Start directly with the first ## heading."
+        )
 
 
-DESCRIPTION_SYSTEM_PROMPT = "You are an expert in analyzing and describing technical diagrams. Provide clear, concise, and professional descriptions."
+DESCRIPTION_SYSTEM_PROMPT = (
+    "You are an expert in analyzing and documenting technical diagrams. "
+    "Generate well-structured Markdown descriptions with descriptive headings, "
+    "bold key terms, and bullet lists. Never wrap output in code blocks."
+)
 
 
 def build_refine_description_prompt(
@@ -297,18 +327,38 @@ def build_refine_description_prompt(
     lang_map = {"es": "espanol", "en": "English"}
     lang_text = lang_map.get(language, "espanol")
 
-    return (
-        f"Eres un experto en analisis de diagramas tecnicos. El usuario tiene un diagrama "
-        f"tipo {diagram_type} con una descripcion existente y quiere refinarla.\n\n"
-        f"Codigo del diagrama:\n```\n{diagram_code}\n```\n\n"
-        f"Descripcion actual:\n{current_description}\n\n"
-        f"Instruccion del usuario para refinar:\n{refinement_request}\n\n"
-        f"Genera la descripcion refinada en {lang_text}, aplicando los cambios solicitados. "
-        "Escribe de forma libre y fluida en formato Markdown.\n\n"
-        "IMPORTANTE: Devuelve UNICAMENTE el contenido Markdown puro, SIN bloques de codigo "
-        "(```markdown), SIN encabezados adicionales, SIN prefijos. Comienza directamente con "
-        "el contenido de la descripcion refinada."
-    )
+    if language == "es":
+        return (
+            f"Eres un experto en documentacion tecnica de diagramas. El usuario tiene un diagrama "
+            f"{diagram_type} con una descripcion existente y quiere refinarla.\n\n"
+            f"Codigo del diagrama:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            f"Descripcion actual:\n{current_description}\n\n"
+            f"Instruccion del usuario:\n{refinement_request}\n\n"
+            f"Genera la descripcion refinada en {lang_text} aplicando los cambios solicitados.\n\n"
+            "REGLAS DE FORMATO:\n"
+            "- Usa encabezados ## descriptivos y especificos al contenido\n"
+            "- Usa **negritas** para componentes y conceptos clave\n"
+            "- Usa listas con viñetas cuando sea apropiado\n"
+            "- Mantén el formato Markdown bien estructurado\n\n"
+            "FORMATO DE SALIDA: Devuelve UNICAMENTE Markdown puro. "
+            "NO incluyas bloques de codigo (```). Comienza directamente con el contenido."
+        )
+    else:
+        return (
+            f"You are an expert in technical diagram documentation. The user has a "
+            f"{diagram_type} diagram with an existing description and wants to refine it.\n\n"
+            f"Diagram code:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            f"Current description:\n{current_description}\n\n"
+            f"User instruction:\n{refinement_request}\n\n"
+            f"Generate the refined description in {lang_text} applying the requested changes.\n\n"
+            "FORMAT RULES:\n"
+            "- Use descriptive ## headings specific to the content\n"
+            "- Use **bold** for components and key concepts\n"
+            "- Use bullet lists when appropriate\n"
+            "- Keep well-structured Markdown format\n\n"
+            "OUTPUT FORMAT: Return ONLY pure Markdown. "
+            "Do NOT include code blocks (```). Start directly with the content."
+        )
 
 
 # ------------------------------------------------------------------ #
