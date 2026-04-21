@@ -381,8 +381,14 @@ class AIProviderService:
             # Gemini client
             return await client._generate(prompt)
         elif hasattr(client, '_chat_completion'):
-            # OpenAI / DeepSeek client
+            # OpenAI client
             return await client._chat_completion([
+                {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ])
+        elif hasattr(client, '_make_request'):
+            # DeepSeek client
+            return await client._make_request([
                 {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
             ])
@@ -393,7 +399,7 @@ class AIProviderService:
                 system=DESCRIPTION_SYSTEM_PROMPT,
             )
         else:
-            raise ValueError("Unsupported client type for refine operation")
+            raise ValueError(f"Unsupported client type: {type(client).__name__}")
 
     async def test_provider(
         self,
