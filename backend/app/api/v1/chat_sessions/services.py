@@ -340,6 +340,18 @@ class ChatSessionService:
 
             return self._message_to_response(ai_msg)
 
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("Chat error: %s", exc)
+            error_msg = await self.message_repo.create_message(
+                session_id=session_id_str,
+                role=MessageRole.ERROR,
+                content=str(exc),
+                mode=MessageMode.AUTO,
+            )
+            return self._message_to_response(error_msg)
+
     # ------------------------------------------------------------------ #
     #  Task 5.4 – Context compaction logic
     # ------------------------------------------------------------------ #
