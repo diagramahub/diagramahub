@@ -16,17 +16,6 @@ class MessageRole(str, Enum):
     ERROR = "error"
 
 
-class MessageMode(str, Enum):
-    """Mode of interaction for a chat message.
-
-    Legacy values (improvement, conversation) kept for backward compatibility
-    with existing messages in the database. New messages always use AUTO.
-    """
-    IMPROVEMENT = "improvement"
-    CONVERSATION = "conversation"
-    AUTO = "auto"
-
-
 class ImprovementStatus(str, Enum):
     """Status of a diagram improvement suggestion."""
     PENDING = "pending"
@@ -59,7 +48,6 @@ class ChatMessageInDB(Document):
     session_id: str
     role: MessageRole
     content: str
-    mode: MessageMode
     improved_code: Optional[str] = None
     improvement_status: Optional[ImprovementStatus] = None
     provider_used: Optional[str] = None
@@ -128,7 +116,6 @@ class ChatMessageResponse(BaseModel):
     session_id: str
     role: MessageRole
     content: str
-    mode: MessageMode
     improved_code: Optional[str] = None
     improvement_status: Optional[ImprovementStatus] = None
     provider_used: Optional[str] = None

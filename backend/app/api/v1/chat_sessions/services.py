@@ -13,7 +13,6 @@ from .schemas import (
     ChatSessionInDB,
     ChatMessageInDB,
     MessageRole,
-    MessageMode,
     ImprovementStatus,
     ChatSessionResponse,
     ChatMessageResponse,
@@ -199,7 +198,6 @@ class ChatSessionService:
             session_id=session_id_str,
             role=MessageRole.USER,
             content=content,
-            mode=MessageMode.AUTO,
         )
 
         await self._maybe_auto_title(session, content)
@@ -244,7 +242,6 @@ class ChatSessionService:
                     session_id=new_sid,
                     role=MessageRole.USER,
                     content=content,
-                    mode=MessageMode.AUTO,
                 )
                 recent_new = await self.message_repo.get_recent_messages(new_sid, limit=20)
                 history = self._build_message_history(
@@ -328,7 +325,6 @@ class ChatSessionService:
                 session_id=session_id_str,
                 role=MessageRole.ASSISTANT,
                 content=display_text,
-                mode=MessageMode.AUTO,
                 improved_code=improved_code,
                 improvement_status=improvement_status,
                 provider_used=provider_config.provider.value,
@@ -348,7 +344,6 @@ class ChatSessionService:
                 session_id=session_id_str,
                 role=MessageRole.ERROR,
                 content=str(exc),
-                mode=MessageMode.AUTO,
             )
             return self._message_to_response(error_msg)
 
@@ -530,7 +525,6 @@ class ChatSessionService:
             session_id=msg.session_id,
             role=msg.role,
             content=msg.content,
-            mode=msg.mode,
             improved_code=msg.improved_code,
             improvement_status=msg.improvement_status,
             provider_used=msg.provider_used,

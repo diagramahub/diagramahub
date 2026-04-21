@@ -234,7 +234,6 @@ export default function AIChatPanel({
       session_id: activeSessionId,
       role: 'user',
       content,
-      mode: 'auto',
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
