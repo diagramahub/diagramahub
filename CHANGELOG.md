@@ -5,6 +5,35 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.3.0] - 2026-04-23
+
+### Added
+- OAuth / Login Social con Google: arquitectura provider-agnostic (IOAuthProvider + OAuthProviderFactory).
+- Vinculación automática de cuentas OAuth con cuentas existentes por email.
+- Creación automática de cuenta con suscripción FREE para nuevos usuarios OAuth.
+- Bypass de MFA para logins OAuth con JWT de 5 días.
+- Protección CSRF con tokens de estado server-side (TTL 10 min, auto-limpieza MongoDB).
+- Validación de ID token (firma, issuer, audience, expiración) para OpenID Connect.
+- Rate limiting en endpoint de callback OAuth.
+- Audit logging para eventos OAuth (login exitoso/fallido, vinculación de cuenta).
+- Página de perfil muestra proveedores OAuth vinculados con fecha.
+- Selector de idioma en páginas de login y registro.
+- Versión de la aplicación visible en página de login.
+- Banner MFA oculto para sesiones OAuth.
+- Generación libre de descripciones AI en Markdown estructurado con capacidad de refinamiento.
+- Chat unificado con detección automática de intención (conversar, generar, mejorar).
+
+### Fixed
+- Prompts de descripción mejorados para Markdown estructurado consistente.
+- Generación de descripciones respeta el proveedor preferido del diagrama.
+- Soporte DeepSeek agregado a _call_with_prompt para operaciones de refinamiento.
+- Proveedor de sesión de chat se propaga correctamente a preferencias del diagrama.
+- Bloque except faltante en send_message del servicio de chat.
+
+### Changed
+- Eliminado código muerto de modos legacy de conversación/mejora en chat.
+- Eliminado campo mode de mensajes de chat (simplificación del modelo de datos).
+
 ## [0.2.1] - 2026-04-18
 
 ### Added
