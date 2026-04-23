@@ -1,5 +1,11 @@
 export type UserRole = 'admin' | 'user';
 
+export type OAuthProviderEntry = {
+  provider: string;
+  provider_user_id: string;
+  linked_at: string;
+}
+
 export type User = {
   id: string;
   email: string;
@@ -10,6 +16,7 @@ export type User = {
   role?: UserRole;  // User role (admin or regular user)
   is_active: boolean;
   created_at: string;
+  oauth_providers?: OAuthProviderEntry[];  // Linked OAuth provider identities
   subscription?: {
     plan: {
       price_usd: number;
@@ -68,6 +75,7 @@ export type AuthContextType = {
   mfaEnabled: boolean;
   login: (email: string, password: string) => Promise<LoginResponse | void>;
   completeMfaLogin: (accessToken: string) => Promise<void>;
+  loginWithOAuth: (token: string) => Promise<void>;
   register: (email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;

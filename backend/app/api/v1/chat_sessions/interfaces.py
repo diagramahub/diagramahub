@@ -61,7 +61,6 @@ class IChatMessageRepository(ABC):
         session_id: str,
         role: str,
         content: str,
-        mode: str,
         improved_code: Optional[str] = None,
         improvement_status: Optional[str] = None,
         provider_used: Optional[str] = None,

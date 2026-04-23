@@ -6,6 +6,7 @@ export type VendorConfigResponse = {
   is_configured: boolean;
   is_default: boolean;
   is_active_payment: boolean;
+  is_active_oauth: boolean;
   connection_tested: boolean;
   last_test_at: string | null;
   last_test_success: boolean;
@@ -28,7 +29,7 @@ export type IntegrationStatus = {
 
 export type VendorConfigCreate = {
   vendor_type: string;
-  category: 'email' | 'payment';
+  category: 'email' | 'payment' | 'oauth';
   display_name: string;
   config: Record<string, string>;
 };

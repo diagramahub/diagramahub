@@ -56,6 +56,9 @@ EVENT_MFA_DISABLED = "mfa_disabled"
 EVENT_MFA_RECOVERY_USED = "mfa_recovery_used"
 EVENT_ADMIN_MFA_RESET = "admin_mfa_reset"
 EVENT_ACCOUNT_DELETED = "account_deleted"
+EVENT_OAUTH_LOGIN_SUCCESS = "oauth_login_success"
+EVENT_OAUTH_LOGIN_FAILED = "oauth_login_failed"
+EVENT_OAUTH_ACCOUNT_LINKED = "oauth_account_linked"
 
 
 async def log_event(

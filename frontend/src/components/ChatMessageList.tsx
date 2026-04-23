@@ -154,7 +154,7 @@ export default function ChatMessageList({
               </button>
             )}
 
-            {msg.role === 'assistant' && !(msg.improved_code && msg.mode === 'improvement') ? (
+            {msg.role === 'assistant' && !msg.improved_code ? (
               <div className="chat-markdown break-words">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
               </div>
@@ -164,8 +164,8 @@ export default function ChatMessageList({
               </p>
             ) : null}
 
-            {/* Botón copiar para mensajes de assistant (solo en modo conversación) */}
-            {msg.role === 'assistant' && !(msg.improved_code && msg.mode === 'improvement') && <CopyButton text={msg.content} />}
+            {/* Botón copiar para mensajes de assistant sin código de diagrama */}
+            {msg.role === 'assistant' && !msg.improved_code && <CopyButton text={msg.content} />}
 
             {/* Preview de diagrama para mensajes de mejora */}
             {msg.role === 'assistant' && msg.improved_code && (
@@ -195,9 +195,6 @@ export default function ChatMessageList({
           {/* Timestamp */}
           <span className={`text-[10px] text-gray-400 mt-0.5 px-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
             {formatRelativeDate(msg.created_at)}
-            {msg.mode === 'improvement' && msg.role === 'user' && (
-              <span className="ml-1 text-purple-400">• mejora</span>
-            )}
           </span>
         </div>
       ))}

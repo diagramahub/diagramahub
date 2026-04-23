@@ -207,3 +207,26 @@ class ImproveDiagramResponse(BaseModel):
     provider_used: AIProviderType
     model_used: str
     generation_time: Optional[float] = None  # Seconds
+
+
+class RefineDescriptionRequest(BaseModel):
+    """Request to refine an existing diagram description."""
+    diagram_code: str = Field(..., description="Diagram source code")
+    diagram_type: str = Field(..., description="Type of diagram (mermaid, plantuml)")
+    current_description: str = Field(..., description="Current description to refine")
+    refinement_request: str = Field(
+        ..., min_length=3, description="What to change in the description"
+    )
+    provider: Optional[AIProviderType] = Field(
+        None,
+        description="Provider to use (uses default if not specified)"
+    )
+    language: str = Field(default="es", description="Language (es, en)")
+
+
+class RefineDescriptionResponse(BaseModel):
+    """Response with refined description."""
+    description: str
+    provider_used: AIProviderType
+    model_used: str
+    generation_time: Optional[float] = None

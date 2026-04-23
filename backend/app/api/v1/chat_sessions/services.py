@@ -13,7 +13,6 @@ from .schemas import (
     ChatSessionInDB,
     ChatMessageInDB,
     MessageRole,
-    MessageMode,
     ImprovementStatus,
     ChatSessionResponse,
     ChatMessageResponse,
@@ -152,261 +151,34 @@ class ChatSessionService:
         return self._session_to_response(session, message_count=count)
 
     # ------------------------------------------------------------------ #
-    #  Task 5.2 – send_message for improvement mode
+    #  Unified chat message handler
     # ------------------------------------------------------------------ #
 
-    async def _send_improvement_message(
-        self,
-        session: ChatSessionInDB,
-        user_id: str,
-        content: str,
-        diagram_code: str,
-        diagram_type: str,
-        provider: Optional[str],
-        model: Optional[str],
-        language: str,
-    ) -> ChatMessageResponse:
-        """Handle a message in improvement mode.
-
-        1. Save user message with mode=improvement
-        2. Call AIProviderService.improve_diagram()
-        3. Save AI response with improved_code and improvement_status=pending
-        4. On error, save an error message
-        """
-        session_id = str(session.id)
-
-        # Save user message
-        user_msg = await self.message_repo.create_message(
-            session_id=session_id,
-            role=MessageRole.USER,
-            content=content,
-            mode=MessageMode.IMPROVEMENT,
-        )
-
-        # Auto-generate title on first message (Task 5.6)
-        await self._maybe_auto_title(session, content)
-
-        try:
-            provider_type = AIProviderType(provider) if provider else None
-
-            # Obtener configuración del proveedor
-            provider_config = await self.ai_service.repository.get_active_provider(
-                user_id, provider_type
-            )
-            if not provider_config:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No hay proveedor de IA configurado.",
-                )
-
-            actual_model = model or provider_config.model
-
-            client = AIClientFactory.create_client(
-                provider=provider_config.provider,
-                api_key=provider_config.api_key,
-                model=actual_model,
-                parameters=provider_config.parameters,
-            )
-
-            start = time.time()
-            used_model = actual_model
-            try:
-                improved_code = await client.improve_diagram(
-                    diagram_code=diagram_code,
-                    improvement_request=content,
-                    diagram_type=diagram_type,
-                    language=language,
-                )
-            except ValueError as model_err:
-                # Si el modelo seleccionado falla y hay un modelo base diferente, reintentar
-                if actual_model != provider_config.model:
-                    logger.info("Model %s failed (%s), retrying with %s", actual_model, model_err, provider_config.model)
-                    fallback_client = AIClientFactory.create_client(
-                        provider=provider_config.provider,
-                        api_key=provider_config.api_key,
-                        model=provider_config.model,
-                        parameters=provider_config.parameters,
-                    )
-                    improved_code = await fallback_client.improve_diagram(
-                        diagram_code=diagram_code,
-                        improvement_request=content,
-                        diagram_type=diagram_type,
-                        language=language,
-                    )
-                    used_model = provider_config.model
-                else:
-                    raise
-            generation_time = time.time() - start
-
-            ai_msg = await self.message_repo.create_message(
-                session_id=session_id,
-                role=MessageRole.ASSISTANT,
-                content=f"Diagrama mejorado según: {content}",
-                mode=MessageMode.IMPROVEMENT,
-                improved_code=improved_code,
-                improvement_status=ImprovementStatus.PENDING,
-                provider_used=provider_config.provider.value,
-                model_used=used_model,
-                generation_time=generation_time,
-            )
-
-            # Touch session updated_at
-            await self.session_repo.update_session_status(session_id, session.status)
-
-            return self._message_to_response(ai_msg)
-
-        except Exception as exc:
-            logger.error("Improvement error: %s", exc)
-            error_msg = await self.message_repo.create_message(
-                session_id=session_id,
-                role=MessageRole.ERROR,
-                content=str(exc),
-                mode=MessageMode.IMPROVEMENT,
-            )
-            return self._message_to_response(error_msg)
-
-    # ------------------------------------------------------------------ #
-    #  Task 5.3 – send_message for conversation mode
-    # ------------------------------------------------------------------ #
-
-    async def _send_conversation_message(
-        self,
-        session: ChatSessionInDB,
-        user_id: str,
-        content: str,
-        diagram_code: str,
-        diagram_type: str,
-        provider: Optional[str],
-        model: Optional[str],
-        language: str,
-    ) -> ChatMessageResponse:
-        """Handle a message in conversation mode.
-
-        1. Save user message with mode=conversation
-        2. Get last 20 messages as context
-        3. Call chat_with_context via an AI client
-        4. Save AI response (no improved_code)
-        """
-        session_id = str(session.id)
-
-        # Save user message
-        user_msg = await self.message_repo.create_message(
-            session_id=session_id,
-            role=MessageRole.USER,
-            content=content,
-            mode=MessageMode.CONVERSATION,
-        )
-
-        # Auto-generate title on first message (Task 5.6)
-        await self._maybe_auto_title(session, content)
-
-        try:
-            # Build context from recent messages
-            recent = await self.message_repo.get_recent_messages(session_id, limit=20)
-            history = self._build_message_history(recent, session.summary)
-
-            # Get active provider config and create client
-            provider_type = AIProviderType(provider) if provider else None
-            provider_config = await self.ai_service.repository.get_active_provider(
-                user_id, provider_type
-            )
-            if not provider_config:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No hay proveedor de IA configurado.",
-                )
-
-            client = AIClientFactory.create_client(
-                provider=provider_config.provider,
-                api_key=provider_config.api_key,
-                model=model or provider_config.model,
-                parameters=provider_config.parameters,
-            )
-
-            # --- Context compaction check (Task 5.4) ---
-            compacted_session = await self._maybe_compact_context(
-                session=session,
-                user_id=user_id,
-                history=history,
-                diagram_code=diagram_code,
-                model=model or provider_config.model,
-                client=client,
-                language=language,
-            )
-            if compacted_session is not None:
-                # A new session was created; re-save user message there and use new context
-                new_session_id = str(compacted_session.id)
-                await self.message_repo.create_message(
-                    session_id=new_session_id,
-                    role=MessageRole.USER,
-                    content=content,
-                    mode=MessageMode.CONVERSATION,
-                )
-                recent_new = await self.message_repo.get_recent_messages(new_session_id, limit=20)
-                history = self._build_message_history(recent_new, compacted_session.summary)
-                session = compacted_session
-                session_id = new_session_id
-
-            start = time.time()
-            ai_text = await client.chat_with_context(
-                messages=history,
-                diagram_code=diagram_code,
-                diagram_type=diagram_type,
-                language=language,
-            )
-            generation_time = time.time() - start
-
-            logger.info(
-                "Conversation response from %s (%.1fs): %s...",
-                provider_config.provider.value,
-                generation_time,
-                ai_text[:100] if ai_text else "(empty)",
-            )
-
-            ai_msg = await self.message_repo.create_message(
-                session_id=session_id,
-                role=MessageRole.ASSISTANT,
-                content=ai_text,
-                mode=MessageMode.CONVERSATION,
-                provider_used=provider_config.provider.value,
-                model_used=model or provider_config.model,
-                generation_time=generation_time,
-            )
-
-            # Touch session updated_at
-            await self.session_repo.update_session_status(session_id, session.status)
-
-            return self._message_to_response(ai_msg)
-
-        except HTTPException:
-            raise
-        except Exception as exc:
-            logger.error("Conversation error: %s", exc)
-            error_msg = await self.message_repo.create_message(
-                session_id=session_id,
-                role=MessageRole.ERROR,
-                content=str(exc),
-                mode=MessageMode.CONVERSATION,
-            )
-            return self._message_to_response(error_msg)
-
-    # ------------------------------------------------------------------ #
-    #  Public send_message dispatcher
-    # ------------------------------------------------------------------ #
+    DIAGRAM_START = "<<<DIAGRAM>>>"
+    DIAGRAM_END = "<<<END_DIAGRAM>>>"
 
     async def send_message(
         self,
         session_id: str,
         user_id: str,
         content: str,
-        mode: MessageMode,
         diagram_code: str,
         diagram_type: str,
         provider: Optional[str] = None,
         model: Optional[str] = None,
         language: str = "es",
     ) -> ChatMessageResponse:
-        """Send a message in a chat session, dispatching to the correct mode handler."""
+        """Send a message in a chat session.
+
+        Uses a unified prompt that automatically detects user intent:
+        - Questions/analysis → text response
+        - Modification requests → text + diagram code (<<<DIAGRAM>>>...<<<END_DIAGRAM>>>)
+        """
+        from app.api.v1.ai_providers.prompts import (
+            build_unified_chat_prompt,
+            clean_code_response,
+        )
+
         session = await self.session_repo.get_session_by_id(session_id)
         if not session:
             raise HTTPException(
@@ -419,14 +191,161 @@ class ChatSessionService:
                 detail="No se pueden enviar mensajes a una sesión finalizada",
             )
 
-        if mode == MessageMode.IMPROVEMENT:
-            return await self._send_improvement_message(
-                session, user_id, content, diagram_code, diagram_type, provider, model, language
+        session_id_str = str(session.id)
+
+        # Save user message
+        await self.message_repo.create_message(
+            session_id=session_id_str,
+            role=MessageRole.USER,
+            content=content,
+        )
+
+        await self._maybe_auto_title(session, content)
+
+        try:
+            # Build context from recent messages
+            recent = await self.message_repo.get_recent_messages(session_id_str, limit=20)
+            history = self._build_message_history(recent, session.summary)
+
+            # Get provider config
+            provider_type = AIProviderType(provider) if provider else None
+            provider_config = await self.ai_service.repository.get_active_provider(
+                user_id, provider_type
             )
-        else:
-            return await self._send_conversation_message(
-                session, user_id, content, diagram_code, diagram_type, provider, model, language
+            if not provider_config:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No hay proveedor de IA configurado.",
+                )
+
+            actual_model = model or provider_config.model
+            client = AIClientFactory.create_client(
+                provider=provider_config.provider,
+                api_key=provider_config.api_key,
+                model=actual_model,
+                parameters=provider_config.parameters,
             )
+
+            # Context compaction check
+            compacted_session = await self._maybe_compact_context(
+                session=session,
+                user_id=user_id,
+                history=history,
+                diagram_code=diagram_code,
+                model=actual_model,
+                client=client,
+                language=language,
+            )
+            if compacted_session is not None:
+                new_sid = str(compacted_session.id)
+                await self.message_repo.create_message(
+                    session_id=new_sid,
+                    role=MessageRole.USER,
+                    content=content,
+                )
+                recent_new = await self.message_repo.get_recent_messages(new_sid, limit=20)
+                history = self._build_message_history(
+                    recent_new, compacted_session.summary
+                )
+                session = compacted_session
+                session_id_str = new_sid
+
+            # Build unified system prompt
+            system_prompt = build_unified_chat_prompt(
+                diagram_code, diagram_type, language
+            )
+
+            start = time.time()
+
+            # Call AI with unified system prompt + conversation history
+            if hasattr(client, '_generate'):
+                # Gemini: concatenate system + history into single prompt
+                conversation_parts = [system_prompt, ""]
+                for msg in history:
+                    role_label = (
+                        "Usuario" if msg["role"] == "user" else "Asistente"
+                    )
+                    if language != "es":
+                        role_label = (
+                            "User" if msg["role"] == "user" else "Assistant"
+                        )
+                    conversation_parts.append(
+                        f"{role_label}: {msg['content']}"
+                    )
+                role_suffix = "Asistente:" if language == "es" else "Assistant:"
+                conversation_parts.append(role_suffix)
+                ai_text = await client._generate("\n".join(conversation_parts))
+            elif hasattr(client, '_chat_completion'):
+                # OpenAI
+                api_messages = [{"role": "system", "content": system_prompt}]
+                for msg in history:
+                    api_messages.append({"role": msg["role"], "content": msg["content"]})
+                ai_text = await client._chat_completion(api_messages)
+            elif hasattr(client, '_make_request'):
+                # DeepSeek
+                api_messages = [{"role": "system", "content": system_prompt}]
+                for msg in history:
+                    api_messages.append({"role": msg["role"], "content": msg["content"]})
+                ai_text = await client._make_request(api_messages)
+            elif hasattr(client, '_messages_request'):
+                # Claude
+                api_messages = []
+                for msg in history:
+                    api_messages.append({"role": msg["role"], "content": msg["content"]})
+                ai_text = await client._messages_request(
+                    api_messages, system=system_prompt
+                )
+            else:
+                raise ValueError(f"Unsupported client: {type(client).__name__}")
+
+            generation_time = time.time() - start
+
+            # Parse response: check for diagram code
+            improved_code = None
+            display_text = ai_text
+            improvement_status = None
+
+            if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                end_idx = ai_text.index(self.DIAGRAM_END)
+                raw_code = ai_text[start_idx:end_idx].strip()
+                improved_code = clean_code_response(raw_code)
+
+                explanation_end = ai_text.index(self.DIAGRAM_START)
+                display_text = ai_text[:explanation_end].strip()
+                if not display_text:
+                    display_text = (
+                        "Diagrama modificado según tu solicitud."
+                        if language == "es"
+                        else "Diagram modified as requested."
+                    )
+                improvement_status = ImprovementStatus.PENDING
+
+            ai_msg = await self.message_repo.create_message(
+                session_id=session_id_str,
+                role=MessageRole.ASSISTANT,
+                content=display_text,
+                improved_code=improved_code,
+                improvement_status=improvement_status,
+                provider_used=provider_config.provider.value,
+                model_used=actual_model,
+                generation_time=generation_time,
+            )
+
+            await self.session_repo.update_session_status(session_id_str, session.status)
+
+            return self._message_to_response(ai_msg)
+
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.error("Chat error: %s", exc)
+            error_msg = await self.message_repo.create_message(
+                session_id=session_id_str,
+                role=MessageRole.ERROR,
+                content=str(exc),
+            )
+            return self._message_to_response(error_msg)
 
     # ------------------------------------------------------------------ #
     #  Task 5.4 – Context compaction logic
@@ -570,8 +489,7 @@ class ChatSessionService:
 
         If the session has a summary (from compaction), prepend it as a system-like
         assistant message so the AI has prior context.
-        Only includes conversation-mode messages to avoid polluting context with
-        improvement-mode diagram code.
+        Skips error messages from context.
         """
         history: list[dict] = []
         if summary:
@@ -579,10 +497,6 @@ class ChatSessionService:
         for m in messages:
             if m.role == MessageRole.ERROR:
                 continue  # skip error messages from context
-            # For conversation context, skip improvement-mode messages that contain
-            # diagram code (they would confuse the conversational AI)
-            if m.mode == MessageMode.IMPROVEMENT and m.role == MessageRole.ASSISTANT:
-                continue
             role = "user" if m.role == MessageRole.USER else "assistant"
             history.append({"role": role, "content": m.content})
         return history
@@ -611,7 +525,6 @@ class ChatSessionService:
             session_id=msg.session_id,
             role=msg.role,
             content=msg.content,
-            mode=msg.mode,
             improved_code=msg.improved_code,
             improvement_status=msg.improvement_status,
             provider_used=msg.provider_used,

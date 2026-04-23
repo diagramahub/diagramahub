@@ -12,6 +12,13 @@ const MfaBanner: React.FC = () => {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
+    // Never show banner for OAuth sessions — provider already enforces strong auth
+    const isOAuthSession = localStorage.getItem('oauth_session') === 'true';
+    if (isOAuthSession) {
+      setDismissed(true);
+      return;
+    }
+
     // Show banner only if MFA is not enabled and not dismissed this session
     if (!mfaEnabled) {
       const isDismissed = localStorage.getItem(MFA_BANNER_DISMISSED_KEY) === 'true';

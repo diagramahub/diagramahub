@@ -86,6 +86,13 @@ class RecoveryCodeEntry(BaseModel):
     used: bool = False
 
 
+class OAuthProviderEntry(BaseModel):
+    """Linked OAuth provider identity."""
+    provider: str  # e.g., "google", "github"
+    provider_user_id: str  # Provider's unique user ID
+    linked_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class UserInDB(Document):
     """User model for database storage using Beanie."""
     email: EmailStr
@@ -115,6 +122,9 @@ class UserInDB(Document):
     email_mfa_code_expires: Optional[float] = None
     mfa_temp_resend_count: int = 0
     mfa_temp_last_resend: Optional[float] = None
+
+    # OAuth linked providers
+    oauth_providers: list[OAuthProviderEntry] = []
 
     class Settings:
         name = "users"
