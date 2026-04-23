@@ -5,6 +5,11 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.3.1] - 2026-04-23
+
+### Fixed
+- Error de compilación TypeScript `TS2305`: tipo `ChatMode` no exportado desde `types/chat.ts`, causando fallo en build de producción (Digital Ocean).
+
 ## [0.3.0] - 2026-04-23
 
 ### Added
