@@ -284,7 +284,11 @@
     "passwordTooShort": "New password must be at least 12 characters",
     "profileUpdateError": "Error updating profile",
     "passwordChangeError": "Error changing password",
-    "passwordMinLength": "Minimum 12 characters"
+    "passwordMinLength": "Minimum 12 characters",
+    "linkedAccounts": "Linked Accounts",
+    "linkedAccountsDescription": "External accounts linked to your profile",
+    "noLinkedAccounts": "No external accounts linked",
+    "linkedOn": "Linked on"
   },
   "settings": {
     "title": "Settings",
@@ -393,7 +397,8 @@
     "subtitle": "Connect and manage your platform's external services",
     "categories": {
       "email": "Email",
-      "payment": "Payment Gateway"
+      "payment": "Payment Gateway",
+      "oauth": "OAuth / Social Login"
     },
     "tabs": {
       "available": "Available",
@@ -407,6 +412,7 @@
       "inactive": "Inactive",
       "default": "Default",
       "activePayment": "Active Gateway",
+      "activeOAuth": "Active",
       "tested": "Tested",
       "testFailed": "Test failed",
       "notTested": "Not tested"
@@ -422,9 +428,11 @@
     "testConnection": "Test",
     "setAsDefault": "Set Default",
     "activateForPayments": "Activate",
+    "activateOAuth": "Activate",
     "catalog": {
       "resendDesc": "Transactional email service with a modern, easy-to-integrate API.",
-      "stripeDesc": "Payment gateway for recurring credit and debit card charges."
+      "stripeDesc": "Payment gateway for recurring credit and debit card charges.",
+      "googleOAuthDesc": "Sign in with Google using OAuth 2.0 / OpenID Connect."
     },
     "form": {
       "vendorType": "Vendor Type",
@@ -441,7 +449,13 @@
       "publishableKeyPlaceholder": "pk_...",
       "webhookSecret": "Webhook Secret",
       "webhookSecretPlaceholder": "whsec_...",
-      "leaveBlankToKeep": "Leave blank to keep current value"
+      "leaveBlankToKeep": "Leave blank to keep current value",
+      "clientId": "Client ID",
+      "clientIdPlaceholder": "Your OAuth Client ID",
+      "clientSecret": "Client Secret",
+      "clientSecretPlaceholder": "Your OAuth Client Secret",
+      "redirectUri": "Redirect URI",
+      "redirectUriPlaceholder": "https://yourdomain.com/oauth/callback"
     },
     "messages": {
       "vendorCreated": "Integration connected successfully",
@@ -456,7 +470,8 @@
     },
     "vendors": {
       "resend": "Resend",
-      "stripe": "Stripe"
+      "stripe": "Stripe",
+      "google": "Google OAuth"
     }
   },
   "mfa": {
@@ -676,6 +691,23 @@
       "apiKeyUpdate": "Leave this field empty if you don't want to change the current API key",
       "clickToChangeApiKey": "Click on the field or 'Change' to update the API key",
       "getApiKey": "Get API Key"
+    },
+    "description": {
+      "modalTitle": "AI Description",
+      "modalSubtitle": "Review the description. You can refine it with instructions before accepting.",
+      "refinePlaceholder": "E.g.: Make it shorter, add more technical detail, focus on the flow...",
+      "refineButton": "Refine",
+      "refining": "Refining...",
+      "reject": "Cancel",
+      "accept": "Accept"
     }
+  },
+  "oauth": {
+    "divider": "or",
+    "signInWith": "Sign in with {{provider}}",
+    "signUpWith": "Sign up with {{provider}}",
+    "authenticating": "Authenticating...",
+    "callbackError": "OAuth authentication failed. Please try again.",
+    "google": "Google"
   }
 }

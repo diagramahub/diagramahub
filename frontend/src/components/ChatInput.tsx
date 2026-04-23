@@ -1,50 +1,20 @@
-import { useState, useRef, useEffect, KeyboardEvent, ReactNode } from 'react';
-import { ChatMode } from '../types/chat';
+import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { UserAISettings, AIProviderType, AI_PROVIDER_NAMES, AI_PROVIDER_MODELS } from '../types/ai';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
-  activeMode: ChatMode;
-  onModeChange: (mode: ChatMode) => void;
   aiSettings?: UserAISettings | null;
   activeProvider: AIProviderType | null;
   activeModel: string | null;
   onModelChange: (provider: AIProviderType, model: string) => void;
 }
 
-const MODES: { value: ChatMode; label: string; description: string; icon: ReactNode }[] = [
-  {
-    value: 'improvement',
-    label: 'Edición',
-    description: 'Modifica y mejora el diagrama',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-      </svg>
-    ),
-  },
-  {
-    value: 'conversation',
-    label: 'Analizar',
-    description: 'Conversa sobre el diagrama',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    ),
-  },
-];
-
-export default function ChatInput({ onSend, disabled = false, activeMode, onModeChange, aiSettings, activeProvider, activeModel, onModelChange }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled = false, aiSettings, activeProvider, activeModel, onModelChange }: ChatInputProps) {
   const [text, setText] = useState('');
-  const [showModeMenu, setShowModeMenu] = useState(false);
   const [showProviderMenu, setShowProviderMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const providerMenuRef = useRef<HTMLDivElement>(null);
-
-  const currentMode = MODES.find((m) => m.value === activeMode) || MODES[1];
 
   // Proveedores activos del usuario
   const activeProviders = aiSettings?.providers?.filter((p) => p.is_active) || [];
@@ -61,18 +31,15 @@ export default function ChatInput({ onSend, disabled = false, activeMode, onMode
   // Cerrar menú al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowModeMenu(false);
-      }
       if (providerMenuRef.current && !providerMenuRef.current.contains(e.target as Node)) {
         setShowProviderMenu(false);
       }
     };
-    if (showModeMenu || showProviderMenu) {
+    if (showProviderMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showModeMenu, showProviderMenu]);
+  }, [showProviderMenu]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -117,62 +84,14 @@ export default function ChatInput({ onSend, disabled = false, activeMode, onMode
         </button>
       </div>
 
-      {/* Footer: mode selector + provider selector */}
-      <div className="flex items-center justify-between px-3 pb-2 pt-0.5">
-        {/* Mode selector */}
-        <div className="relative" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => { setShowModeMenu(!showModeMenu); setShowProviderMenu(false); }}
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-600 hover:text-purple-700 hover:bg-purple-50 rounded-md transition-colors"
-          >
-            {currentMode.icon}
-            <span className="font-medium">{currentMode.label}</span>
-            <svg className={`w-3 h-3 text-gray-400 transition-transform ${showModeMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
-          </button>
-
-          {/* Dropdown hacia arriba */}
-          {showModeMenu && (
-            <div className="absolute bottom-full left-0 mb-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
-              {MODES.map((mode) => (
-                <button
-                  key={mode.value}
-                  type="button"
-                  onClick={() => { onModeChange(mode.value); setShowModeMenu(false); }}
-                  className={`w-full flex items-start gap-2.5 px-3 py-2 text-left hover:bg-gray-50 transition-colors ${
-                    activeMode === mode.value ? 'bg-purple-50' : ''
-                  }`}
-                >
-                  <span className={`mt-0.5 ${activeMode === mode.value ? 'text-purple-600' : 'text-gray-400'}`}>
-                    {mode.icon}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium ${activeMode === mode.value ? 'text-purple-700' : 'text-gray-700'}`}>
-                        {mode.label}
-                      </span>
-                      {activeMode === mode.value && (
-                        <svg className="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{mode.description}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
+      {/* Footer: provider selector */}
+      <div className="flex items-center justify-end px-3 pb-2 pt-0.5">
         {/* Provider selector */}
         {activeProviders.length > 0 && (
           <div className="relative" ref={providerMenuRef}>
             <button
               type="button"
-              onClick={() => { setShowProviderMenu(!showProviderMenu); setShowModeMenu(false); }}
+              onClick={() => { setShowProviderMenu(!showProviderMenu); }}
               className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
             >
               {activeProvider && (

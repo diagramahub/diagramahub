@@ -16,12 +16,6 @@ class MessageRole(str, Enum):
     ERROR = "error"
 
 
-class MessageMode(str, Enum):
-    """Mode of interaction for a chat message."""
-    IMPROVEMENT = "improvement"
-    CONVERSATION = "conversation"
-
-
 class ImprovementStatus(str, Enum):
     """Status of a diagram improvement suggestion."""
     PENDING = "pending"
@@ -54,7 +48,6 @@ class ChatMessageInDB(Document):
     session_id: str
     role: MessageRole
     content: str
-    mode: MessageMode
     improved_code: Optional[str] = None
     improvement_status: Optional[ImprovementStatus] = None
     provider_used: Optional[str] = None
@@ -80,7 +73,6 @@ class CreateChatSessionRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     """Request model for sending a message in a chat session."""
     content: str = Field(..., min_length=1, max_length=5000)
-    mode: MessageMode
     diagram_code: str
     diagram_type: str
     provider: Optional[str] = None
@@ -124,7 +116,6 @@ class ChatMessageResponse(BaseModel):
     session_id: str
     role: MessageRole
     content: str
-    mode: MessageMode
     improved_code: Optional[str] = None
     improvement_status: Optional[ImprovementStatus] = None
     provider_used: Optional[str] = None

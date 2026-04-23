@@ -37,6 +37,8 @@ import {
   TestProviderResponse,
   GenerateDescriptionRequest,
   GenerateDescriptionResponse,
+  RefineDescriptionRequest,
+  RefineDescriptionResponse,
   GenerateDiagramRequest,
   GenerateDiagramResponse,
   ImproveDiagramRequest,
@@ -82,6 +84,12 @@ import {
   TestConnectionResponse,
   IntegrationStatus
 } from '../types/integrations';
+import {
+  ActiveOAuthProvider,
+  OAuthCallbackRequest,
+  OAuthCallbackResponse,
+  OAuthAuthorizeResponse
+} from '../types/oauth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
@@ -298,6 +306,11 @@ class ApiService {
 
   async generateDescription(data: GenerateDescriptionRequest): Promise<GenerateDescriptionResponse> {
     const response = await this.api.post<GenerateDescriptionResponse>('/api/v1/ai/generate-description', data);
+    return response.data;
+  }
+
+  async refineDescription(data: RefineDescriptionRequest): Promise<RefineDescriptionResponse> {
+    const response = await this.api.post<RefineDescriptionResponse>('/api/v1/ai/refine-description', data);
     return response.data;
   }
 
@@ -635,6 +648,25 @@ class ApiService {
 
   async setDefaultMfaMethod(method: string): Promise<{ message: string }> {
     const response = await this.api.put<{ message: string }>('/api/v1/mfa/default-method', { method });
+    return response.data;
+  }
+
+  // ============================================================================
+  // OAuth API (Public — no auth required)
+  // ============================================================================
+
+  async getOAuthProviders(): Promise<ActiveOAuthProvider[]> {
+    const response = await this.publicApi.get<ActiveOAuthProvider[]>('/api/v1/oauth/providers');
+    return response.data;
+  }
+
+  async getOAuthAuthorizeUrl(provider: string): Promise<OAuthAuthorizeResponse> {
+    const response = await this.publicApi.get<OAuthAuthorizeResponse>(`/api/v1/oauth/authorize/${provider}`);
+    return response.data;
+  }
+
+  async oauthCallback(data: OAuthCallbackRequest): Promise<OAuthCallbackResponse> {
+    const response = await this.publicApi.post<OAuthCallbackResponse>('/api/v1/oauth/callback', data);
     return response.data;
   }
 

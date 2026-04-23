@@ -10,6 +10,8 @@ from .schemas import (
     UserAISettingsInDB,
     GenerateDescriptionRequest,
     GenerateDescriptionResponse,
+    RefineDescriptionRequest,
+    RefineDescriptionResponse,
     GenerateDiagramRequest,
     GenerateDiagramResponse,
     ImproveDiagramRequest,
@@ -311,6 +313,93 @@ class AIProviderService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Unexpected error: {str(e)}"
             )
+
+    async def refine_description(
+        self,
+        user_id: str,
+        request: RefineDescriptionRequest
+    ) -> RefineDescriptionResponse:
+        """Refine an existing diagram description using AI."""
+        import time
+
+        provider_config = await self.repository.get_active_provider(
+            user_id, request.provider
+        )
+        if not provider_config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No active AI provider configured.",
+            )
+
+        try:
+            client = AIClientFactory.create_client(
+                provider=provider_config.provider,
+                api_key=provider_config.api_key,
+                model=provider_config.model,
+                parameters=provider_config.parameters,
+            )
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+            )
+
+        prompt = client._build_refine_prompt(
+            diagram_code=request.diagram_code,
+            diagram_type=request.diagram_type,
+            current_description=request.current_description,
+            refinement_request=request.refinement_request,
+            language=request.language,
+        )
+
+        start = time.time()
+        try:
+            from .prompts import clean_code_response
+
+            description = clean_code_response(
+                await self._call_with_prompt(client, prompt)
+            )
+            elapsed = time.time() - start
+
+            return RefineDescriptionResponse(
+                description=description,
+                provider_used=provider_config.provider,
+                model_used=provider_config.model,
+                generation_time=round(elapsed, 2),
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error refining description: {str(e)}",
+            )
+
+    async def _call_with_prompt(self, client: BaseAIClient, prompt: str) -> str:
+        """Call the AI client with a raw prompt string."""
+        from .prompts import DESCRIPTION_SYSTEM_PROMPT
+
+        # Each client's internal method already returns a plain string.
+        if hasattr(client, '_generate'):
+            # Gemini client
+            return await client._generate(prompt)
+        elif hasattr(client, '_chat_completion'):
+            # OpenAI client
+            return await client._chat_completion([
+                {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ])
+        elif hasattr(client, '_make_request'):
+            # DeepSeek client
+            return await client._make_request([
+                {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ])
+        elif hasattr(client, '_messages_request'):
+            # Claude client — system is a keyword arg, not in messages
+            return await client._messages_request(
+                [{"role": "user", "content": prompt}],
+                system=DESCRIPTION_SYSTEM_PROMPT,
+            )
+        else:
+            raise ValueError(f"Unsupported client type: {type(client).__name__}")
 
     async def test_provider(
         self,

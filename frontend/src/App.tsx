@@ -12,6 +12,7 @@ import SharedDiagramPage from './pages/SharedDiagramPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import MfaVerifyPage from './pages/MfaVerifyPage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
 import InstallationGuard from './components/InstallationGuard';
 
@@ -35,6 +36,7 @@ function App() {
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/mfa-verify" element={<MfaVerifyPage />} />
+                  <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
                   <Route
                     path="/onboarding"
                     element={

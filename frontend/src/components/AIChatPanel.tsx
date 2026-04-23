@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api';
-import { ChatSession, ChatMessage, ChatMode } from '../types/chat';
+import { ChatSession, ChatMessage } from '../types/chat';
 import { UserAISettings, AIProviderType } from '../types/ai';
 import ChatSessionSelector from './ChatSessionSelector';
 import ChatMessageList from './ChatMessageList';
@@ -32,7 +32,6 @@ export default function AIChatPanel({
   preferredModel: preferredModelProp,
   onPreferredModelChange,
 }: AIChatPanelProps) {
-  const [activeMode, setActiveMode] = useState<ChatMode>('conversation');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -142,6 +141,8 @@ export default function AIChatPanel({
         } else if (mostRecent.last_provider && mostRecent.last_model) {
           setActiveProvider(mostRecent.last_provider as AIProviderType);
           setActiveModel(mostRecent.last_model);
+          // Propagate session's provider to diagram preferences
+          onPreferredModelChange?.(mostRecent.last_provider, mostRecent.last_model);
         }
       }
     };
@@ -174,6 +175,8 @@ export default function AIChatPanel({
     if (session?.last_provider && session?.last_model) {
       setActiveProvider(session.last_provider as AIProviderType);
       setActiveModel(session.last_model);
+      // Propagate to diagram preferences
+      onPreferredModelChange?.(session.last_provider, session.last_model);
     }
   };
 
@@ -231,7 +234,6 @@ export default function AIChatPanel({
       session_id: activeSessionId,
       role: 'user',
       content,
-      mode: activeMode,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -242,7 +244,6 @@ export default function AIChatPanel({
     try {
       const aiMessage = await apiService.sendChatMessage(activeSessionId, {
         content,
-        mode: activeMode,
         diagram_code: diagramCode,
         diagram_type: diagramType,
         provider: activeProvider || aiSettings?.default_provider || undefined,
@@ -413,8 +414,6 @@ export default function AIChatPanel({
         <ChatInput
           onSend={handleSendMessage}
           disabled={isLoading}
-          activeMode={activeMode}
-          onModeChange={setActiveMode}
           aiSettings={aiSettings}
           activeProvider={activeProvider}
           activeModel={activeModel}
