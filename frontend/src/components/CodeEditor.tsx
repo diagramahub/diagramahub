@@ -6,6 +6,8 @@ interface CodeEditorProps {
   language?: 'mermaid' | 'plantuml';
   height?: string;
   readOnly?: boolean;
+  borderless?: boolean;
+  theme?: 'vs-light' | 'vs-dark';
 }
 
 export default function CodeEditor({
@@ -14,6 +16,8 @@ export default function CodeEditor({
   language = 'mermaid',
   height = '500px',
   readOnly = false,
+  borderless = false,
+  theme: editorTheme = 'vs-light',
 }: CodeEditorProps) {
   const handleEditorChange = (value: string | undefined) => {
     onChange(value || '');
@@ -24,13 +28,13 @@ export default function CodeEditor({
   const monacoLanguage = language === 'plantuml' ? 'java' : 'markdown';
 
   return (
-    <div className="border border-gray-200 rounded overflow-hidden">
+    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 rounded overflow-hidden'}>
       <Editor
         height={height}
         language={monacoLanguage}
         value={value}
         onChange={handleEditorChange}
-        theme="vs-light"
+        theme={editorTheme}
         options={{
           readOnly,
           minimap: { enabled: false },

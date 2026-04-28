@@ -90,24 +90,25 @@ const DashboardPage: React.FC = () => {
       <MfaBanner />
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-12">
-        <div className="mb-12 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        <div className="mb-8 sm:mb-12 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1 sm:mb-2">
               {t('dashboard.title')}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm sm:text-base text-gray-600">
               {projects.length} {projects.length === 1 ? t('dashboard.project') : t('dashboard.projects')}
             </p>
           </div>
           <button
             onClick={handleCreateProject}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm sm:text-base flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            {t('dashboard.newProject')}
+            <span className="hidden sm:inline">{t('dashboard.newProject')}</span>
+            <span className="sm:hidden">{t('common.create')}</span>
           </button>
         </div>
 

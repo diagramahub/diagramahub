@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.4.0](0.4.0.md) | 2026-04-28 | ⚠️ En construcción — Mejoras UX/UI y responsividad |
 | [0.3.1](0.3.1.md) | 2026-04-23 | Fix compilación TypeScript |
 | [0.3.0](0.3.0.md) | 2026-04-23 | OAuth, AI descriptions, chat unificado |
 | [0.2.1](0.2.1.md) | 2026-04-18 | Hardening y mejoras |

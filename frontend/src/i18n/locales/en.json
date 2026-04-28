@@ -38,6 +38,11 @@
     "settings": "Settings",
     "logout": "Logout"
   },
+  "breadcrumb": {
+    "switchProject": "Switch project",
+    "searchProjects": "Search project...",
+    "noProjectsFound": "No projects found"
+  },
   "auth": {
     "login": "Login",
     "register": "Register",
@@ -352,7 +357,21 @@
     "newFolder": "New Folder",
     "folderNamePlaceholder": "E.g: Flowcharts",
     "startVisualizing": "Start visualizing your ideas with Mermaid diagrams",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "searchDiagrams": "Search diagram...",
+    "noSearchResults": "No results found",
+    "deleteDiagram": "Delete diagram",
+    "deleteFolder": "Delete folder",
+    "editFolder": "Edit folder",
+    "newDiagramInFolder": "New diagram in this folder",
+    "syntaxError": "Syntax error",
+    "noErrors": "No errors",
+    "lines": "lines",
+    "fixing": "Fixing...",
+    "fixWithAI": "Fix with AI",
+    "fix": "Fix",
+    "copied": "Copied!",
+    "copyCode": "Copy code"
   },
   "errors": {
     "genericError": "An error occurred",

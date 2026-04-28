@@ -38,6 +38,11 @@
     "settings": "Configuraciones",
     "logout": "Cerrar sesión"
   },
+  "breadcrumb": {
+    "switchProject": "Cambiar de proyecto",
+    "searchProjects": "Buscar proyecto...",
+    "noProjectsFound": "No se encontraron proyectos"
+  },
   "auth": {
     "login": "Iniciar sesión",
     "register": "Registrarse",
@@ -352,7 +357,21 @@
     "newFolder": "Nueva Carpeta",
     "folderNamePlaceholder": "Ej: Diagramas de flujo",
     "startVisualizing": "Comienza a visualizar tus ideas con diagramas de Mermaid",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "searchDiagrams": "Buscar diagrama...",
+    "noSearchResults": "No se encontraron resultados",
+    "deleteDiagram": "Eliminar diagrama",
+    "deleteFolder": "Eliminar carpeta",
+    "editFolder": "Editar carpeta",
+    "newDiagramInFolder": "Nuevo diagrama en esta carpeta",
+    "syntaxError": "Error de sintaxis",
+    "noErrors": "Sin errores",
+    "lines": "líneas",
+    "fixing": "Corrigiendo...",
+    "fixWithAI": "Corregir con IA",
+    "fix": "Corregir",
+    "copied": "¡Copiado!",
+    "copyCode": "Copiar código"
   },
   "errors": {
     "genericError": "Ocurrió un error",

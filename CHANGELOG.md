@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.4.0] - 2026-04-28 ⚠️ En construcción
+
+### Added
+- Selector de proyectos en el editor de diagramas: dropdown con búsqueda para cambiar de proyecto sin salir de la vista de edición.
+- Panel de diagramas rediseñado con buscador, acciones rápidas i18n, indicador de diagrama activo y jerarquía visual de carpetas.
+- Editor de código estilo IDE: tema oscuro, title bar macOS, pestaña de archivo con indicador de error, barra de estado con info de errores/líneas/tipo.
+- Responsividad completa en todas las vistas: editor de diagramas, dashboard, perfil, vista compartida y navbar.
+- Componente CodeEditor extendido con props `borderless` y `theme`.
+- Utilidad CSS `.scrollbar-hide` para scroll sin barra visible.
+- Nuevas claves i18n (es/en) para breadcrumb, editor y paneles flotantes.
+
+### Changed
+- Textos hardcoded reemplazados por claves `t()` en panel de código y sidebar de diagramas.
+- Paneles flotantes se muestran a pantalla completa en móvil.
+- Toolbar del editor usa flex-wrap con dos filas en móvil.
+- Cards de perfil y admin con padding responsive.
+
 ## [0.3.1] - 2026-04-23
 
 ### Fixed

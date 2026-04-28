@@ -410,10 +410,10 @@ export default function SharedDiagramPage() {
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between flex-shrink-0">
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className="text-lg font-bold flex-shrink-0"
+            className="text-base sm:text-lg font-bold flex-shrink-0"
             style={{
               background: 'linear-gradient(135deg, #7c3aed, #a855f7, #9333ea)',
               WebkitBackgroundClip: 'text',
@@ -423,20 +423,20 @@ export default function SharedDiagramPage() {
           >
             DiagramaHub
           </span>
-          <span className="text-gray-300 flex-shrink-0">/</span>
-          <span className="text-sm font-medium text-gray-700 truncate">
+          <span className="text-gray-300 flex-shrink-0 hidden sm:inline">/</span>
+          <span className="text-sm font-medium text-gray-700 truncate hidden sm:inline">
             {diagram?.title || linkInfo?.diagram_title || 'Diagrama compartido'}
           </span>
         </div>
 
-        <div className="flex items-center gap-4 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           {/* Grupo de paneles — estilo editor */}
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
             {/* Código button — only if allow_copy_code */}
             {diagram?.allow_copy_code && diagram?.content && (
               <button
                 onClick={() => { setShowCodeView(!showCodeView); if (!showCodeView) setShowDescription(false); }}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                   showCodeView
                     ? 'bg-white text-purple-700 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -446,7 +446,7 @@ export default function SharedDiagramPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
-                  <span>Código</span>
+                  <span className="hidden sm:inline">Código</span>
                 </div>
               </button>
             )}
@@ -454,7 +454,7 @@ export default function SharedDiagramPage() {
             {diagram?.description && (
               <button
                 onClick={() => { setShowDescription(!showDescription); if (!showDescription) setShowCodeView(false); }}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                   showDescription
                     ? 'bg-white text-purple-700 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -464,17 +464,17 @@ export default function SharedDiagramPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span>Descripción</span>
+                  <span className="hidden sm:inline">Descripción</span>
                 </div>
               </button>
             )}
           </div>
 
           {/* Separador */}
-          <div className="h-6 w-px bg-gray-300"></div>
+          <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
 
           {/* Grupo de zoom — estilo editor */}
-          <div className="flex items-center gap-1 bg-gray-50 rounded-lg px-2 py-1 border border-gray-200">
+          <div className="hidden sm:flex items-center gap-1 bg-gray-50 rounded-lg px-2 py-1 border border-gray-200">
             <button
               onClick={handleZoomOut}
               disabled={zoom <= MIN_ZOOM}
@@ -545,13 +545,13 @@ export default function SharedDiagramPage() {
         {/* Floating right side panel - Description (markdown) */}
         {showDescription && diagram?.description && (
           <div
-            className="absolute top-3 right-3 bottom-3 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col z-10"
-            style={{ width: panelWidth }}
+            className="absolute inset-0 sm:inset-auto sm:top-3 sm:right-3 sm:bottom-3 bg-white sm:rounded-lg shadow-xl sm:border border-gray-200 flex flex-col z-10"
+            style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : panelWidth }}
           >
-            {/* Resize handle (left edge) */}
+            {/* Resize handle (left edge) — hidden on mobile */}
             <div
               onMouseDown={handleResizeMouseDown}
-              className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 rounded-l-lg transition-colors z-20"
+              className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 rounded-l-lg transition-colors z-20 hidden sm:block"
             />
             {/* Panel header */}
             <div className="bg-gray-100 px-4 py-2.5 border-b border-gray-300 flex items-center justify-between flex-shrink-0 rounded-t-lg">
@@ -605,7 +605,7 @@ export default function SharedDiagramPage() {
 
         {/* Floating left side panel - Code (read-only) */}
         {showCodeView && diagram?.allow_copy_code && diagram?.content && (
-          <div className="absolute top-4 left-4 z-30 w-[32rem] bg-white rounded-lg shadow-xl border border-gray-300 max-h-[calc(100%-5rem)] overflow-hidden flex flex-col">
+          <div className="absolute inset-0 sm:inset-auto sm:top-4 sm:left-4 z-30 w-full sm:w-[32rem] h-full sm:h-auto bg-white sm:rounded-lg shadow-xl sm:border border-gray-300 sm:max-h-[calc(100%-5rem)] overflow-hidden flex flex-col">
             {/* Header — same style as editor */}
             <div className="bg-gray-100 px-4 py-2.5 border-b border-gray-300 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -662,10 +662,10 @@ export default function SharedDiagramPage() {
       </div>
 
       {/* Footer - Status bar similar to editor */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 py-2 flex-shrink-0">
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-3 sm:px-4 py-1.5 sm:py-2 flex-shrink-0">
         <div className="flex items-center justify-between text-xs">
           {/* Left side info */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Diagram type */}
             <div className="flex items-center gap-1.5 text-gray-500">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -674,17 +674,17 @@ export default function SharedDiagramPage() {
               <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : 'Mermaid'}</span>
             </div>
 
-            <div className="h-3 w-px bg-gray-300"></div>
+            <div className="h-3 w-px bg-gray-300 hidden sm:block"></div>
 
-            {/* Zoom */}
-            <div className="flex items-center gap-1 text-gray-500">
+            {/* Zoom — hidden on mobile */}
+            <div className="hidden sm:flex items-center gap-1 text-gray-500">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
               </svg>
               <span>Zoom: {zoomPercent}%</span>
             </div>
 
-            <div className="h-3 w-px bg-gray-300"></div>
+            <div className="h-3 w-px bg-gray-300 hidden sm:block"></div>
 
             {/* Shared badge */}
             <div className="flex items-center gap-1.5 text-purple-600">
@@ -698,14 +698,14 @@ export default function SharedDiagramPage() {
           {/* Right side - Owner name */}
           <div className="flex items-center gap-2">
             {diagram?.owner_name && (
-              <div className="flex items-center gap-1.5 text-gray-500">
+              <div className="hidden sm:flex items-center gap-1.5 text-gray-500">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <span>Creado por <span className="font-medium text-gray-700">{diagram.owner_name}</span></span>
               </div>
             )}
-            <span className="text-xs text-gray-400">•</span>
+            <span className="text-xs text-gray-400 hidden sm:inline">•</span>
             <span
               className="text-xs font-semibold"
               style={{

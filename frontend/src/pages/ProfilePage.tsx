@@ -283,25 +283,25 @@ export default function ProfilePage() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
-          <p className="mt-2 text-sm text-gray-600">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
+          <p className="mt-1 sm:mt-2 text-sm text-gray-600">
             {t('profile.subtitle')}
           </p>
         </div>
 
         {/* Tab Navigation */}
         <div className="mb-6 border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('profile')}
               className={`${
                 activeTab === 'profile'
                   ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
             >
               {t('common.profile')}
             </button>
@@ -311,7 +311,7 @@ export default function ProfilePage() {
                 activeTab === 'settings'
                   ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
             >
               {t('common.settings')}
             </button>
@@ -324,7 +324,7 @@ export default function ProfilePage() {
                 activeTab === 'subscription'
                   ? 'border-purple-500 text-purple-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+              } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
             >
               Mi Suscripción
             </button>
@@ -335,14 +335,14 @@ export default function ProfilePage() {
                   activeTab === 'admin'
                     ? 'border-purple-500 text-purple-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
               >
                 Admin
               </button>
             )}
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="ml-auto whitespace-nowrap py-4 px-4 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+              className="ml-auto whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
             >
               {t('common.logout')}
             </button>
@@ -366,8 +366,8 @@ export default function ProfilePage() {
           <>
         {/* Información del Perfil */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">{t('profile.profileInformation')}</h2>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('profile.profileInformation')}</h2>
             {!isEditingProfile && (
               <button
                 onClick={() => setIsEditingProfile(true)}
@@ -378,11 +378,11 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="px-6 py-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
             {!isEditingProfile ? (
               <div className="space-y-6">
                 {/* Avatar */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <PremiumAvatar size="xl" showPremiumBadge={true} />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{t('profile.profilePicture')}</p>
@@ -422,7 +422,7 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     {t('profile.profilePicture')}
                   </label>
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                     {imagePreview ? (
                       <img
                         src={imagePreview}
@@ -543,8 +543,8 @@ export default function ProfilePage() {
 
         {/* Seguridad - Cambiar Contraseña */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">{t('profile.accountSecurity')}</h2>
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('profile.accountSecurity')}</h2>
             {!isChangingPassword && (
               <button
                 onClick={() => setIsChangingPassword(true)}
@@ -555,7 +555,7 @@ export default function ProfilePage() {
             )}
           </div>
 
-          <div className="px-6 py-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
             {!isChangingPassword ? (
               <div>
                 <p className="text-sm text-gray-600">
@@ -625,11 +625,11 @@ export default function ProfilePage() {
 
           {/* Linked Accounts Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">{t('profile.linkedAccounts')}</h2>
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('profile.linkedAccounts')}</h2>
               <p className="mt-1 text-sm text-gray-500">{t('profile.linkedAccountsDescription')}</p>
             </div>
-            <div className="px-6 py-6">
+            <div className="px-4 sm:px-6 py-4 sm:py-6">
               {user?.oauth_providers && user.oauth_providers.length > 0 ? (
                 <div className="space-y-4">
                   {user.oauth_providers.map((entry, index) => (
@@ -684,7 +684,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Zona de Peligro */}
-            <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-6">
+            <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 sm:p-6">
               <h2 className="text-lg font-semibold text-red-800">{t('dangerZone.title')}</h2>
               <p className="mt-2 text-sm text-red-700">{t('dangerZone.description')}</p>
               {hasActivePaidPlan && (

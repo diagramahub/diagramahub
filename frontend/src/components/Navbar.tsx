@@ -27,8 +27,10 @@ export default function Navbar() {
           </div>
 
           {/* Right side - Usage badge, Language selector and UserMenu */}
-          <div className="flex items-center gap-3">
-            <UsageBadge />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:block">
+              <UsageBadge />
+            </div>
             <LanguageSelector />
             <UserMenu />
           </div>
