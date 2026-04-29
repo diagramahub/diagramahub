@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Frontend URL (for Stripe redirects)
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Kroki (server-side diagram rendering)
+    KROKI_URL: str = "http://kroki:8000"
+
     # App environment
     APP_ENV: str = "production"
 

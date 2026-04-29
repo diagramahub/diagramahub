@@ -333,13 +333,13 @@ export default function AIChatPanel({
 
   return (
     <div
-      className="flex flex-col h-full bg-white border-l border-gray-200 animate-slide-in-right overflow-hidden relative"
-      style={{ width: panelWidth }}
+      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white border-l border-gray-200 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto"
+      style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : panelWidth }}
     >
       {/* Resize handle */}
       <div
         onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 transition-colors z-10"
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 transition-colors z-10 hidden sm:block"
         title="Arrastrar para redimensionar"
       />
       {/* Header */}

@@ -38,6 +38,11 @@
     "settings": "Settings",
     "logout": "Logout"
   },
+  "breadcrumb": {
+    "switchProject": "Switch project",
+    "searchProjects": "Search project...",
+    "noProjectsFound": "No projects found"
+  },
   "auth": {
     "login": "Login",
     "register": "Register",
@@ -147,6 +152,12 @@
   },
   "dashboard": {
     "title": "Your projects",
+    "welcome": "Hi, {{name}}",
+    "welcomeSubtitle": "Here's an overview of your workspace",
+    "statsProjects": "Projects",
+    "statsDiagrams": "Diagrams",
+    "statsLastActivity": "Last activity",
+    "statsPlan": "Current plan",
     "createProject": "Create project",
     "newProject": "New project",
     "noProjects": "You have no projects yet",
@@ -229,7 +240,20 @@
     "copyCode": "Copy code",
     "codeCopied": "Code copied",
     "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit fullscreen"
+    "exitFullscreen": "Exit fullscreen",
+    "type": {
+      "d2": "D2",
+      "d2Description": "Declarative diagramming language"
+    },
+    "d2": {
+      "themeHint": "The theme is automatically applied to the D2 diagram"
+    },
+    "render": {
+      "error": "Error rendering diagram",
+      "timeout": "Diagram rendering timed out",
+      "serverError": "Rendering server error. Check the syntax.",
+      "networkError": "Could not connect to the rendering server"
+    }
   },
   "folder": {
     "createTitle": "Create new folder",
@@ -347,12 +371,30 @@
     "includeProjectInfo": "Include project information",
     "selectFormat": "Select export format:",
     "newDiagram": "New Diagram",
+    "diagramName": "Diagram name",
     "diagramNamePlaceholder": "E.g: Main flowchart",
     "diagramNameHint": "Give your diagram a descriptive name",
+    "diagramType": "Diagram type",
+    "mermaidDesc": "Flowchart, sequence, class, state, ER, Gantt",
+    "plantumlDesc": "UML, class, component, sequence, activity",
     "newFolder": "New Folder",
     "folderNamePlaceholder": "E.g: Flowcharts",
     "startVisualizing": "Start visualizing your ideas with Mermaid diagrams",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "searchDiagrams": "Search diagram...",
+    "noSearchResults": "No results found",
+    "deleteDiagram": "Delete diagram",
+    "deleteFolder": "Delete folder",
+    "editFolder": "Edit folder",
+    "newDiagramInFolder": "New diagram in this folder",
+    "syntaxError": "Syntax error",
+    "noErrors": "No errors",
+    "lines": "lines",
+    "fixing": "Fixing...",
+    "fixWithAI": "Fix with AI",
+    "fix": "Fix",
+    "copied": "Copied!",
+    "copyCode": "Copy code"
   },
   "errors": {
     "genericError": "An error occurred",

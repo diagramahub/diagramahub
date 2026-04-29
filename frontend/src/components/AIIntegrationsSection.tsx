@@ -84,15 +84,15 @@ export default function AIIntegrationsSection() {
     <>
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{t('ai.title')}</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">{t('ai.title')}</h3>
               <p className="text-sm text-gray-600 mt-1">{t('ai.subtitle')}</p>
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 flex items-center space-x-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 flex items-center space-x-2 self-start sm:self-auto flex-shrink-0"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -103,7 +103,7 @@ export default function AIIntegrationsSection() {
         </div>
 
         {/* Providers List */}
-        <div className="px-6 py-4">
+        <div className="px-4 sm:px-6 py-4">
           {!settings?.providers.length ? (
             <div className="text-center py-8">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
@@ -154,9 +154,9 @@ export default function AIIntegrationsSection() {
                       isDefault ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
                     }`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:space-x-3 sm:gap-0">
                           <img
                             src={`/images/ai-providers/${provider.provider}.svg`}
                             alt={AI_PROVIDER_NAMES[provider.provider]}

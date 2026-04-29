@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import mermaid from 'mermaid';
-import plantumlEncoder from 'plantuml-encoder';
+import { renderDiagram } from '../utils/diagramRenderer';
 
 interface DiagramPreviewProps {
   code: string;
@@ -37,27 +36,16 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
     const render = async () => {
       if (!containerRef.current) return;
       setRenderError('');
-      try {
-        containerRef.current.innerHTML = '';
-        const type = diagramType?.toLowerCase() || 'mermaid';
-        if (type === 'plantuml' || type === 'uml') {
-          const encoded = plantumlEncoder.encode(code);
-          const url = `https://www.plantuml.com/plantuml/svg/${encoded}`;
-          containerRef.current.innerHTML = `<img src="${url}" alt="PlantUML Diagram" style="max-width:none;" />`;
-        } else {
-          mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
-          const id = `preview-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          try {
-            const { svg } = await mermaid.render(id, code);
-            containerRef.current.innerHTML = svg;
-          } catch (err) {
-            const failedEl = document.getElementById(id);
-            if (failedEl) failedEl.remove();
-            throw err;
-          }
-        }
-      } catch (err) {
-        setRenderError(err instanceof Error ? err.message : 'Error al renderizar');
+      containerRef.current.innerHTML = '';
+
+      const result = await renderDiagram(code, diagramType);
+
+      if (!containerRef.current) return;
+
+      if ('svg' in result) {
+        containerRef.current.innerHTML = result.svg;
+      } else {
+        setRenderError(result.error);
       }
     };
 

@@ -146,10 +146,10 @@ export default function MfaSetupSection() {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">{t('mfa.setup.title')}</h2>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('mfa.setup.title')}</h2>
         </div>
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           <p className="text-sm text-gray-500">{t('common.loading')}</p>
         </div>
       </div>
@@ -159,15 +159,15 @@ export default function MfaSetupSection() {
   return (
     <>
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <ShieldIcon className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-semibold text-gray-900">{t('mfa.setup.title')}</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('mfa.setup.title')}</h2>
           </div>
           <p className="text-sm text-gray-500 mt-1">{t('mfa.setup.description')}</p>
         </div>
 
-        <div className="px-6 py-6 space-y-4">
+        <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4">
           {/* Messages */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -293,7 +293,7 @@ export default function MfaSetupSection() {
 
           {/* Recovery codes section */}
           {status?.enabled && (
-            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
                 <KeyIcon className="w-4 h-4 text-gray-500" />
                 <span className="text-sm text-gray-600">

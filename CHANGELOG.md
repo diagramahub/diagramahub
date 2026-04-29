@@ -5,6 +5,36 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.4.0] - 2026-04-29
+
+### Added
+- Integración de Kroki como motor de renderizado server-side auto-hospedado (Docker `yuzutech/kroki`).
+- Soporte para diagramas D2: renderizado, resaltado de sintaxis, 19 temas, validación, corrección IA, chat IA.
+- Endpoint público `POST /api/v1/diagrams/render` para renderizado de diagramas vía Kroki.
+- PlantUML migrado de renderizado client-side (plantuml.com) a server-side vía Kroki.
+- `KrokiClient` con interfaz `IKrokiClient` (SOLID), 26 tipos de diagrama soportados.
+- `KROKI_URL` configurable vía variable de entorno.
+- Utilidad centralizada `diagramRenderer.ts` para enrutamiento de renderizado.
+- `d2ConfigManager.ts` para gestión de temas D2.
+- Validador `validate_d2` con balance de llaves.
+- Prompts de IA con contexto D2 completo.
+- Dashboard con saludo personalizado y tarjetas de estadísticas.
+- Modal de nuevo diagrama rediseñado con layout horizontal.
+- Panel de descripción redimensionable con ancho persistente.
+- Selector de proyectos en el editor con búsqueda.
+- Panel de diagramas rediseñado con buscador y acciones rápidas.
+- Editor de código estilo IDE con tema oscuro y barra de estado.
+- Responsividad completa en todas las vistas.
+- Nuevas claves i18n para D2, dashboard, editor.
+
+### Removed
+- Dependencia `plantuml-encoder` del frontend.
+
+### Changed
+- Textos hardcoded reemplazados por claves `t()`.
+- Paneles flotantes a pantalla completa en móvil.
+- Componente `CodeEditor` extendido con soporte D2.
+
 ## [0.3.1] - 2026-04-23
 
 ### Fixed

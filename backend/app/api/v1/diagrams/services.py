@@ -231,6 +231,9 @@ class DiagramService:
         Returns:
             True if it's a Mermaid diagram type
         """
+        # Only Mermaid subtypes are listed here. Server-rendered types like
+        # "d2", "plantuml", and other Kroki-supported types are intentionally
+        # excluded — they are rendered via the Kroki service, not client-side.
         mermaid_types = [
             "mermaid",
             "flowchart",

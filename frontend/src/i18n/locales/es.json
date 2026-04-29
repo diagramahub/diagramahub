@@ -38,6 +38,11 @@
     "settings": "Configuraciones",
     "logout": "Cerrar sesión"
   },
+  "breadcrumb": {
+    "switchProject": "Cambiar de proyecto",
+    "searchProjects": "Buscar proyecto...",
+    "noProjectsFound": "No se encontraron proyectos"
+  },
   "auth": {
     "login": "Iniciar sesión",
     "register": "Registrarse",
@@ -147,6 +152,12 @@
   },
   "dashboard": {
     "title": "Tus proyectos",
+    "welcome": "Hola, {{name}}",
+    "welcomeSubtitle": "Aquí tienes un resumen de tu espacio de trabajo",
+    "statsProjects": "Proyectos",
+    "statsDiagrams": "Diagramas",
+    "statsLastActivity": "Última actividad",
+    "statsPlan": "Plan actual",
     "createProject": "Crear proyecto",
     "newProject": "Nuevo proyecto",
     "noProjects": "No tienes proyectos aún",
@@ -229,7 +240,20 @@
     "copyCode": "Copiar código",
     "codeCopied": "Código copiado",
     "fullscreen": "Pantalla completa",
-    "exitFullscreen": "Salir de pantalla completa"
+    "exitFullscreen": "Salir de pantalla completa",
+    "type": {
+      "d2": "D2",
+      "d2Description": "Lenguaje de diagramación declarativo"
+    },
+    "d2": {
+      "themeHint": "El tema se aplica automáticamente al diagrama D2"
+    },
+    "render": {
+      "error": "Error al renderizar el diagrama",
+      "timeout": "El renderizado del diagrama excedió el tiempo límite",
+      "serverError": "Error del servidor de renderizado. Verifica la sintaxis.",
+      "networkError": "No se pudo conectar al servidor de renderizado"
+    }
   },
   "folder": {
     "createTitle": "Crear nueva carpeta",
@@ -347,12 +371,30 @@
     "includeProjectInfo": "Incluir información del proyecto",
     "selectFormat": "Selecciona el formato de exportación:",
     "newDiagram": "Nuevo Diagrama",
+    "diagramName": "Nombre del diagrama",
     "diagramNamePlaceholder": "Ej: Diagrama de flujo principal",
     "diagramNameHint": "Dale un nombre descriptivo a tu diagrama",
+    "diagramType": "Tipo de diagrama",
+    "mermaidDesc": "Flujo, secuencia, clases, estado, ER, Gantt",
+    "plantumlDesc": "UML, clases, componentes, secuencia, actividad",
     "newFolder": "Nueva Carpeta",
     "folderNamePlaceholder": "Ej: Diagramas de flujo",
     "startVisualizing": "Comienza a visualizar tus ideas con diagramas de Mermaid",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "searchDiagrams": "Buscar diagrama...",
+    "noSearchResults": "No se encontraron resultados",
+    "deleteDiagram": "Eliminar diagrama",
+    "deleteFolder": "Eliminar carpeta",
+    "editFolder": "Editar carpeta",
+    "newDiagramInFolder": "Nuevo diagrama en esta carpeta",
+    "syntaxError": "Error de sintaxis",
+    "noErrors": "Sin errores",
+    "lines": "líneas",
+    "fixing": "Corrigiendo...",
+    "fixWithAI": "Corregir con IA",
+    "fix": "Corregir",
+    "copied": "¡Copiado!",
+    "copyCode": "Copiar código"
   },
   "errors": {
     "genericError": "Ocurrió un error",
