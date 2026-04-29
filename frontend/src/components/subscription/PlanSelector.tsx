@@ -89,13 +89,13 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Available Plans</h2>
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Available Plans</h2>
         <p className="mt-1 text-sm text-gray-600">Choose the plan that fits your needs</p>
       </div>
 
       {/* Plans Grid */}
-      <div className="px-6 py-6">
+      <div className="px-4 sm:px-6 py-4 sm:py-6">
         <div className="space-y-4">
           {plans.map((plan) => {
             const isCurrent = isCurrentPlan(plan.id);

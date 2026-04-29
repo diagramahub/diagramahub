@@ -76,13 +76,13 @@ export default function UsageIndicator() {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Resource Usage</h2>
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Resource Usage</h2>
         <p className="mt-1 text-sm text-gray-600">Track your current usage against plan limits</p>
       </div>
 
       {/* Content */}
-      <div className="px-6 py-6 space-y-6">
+      <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-6">
         {/* Projects Usage */}
         <div>
           <div className="flex justify-between items-center mb-2">

@@ -123,16 +123,16 @@ export default function PlanList() {
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Subscription Plans</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Subscription Plans</h2>
           <p className="mt-1 text-sm text-gray-600">
             Manage subscription plans and pricing
           </p>
         </div>
         <button
           onClick={handleCreatePlan}
-          className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 self-start sm:self-auto flex-shrink-0"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -156,12 +156,12 @@ export default function PlanList() {
       {/* Plans Cards */}
       <div className="grid gap-4">
         {plans.map((plan) => (
-          <div key={plan.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <div className="flex items-start justify-between gap-4">
+          <div key={plan.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
               {/* Plan info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">{plan.name}</h3>
                   {plan.code && !plan.is_free && (
                     <code className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded font-mono">{plan.code}</code>
                   )}
@@ -200,7 +200,7 @@ export default function PlanList() {
                 {plan.description && (
                   <p className="mt-1 text-sm text-gray-500">{plan.description}</p>
                 )}
-                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-600">
+                <div className="mt-3 flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-1 text-sm text-gray-600">
                   {(plan.is_free || plan.price_usd === 0) && (
                     <span>Precio: <span className="font-medium text-gray-900">{formatPrice(plan.price_usd)}/mes</span></span>
                   )}
@@ -216,7 +216,7 @@ export default function PlanList() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                 {!plan.is_free && (
                   <button
                     type="button"

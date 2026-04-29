@@ -131,13 +131,13 @@ export default function UserMfaManagement() {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
             <ShieldIcon className="w-5 h-5 text-purple-600" />
-            <h2 className="text-lg font-semibold text-gray-900">{t('admin.users.title')}</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('admin.users.title')}</h2>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={handleExportExcel}
               disabled={exporting}
@@ -156,7 +156,7 @@ export default function UserMfaManagement() {
         <p className="text-sm text-gray-500 mt-1">{t('admin.users.description')}</p>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-4 sm:px-6 py-4">
         {/* Messages */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -190,7 +190,7 @@ export default function UserMfaManagement() {
             {/* User list */}
             <div className="divide-y divide-gray-100">
               {users.map((u) => (
-                <div key={u.id} className="py-3 flex items-center justify-between gap-4">
+                <div key={u.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className={`flex-shrink-0 p-1.5 rounded-full ${u.mfa_enabled ? 'bg-green-100' : 'bg-gray-100'}`}>
                       {u.mfa_enabled ? (
@@ -200,7 +200,7 @@ export default function UserMfaManagement() {
                       )}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-gray-900 truncate">{u.email}</p>
                         {u.role === 'admin' && (
                           <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full flex-shrink-0">

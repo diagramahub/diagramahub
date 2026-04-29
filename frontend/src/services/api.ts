@@ -538,6 +538,19 @@ class ApiService {
   }
 
   // ============================================================================
+  // Diagram Rendering API (Public — no auth, uses Kroki backend)
+  // ============================================================================
+
+  async renderDiagram(source: string, diagramType: string): Promise<string> {
+    const response = await this.publicApi.post(
+      '/api/v1/diagrams/render',
+      { source, diagram_type: diagramType },
+      { responseType: 'text', headers: { 'Accept': 'image/svg+xml' } }
+    );
+    return response.data;
+  }
+
+  // ============================================================================
   // Admin Integrations API
   // ============================================================================
 

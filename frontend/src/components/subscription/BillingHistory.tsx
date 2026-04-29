@@ -71,11 +71,11 @@ export default function BillingHistory() {
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Historial de Pagos</h2>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Historial de Pagos</h2>
           <p className="mt-1 text-sm text-gray-600">Revisa tus transacciones anteriores</p>
         </div>
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
           </div>
@@ -87,11 +87,11 @@ export default function BillingHistory() {
   if (error) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Historial de Pagos</h2>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Historial de Pagos</h2>
           <p className="mt-1 text-sm text-gray-600">Revisa tus transacciones anteriores</p>
         </div>
-        <div className="px-6 py-6">
+        <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-sm text-red-600">{error}</p>
           </div>
@@ -102,11 +102,11 @@ export default function BillingHistory() {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">{t('subscription.billing.title')}</h2>
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('subscription.billing.title')}</h2>
         <p className="mt-1 text-sm text-gray-600">{t('subscription.billing.subtitle')}</p>
       </div>
-      <div className="px-6 py-6">
+      <div className="px-4 sm:px-6 py-4 sm:py-6">
         {invoices.length === 0 ? (
           <div className="text-center py-8">
             <svg

@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Utility to hide scrollbar while keeping scroll functionality */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Glass effect for primary buttons */
 @layer components {
   .btn-glass {
