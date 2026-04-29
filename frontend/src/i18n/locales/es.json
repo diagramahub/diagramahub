@@ -234,7 +234,20 @@
     "copyCode": "Copiar código",
     "codeCopied": "Código copiado",
     "fullscreen": "Pantalla completa",
-    "exitFullscreen": "Salir de pantalla completa"
+    "exitFullscreen": "Salir de pantalla completa",
+    "type": {
+      "d2": "D2",
+      "d2Description": "Lenguaje de diagramación declarativo"
+    },
+    "d2": {
+      "themeHint": "El tema se aplica automáticamente al diagrama D2"
+    },
+    "render": {
+      "error": "Error al renderizar el diagrama",
+      "timeout": "El renderizado del diagrama excedió el tiempo límite",
+      "serverError": "Error del servidor de renderizado. Verifica la sintaxis.",
+      "networkError": "No se pudo conectar al servidor de renderizado"
+    }
   },
   "folder": {
     "createTitle": "Crear nueva carpeta",

@@ -33,6 +33,8 @@ export function useDiagramErrorDetection(
     
     if (diagramTypeLower.includes('plantuml') || diagramTypeLower === 'uml') {
       validatePlantUML(diagramCode);
+    } else if (diagramTypeLower === 'd2') {
+      validateD2(diagramCode);
     } else {
       // Default to Mermaid validation with actual parsing
       validateMermaidWithParser(diagramCode);
@@ -220,6 +222,66 @@ export function useDiagramErrorDetection(
       setError({
         hasError: true,
         errorMessage: 'Error al validar sintaxis de PlantUML',
+        errorContext: `Error al validar sintaxis: ${e instanceof Error ? e.message : String(e)}`
+      });
+    }
+  };
+
+  const validateD2 = (code: string) => {
+    try {
+      const trimmedCode = code.trim();
+
+      // Check balanced braces
+      let braceCount = 0;
+      const lines = trimmedCode.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+
+        // Remove comments (# to end of line)
+        const commentIdx = line.indexOf('#');
+        if (commentIdx >= 0) {
+          line = line.substring(0, commentIdx);
+        }
+
+        // Remove strings to avoid counting braces inside them
+        line = line.replace(/"[^"]*"/g, '');
+
+        for (const char of line) {
+          if (char === '{') braceCount++;
+          if (char === '}') braceCount--;
+
+          if (braceCount < 0) {
+            setError({
+              hasError: true,
+              errorMessage: "'}' sin '{' correspondiente",
+              errorContext: `'}' sin '{' correspondiente en línea ${i + 1}`,
+              errorLine: i + 1
+            });
+            return;
+          }
+        }
+      }
+
+      if (braceCount > 0) {
+        setError({
+          hasError: true,
+          errorMessage: `${braceCount} llave(s) sin cerrar`,
+          errorContext: `${braceCount} llave(s) '{' sin cerrar (falta '}')`
+        });
+        return;
+      }
+
+      // No errors detected
+      setError({
+        hasError: false,
+        errorMessage: '',
+        errorContext: ''
+      });
+    } catch (e) {
+      setError({
+        hasError: true,
+        errorMessage: 'Error al validar sintaxis de D2',
         errorContext: `Error al validar sintaxis: ${e instanceof Error ? e.message : String(e)}`
       });
     }

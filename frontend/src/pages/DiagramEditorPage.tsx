@@ -2,8 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import mermaid from 'mermaid';
-import plantumlEncoder from 'plantuml-encoder';
+import { renderDiagram as renderDiagramUtil, isServerRenderedType } from '../utils/diagramRenderer';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2canvas from 'html2canvas';
@@ -26,6 +25,7 @@ import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
 import { FixDiagramResponse } from '../types/ai';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
 import { plantUMLConfigManager } from '../utils/plantUMLConfigManager';
+import { d2ConfigManager, D2_THEMES } from '../utils/d2ConfigManager';
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -44,6 +44,7 @@ export default function DiagramEditorPage() {
   const [diagramFontFamily, setDiagramFontFamily] = useState('');
   const [diagramFontSize, setDiagramFontSize] = useState('16');
   const [plantUMLTheme, setPlantUMLTheme] = useState('');
+  const [d2ThemeId, setD2ThemeId] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'code' | 'description'>('code');
 
   // Background customization state
@@ -128,9 +129,14 @@ export default function DiagramEditorPage() {
       // For PlantUML, the theme is already embedded in the content
       // Just return the code as-is (theme directive is part of PlantUML syntax)
       return diagramCode;
+    } else if (currentDiagram?.diagram_type === 'd2') {
+      // For D2, embed theme via vars block for rendering
+      const parseResult = d2ConfigManager.parseTheme(diagramCode);
+      const codeWithoutTheme = parseResult.contentWithoutTheme;
+      return d2ConfigManager.embedTheme(codeWithoutTheme, { themeId: d2ThemeId });
     }
     return diagramCode;
-  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, currentDiagram]);
+  }, [diagramCode, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, d2ThemeId, currentDiagram]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
@@ -171,7 +177,7 @@ export default function DiagramEditorPage() {
   const [showNewDiagramModal, setShowNewDiagramModal] = useState(false);
   const [newDiagramName, setNewDiagramName] = useState('');
   const [newDiagramFolderId, setNewDiagramFolderId] = useState<string | null>(null);
-  const [newDiagramType, setNewDiagramType] = useState<'mermaid' | 'plantuml'>('mermaid');
+  const [newDiagramType, setNewDiagramType] = useState<'mermaid' | 'plantuml' | 'd2'>('mermaid');
   const [creatingDiagram, setCreatingDiagram] = useState(false);
   const [isFirstDiagram, setIsFirstDiagram] = useState(false);
   const [upgradePlan, setUpgradePlan] = useState<{ resourceType: string; currentUsage: number; limit: number } | null>(null);
@@ -488,14 +494,7 @@ export default function DiagramEditorPage() {
     }
   };
 
-  // Initialize Mermaid
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: 'default',
-      securityLevel: 'loose',
-    });
-  }, []);
+  // Mermaid initialization is handled by the renderDiagram utility
 
   // Load project and diagram
   useEffect(() => {
@@ -561,7 +560,7 @@ export default function DiagramEditorPage() {
             
             // Keep the full content (with init block if present)
             setDiagramCode(diagram.content);
-          } else {
+          } else if (diagram.diagram_type === 'plantuml') {
             // For PlantUML diagrams, parse theme from content
             const parseResult = plantUMLConfigManager.parseTheme(diagram.content);
             
@@ -574,6 +573,17 @@ export default function DiagramEditorPage() {
             }
             
             // Keep the full content (with theme directive if present)
+            setDiagramCode(diagram.content);
+          } else {
+            // For D2 and other server-rendered types, parse theme if D2
+            if (diagram.diagram_type === 'd2') {
+              const parseResult = d2ConfigManager.parseTheme(diagram.content);
+              if (parseResult.config?.themeId !== undefined) {
+                setD2ThemeId(parseResult.config.themeId);
+              } else {
+                setD2ThemeId(0);
+              }
+            }
             setDiagramCode(diagram.content);
           }
           
@@ -597,6 +607,9 @@ export default function DiagramEditorPage() {
             }
             if (diagram.user_preferences.description_font_size) {
               setDescriptionFontSize(diagram.user_preferences.description_font_size);
+            }
+            if (diagram.user_preferences.description_panel_width) {
+              setDescriptionPanelWidth(diagram.user_preferences.description_panel_width);
             }
             if (diagram.user_preferences.preferred_provider) {
               setPreferredProvider(diagram.user_preferences.preferred_provider);
@@ -671,7 +684,7 @@ export default function DiagramEditorPage() {
 
   // Render diagram (Mermaid or PlantUML)
   useEffect(() => {
-    const renderDiagram = async () => {
+    const doRender = async () => {
       if (!mermaidRef.current) return;
 
       try {
@@ -680,49 +693,27 @@ export default function DiagramEditorPage() {
         // Detect diagram type
         const diagramType = currentDiagram?.diagram_type || 'mermaid';
 
-        if (diagramType === 'plantuml') {
-          // Validate PlantUML code is not empty
-          if (!diagramCode.trim()) {
-            mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código PlantUML para ver el diagrama...</div>`;
-            return;
-          }
+        // Validate code is not empty
+        if (!diagramCode.trim()) {
+          const label = isServerRenderedType(diagramType)
+            ? diagramType.toUpperCase()
+            : 'Mermaid';
+          mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código ${label} para ver el diagrama...</div>`;
+          return;
+        }
 
-          // Render PlantUML using public server (with theme injected)
-          const encoded = plantumlEncoder.encode(fullDiagramCode);
-          const plantUMLServer = 'https://www.plantuml.com/plantuml/svg';
-          const imageUrl = `${plantUMLServer}/${encoded}`;
+        // Use centralized rendering utility
+        const result = await renderDiagramUtil(fullDiagramCode, diagramType);
 
-          mermaidRef.current.innerHTML = `<img src="${imageUrl}" alt="PlantUML Diagram" class="max-w-full h-auto" draggable="false" style="pointer-events: none; user-select: none;" />`;
+        if (!mermaidRef.current) return;
+
+        if ('svg' in result) {
+          mermaidRef.current.innerHTML = result.svg;
         } else {
-          // Validate Mermaid code is not empty
-          const cleanCode = diagramCode.trim();
-          if (!cleanCode) {
-            mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código Mermaid para ver el diagrama...</div>`;
-            return;
-          }
-
-          // Render Mermaid with frontmatter config
-          // Note: Mermaid will read the frontmatter automatically
-          mermaid.initialize({
-            startOnLoad: true,
-            securityLevel: 'loose'
-          });
-
-          const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-          try {
-            const { svg } = await mermaid.render(id, fullDiagramCode);
-            mermaidRef.current.innerHTML = svg;
-          } catch (renderErr) {
-            // Clean up failed render attempt
-            const failedElement = document.getElementById(id);
-            if (failedElement) {
-              failedElement.remove();
-            }
-            throw renderErr;
-          }
+          throw new Error(result.error);
         }
       } catch (err) {
+        if (!mermaidRef.current) return;
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
 
         // Only show error if it's not just "Syntax error in text" (which is too generic)
@@ -749,10 +740,10 @@ export default function DiagramEditorPage() {
     // Render immediately on first load, then with debounce for subsequent changes
     if (currentDiagram) {
       // If diagram just loaded, render immediately
-      renderDiagram();
+      doRender();
     } else {
       // For new diagrams or while editing, use debounce
-      const debounce = setTimeout(renderDiagram, 500); // Increased debounce time
+      const debounce = setTimeout(doRender, 500); // Increased debounce time
       return () => clearTimeout(debounce);
     }
   }, [fullDiagramCode, currentDiagram, diagramCode]);
@@ -802,6 +793,17 @@ export default function DiagramEditorPage() {
             });
           }
           // If theme directive exists, use the code as-is (user may have edited it manually)
+        } else if (currentDiagram?.diagram_type === 'd2') {
+          // For D2, embed theme via vars block
+          const parseResult = d2ConfigManager.parseTheme(diagramCode);
+          if (!parseResult.config) {
+            // No theme block found, embed theme from UI controls
+            const codeWithoutTheme = parseResult.contentWithoutTheme;
+            contentToSave = d2ConfigManager.embedTheme(codeWithoutTheme, {
+              themeId: d2ThemeId || undefined
+            });
+          }
+          // If vars block exists, use the code as-is (user may have edited it manually)
         }
         
         const updateData: UpdateDiagramRequest = {
@@ -815,6 +817,7 @@ export default function DiagramEditorPage() {
           user_preferences: {
             description_pinned: isDescriptionPinned,
             description_font_size: descriptionFontSize,
+            description_panel_width: descriptionPanelWidth,
             preferred_provider: preferredProvider,
             preferred_model: preferredModel,
           },
@@ -873,7 +876,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, descriptionFontSize, preferredProvider, preferredModel]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, d2ThemeId, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, descriptionFontSize, descriptionPanelWidth, preferredProvider, preferredModel]);
 
   // Parse config from content when user manually edits Mermaid code with init block
   useEffect(() => {
@@ -932,6 +935,26 @@ export default function DiagramEditorPage() {
     }
   }, [diagramCode]);
 
+  // Parse theme from content when user manually edits D2 code with vars block
+  useEffect(() => {
+    if (!currentDiagram || currentDiagram.diagram_type !== 'd2') return;
+    
+    // Skip if we're updating from UI controls
+    if (isUpdatingFromUI.current) {
+      isUpdatingFromUI.current = false;
+      return;
+    }
+    
+    // Parse theme from diagram code
+    const parseResult = d2ConfigManager.parseTheme(diagramCode);
+    
+    if (parseResult.config?.themeId !== undefined) {
+      if (parseResult.config.themeId !== d2ThemeId) {
+        setD2ThemeId(parseResult.config.themeId);
+      }
+    }
+  }, [diagramCode]);
+
   // Update init block in code when UI controls change (for Mermaid diagrams)
   useEffect(() => {
     if (!currentDiagram || currentDiagram.diagram_type !== 'mermaid') return;
@@ -984,6 +1007,24 @@ export default function DiagramEditorPage() {
     }
   }, [plantUMLTheme, currentDiagram]);
 
+  // Update vars block in code when UI controls change (for D2 diagrams)
+  useEffect(() => {
+    if (!currentDiagram || currentDiagram.diagram_type !== 'd2') return;
+    
+    // Parse current code to get content without theme block
+    const parseResult = d2ConfigManager.parseTheme(diagramCode);
+    const codeWithoutTheme = parseResult.contentWithoutTheme;
+    
+    // Embed new theme in code
+    const updatedCode = d2ConfigManager.embedTheme(codeWithoutTheme, { themeId: d2ThemeId || undefined });
+    
+    // Only update if the code actually changed
+    if (updatedCode !== diagramCode) {
+      isUpdatingFromUI.current = true;
+      setDiagramCode(updatedCode);
+    }
+  }, [d2ThemeId, currentDiagram]);
+
   // Separate effect for viewport changes (zoom/pan) - saves less frequently
   useEffect(() => {
     if (!currentDiagram || !projectId) return;
@@ -1019,9 +1060,14 @@ export default function DiagramEditorPage() {
       setCreatingDiagram(true);
 
       // Define default content based on diagram type
-      const defaultContent = newDiagramType === 'mermaid'
-        ? 'graph TD\n  A[Start] --> B[End]'
-        : '@startuml\nAlice -> Bob: Hello\nBob -> Alice: Hi!\n@enduml';
+      let defaultContent: string;
+      if (newDiagramType === 'mermaid') {
+        defaultContent = 'graph TD\n  A[Start] --> B[End]';
+      } else if (newDiagramType === 'd2') {
+        defaultContent = 'x -> y: hello world';
+      } else {
+        defaultContent = '@startuml\nAlice -> Bob: Hello\nBob -> Alice: Hi!\n@enduml';
+      }
 
       const createData: CreateDiagramRequest = {
         title: newDiagramName,
@@ -1156,7 +1202,7 @@ export default function DiagramEditorPage() {
     try {
       const response = await api.generateDescription({
         diagram_code: diagramCode,
-        diagram_type: currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid',
+        diagram_type: currentDiagram?.diagram_type || 'mermaid',
         language: user?.language || 'es',
         ...(preferredProvider ? { provider: preferredProvider as any } : {}),
       });
@@ -1208,7 +1254,7 @@ export default function DiagramEditorPage() {
     try {
       const response = await api.refineDescription({
         diagram_code: diagramCode,
-        diagram_type: currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid',
+        diagram_type: currentDiagram?.diagram_type || 'mermaid',
         current_description: generatedDescription,
         refinement_request: refineInput.trim(),
         language: user?.language || 'es',
@@ -1265,10 +1311,20 @@ export default function DiagramEditorPage() {
     const diagramRect = diagramElement.getBoundingClientRect();
     const containerRect = containerElement.getBoundingClientRect();
 
+    // Guard against zero-dimension diagrams (e.g. SVG not yet rendered)
+    if (diagramRect.width <= 0 || diagramRect.height <= 0 || containerRect.width <= 0 || containerRect.height <= 0) {
+      return;
+    }
+
     // Calcular el zoom necesario para ajustar (con un poco de padding)
     const scaleX = (containerRect.width * 0.9) / diagramRect.width;
     const scaleY = (containerRect.height * 0.9) / diagramRect.height;
     const newZoom = Math.min(scaleX, scaleY) * zoom; // Mantener el zoom actual como base
+
+    // Guard against Infinity/NaN from edge cases
+    if (!isFinite(newZoom) || newZoom <= 0) {
+      return;
+    }
 
     // Centrar el diagrama
     setZoom(newZoom);
@@ -1493,8 +1549,8 @@ export default function DiagramEditorPage() {
   };
 
   const handleDownloadSource = () => {
-    const isPlantuml = currentDiagram?.diagram_type === 'plantuml';
-    const extension = isPlantuml ? '.puml' : '.mmd';
+    const diagramTypeValue = currentDiagram?.diagram_type;
+    const extension = diagramTypeValue === 'plantuml' ? '.puml' : diagramTypeValue === 'd2' ? '.d2' : '.mmd';
     const mimeType = 'text/plain;charset=utf-8';
     const filename = `${diagramTitle.replace(/\s+/g, '_')}${extension}`;
 
@@ -2151,7 +2207,7 @@ export default function DiagramEditorPage() {
                         }`}
                       >
                         <span className="text-base flex-shrink-0">
-                          {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
+                          {diagram.diagram_type === 'plantuml' ? '🌱' : diagram.diagram_type === 'd2' ? '📐' : '🧜‍♀️'}
                         </span>
                         <span className="truncate">{diagram.title}</span>
                         {diagram.id === currentDiagram?.id && (
@@ -2304,7 +2360,7 @@ export default function DiagramEditorPage() {
                                 }`}
                               >
                                 <span className="text-base flex-shrink-0">
-                                  {diagram.diagram_type === 'plantuml' ? '🌱' : '🧜‍♀️'}
+                                  {diagram.diagram_type === 'plantuml' ? '🌱' : diagram.diagram_type === 'd2' ? '📐' : '🧜‍♀️'}
                                 </span>
                                 <span className="truncate">{diagram.title}</span>
                                 {diagram.id === currentDiagram?.id && (
@@ -2370,7 +2426,7 @@ export default function DiagramEditorPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                       </svg>
                       <span className="text-xs font-mono text-gray-300">
-                        {currentDiagram?.diagram_type === 'plantuml' ? 'diagram.puml' : 'diagram.mmd'}
+                        {currentDiagram?.diagram_type === 'plantuml' ? 'diagram.puml' : currentDiagram?.diagram_type === 'd2' ? 'diagram.d2' : 'diagram.mmd'}
                       </span>
                       {diagramError.hasError && (
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title={t('editor.syntaxError')} />
@@ -2481,7 +2537,7 @@ export default function DiagramEditorPage() {
                   <CodeEditor
                     value={diagramCode}
                     onChange={setDiagramCode}
-                    language={currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid'}
+                    language={currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : currentDiagram?.diagram_type === 'd2' ? 'd2' : 'mermaid'}
                     height="500px"
                     borderless
                     theme="vs-dark"
@@ -2519,7 +2575,7 @@ export default function DiagramEditorPage() {
             {/* Description View - removed, now a side panel outside main */}
 
             {/* Appearance Editor Modal */}
-            {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml') && (
+            {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml' || currentDiagram?.diagram_type === 'd2') && (
               <div className="floating-appearance absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white sm:rounded-lg shadow-xl sm:border border-gray-200 sm:max-h-[calc(100vh-100px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100">
                   <div className="flex items-center justify-between">
@@ -2679,6 +2735,39 @@ export default function DiagramEditorPage() {
                         </select>
                         <p className="text-xs text-gray-500 mt-1">
                           El tema se aplica automáticamente al código PlantUML
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* D2 Configuration */}
+                  {currentDiagram?.diagram_type === 'd2' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.theme')}</label>
+                        <select
+                          value={d2ThemeId}
+                          onChange={(e) => setD2ThemeId(Number(e.target.value))}
+                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <optgroup label="☀️ Light">
+                            {D2_THEMES.light.map((theme) => (
+                              <option key={theme.id} value={theme.id}>{theme.name}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="🌙 Dark">
+                            {D2_THEMES.dark.map((theme) => (
+                              <option key={theme.id} value={theme.id}>{theme.name}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="🖥️ Special">
+                            {D2_THEMES.special.map((theme) => (
+                              <option key={theme.id} value={theme.id}>{theme.name}</option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {t('diagram.d2.themeHint')}
                         </p>
                       </div>
                     </div>
@@ -2908,7 +2997,7 @@ export default function DiagramEditorPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                       </svg>
                       <span>
-                        {currentDiagram?.diagram_type === 'mermaid' ? 'Mermaid' : 'PlantUML'}
+                        {currentDiagram?.diagram_type === 'mermaid' ? 'Mermaid' : currentDiagram?.diagram_type === 'd2' ? 'D2' : 'PlantUML'}
                         {currentDiagram?.diagram_type === 'mermaid' && (
                           <span className="text-gray-400 ml-1 hidden sm:inline">
                             • {diagramTheme} • {diagramLayout}
@@ -2950,16 +3039,19 @@ export default function DiagramEditorPage() {
 
         {/* Description Side Panel */}
         {showDescriptionView && (
-          <div
-            className="floating-description fixed inset-0 sm:static sm:inset-auto border-l border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden relative z-40 sm:z-auto"
-            style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : descriptionPanelWidth }}
-          >
-            {/* Resize handle */}
+          <>
+            {/* Resize handle — outside the overflow-hidden panel so it's always accessible */}
             <div
               onMouseDown={handleDescriptionResizeMouseDown}
-              className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 transition-colors z-10 hidden sm:block"
+              className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 border-l border-gray-200"
               title="Arrastrar para redimensionar"
-            />
+            >
+              <div className="w-0.5 h-8 bg-gray-300 rounded-full" />
+            </div>
+            <div
+              className="floating-description fixed inset-0 sm:static sm:inset-auto border-l border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden z-40 sm:z-auto"
+              style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : descriptionPanelWidth }}
+            >
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
               <div className="flex items-center justify-between mb-3">
@@ -3073,6 +3165,7 @@ export default function DiagramEditorPage() {
               />
             </div>
           </div>
+          </>
         )}
 
         {/* Panel de Chat con IA */}
@@ -3164,7 +3257,7 @@ export default function DiagramEditorPage() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
-                  {currentDiagram?.diagram_type === 'plantuml' ? '.puml (PlantUML)' : '.mmd (Mermaid)'}
+                  {currentDiagram?.diagram_type === 'plantuml' ? '.puml (PlantUML)' : currentDiagram?.diagram_type === 'd2' ? '.d2 (D2)' : '.mmd (Mermaid)'}
                 </button>
               </div>
             </div>
@@ -3227,7 +3320,7 @@ export default function DiagramEditorPage() {
                 <label className="block text-sm font-semibold text-gray-900 mb-3">
                   Tipo de diagrama <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setNewDiagramType('mermaid')}
@@ -3269,6 +3362,29 @@ export default function DiagramEditorPage() {
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
                           UML, clases, componentes, etc.
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNewDiagramType('d2')}
+                    className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'd2'
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className={`text-2xl ${newDiagramType === 'd2' ? 'scale-110' : ''} transition-transform`}>
+                        📐
+                      </div>
+                      <div className="text-center">
+                        <div className={`font-semibold ${newDiagramType === 'd2' ? 'text-purple-700' : 'text-gray-700'}`}>
+                          D2
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {t('diagram.type.d2Description')}
                         </div>
                       </div>
                     </div>

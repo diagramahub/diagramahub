@@ -16,6 +16,13 @@ services:
     networks:
       - diagramahub-network
 
+  kroki:
+    image: yuzutech/kroki
+    container_name: diagramahub-kroki
+    restart: unless-stopped
+    networks:
+      - diagramahub-network
+
   backend:
     build:
       context: ./backend
@@ -38,6 +45,7 @@ services:
       - PORT=5172
     depends_on:
       - mongodb
+      - kroki
     networks:
       - diagramahub-network
 

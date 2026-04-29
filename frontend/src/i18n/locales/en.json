@@ -234,7 +234,20 @@
     "copyCode": "Copy code",
     "codeCopied": "Code copied",
     "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit fullscreen"
+    "exitFullscreen": "Exit fullscreen",
+    "type": {
+      "d2": "D2",
+      "d2Description": "Declarative diagramming language"
+    },
+    "d2": {
+      "themeHint": "The theme is automatically applied to the D2 diagram"
+    },
+    "render": {
+      "error": "Error rendering diagram",
+      "timeout": "Diagram rendering timed out",
+      "serverError": "Rendering server error. Check the syntax.",
+      "networkError": "Could not connect to the rendering server"
+    }
   },
   "folder": {
     "createTitle": "Create new folder",

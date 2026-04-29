@@ -1,9 +1,11 @@
 import { Editor } from '@monaco-editor/react';
+import type { Monaco } from '@monaco-editor/react';
+import { registerD2Language } from '../utils/d2Language';
 
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
-  language?: 'mermaid' | 'plantuml';
+  language?: 'mermaid' | 'plantuml' | 'd2';
   height?: string;
   readOnly?: boolean;
   borderless?: boolean;
@@ -25,11 +27,17 @@ export default function CodeEditor({
 
   // Determine the Monaco language mode
   // Monaco doesn't have native mermaid/plantuml support, so we use closest alternatives
-  const monacoLanguage = language === 'plantuml' ? 'java' : 'markdown';
+  // D2 uses a custom registered language with its own tokenizer
+  const monacoLanguage = language === 'd2' ? 'd2' : language === 'plantuml' ? 'java' : 'markdown';
+
+  const handleEditorWillMount = (monaco: Monaco) => {
+    registerD2Language(monaco);
+  };
 
   return (
     <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 rounded overflow-hidden'}>
       <Editor
+        beforeMount={handleEditorWillMount}
         height={height}
         language={monacoLanguage}
         value={value}

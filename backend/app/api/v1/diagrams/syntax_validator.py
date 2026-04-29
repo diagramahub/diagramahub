@@ -1,5 +1,5 @@
 """
-Validador de sintaxis para diagramas Mermaid y PlantUML.
+Validador de sintaxis para diagramas Mermaid, PlantUML y D2.
 """
 import re
 from typing import Optional
@@ -23,7 +23,7 @@ class ValidationResult(BaseModel):
 
 
 class SyntaxValidator:
-    """Validador de sintaxis para diagramas Mermaid y PlantUML."""
+    """Validador de sintaxis para diagramas Mermaid, PlantUML y D2."""
     
     # Tipos de diagrama Mermaid válidos
     VALID_MERMAID_TYPES = [
@@ -202,23 +202,90 @@ class SyntaxValidator:
             )
     
     @staticmethod
+    async def validate_d2(code: str) -> ValidationResult:
+        """
+        Validar sintaxis estructural básica de código D2.
+
+        Realiza validación estructural: verifica que el código no esté vacío
+        y que las llaves { } estén balanceadas.
+
+        Args:
+            code: Código del diagrama D2
+
+        Returns:
+            ValidationResult con resultado de validación
+        """
+        try:
+            # Verificar código vacío
+            if not code or not code.strip():
+                return ValidationResult(
+                    is_valid=False,
+                    error_message="El código del diagrama está vacío",
+                )
+
+            # Verificar balance de llaves { }
+            brace_depth = 0
+            lines = code.split("\n")
+            for i, line in enumerate(lines, start=1):
+                # Ignorar comentarios (líneas que comienzan con #)
+                line_stripped = line.strip()
+                if line_stripped.startswith("#"):
+                    continue
+
+                # Remover contenido dentro de strings para no contar llaves en strings
+                line_no_strings = re.sub(r'"[^"]*"', "", line_stripped)
+
+                # Remover comentarios inline
+                comment_pos = line_no_strings.find("#")
+                if comment_pos >= 0:
+                    line_no_strings = line_no_strings[:comment_pos]
+
+                for char in line_no_strings:
+                    if char == "{":
+                        brace_depth += 1
+                    elif char == "}":
+                        brace_depth -= 1
+                        if brace_depth < 0:
+                            return ValidationResult(
+                                is_valid=False,
+                                error_message="'}' sin '{' correspondiente",
+                                error_line=i,
+                            )
+
+            if brace_depth > 0:
+                return ValidationResult(
+                    is_valid=False,
+                    error_message=f"{brace_depth} llave(s) '{{' sin cerrar (falta '}}' )",
+                )
+
+            return ValidationResult(is_valid=True)
+
+        except Exception as e:
+            return ValidationResult(
+                is_valid=False,
+                error_message=f"Error al validar sintaxis: {str(e)}",
+            )
+
+    @staticmethod
     async def validate(code: str, diagram_type: str) -> ValidationResult:
         """
         Validar sintaxis según tipo de diagrama.
-        
+
         Args:
             code: Código del diagrama
-            diagram_type: Tipo de diagrama ('mermaid' o 'plantuml')
-            
+            diagram_type: Tipo de diagrama ('mermaid', 'plantuml' o 'd2')
+
         Returns:
             ValidationResult con resultado de validación
         """
         diagram_type_lower = diagram_type.lower()
-        
+
         if 'mermaid' in diagram_type_lower or diagram_type_lower in ['flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'journey']:
             return await SyntaxValidator.validate_mermaid(code)
         elif 'plantuml' in diagram_type_lower or diagram_type_lower == 'uml':
             return await SyntaxValidator.validate_plantuml(code)
+        elif 'd2' in diagram_type_lower:
+            return await SyntaxValidator.validate_d2(code)
         else:
             # Por defecto, intentar validar como Mermaid
             return await SyntaxValidator.validate_mermaid(code)

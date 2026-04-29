@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import mermaid from 'mermaid';
-import plantumlEncoder from 'plantuml-encoder';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import api from '../services/api';
+import { renderDiagram, isServerRenderedType } from '../utils/diagramRenderer';
 import { SharedLinkInfo, SharedDiagram } from '../types/sharing';
 import AccessCodeForm from '../components/AccessCodeForm';
 import CodeEditor from '../components/CodeEditor';
@@ -73,14 +72,6 @@ export default function SharedDiagramPage() {
   // Refs
   const diagramRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-
-  // Initialize mermaid
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: true,
-      securityLevel: 'loose',
-    });
-  }, []);
 
   // Fetch link info on mount
   useEffect(() => {
@@ -173,32 +164,29 @@ export default function SharedDiagramPage() {
     }
   };
 
-  // Render diagram (Mermaid or PlantUML)
+  // Render diagram via centralized renderDiagram utility
   useEffect(() => {
     if (!diagram || !diagramRef.current) return;
 
-    const renderDiagram = async () => {
+    const doRender = async () => {
       if (!diagramRef.current) return;
 
       try {
         diagramRef.current.innerHTML = '';
-        const type = diagram.diagram_type?.toLowerCase() || 'mermaid';
+        const type = diagram.diagram_type || 'mermaid';
 
-        if (type === 'plantuml' || type === 'uml') {
-          const encoded = plantumlEncoder.encode(diagram.rendered_content);
-          const url = `https://www.plantuml.com/plantuml/svg/${encoded}`;
-          diagramRef.current.innerHTML = `<img src="${url}" alt="PlantUML Diagram" style="max-width:none;" draggable="false" />`;
-        } else {
-          mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
-          const id = `shared-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          try {
-            const { svg } = await mermaid.render(id, diagram.rendered_content);
-            diagramRef.current.innerHTML = svg;
-          } catch (renderErr) {
-            const failedEl = document.getElementById(id);
-            if (failedEl) failedEl.remove();
-            diagramRef.current.innerHTML = `<div class="text-amber-600 p-4 text-center"><p class="font-medium">⚠️ Error al renderizar el diagrama</p></div>`;
+        const result = await renderDiagram(diagram.rendered_content, type);
+
+        if (!diagramRef.current) return;
+
+        if ('svg' in result) {
+          if (isServerRenderedType(type)) {
+            diagramRef.current.innerHTML = `<div style="max-width:none;" draggable="false">${result.svg}</div>`;
+          } else {
+            diagramRef.current.innerHTML = result.svg;
           }
+        } else {
+          diagramRef.current.innerHTML = `<div class="text-amber-600 p-4 text-center"><p class="font-medium">⚠️ ${result.error}</p></div>`;
         }
       } catch {
         if (diagramRef.current) {
@@ -207,7 +195,7 @@ export default function SharedDiagramPage() {
       }
     };
 
-    renderDiagram();
+    doRender();
   }, [diagram]);
 
   // Zoom handlers
@@ -613,7 +601,7 @@ export default function SharedDiagramPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
                 <span className="text-xs font-mono text-gray-600">
-                  {diagram.diagram_type === 'plantuml' ? 'diagram.puml' : 'diagram.mmd'}
+                  {diagram.diagram_type === 'plantuml' ? 'diagram.puml' : diagram.diagram_type === 'd2' ? 'diagram.d2' : 'diagram.mmd'}
                 </span>
                 <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded">solo lectura</span>
               </div>
@@ -652,7 +640,7 @@ export default function SharedDiagramPage() {
               <CodeEditor
                 value={diagram.content}
                 onChange={() => {}}
-                language={diagram.diagram_type === 'plantuml' ? 'plantuml' : 'mermaid'}
+                language={diagram.diagram_type === 'plantuml' ? 'plantuml' : diagram.diagram_type === 'd2' ? 'd2' : 'mermaid'}
                 height="500px"
                 readOnly
               />
@@ -671,7 +659,7 @@ export default function SharedDiagramPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
               </svg>
-              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : 'Mermaid'}</span>
+              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : diagram?.diagram_type === 'd2' ? 'D2' : 'Mermaid'}</span>
             </div>
 
             <div className="h-3 w-px bg-gray-300 hidden sm:block"></div>
