@@ -101,7 +101,10 @@ async function renderServerSide(
     if (isAxiosError(err)) {
       const status = err.response?.status;
       if (status === 400) {
-        const detail = err.response?.data?.detail || err.response?.data;
+        const data = err.response?.data;
+        const detail = typeof data === 'object' && data !== null && 'detail' in data
+          ? (data as { detail?: string }).detail
+          : data;
         return { error: typeof detail === 'string' ? detail : 'Invalid diagram source or type' };
       }
       if (status === 502) {
