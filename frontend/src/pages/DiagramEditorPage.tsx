@@ -3278,7 +3278,7 @@ export default function DiagramEditorPage() {
       {/* New Diagram Modal */}
       {showNewDiagramModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`bg-white rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? 'max-w-2xl' : 'max-w-md'}`}>
+          <div className={`bg-white rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? 'max-w-2xl' : 'max-w-lg'}`}>
             {isFirstDiagram && (
               <div className="px-8 py-6 border-b border-gray-200 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
@@ -3297,10 +3297,10 @@ export default function DiagramEditorPage() {
               </div>
             )}
 
-            <div className={`space-y-4 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4'}`}>
+            <div className={`space-y-5 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4'}`}>
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Nombre del diagrama <span className="text-red-500">*</span>
+                  {t('editor.diagramName')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -3318,77 +3318,40 @@ export default function DiagramEditorPage() {
               {/* Diagram Type Selector */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-3">
-                  Tipo de diagrama <span className="text-red-500">*</span>
+                  {t('editor.diagramType')} <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setNewDiagramType('mermaid')}
-                    className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'mermaid'
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                <div className="flex flex-col gap-2">
+                  {([
+                    { type: 'mermaid' as const, icon: '🧜‍♀️', name: 'Mermaid', desc: t('editor.mermaidDesc') },
+                    { type: 'plantuml' as const, icon: '🌱', name: 'PlantUML', desc: t('editor.plantumlDesc') },
+                    { type: 'd2' as const, icon: '📐', name: 'D2', desc: t('diagram.type.d2Description') },
+                  ]).map(({ type, icon, name, desc }) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNewDiagramType(type)}
+                      className={`flex items-center gap-3 px-4 py-3 border-2 rounded-lg transition-all text-left ${
+                        newDiagramType === type
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`text-2xl ${newDiagramType === 'mermaid' ? 'scale-110' : ''} transition-transform`}>
-                        🧜‍♀️
-                      </div>
-                      <div className="text-center">
-                        <div className={`font-semibold ${newDiagramType === 'mermaid' ? 'text-purple-700' : 'text-gray-700'}`}>
-                          Mermaid
+                    >
+                      <span className={`text-xl flex-shrink-0 ${newDiagramType === type ? 'scale-110' : ''} transition-transform`}>
+                        {icon}
+                      </span>
+                      <div className="min-w-0">
+                        <div className={`text-sm font-semibold ${newDiagramType === type ? 'text-purple-700' : 'text-gray-700'}`}>
+                          {name}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Diagramas de flujo, secuencia, etc.
-                        </div>
+                        <div className="text-xs text-gray-500 truncate">{desc}</div>
                       </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setNewDiagramType('plantuml')}
-                    className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'plantuml'
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`text-2xl ${newDiagramType === 'plantuml' ? 'scale-110' : ''} transition-transform`}>
-                        🌱
-                      </div>
-                      <div className="text-center">
-                        <div className={`font-semibold ${newDiagramType === 'plantuml' ? 'text-purple-700' : 'text-gray-700'}`}>
-                          PlantUML
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          UML, clases, componentes, etc.
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setNewDiagramType('d2')}
-                    className={`p-4 border-2 rounded-lg transition-all ${newDiagramType === 'd2'
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="flex flex-col items-center gap-2">
-                      <div className={`text-2xl ${newDiagramType === 'd2' ? 'scale-110' : ''} transition-transform`}>
-                        📐
-                      </div>
-                      <div className="text-center">
-                        <div className={`font-semibold ${newDiagramType === 'd2' ? 'text-purple-700' : 'text-gray-700'}`}>
-                          D2
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {t('diagram.type.d2Description')}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
+                      {newDiagramType === type && (
+                        <svg className="w-5 h-5 text-purple-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
 

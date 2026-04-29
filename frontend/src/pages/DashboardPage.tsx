@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Project } from '../types/project';
 import Navbar from '../components/Navbar';
@@ -11,6 +12,7 @@ import ConfirmModal from '../components/ConfirmModal';
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -91,26 +93,96 @@ const DashboardPage: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-        <div className="mb-8 sm:mb-12 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1 sm:mb-2">
-              {t('dashboard.title')}
-            </h1>
-            <p className="text-sm sm:text-base text-gray-600">
-              {projects.length} {projects.length === 1 ? t('dashboard.project') : t('dashboard.projects')}
-            </p>
+        {/* Welcome + Stats */}
+        <div className="mb-8 sm:mb-10">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+                {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '' })} 👋
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">{t('dashboard.welcomeSubtitle')}</p>
+            </div>
+            <button
+              onClick={handleCreateProject}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm sm:text-base flex-shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">{t('dashboard.newProject')}</span>
+              <span className="sm:hidden">{t('common.create')}</span>
+            </button>
           </div>
-          <button
-            onClick={handleCreateProject}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm sm:text-base flex-shrink-0"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">{t('dashboard.newProject')}</span>
-            <span className="sm:hidden">{t('common.create')}</span>
-          </button>
+
+          {/* Stats cards */}
+          {!loading && projects.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{projects.length}</p>
+                    <p className="text-xs text-gray-500">{t('dashboard.statsProjects')}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{projects.reduce((sum, p) => sum + (p.diagram_count || 0), 0)}</p>
+                    <p className="text-xs text-gray-500">{t('dashboard.statsDiagrams')}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {projects.length > 0
+                        ? new Date(Math.max(...projects.map(p => new Date(p.updated_at || p.created_at).getTime()))).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+                        : '—'}
+                    </p>
+                    <p className="text-xs text-gray-500">{t('dashboard.statsLastActivity')}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-900">{user?.subscription?.plan?.name || 'Free'}</p>
+                    <p className="text-xs text-gray-500">{t('dashboard.statsPlan')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Projects section header */}
+        {!loading && projects.length > 0 && (
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.title')}</h2>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-16 text-gray-500">{t('dashboard.loading')}</div>
