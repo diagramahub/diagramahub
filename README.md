@@ -1,8 +1,8 @@
 # ✏️ Diagramahub
 
-**Diagramahub** is an open-source platform for creating, organizing, and exporting diagrams using plain text markup. It combines the power of Mermaid and PlantUML with a polished interface — ideal for developers and teams who want to diagram fast and stay in flow.
+**Diagramahub** is an open-source platform for creating, organizing, and exporting diagrams using plain text markup. It combines the power of Mermaid, PlantUML, and D2 with a polished interface — ideal for developers and teams who want to diagram fast and stay in flow.
 
-Self-hostable via Docker Compose. No vendor lock-in. Apache 2.0 licensed.
+Server-side rendering powered by [Kroki](https://kroki.io/). Self-hostable via Docker Compose. No vendor lock-in. Apache 2.0 licensed.
 
 > ⚠️ **Beta Software** — DiagramaHub is in early development (v0.x). It is not yet considered stable software. APIs, data structures, and features may change between versions. Use in production at your own risk.
 
@@ -11,10 +11,11 @@ Self-hostable via Docker Compose. No vendor lock-in. Apache 2.0 licensed.
 ## ✨ Features
 
 ### Diagramming
-- 📝 **Mermaid & PlantUML** — Real-time text-to-diagram rendering with syntax validation.
-- 🖥️ **Monaco Editor** — Full code editor with syntax highlighting and autocomplete.
+- 📝 **Mermaid, PlantUML & D2** — Real-time text-to-diagram rendering with syntax validation.
+- 🔌 **[Kroki](https://kroki.io/) Integration** — Self-hosted server-side rendering engine for PlantUML, D2, and 20+ other diagram types. Your diagram content stays private.
+- 🖥️ **Monaco Editor** — Full code editor with syntax highlighting for Mermaid, PlantUML, and D2.
 - 🖼️ **Export** — PNG, PDF, and Markdown.
-- 🎨 **Themes** — Configurable diagram appearance and styling.
+- 🎨 **Themes** — Configurable diagram appearance: Mermaid themes, PlantUML skins, and 19 D2 themes (light, dark, special).
 - 📺 **Presentation Mode** — Full-screen diagram viewing with annotations.
 
 ### AI-Powered (BYOL — Bring Your Own LLM)
@@ -73,6 +74,7 @@ Once running:
 |---|---|
 | Frontend | http://localhost:5173 |
 | Backend API | http://localhost:5172 |
+| Kroki | http://localhost:8000 (internal) |
 | Swagger UI | http://localhost:5172/docs |
 | ReDoc | http://localhost:5172/redoc |
 
@@ -87,10 +89,19 @@ diagramahub/
 ├── frontend/               # React 19 + TypeScript + Vite 7 + TailwindCSS v3
 ├── backend/                # FastAPI + MongoDB (Beanie ODM) + Poetry
 ├── deploy/
-│   ├── local-full/         # MongoDB 8 + Backend + Frontend
-│   └── external-mongodb/   # Backend + Frontend (external DB)
+│   ├── local-full/         # MongoDB 8 + Kroki + Backend + Frontend
+│   └── external-mongodb/   # Kroki + Backend + Frontend (external DB)
 └── docs/                   # MkDocs Material documentation (ES/EN)
 ```
+
+### Services
+
+| Service | Technology | Purpose |
+|---|---|---|
+| Frontend | React 19 + Vite 7 | UI, client-side Mermaid rendering |
+| Backend | FastAPI + Python 3.11 | API, business logic, Kroki proxy |
+| [Kroki](https://kroki.io/) | `yuzutech/kroki` Docker image | Server-side rendering for PlantUML, D2, and 20+ diagram types |
+| MongoDB | MongoDB 8 (or external) | Data storage |
 
 ### Backend
 
@@ -102,7 +113,7 @@ Each domain module lives in its own folder under `backend/app/api/v1/` with a co
 |---|---|
 | `users/` | Auth, registration, password management, account deletion |
 | `projects/` | Project CRUD |
-| `diagrams/` | Diagram CRUD, AI fix service, syntax validation |
+| `diagrams/` | Diagram CRUD, AI fix service, syntax validation, Kroki rendering proxy |
 | `folders/` | Folder CRUD |
 | `ai_providers/` | AI provider config, LLM clients (Gemini, OpenAI, Claude, DeepSeek) |
 | `chat_sessions/` | AI chat session management |
