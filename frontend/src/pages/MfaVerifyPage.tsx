@@ -8,6 +8,7 @@ interface MfaVerifyLocationState {
   mfa_token: string;
   mfa_default_method: string;
   available_methods: string[];
+  email?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -302,9 +303,14 @@ const MfaVerifyPage: React.FC = () => {
             {/* Method-specific message */}
             <div className="text-center text-sm text-gray-600">
               {currentMethod === 'email' ? (
-                <div className="flex items-center justify-center gap-2">
-                  <EmailIcon className="w-4 h-4 text-gray-400" />
-                  <p>{t('mfa.verify.emailSent')}</p>
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <EmailIcon className="w-4 h-4 text-gray-400" />
+                    <p>{t('mfa.verify.emailSent')}</p>
+                  </div>
+                  {state?.email && (
+                    <p className="text-xs text-gray-500 font-medium">{state.email}</p>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-2">

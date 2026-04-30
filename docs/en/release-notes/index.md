@@ -6,7 +6,8 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
-| [0.4.0](0.4.0.md) | 2026-04-28 | ⚠️ Under construction — UX/UI improvements & responsiveness |
+| [0.4.1](0.4.1.md) | 2026-04-30 | Fixes, i18n, visual improvements |
+| [0.4.0](0.4.0.md) | 2026-04-28 | Kroki, D2, UX/UI improvements |
 | [0.3.1](0.3.1.md) | 2026-04-23 | TypeScript compilation fix |
 | [0.3.0](0.3.0.md) | 2026-04-23 | OAuth, AI descriptions, unified chat |
 | [0.2.1](0.2.1.md) | 2026-04-18 | Hardening & improvements |

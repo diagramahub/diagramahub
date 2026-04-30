@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { SharedLink, CreateSharedLinkRequest } from '../types/sharing';
 
@@ -11,13 +12,6 @@ interface ShareDiagramModalProps {
 
 type ExpirationOption = 5 | 10 | 30 | null;
 
-const EXPIRATION_OPTIONS: { value: ExpirationOption; label: string }[] = [
-  { value: 5, label: '5 días' },
-  { value: 10, label: '10 días' },
-  { value: 30, label: '30 días' },
-  { value: null, label: 'Ilimitado' },
-];
-
 function generateAccessCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let code = '';
@@ -27,22 +21,32 @@ function generateAccessCode(): string {
   return code;
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
   isOpen,
   onClose,
   diagramId,
   diagramTitle,
 }) => {
+  const { t, i18n } = useTranslation();
+
+  const expirationOptions: { value: ExpirationOption; label: string }[] = [
+    { value: 5, label: t('sharing.days', { count: 5 }) },
+    { value: 10, label: t('sharing.days', { count: 10 }) },
+    { value: 30, label: t('sharing.days', { count: 30 }) },
+    { value: null, label: t('sharing.unlimited') },
+  ];
+
+  function formatDate(dateStr: string): string {
+    const locale = i18n.language === 'en' ? 'en-US' : 'es-ES';
+    return new Date(dateStr).toLocaleDateString(locale, {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   // Form state
   const [expiration, setExpiration] = useState<ExpirationOption>(30);
   const [accessType, setAccessType] = useState<'public' | 'protected'>('public');
@@ -69,34 +73,30 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       const link = await api.getSharedLinkByDiagram(diagramId);
       if (link) {
         setExistingLink(link);
-        // Populate form with existing config
         setAccessType(link.access_type);
         setAllowCopyCode(link.allow_copy_code);
         if (link.access_code) {
           setPlainAccessCode(link.access_code);
         }
       } else {
-        // No active link exists — show the create form
         setExistingLink(null);
       }
     } catch (err: any) {
       if (err.response?.status === 404) {
         setExistingLink(null);
       } else {
-        setError('Error al cargar el enlace compartido');
+        setError(t('sharing.loadError'));
       }
     } finally {
       setLoadingLink(false);
     }
-  }, [diagramId]);
+  }, [diagramId, t]);
 
-  // Load existing link when modal opens
   useEffect(() => {
     if (isOpen && diagramId) {
       fetchExistingLink();
     }
     if (!isOpen) {
-      // Reset state when modal closes
       setExistingLink(null);
       setPlainAccessCode(null);
       setExpiration(30);
@@ -129,7 +129,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       }
     } catch (err: any) {
       const detail = err.response?.data?.detail;
-      setError(typeof detail === 'string' ? detail : 'Error al generar el enlace');
+      setError(typeof detail === 'string' ? detail : t('sharing.generateError'));
     } finally {
       setLoading(false);
     }
@@ -149,55 +149,47 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       setAllowCopyCode(false);
     } catch (err: any) {
       const detail = err.response?.data?.detail;
-      setError(typeof detail === 'string' ? detail : 'Error al revocar el enlace');
+      setError(typeof detail === 'string' ? detail : t('sharing.revokeError'));
     } finally {
       setRevoking(false);
     }
   };
 
-  const handleCopyLink = async () => {
-    if (!existingLink) return;
+  const copyToClipboard = async (text: string, onSuccess: () => void) => {
     try {
-      await navigator.clipboard.writeText(existingLink.share_url);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
+      onSuccess();
     } catch {
-      // Fallback for older browsers
       const textArea = document.createElement('textarea');
-      textArea.value = existingLink.share_url;
+      textArea.value = text;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+      onSuccess();
     }
   };
 
-  const handleCopyAccessCode = async () => {
+  const handleCopyLink = () => {
+    if (!existingLink) return;
+    copyToClipboard(existingLink.share_url, () => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
+
+  const handleCopyAccessCode = () => {
     if (!plainAccessCode) return;
-    try {
-      await navigator.clipboard.writeText(plainAccessCode);
+    copyToClipboard(plainAccessCode, () => {
       setCodeCopied(true);
       setTimeout(() => setCodeCopied(false), 2000);
-    } catch {
-      // Fallback
-      const textArea = document.createElement('textarea');
-      textArea.value = plainAccessCode;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    }
+    });
   };
 
   const handleGenerateAccessCode = () => {
     setAccessCode(generateAccessCode());
   };
 
-  // Handle Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -232,7 +224,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               </div>
               <div>
                 <h3 id="share-modal-title" className="text-lg font-semibold text-gray-900">
-                  Compartir diagrama
+                  {t('sharing.title')}
                 </h3>
                 <p className="text-sm text-gray-500 truncate max-w-[280px]" title={diagramTitle}>
                   {diagramTitle}
@@ -242,7 +234,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Cerrar modal"
+              aria-label={t('sharing.closeModal')}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -259,7 +251,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span className="ml-2 text-gray-500">Cargando...</span>
+              <span className="ml-2 text-gray-500">{t('sharing.loading')}</span>
             </div>
           ) : existingLink ? (
             /* ===== Existing Link View ===== */
@@ -267,7 +259,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Link URL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Enlace compartido
+                  {t('sharing.sharedLink')}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -275,26 +267,26 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     readOnly
                     value={existingLink.share_url}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm focus:outline-none"
-                    aria-label="URL del enlace compartido"
+                    aria-label={t('sharing.sharedLinkAria')}
                   />
                   <button
                     onClick={handleCopyLink}
                     className="px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center gap-1 btn-glass"
-                    aria-label="Copiar enlace"
+                    aria-label={t('sharing.copyLink')}
                   >
                     {linkCopied ? (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Copiado
+                        {t('sharing.copied')}
                       </>
                     ) : (
                       <>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                         </svg>
-                        Copiar
+                        {t('sharing.copy')}
                       </>
                     )}
                   </button>
@@ -305,7 +297,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {existingLink.access_type === 'protected' && plainAccessCode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código de acceso
+                    {t('sharing.accessCode')}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -313,26 +305,26 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       readOnly
                       value={plainAccessCode}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm font-mono tracking-wider focus:outline-none"
-                      aria-label="Código de acceso"
+                      aria-label={t('sharing.accessCode')}
                     />
                     <button
                       onClick={handleCopyAccessCode}
                       className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1"
-                      aria-label="Copiar código de acceso"
+                      aria-label={t('sharing.copyAccessCode')}
                     >
                       {codeCopied ? (
                         <>
                           <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Copiado
+                          {t('sharing.copied')}
                         </>
                       ) : (
                         <>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
-                          Copiar
+                          {t('sharing.copy')}
                         </>
                       )}
                     </button>
@@ -343,32 +335,31 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Link info */}
               <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Tipo de acceso</span>
+                  <span className="text-gray-500">{t('sharing.accessTypeLabel')}</span>
                   <span className="font-medium text-gray-700">
-                    {existingLink.access_type === 'public' ? 'Público' : 'Protegido con código'}
+                    {existingLink.access_type === 'public' ? t('sharing.accessPublic') : t('sharing.accessProtected')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Copiar código</span>
+                  <span className="text-gray-500">{t('sharing.copyCodeLabel')}</span>
                   <span className="font-medium text-gray-700">
-                    {existingLink.allow_copy_code ? 'Permitido' : 'No permitido'}
+                    {existingLink.allow_copy_code ? t('sharing.allowed') : t('sharing.notAllowed')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Creado</span>
+                  <span className="text-gray-500">{t('sharing.createdAt')}</span>
                   <span className="font-medium text-gray-700">
                     {formatDate(existingLink.created_at)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Expira</span>
+                  <span className="text-gray-500">{t('sharing.expiresAt')}</span>
                   <span className="font-medium text-gray-700">
-                    {existingLink.expires_at ? formatDate(existingLink.expires_at) : 'Nunca'}
+                    {existingLink.expires_at ? formatDate(existingLink.expires_at) : t('sharing.never')}
                   </span>
                 </div>
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {error}
@@ -381,10 +372,10 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Expiration selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vigencia del enlace
+                  {t('sharing.linkExpiration')}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
-                  {EXPIRATION_OPTIONS.map((opt) => (
+                  {expirationOptions.map((opt) => (
                     <button
                       key={String(opt.value)}
                       type="button"
@@ -405,7 +396,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Access type selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de acceso
+                  {t('sharing.accessTypeLabel')}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -421,7 +412,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Público
+                    {t('sharing.accessPublic')}
                   </button>
                   <button
                     type="button"
@@ -439,7 +430,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    Protegido con código
+                    {t('sharing.accessProtected')}
                   </button>
                 </div>
               </div>
@@ -448,7 +439,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {accessType === 'protected' && (
                 <div>
                   <label htmlFor="access-code-input" className="block text-sm font-medium text-gray-700 mb-1">
-                    Código de acceso
+                    {t('sharing.accessCodeInput')}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -456,7 +447,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       type="text"
                       value={accessCode}
                       onChange={(e) => setAccessCode(e.target.value)}
-                      placeholder="Ingresa o genera un código"
+                      placeholder={t('sharing.accessCodePlaceholder')}
                       maxLength={20}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm font-mono tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -464,16 +455,16 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       type="button"
                       onClick={handleGenerateAccessCode}
                       className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1"
-                      aria-label="Generar código automáticamente"
+                      aria-label={t('sharing.generateCodeAria')}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                       </svg>
-                      Generar
+                      {t('sharing.generateCode')}
                     </button>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    Mínimo 4 caracteres. Si lo dejas vacío, se generará uno automáticamente.
+                    {t('sharing.accessCodeHint')}
                   </p>
                 </div>
               )}
@@ -482,10 +473,10 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <label htmlFor="allow-copy-toggle" className="text-sm font-medium text-gray-700">
-                    Permitir copiar código del diagrama
+                    {t('sharing.allowCopyCode')}
                   </label>
                   <p className="text-xs text-gray-500">
-                    Los visitantes podrán copiar el código fuente
+                    {t('sharing.allowCopyCodeDesc')}
                   </p>
                 </div>
                 <button
@@ -506,7 +497,6 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                 </button>
               </div>
 
-              {/* Error */}
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                   {error}
@@ -531,13 +521,13 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                 )}
-                {revoking ? 'Revocando...' : 'Revocar enlace'}
+                {revoking ? t('sharing.revoking') : t('sharing.revokeLink')}
               </button>
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Cerrar
+                {t('sharing.close')}
               </button>
             </>
           ) : (
@@ -547,7 +537,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                 disabled={loading}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancelar
+                {t('sharing.cancel')}
               </button>
               <button
                 onClick={handleGenerateLink}
@@ -560,7 +550,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                 )}
-                {loading ? 'Generando...' : 'Generar enlace'}
+                {loading ? t('sharing.generating') : t('sharing.generateLink')}
               </button>
             </>
           )}
