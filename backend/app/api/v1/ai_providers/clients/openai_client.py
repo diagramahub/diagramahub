@@ -29,13 +29,15 @@ class OpenAIClient(BaseAIClient):
             "Content-Type": "application/json"
         }
 
-    async def _chat_completion(self, messages: list[dict]) -> str:
+    async def _chat_completion(self, messages: list[dict], response_format: dict | None = None) -> str:
         """Llamada genérica al endpoint chat/completions de OpenAI."""
         payload: dict = {
             "model": self.model,
             "messages": messages,
             "max_completion_tokens": self.parameters.get("max_tokens", 2048),
         }
+        if response_format:
+            payload["response_format"] = response_format
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
@@ -105,34 +107,32 @@ class OpenAIClient(BaseAIClient):
         language: str = "es",
     ) -> Dict[str, str]:
         from ...diagrams.fix_prompts import build_fix_prompt
-        import json
-        import re
+        from ..prompts import extract_fix_json
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             response_text = await self._chat_completion(
                 [
-                    {"role": "system", "content": "You are an expert in fixing syntax errors in technical diagrams. Provide accurate corrections with clear explanations."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert in fixing syntax errors in technical diagrams. "
+                            "Always respond with a single valid JSON object containing exactly "
+                            "three keys: corrected_code, explanation, changes_summary. "
+                            "No markdown fences, no extra text."
+                        ),
+                    },
                     {"role": "user", "content": prompt},
                 ],
+                response_format={"type": "json_object"},
             )
 
-            json_match = re.search(r'\{[\s\S]*\}', response_text)
-            if not json_match:
-                raise ValueError("No se pudo extraer JSON de la respuesta de OpenAI")
-
-            fix_result = json.loads(json_match.group())
-            for field in ("corrected_code", "explanation", "changes_summary"):
-                if field not in fix_result:
-                    raise ValueError(f"Respuesta de OpenAI no contiene '{field}'")
-
+            fix_result = extract_fix_json(response_text, "OpenAI")
             fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
             return fix_result
 
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Error al parsear respuesta JSON de OpenAI: {str(e)}")
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con OpenAI: {str(e)}")
 

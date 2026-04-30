@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import OAuthButtons from '../components/OAuthButtons';
 import LanguageSelector from '../components/LanguageSelector';
+import AnimatedBackground from '../components/AnimatedBackground';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -31,6 +32,7 @@ const LoginPage: React.FC = () => {
             mfa_token: result.mfa_token,
             mfa_default_method: result.mfa_default_method,
             available_methods: result.available_methods,
+            email: email,
           },
         });
       } else {
@@ -44,11 +46,12 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 px-4 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <AnimatedBackground />
       <div className="absolute top-4 right-4 z-10">
         <LanguageSelector />
       </div>
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
+      <div className="max-w-md w-full space-y-8 bg-white/80 backdrop-blur-lg p-8 rounded-xl shadow-2xl border border-white/40">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold">
             <span

@@ -264,3 +264,34 @@ code {
   padding: 16px;
   font-size: 14px;
 }
+
+/* Animated background blobs for auth pages */
+@keyframes float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(50px, -60px) scale(1.08); }
+  66% { transform: translate(-35px, 35px) scale(0.92); }
+}
+
+@keyframes float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-60px, 45px) scale(1.12); }
+  66% { transform: translate(35px, -40px) scale(0.88); }
+}
+
+@keyframes float-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(55px, -45px) scale(1.15); }
+}
+
+@keyframes float-4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-40px, 25px) scale(1.1); }
+  50% { transform: translate(15px, -35px) scale(0.9); }
+  75% { transform: translate(35px, 15px) scale(1.06); }
+}
+
+@keyframes float-5 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(35px, -50px) scale(1.1); }
+  70% { transform: translate(-25px, 25px) scale(0.93); }
+}
