@@ -798,3 +798,132 @@ def clean_code_response(text: str) -> str:
         text = text[:-3].strip()
 
     return text
+
+
+def extract_fix_json(response_text: str, provider_name: str) -> dict:
+    """
+    Extraer y parsear JSON de la respuesta de IA para fix_diagram.
+
+    Maneja correctamente respuestas que contienen código D2 (con llaves anidadas)
+    u otros lenguajes que usan {} en su sintaxis.
+
+    Args:
+        response_text: Texto crudo de la respuesta del modelo
+        provider_name: Nombre del proveedor (para mensajes de error)
+
+    Returns:
+        Dict con corrected_code, explanation, changes_summary
+
+    Raises:
+        ValueError: Si no se puede extraer o parsear el JSON
+    """
+    import json
+    import re
+
+    text = response_text.strip()
+
+    # 1. Remover bloques de código markdown que envuelvan el JSON
+    md_match = re.match(r'^```(?:json)?\s*\n(.*?)```\s*$', text, re.DOTALL)
+    if md_match:
+        text = md_match.group(1).strip()
+
+    # 2. Intentar parsear directamente (caso ideal: respuesta es solo JSON)
+    try:
+        result = json.loads(text)
+        if isinstance(result, dict):
+            _validate_fix_fields(result, provider_name)
+            return result
+    except json.JSONDecodeError:
+        pass
+
+    # 3. Buscar JSON con balance de llaves (maneja llaves anidadas en D2/PlantUML)
+    result = _extract_balanced_json(text)
+    if result is not None:
+        _validate_fix_fields(result, provider_name)
+        return result
+
+    # 4. Fallback: intentar regex greedy (último recurso)
+    json_match = re.search(r'\{[\s\S]*\}', text)
+    if json_match:
+        try:
+            result = json.loads(json_match.group())
+            if isinstance(result, dict):
+                _validate_fix_fields(result, provider_name)
+                return result
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(
+        f"No se pudo extraer JSON de la respuesta de {provider_name}"
+    )
+
+
+def _extract_balanced_json(text: str) -> dict | None:
+    """
+    Extraer el primer objeto JSON con llaves balanceadas del texto.
+
+    Recorre el texto carácter por carácter, rastreando la profundidad de llaves
+    y respetando strings JSON (donde las llaves no cuentan).
+    """
+    import json
+
+    start = text.find('{')
+    if start == -1:
+        return None
+
+    depth = 0
+    in_string = False
+    escape_next = False
+    i = start
+
+    while i < len(text):
+        char = text[i]
+
+        if escape_next:
+            escape_next = False
+            i += 1
+            continue
+
+        if char == '\\' and in_string:
+            escape_next = True
+            i += 1
+            continue
+
+        if char == '"' and not escape_next:
+            in_string = not in_string
+            i += 1
+            continue
+
+        if not in_string:
+            if char == '{':
+                depth += 1
+            elif char == '}':
+                depth -= 1
+                if depth == 0:
+                    candidate = text[start:i + 1]
+                    try:
+                        result = json.loads(candidate)
+                        if isinstance(result, dict):
+                            return result
+                    except json.JSONDecodeError:
+                        # Este bloque balanceado no es JSON válido,
+                        # buscar el siguiente '{'
+                        start = text.find('{', i + 1)
+                        if start == -1:
+                            return None
+                        i = start
+                        depth = 0
+                        continue
+
+        i += 1
+
+    return None
+
+
+def _validate_fix_fields(result: dict, provider_name: str) -> None:
+    """Validar que el dict tenga los campos requeridos para fix_diagram."""
+    for field in ("corrected_code", "explanation", "changes_summary"):
+        if field not in result:
+            raise ValueError(
+                f"Respuesta de {provider_name} no contiene '{field}'"
+            )

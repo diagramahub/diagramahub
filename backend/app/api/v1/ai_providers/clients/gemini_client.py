@@ -76,27 +76,16 @@ class GeminiClient(BaseAIClient):
         language: str = "es",
     ) -> Dict[str, str]:
         from ...diagrams.fix_prompts import build_fix_prompt
-        import json
-        import re
+        from ..prompts import extract_fix_json
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             response_text = await self._generate(prompt, temperature=0.3)
 
-            json_match = re.search(r'\{[\s\S]*\}', response_text)
-            if not json_match:
-                raise ValueError("No se pudo extraer JSON de la respuesta de Gemini")
-
-            fix_result = json.loads(json_match.group())
-            for field in ("corrected_code", "explanation", "changes_summary"):
-                if field not in fix_result:
-                    raise ValueError(f"Respuesta de Gemini no contiene '{field}'")
-
+            fix_result = extract_fix_json(response_text, "Gemini")
             fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
             return fix_result
 
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Error al parsear respuesta JSON de Gemini: {str(e)}")
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con Gemini: {str(e)}")
 
