@@ -2475,7 +2475,7 @@ export default function DiagramEditorPage() {
                           className={`px-2 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
                             isFixing
                               ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                              : 'bg-purple-600 text-white hover:bg-purple-500'
+                              : 'bg-purple-500 text-white hover:bg-purple-400 shadow-sm shadow-purple-500/30'
                           }`}
                         >
                           {isFixing ? (

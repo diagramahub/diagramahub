@@ -5,6 +5,19 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.4.1] - 2026-04-30
+
+### Fixed
+- Parser de respuestas JSON de IA para corrección de diagramas: reemplazado regex greedy por parser con balance de llaves (`extract_fix_json`), resolviendo fallos con código D2/PlantUML que contiene llaves anidadas.
+- OpenAI usa `response_format: json_object` para forzar respuestas JSON válidas en correcciones.
+- Contraste del botón "Corregir con IA" mejorado en editor oscuro.
+
+### Added
+- Fondo animado con blobs flotantes rosa/púrpura en página de login (componente `AnimatedBackground`).
+- Card de login con efecto glassmorphism.
+- Email del usuario visible en pantalla de verificación MFA.
+- Modal de compartir diagrama completamente internacionalizado (38 claves i18n en `es.json` y `en.json`).
+
 ## [0.4.0] - 2026-04-29
 
 ### Added
