@@ -6,7 +6,8 @@ export enum AIProviderType {
   GEMINI = 'gemini',
   OPENAI = 'openai',
   CLAUDE = 'claude',
-  DEEPSEEK = 'deepseek'
+  DEEPSEEK = 'deepseek',
+  MINIMAX = 'minimax'
 }
 
 export interface AIProviderConfig {
@@ -127,7 +128,8 @@ export const AI_PROVIDER_NAMES: Record<AIProviderType, string> = {
   [AIProviderType.GEMINI]: 'Google Gemini',
   [AIProviderType.OPENAI]: 'OpenAI GPT',
   [AIProviderType.CLAUDE]: 'Anthropic Claude',
-  [AIProviderType.DEEPSEEK]: 'DeepSeek'
+  [AIProviderType.DEEPSEEK]: 'DeepSeek',
+  [AIProviderType.MINIMAX]: 'Minimax'
 };
 
 export interface ModelOption {
@@ -160,6 +162,10 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
     { id: 'deepseek-chat', recommended: true },
     { id: 'deepseek-coder' },
   ],
+  [AIProviderType.MINIMAX]: [
+    { id: 'minimax-01', recommended: true },
+    { id: 'abab6.5s-chat' },
+  ],
 };
 
 /** Helper: get the recommended (default) model for a provider */
@@ -180,14 +186,16 @@ export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_so
   [AIProviderType.GEMINI]: 'available',
   [AIProviderType.OPENAI]: 'available',
   [AIProviderType.CLAUDE]: 'available',
-  [AIProviderType.DEEPSEEK]: 'available'
+  [AIProviderType.DEEPSEEK]: 'available',
+  [AIProviderType.MINIMAX]: 'available'
 };
 
 export const AI_PROVIDER_API_KEY_URLS: Record<AIProviderType, string> = {
   [AIProviderType.GEMINI]: 'https://aistudio.google.com/app/apikey',
   [AIProviderType.OPENAI]: 'https://platform.openai.com/api-keys',
   [AIProviderType.CLAUDE]: 'https://console.anthropic.com/settings/keys',
-  [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys'
+  [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys',
+  [AIProviderType.MINIMAX]: 'https://platform.minimaxi.com/user-center/basic-information/interface-key'
 };
 
 // Types for diagram fix functionality

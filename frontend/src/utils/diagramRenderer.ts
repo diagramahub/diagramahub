@@ -22,7 +22,7 @@ export const MERMAID_TYPES = [
   'gitgraph',
 ];
 
-export const SERVER_RENDERED_TYPES = ['plantuml', 'uml', 'd2'];
+export const SERVER_RENDERED_TYPES = ['plantuml', 'uml', 'd2', 'dbml'];
 
 export function isMermaidType(diagramType: string): boolean {
   return MERMAID_TYPES.includes(diagramType.toLowerCase());

@@ -118,7 +118,18 @@
       "errorExporting": "Error exporting users",
       "registered": "Registered:",
       "diagram": "diagram",
-      "diagrams": "diagrams"
+      "diagrams": "diagrams",
+      "columnEmail": "Email",
+      "columnName": "Name",
+      "columnRole": "Role",
+      "columnPlan": "Plan",
+      "columnDiagrams": "Diagrams",
+      "columnMfaStatus": "MFA Status",
+      "columnRecoveryCodes": "Recovery Codes",
+      "columnRegistered": "Registered",
+      "columnActions": "Actions",
+      "user": "User",
+      "noMfa": "Disabled"
     }
   },
   "installation": {
@@ -243,10 +254,17 @@
     "exitFullscreen": "Exit fullscreen",
     "type": {
       "d2": "D2",
-      "d2Description": "Declarative diagramming language"
+      "d2Description": "Declarative diagramming language",
+      "dbml": "DBML",
+      "dbmlDescription": "Database Markup Language for ER diagrams"
     },
     "d2": {
       "themeHint": "The theme is automatically applied to the D2 diagram"
+    },
+    "dbml": {
+      "name": "DBML",
+      "description": "Database Markup Language — define tables, columns, and relationships",
+      "renderError": "Error rendering DBML diagram. Check the syntax."
     },
     "render": {
       "error": "Error rendering diagram",
@@ -366,6 +384,16 @@
     "noDescription": "No description",
     "noChanges": "No changes",
     "zoom": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitToScreen": "Fit to screen",
+    "diagramStructure": "Project structure",
+    "sharedLinkActive": "This diagram has an active shared link",
+    "shared": "Shared",
+    "saveDiagramFirst": "Save the diagram first to share",
+    "shareDiagram": "Share diagram",
+    "chatWithAI": "Chat with AI",
+    "improveWithAI": "Improve with AI",
     "exportDiagram": "Export Diagram",
     "includeDescription": "Include diagram description",
     "includeProjectInfo": "Include project information",
@@ -394,7 +422,10 @@
     "fixWithAI": "Fix with AI",
     "fix": "Fix",
     "copied": "Copied!",
-    "copyCode": "Copy code"
+    "copyCode": "Copy code",
+    "backToDashboard": "Dashboard",
+    "editDiagramTitle": "Edit diagram title",
+    "clickToEditTitle": "Click to edit title"
   },
   "errors": {
     "genericError": "An error occurred",
@@ -633,7 +664,8 @@
       "gemini": "Google Gemini",
       "openai": "OpenAI GPT",
       "claude": "Anthropic Claude",
-      "deepseek": "DeepSeek"
+      "deepseek": "DeepSeek",
+      "minimax": "Minimax"
     },
     "status": {
       "available": "Available",
@@ -728,6 +760,7 @@
       "openai": "Create an OpenAI account and generate an API key",
       "claude": "Sign up at Anthropic Console to get access",
       "deepseek": "Visit DeepSeek to create your account and get a key",
+      "minimax": "Visit Minimax platform to get your API key",
       "security": "Your API keys are stored securely and encrypted",
       "providerCannotChange": "The provider cannot be changed. If you need to use another provider, create a new connection.",
       "apiKeyUpdate": "Leave this field empty if you don't want to change the current API key",
@@ -791,5 +824,25 @@
     "generating": "Generating...",
     "generateError": "Error generating link",
     "revokeError": "Error revoking link"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "aiSettings": "AI Settings",
+    "integrations": "Integrations",
+    "userManagement": "User Management",
+    "recentProjects": "Recent Projects",
+    "viewAll": "View all",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "subscription": "My Subscription",
+    "administration": "Administration",
+    "plans": "Plans",
+    "plansDescription": "Manage subscription plans and pricing",
+    "toggleTheme": "Toggle theme",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "openMenu": "Open menu",
+    "noRecentProjects": "No recent projects"
   }
 }

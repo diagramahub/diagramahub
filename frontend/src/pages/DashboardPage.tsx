@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Project } from '../types/project';
-import Navbar from '../components/Navbar';
 import MfaBanner from '../components/MfaBanner';
 import CreateProjectModal from '../components/CreateProjectModal';
 import ConfirmModal from '../components/ConfirmModal';
@@ -87,20 +86,19 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 transition-colors">
-      <Navbar />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <MfaBanner />
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Welcome + Stats */}
         <div className="mb-8 sm:mb-10">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
                 {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '' })} 👋
               </h1>
-              <p className="text-sm text-gray-500 mt-1">{t('dashboard.welcomeSubtitle')}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.welcomeSubtitle')}</p>
             </div>
             <button
               onClick={handleCreateProject}
@@ -117,59 +115,59 @@ const DashboardPage: React.FC = () => {
           {/* Stats cards */}
           {!loading && projects.length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{projects.length}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsProjects')}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{projects.length}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsProjects')}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{projects.reduce((sum, p) => sum + (p.diagram_count || 0), 0)}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsDiagrams')}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{projects.reduce((sum, p) => sum + (p.diagram_count || 0), 0)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsDiagrams')}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {projects.length > 0
                         ? new Date(Math.max(...projects.map(p => new Date(p.updated_at || p.created_at).getTime()))).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
                         : '—'}
                     </p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsLastActivity')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsLastActivity')}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{user?.subscription?.plan?.name || 'Free'}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsPlan')}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{user?.subscription?.plan?.name || 'Free'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsPlan')}</p>
                   </div>
                 </div>
               </div>
@@ -180,18 +178,18 @@ const DashboardPage: React.FC = () => {
         {/* Projects section header */}
         {!loading && projects.length > 0 && (
           <div className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.title')}</h2>
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('dashboard.title')}</h2>
           </div>
         )}
 
         {loading ? (
-          <div className="text-center py-16 text-gray-500">{t('dashboard.loading')}</div>
+          <div className="text-center py-16 text-gray-500 dark:text-gray-400">{t('dashboard.loading')}</div>
         ) : projects.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">{t('dashboard.noProjects')}</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">{t('dashboard.noProjects')}</p>
             <button
               onClick={() => navigate('/onboarding')}
-              className="text-sm text-gray-900 hover:text-gray-600 underline"
+              className="text-sm text-gray-900 dark:text-gray-100 hover:text-gray-600 dark:hover:text-gray-300 underline"
             >
               {t('dashboard.createFirstProject')}
             </button>
@@ -201,41 +199,41 @@ const DashboardPage: React.FC = () => {
             {projects.map(project => (
               <div
                 key={project.id}
-                className="relative bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group cursor-pointer"
+                className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md dark:hover:shadow-purple-900/20 transition-all group cursor-pointer"
                 onClick={() => handleProjectClick(project.id)}
               >
                 {/* Header with emoji and name */}
-                <div className="p-5 border-b border-gray-100">
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-50 to-purple-50 flex items-center justify-center text-2xl">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-50 to-purple-50 dark:from-purple-900/20 dark:to-purple-900/20 flex items-center justify-center text-2xl">
                       {project.emoji}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors truncate">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors truncate">
                         {project.name}
                       </h3>
                       {project.description ? (
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
                           {project.description}
                         </p>
                       ) : (
-                        <p className="text-sm text-gray-400 italic mt-1">{t('dashboard.noDescription')}</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500 italic mt-1">{t('dashboard.noDescription')}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
                 {/* Stats section */}
-                <div className="px-5 py-3 bg-gray-50">
+                <div className="px-5 py-3 bg-gray-50 dark:bg-gray-800/50">
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <span className="font-medium">{project.diagram_count}</span>
-                      <span className="text-gray-500">{project.diagram_count === 1 ? t('dashboard.diagram') : t('dashboard.diagrams')}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{project.diagram_count === 1 ? t('dashboard.diagram') : t('dashboard.diagrams')}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
@@ -255,7 +253,7 @@ const DashboardPage: React.FC = () => {
                       e.stopPropagation();
                       handleEditProject(project);
                     }}
-                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
                     title={t('dashboard.editProject')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +265,7 @@ const DashboardPage: React.FC = () => {
                       e.stopPropagation();
                       handleDeleteProject(project.id, project.name);
                     }}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                     title={t('dashboard.deleteProject')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

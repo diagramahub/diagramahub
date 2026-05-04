@@ -41,6 +41,23 @@
       0 2px 8px rgba(147, 51, 234, 0.3),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
+
+  /* Dark mode: softer purple glow */
+  :is(.dark .btn-glass) {
+    box-shadow:
+      0 4px 15px rgba(168, 85, 247, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  :is(.dark .btn-glass):hover {
+    box-shadow:
+      0 6px 20px rgba(168, 85, 247, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  :is(.dark .btn-glass):active {
+    box-shadow:
+      0 2px 8px rgba(168, 85, 247, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
 }
 
 body {
@@ -114,6 +131,39 @@ code {
 
 .EasyMDEContainer .editor-preview-side {
   border-left: 1px solid #e5e7eb;
+}
+
+/* Dark mode: EasyMDEContainer */
+.dark .EasyMDEContainer .CodeMirror {
+  color: #e5e7eb;
+}
+.dark .EasyMDEContainer .editor-toolbar {
+  border-bottom-color: #374151;
+}
+.dark .EasyMDEContainer .editor-toolbar button {
+  color: #9ca3af !important;
+}
+.dark .EasyMDEContainer .editor-toolbar button:hover,
+.dark .EasyMDEContainer .editor-toolbar button.active {
+  background: #374151 !important;
+  color: #f3f4f6 !important;
+}
+.dark .EasyMDEContainer .editor-toolbar i.separator {
+  border-left-color: #374151;
+}
+.dark .EasyMDEContainer .CodeMirror-cursor {
+  border-left-color: #f3f4f6;
+}
+.dark .EasyMDEContainer .CodeMirror-selected {
+  background: #6d28d9;
+}
+.dark .EasyMDEContainer .editor-preview,
+.dark .EasyMDEContainer .editor-preview-side {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+.dark .EasyMDEContainer .editor-preview-side {
+  border-left-color: #374151;
 }
 
 /* Animación de entrada del panel de chat */
@@ -205,6 +255,23 @@ code {
   margin: 0.5em 0;
 }
 
+/* Dark mode: chat-markdown */
+.dark .chat-markdown code {
+  background: rgba(255,255,255,0.1);
+}
+.dark .chat-markdown pre {
+  background: rgba(255,255,255,0.08);
+}
+.dark .chat-markdown blockquote {
+  border-left-color: rgba(255,255,255,0.2);
+}
+.dark .chat-markdown th, .dark .chat-markdown td {
+  border-color: rgba(255,255,255,0.15);
+}
+.dark .chat-markdown hr {
+  border-top-color: rgba(255,255,255,0.15);
+}
+
 /* EasyMDE WYSIWYG overrides for description panel */
 .markdown-wysiwyg .EasyMDEContainer {
   height: 100%;
@@ -263,6 +330,34 @@ code {
 .markdown-wysiwyg .editor-preview-side {
   padding: 16px;
   font-size: 14px;
+}
+
+/* Dark mode: markdown-wysiwyg */
+.dark .markdown-wysiwyg .EasyMDEContainer .CodeMirror {
+  color: #e5e7eb;
+}
+.dark .markdown-wysiwyg .editor-toolbar {
+  border-bottom-color: #374151;
+  background: #1f2937;
+}
+.dark .markdown-wysiwyg .editor-toolbar button {
+  color: #9ca3af !important;
+}
+.dark .markdown-wysiwyg .editor-toolbar button:hover {
+  background: #4c1d95 !important;
+  color: #c4b5fd !important;
+}
+.dark .markdown-wysiwyg .editor-toolbar button.active {
+  background: #4c1d95 !important;
+  color: #c4b5fd !important;
+}
+.dark .markdown-wysiwyg .editor-toolbar i.separator {
+  border-left-color: #374151;
+}
+.dark .markdown-wysiwyg .editor-preview,
+.dark .markdown-wysiwyg .editor-preview-side {
+  background: #1f2937;
+  color: #e5e7eb;
 }
 
 /* Animated background blobs for auth pages */

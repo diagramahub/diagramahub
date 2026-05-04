@@ -68,7 +68,7 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
@@ -78,20 +78,20 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       {/* Header */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Available Plans</h2>
-        <p className="mt-1 text-sm text-gray-600">Choose the plan that fits your needs</p>
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Available Plans</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Choose the plan that fits your needs</p>
       </div>
 
       {/* Plans Grid */}
@@ -106,14 +106,14 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                 key={plan.id}
                 className={`relative rounded-lg border-2 p-6 transition-all flex items-center justify-between ${
                   isCurrent
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-gray-200 hover:border-purple-300 hover:shadow-md'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md'
                 }`}
               >
                 {/* Left side - Plan info */}
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                     {isCurrent && (
                       <span className="px-2 py-1 text-xs font-semibold bg-purple-500 text-white rounded">
                         Plan Actual
@@ -128,14 +128,14 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
 
                   {/* Plan Description */}
                   {plan.description && (
-                    <p className="text-sm text-gray-600 mb-3">{plan.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{plan.description}</p>
                   )}
 
                   {/* Features */}
                   <div className="flex gap-6 text-sm">
                     <div className="flex items-center">
                       <svg
-                        className="w-4 h-4 text-green-500 mr-1.5"
+                        className="w-4 h-4 text-green-500 dark:text-green-400 mr-1.5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -147,13 +147,13 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                           d="M5 13l4 4L19 7"
                         />
                       </svg>
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 dark:text-gray-300">
                         {formatLimit(plan.max_projects)} proyecto{plan.max_projects !== 1 ? 's' : ''}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <svg
-                        className="w-4 h-4 text-green-500 mr-1.5"
+                        className="w-4 h-4 text-green-500 dark:text-green-400 mr-1.5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -165,7 +165,7 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                           d="M5 13l4 4L19 7"
                         />
                       </svg>
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 dark:text-gray-300">
                         {formatLimit(plan.max_diagrams)} diagrama{plan.max_diagrams !== 1 ? 's' : ''}
                       </span>
                     </div>
@@ -176,10 +176,10 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                 <div className="flex items-center gap-6 ml-6">
                   {/* Price */}
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {formatPrice(plan.price_usd)}
                     </div>
-                    <div className="text-sm text-gray-600">/mes</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">/mes</div>
                   </div>
 
                   {/* Action Button */}
@@ -188,7 +188,7 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
                     disabled={isCurrent || isChanging}
                     className={`px-6 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
                       isCurrent
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                         : isChanging
                         ? 'bg-purple-400 text-white cursor-wait'
                         : 'bg-purple-600 text-white btn-glass hover:bg-purple-700'

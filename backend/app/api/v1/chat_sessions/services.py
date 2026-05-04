@@ -22,7 +22,12 @@ from ..ai_providers.services import AIProviderService
 from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
+from ..diagrams.syntax_validator import SyntaxValidator
+
 logger = logging.getLogger(__name__)
+
+# --- Auto-retry constants ---
+MAX_RETRIES = 2
 
 # --- Context compaction constants ---
 CHARS_PER_TOKEN = 4
@@ -45,6 +50,8 @@ MODEL_TOKEN_LIMITS = {
     "gemini-1.5-pro": 1000000,
     "deepseek-chat": 64000,
     "deepseek-coder": 64000,
+    "minimax-01": 1000000,
+    "abab6.5s-chat": 32000,
 }
 
 DEFAULT_TOKEN_LIMIT = 64000
@@ -258,45 +265,9 @@ class ChatSessionService:
             start = time.time()
 
             # Call AI with unified system prompt + conversation history
-            if hasattr(client, '_generate'):
-                # Gemini: concatenate system + history into single prompt
-                conversation_parts = [system_prompt, ""]
-                for msg in history:
-                    role_label = (
-                        "Usuario" if msg["role"] == "user" else "Asistente"
-                    )
-                    if language != "es":
-                        role_label = (
-                            "User" if msg["role"] == "user" else "Assistant"
-                        )
-                    conversation_parts.append(
-                        f"{role_label}: {msg['content']}"
-                    )
-                role_suffix = "Asistente:" if language == "es" else "Assistant:"
-                conversation_parts.append(role_suffix)
-                ai_text = await client._generate("\n".join(conversation_parts))
-            elif hasattr(client, '_chat_completion'):
-                # OpenAI
-                api_messages = [{"role": "system", "content": system_prompt}]
-                for msg in history:
-                    api_messages.append({"role": msg["role"], "content": msg["content"]})
-                ai_text = await client._chat_completion(api_messages)
-            elif hasattr(client, '_make_request'):
-                # DeepSeek
-                api_messages = [{"role": "system", "content": system_prompt}]
-                for msg in history:
-                    api_messages.append({"role": msg["role"], "content": msg["content"]})
-                ai_text = await client._make_request(api_messages)
-            elif hasattr(client, '_messages_request'):
-                # Claude
-                api_messages = []
-                for msg in history:
-                    api_messages.append({"role": msg["role"], "content": msg["content"]})
-                ai_text = await client._messages_request(
-                    api_messages, system=system_prompt
-                )
-            else:
-                raise ValueError(f"Unsupported client: {type(client).__name__}")
+            ai_text = await self._call_ai_client(
+                client, system_prompt, history, language
+            )
 
             generation_time = time.time() - start
 
@@ -311,7 +282,65 @@ class ChatSessionService:
                 raw_code = ai_text[start_idx:end_idx].strip()
                 improved_code = clean_code_response(raw_code)
 
-                explanation_end = ai_text.index(self.DIAGRAM_START)
+                # Auto-retry: validate syntax and retry if invalid
+                retries = 0
+                while improved_code and retries < MAX_RETRIES:
+                    validation = await SyntaxValidator.validate(
+                        improved_code, diagram_type
+                    )
+                    if validation.is_valid:
+                        break
+
+                    retries += 1
+                    logger.warning(
+                        "Syntax validation failed (attempt %d/%d): %s",
+                        retries,
+                        MAX_RETRIES,
+                        validation.error_message,
+                    )
+
+                    # Build retry context with the error message
+                    if language == "es":
+                        retry_msg = (
+                            f"El código de diagrama que generaste tiene un error de sintaxis: "
+                            f"{validation.error_message}. "
+                            f"Por favor corrige el error y genera el diagrama completo nuevamente."
+                        )
+                    else:
+                        retry_msg = (
+                            f"The diagram code you generated has a syntax error: "
+                            f"{validation.error_message}. "
+                            f"Please fix the error and generate the complete diagram again."
+                        )
+
+                    # Append the error as a user message in the history for retry
+                    retry_history = history + [
+                        {"role": "assistant", "content": ai_text},
+                        {"role": "user", "content": retry_msg},
+                    ]
+
+                    retry_start = time.time()
+                    ai_text = await self._call_ai_client(
+                        client, system_prompt, retry_history, language
+                    )
+                    generation_time += time.time() - retry_start
+
+                    # Re-parse the retry response
+                    if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                        start_idx = ai_text.index(self.DIAGRAM_START) + len(
+                            self.DIAGRAM_START
+                        )
+                        end_idx = ai_text.index(self.DIAGRAM_END)
+                        raw_code = ai_text[start_idx:end_idx].strip()
+                        improved_code = clean_code_response(raw_code)
+                    else:
+                        # Retry response has no diagram code; stop retrying
+                        improved_code = None
+                        break
+
+                explanation_end = ai_text.index(self.DIAGRAM_START) if (
+                    self.DIAGRAM_START in ai_text
+                ) else len(ai_text)
                 display_text = ai_text[:explanation_end].strip()
                 if not display_text:
                     display_text = (
@@ -346,6 +375,62 @@ class ChatSessionService:
                 content=str(exc),
             )
             return self._message_to_response(error_msg)
+
+    # ------------------------------------------------------------------ #
+    #  AI client dispatch helper (used by send_message + retries)
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    async def _call_ai_client(
+        client,
+        system_prompt: str,
+        history: list[dict],
+        language: str = "es",
+    ) -> str:
+        """Dispatch an AI request to the appropriate client method.
+
+        Encapsulates the client-specific call pattern so it can be reused
+        for the initial request and for syntax-validation retries.
+        """
+        if hasattr(client, '_generate'):
+            # Gemini: concatenate system + history into single prompt
+            conversation_parts = [system_prompt, ""]
+            for msg in history:
+                role_label = (
+                    "Usuario" if msg["role"] == "user" else "Asistente"
+                )
+                if language != "es":
+                    role_label = (
+                        "User" if msg["role"] == "user" else "Assistant"
+                    )
+                conversation_parts.append(
+                    f"{role_label}: {msg['content']}"
+                )
+                role_suffix = "Asistente:" if language == "es" else "Assistant:"
+            conversation_parts.append(role_suffix)
+            return await client._generate("\n".join(conversation_parts))
+        elif hasattr(client, '_chat_completion'):
+            # OpenAI
+            api_messages = [{"role": "system", "content": system_prompt}]
+            for msg in history:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            return await client._chat_completion(api_messages)
+        elif hasattr(client, '_make_request'):
+            # DeepSeek / Minimax
+            api_messages = [{"role": "system", "content": system_prompt}]
+            for msg in history:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            return await client._make_request(api_messages)
+        elif hasattr(client, '_messages_request'):
+            # Claude
+            api_messages = []
+            for msg in history:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            return await client._messages_request(
+                api_messages, system=system_prompt
+            )
+        else:
+            raise ValueError(f"Unsupported client: {type(client).__name__}")
 
     # ------------------------------------------------------------------ #
     #  Task 5.4 – Context compaction logic

@@ -14,7 +14,6 @@ import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Tooltip from '../components/Tooltip';
 import CodeEditor from '../components/CodeEditor';
-import ImproveDiagramWithAIModal from '../components/ImproveDiagramWithAIModal';
 import AIChatPanel from '../components/AIChatPanel';
 import NoAIProviderModal from '../components/NoAIProviderModal';
 import UpgradePlanModal from '../components/UpgradePlanModal';
@@ -141,6 +140,7 @@ export default function DiagramEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   
   // Ref to track if we're updating from UI controls (to avoid infinite loops)
   const isUpdatingFromUI = useRef(false);
@@ -153,7 +153,6 @@ export default function DiagramEditorPage() {
 
   // Export options state
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showImproveAIModal, setShowImproveAIModal] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(false);
   const [exportOptions, setExportOptions] = useState({
     includeDescription: true,
@@ -1144,6 +1143,14 @@ export default function DiagramEditorPage() {
     setIsEditingDiagramTitle(true);
   };
 
+  // Focus title input when editing starts
+  useEffect(() => {
+    if (isEditingDiagramTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingDiagramTitle]);
+
   const handleSaveDiagramTitle = async () => {
     if (!editingDiagramTitle.trim() || !currentDiagram) {
       setIsEditingDiagramTitle(false);
@@ -1732,386 +1739,178 @@ export default function DiagramEditorPage() {
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden">
-      {/* Navbar Unificado */}
+    <div className="h-screen bg-white dark:bg-gray-900 flex flex-col overflow-hidden">
+      {/* Unified Toolbar */}
       {!isFullscreen && (
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2.5 gap-1 sm:gap-0">
-            {/* Breadcrumbs y contexto */}
-            <div className="flex items-center gap-1 sm:gap-2 min-w-0 w-full sm:w-auto sm:flex-1">
-              {/* Home - Dashboard */}
-              <Tooltip content="Ir al Dashboard" position="bottom">
+        <div className="flex items-center h-9 px-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 flex-shrink-0">
+          {/* Left: editable diagram title */}
+          <div className="flex items-center gap-2 min-w-0">
+            {isEditingDiagramTitle ? (
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={editingDiagramTitle}
+                onChange={(e) => setEditingDiagramTitle(e.target.value)}
+                onBlur={handleSaveDiagramTitle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveDiagramTitle();
+                  if (e.key === 'Escape') handleCancelEditDiagramTitle();
+                }}
+                className="text-sm font-medium text-gray-900 dark:text-gray-100 bg-transparent border-b-2 border-purple-500 outline-none px-1 py-0.5 max-w-[200px]"
+                aria-label={t('editor.editDiagramTitle')}
+              />
+            ) : (
+              <button
+                onClick={handleStartEditDiagramTitle}
+                className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate max-w-[200px] flex items-center gap-1"
+                title={t('editor.clickToEditTitle')}
+              >
+                <span className="truncate">{diagramTitle}</span>
+                <svg className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {/* Spacer */}
+          <div className="flex-1" />
+          {/* Right: all toolbar buttons */}
+          <div className="flex items-center gap-0.5">
+              {/* Structure toggle */}
+              <Tooltip content={t('editor.structure')} position="bottom">
                 <button
-                  onClick={() => navigate('/dashboard')}
-                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
+                  className={`floating-sidebar-button p-1.5 rounded-md transition-colors ${showFloatingSidebar ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
+                  aria-label={t('editor.structure')}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                   </svg>
                 </button>
               </Tooltip>
 
-              {/* Separador */}
-              <svg className="w-4 h-4 text-gray-300 hidden sm:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-
-              {/* Proyecto - Selector */}
-              <div className="relative flex-shrink-0" ref={projectSelectorRef}>
+              {/* Code toggle */}
+              <Tooltip content={t('editor.code')} position="bottom">
                 <button
-                  onClick={handleOpenProjectSelector}
-                  className="flex items-center gap-1 sm:gap-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded px-1.5 sm:px-2 py-1 transition-colors max-w-[140px] sm:max-w-none"
-                  aria-label={t('breadcrumb.switchProject')}
-                  aria-expanded={showProjectSelector}
-                  aria-haspopup="listbox"
+                  onClick={() => setShowCodeView(!showCodeView)}
+                  className={`floating-code-button p-1.5 rounded-md transition-colors ${showCodeView ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
+                  aria-label={t('editor.code')}
                 >
-                  <span className="text-lg hidden sm:inline">{project?.emoji || '📁'}</span>
-                  <span className="font-medium truncate">{project?.name}</span>
-                  <svg className={`w-3 h-3 text-gray-400 transition-transform ${showProjectSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
                 </button>
+              </Tooltip>
 
-                {/* Dropdown */}
-                {showProjectSelector && (
-                  <div className="absolute top-full left-0 mt-1 w-[calc(100vw-2rem)] sm:w-72 bg-white rounded-xl border border-gray-200 shadow-lg z-50 overflow-hidden">
-                    {/* Search */}
-                    <div className="p-2 border-b border-gray-100">
-                      <input
-                        type="text"
-                        value={projectSearchQuery}
-                        onChange={(e) => setProjectSearchQuery(e.target.value)}
-                        placeholder={t('breadcrumb.searchProjects')}
-                        className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                        autoFocus
-                      />
-                    </div>
-
-                    {/* Project list */}
-                    <div className="max-h-64 overflow-y-auto py-1" role="listbox" aria-label={t('breadcrumb.switchProject')}>
-                      {loadingProjects ? (
-                        <div className="flex items-center justify-center py-4">
-                          <svg className="w-5 h-5 text-purple-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                        </div>
-                      ) : filteredProjects.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-4">{t('breadcrumb.noProjectsFound')}</p>
-                      ) : (
-                        filteredProjects.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={() => handleSelectProject(p.id)}
-                            role="option"
-                            aria-selected={p.id === projectId}
-                            className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors ${
-                              p.id === projectId
-                                ? 'bg-purple-50 text-purple-700'
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="text-lg flex-shrink-0">{p.emoji || '📁'}</span>
-                            <div className="min-w-0 flex-1">
-                              <span className="font-medium block truncate">{p.name}</span>
-                              <span className="text-xs text-gray-400">
-                                {p.diagram_count} {p.diagram_count === 1 ? t('dashboard.diagram') : t('dashboard.diagrams')}
-                              </span>
-                            </div>
-                            {p.id === projectId && (
-                              <svg className="w-4 h-4 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Separador */}
-              <svg className="w-4 h-4 text-gray-300 hidden sm:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-
-              {/* Carpeta o Raíz */}
-              {selectedFolderId && project?.folders ? (() => {
-                const folder = project.folders.find(f => f.id === selectedFolderId);
-                return folder ? (
-                  <>
-                    <Tooltip content="Ver diagramas en esta carpeta" position="bottom">
-                      <button
-                        onClick={() => {
-                          // Expandir la carpeta y abrir el modal
-                          setExpandedFolders(new Set([selectedFolderId]));
-                          setShowFloatingSidebar(true);
-                        }}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded hover:opacity-80 transition-opacity"
-                        style={{ backgroundColor: `${folder.color}15` }}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
-                        <span className="text-sm font-medium" style={{ color: folder.color }}>{folder.name}</span>
-                      </button>
-                    </Tooltip>
-                    <svg className="w-4 h-4 text-gray-300 hidden md:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </>
-                ) : null;
-              })() : (
-                <>
-                  <Tooltip content="Ver todos los diagramas del proyecto" position="bottom">
-                    <button
-                      onClick={() => setShowFloatingSidebar(true)}
-                      className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-                    >
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      <span className="text-sm font-medium text-gray-600">/</span>
-                    </button>
-                  </Tooltip>
-                  <svg className="w-4 h-4 text-gray-300 hidden sm:block flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              {/* Description toggle */}
+              <Tooltip content={t('editor.description')} position="bottom">
+                <button
+                  onClick={() => setShowDescriptionView(!showDescriptionView)}
+                  className={`floating-description-button p-1.5 rounded-md transition-colors ${showDescriptionView ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
+                  aria-label={t('editor.description')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                </>
-              )}
+                </button>
+              </Tooltip>
 
-              {/* Título del diagrama editable */}
-              {isEditingDiagramTitle ? (
-                <input
-                  type="text"
-                  value={editingDiagramTitle}
-                  onChange={(e) => setEditingDiagramTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveDiagramTitle();
-                    if (e.key === 'Escape') handleCancelEditDiagramTitle();
-                  }}
-                  onBlur={handleSaveDiagramTitle}
-                  className="text-sm font-medium text-gray-900 bg-white border border-purple-500 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  autoFocus
-                  style={{ width: `${Math.max(editingDiagramTitle.length * 8, 100)}px` }}
-                />
-              ) : (
-                <>
-                <Tooltip content="Haz clic para editar el nombre" position="bottom">
-                  <button
-                    onClick={handleStartEditDiagramTitle}
-                    className="text-sm font-medium text-gray-900 hover:text-purple-600 hover:bg-gray-50 rounded px-2 py-0.5 transition-colors flex items-center gap-1.5 group"
-                  >
-                    <span>{diagramTitle}</span>
-                    <svg className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                </Tooltip>
-                {isShared && (
-                  <Tooltip content="Este diagrama tiene un enlace compartido activo" position="bottom">
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                      </svg>
-                      Compartido
-                    </span>
-                  </Tooltip>
-                )}
-                </>
-              )}
-            </div>
-            {/* Controles centrales */}
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-              {/* Grupo de paneles */}
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <Tooltip content="Editar código del diagrama" position="bottom">
-                  <button
-                    onClick={() => setShowCodeView(!showCodeView)}
-                    className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showCodeView
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                      </svg>
-                      <span className="hidden sm:inline">{t('editor.code')}</span>
-                    </div>
-                  </button>
-                </Tooltip>
-                <Tooltip content="Agregar o editar descripción del diagrama (Markdown)" position="bottom">
-                  <button
-                    onClick={() => setShowDescriptionView(!showDescriptionView)}
-                    className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showDescriptionView
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className="hidden sm:inline">{t('editor.description')}</span>
-                    </div>
-                  </button>
-                </Tooltip>
-                <Tooltip content="Configurar tema, layout y estilo del diagrama" position="bottom">
-                  <button
-                    onClick={() => setShowAppearanceEditor(!showAppearanceEditor)}
-                    className={`px-2 sm:px-3 py-1.5 text-xs font-medium rounded-md transition-all ${showAppearanceEditor
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                      </svg>
-                      <span className="hidden sm:inline">{t('editor.appearance')}</span>
-                    </div>
-                  </button>
-                </Tooltip>
+              {/* Appearance toggle */}
+              <Tooltip content={t('editor.appearance')} position="bottom">
+                <button
+                  onClick={() => setShowAppearanceEditor(!showAppearanceEditor)}
+                  className={`floating-appearance-button p-1.5 rounded-md transition-colors ${showAppearanceEditor ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
+                  aria-label={t('editor.appearance')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                  </svg>
+                </button>
+              </Tooltip>
+
+              {/* Separator */}
+              <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+
+              {/* AI Chat button */}
+              <Tooltip content={t('editor.aiChat')} position="bottom">
+                <button
+                  onClick={() => { if (validateAIConfiguration()) setShowChatPanel(true); }}
+                  className={`p-1.5 rounded-md transition-colors ${showChatPanel ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/50'}`}
+                  aria-label={t('editor.aiChat')}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                    <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                  </svg>
+                </button>
+              </Tooltip>
+
+              {/* Separator */}
+              <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+
+              {/* Export button */}
+              <Tooltip content={t('editor.exportDiagram')} position="bottom">
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                  aria-label={t('editor.exportDiagram')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+              </Tooltip>
+
+              {/* Share button */}
+              <Tooltip content={!diagramId ? t('editor.saveDiagramFirst') : t('editor.shareDiagram')} position="bottom">
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  disabled={!diagramId}
+                  className={`p-1.5 rounded-md transition-colors ${!diagramId ? 'text-gray-300 cursor-not-allowed dark:text-gray-600' : isShared ? 'text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
+                  aria-label={t('editor.shareDiagram')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
+              </Tooltip>
+
+              {/* Separator */}
+              <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+
+              {/* Zoom controls */}
+              <div className="hidden md:flex items-center gap-0.5">
+                <button onClick={handleZoomOut} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors" aria-label={t('editor.zoomOut')}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" /></svg>
+                </button>
+                <span className="text-xs font-mono text-gray-600 dark:text-gray-400 min-w-[40px] text-center select-none">{Math.round(zoom * 100)}%</span>
+                <button onClick={handleZoomIn} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors" aria-label={t('editor.zoomIn')}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                </button>
+                <button onClick={handleFitToScreen} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors" aria-label={t('editor.fitToScreen')}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                </button>
               </div>
 
-              {/* Separador */}
-              <div className="h-6 w-px bg-gray-300 hidden md:block"></div>
+              {/* Separator */}
+              <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1 hidden md:block" />
 
-              {/* Grupo de zoom (solo visible cuando hay diagrama) */}
-              {activeTab === 'code' && (
-                <div className="hidden md:flex items-center gap-1 bg-gray-50 rounded-lg px-2 py-1 border border-gray-200">
-                  <button
-                    onClick={handleZoomOut}
-                    className="p-1 hover:bg-white rounded transition-colors"
-                    title="Reducir zoom"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  </button>
-                  <span className="px-2 text-xs font-mono text-gray-700 min-w-[45px] text-center">
-                    {Math.round(zoom * 100)}%
-                  </span>
-                  <button
-                    onClick={handleZoomIn}
-                    className="p-1 hover:bg-white rounded transition-colors"
-                    title="Aumentar zoom"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
-                  <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                  <button
-                    onClick={handleFitToScreen}
-                    className="p-1 hover:bg-white rounded transition-colors"
-                    title="Ajustar a pantalla"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Fullscreen toggle */}
+              <Tooltip content={isFullscreen ? t('editor.exitFullscreen') : t('editor.fullscreen')} position="bottom">
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                  aria-label={isFullscreen ? t('editor.exitFullscreen') : t('editor.fullscreen')}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isFullscreen ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    ) : (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-
-              {/* Separador */}
-              <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
-
-              {/* Grupo de acciones */}
-              <div className="flex items-center gap-1 sm:gap-2">
-                <button
-                    onClick={() => {
-                      if (validateAIConfiguration()) {
-                        setShowChatPanel(true);
-                      }
-                    }}
-                    className="p-1.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
-                      <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
-                      <path d="M17 16C17 17.657 16.157 18.5 14.5 18.5C16.157 18.5 17 19.343 17 21C17 19.343 17.843 18.5 19.5 18.5C17.843 18.5 17 17.657 17 16Z" />
-                    </svg>
-                  </button>
-                <Tooltip content="Exportar como PNG o PDF" position="bottom">
-                  <button
-                    onClick={() => setShowExportModal(true)}
-                    className="px-3 py-1.5 text-xs font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1.5"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
-                </Tooltip>
-                <Tooltip content={!diagramId ? "Guarda el diagrama primero para compartir" : "Compartir diagrama"} position="bottom">
-                  <button
-                    onClick={() => setShowShareModal(true)}
-                    disabled={!diagramId}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 ${
-                      !diagramId
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : isShared
-                          ? 'text-purple-700 hover:bg-purple-50'
-                          : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                    </svg>
-                  </button>
-                </Tooltip>
-                <Tooltip content={isFullscreen ? "Salir de pantalla completa (Esc)" : "Modo presentación"} position="bottom">
-                  <button
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    className="p-1.5 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {isFullscreen ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      )}
-                    </svg>
-                  </button>
-                </Tooltip>
-
-                {/* Separador */}
-                <div className="h-6 w-px bg-gray-300 mx-1 sm:mx-2 hidden sm:block"></div>
-
-                {/* Avatar y usuario */}
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="hidden sm:flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
-                  title={t('nav.myProfile')}
-                >
-                  {user?.profile_picture ? (
-                    <img
-                      src={user.profile_picture}
-                      alt="Foto de perfil"
-                      className="w-7 h-7 rounded-full object-cover shadow-sm border border-gray-200"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                      {(() => {
-                        if (user?.full_name) {
-                          const names = user.full_name.trim().split(' ');
-                          if (names.length >= 2) {
-                            return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-                          }
-                          return names[0].substring(0, 2).toUpperCase();
-                        }
-                        if (user?.email) {
-                          return user.email.substring(0, 2).toUpperCase();
-                        }
-                        return 'U';
-                      })()}
-                    </div>
-                  )}
+                    )}
+                  </svg>
                 </button>
-              </div>
-            </div>
+              </Tooltip>
           </div>
         </div>
       )}
@@ -2124,12 +1923,159 @@ export default function DiagramEditorPage() {
         {/* Editor and Preview */}
         <main className="flex-1 flex overflow-hidden">
 
+          {(() => {
+            const codeEditorPanel = (
+              <div className="h-full flex flex-col bg-gray-900 dark:bg-gray-950">
+                {/* Title bar — IDE style */}
+                <div className="flex items-center justify-between px-3 py-2 bg-gray-800 dark:bg-gray-900 border-b border-gray-700">
+                  <div className="flex items-center gap-3">
+                    {/* Window dots */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setShowCodeView(false)}
+                        className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
+                        aria-label={t('common.close')}
+                      />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <div className="w-3 h-3 rounded-full bg-green-500" />
+                    </div>
+                    {/* File tab */}
+                    <div className="flex items-center gap-1.5 bg-gray-900 dark:bg-gray-950 rounded-t-md px-3 py-1 -mb-2 border border-gray-700 border-b-gray-900 dark:border-b-gray-950 relative top-[5px]">
+                      <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                      </svg>
+                      <span className="text-xs font-mono text-gray-300">
+                        {currentDiagram?.diagram_type === 'plantuml' ? 'diagram.puml' : currentDiagram?.diagram_type === 'd2' ? 'diagram.d2' : 'diagram.mmd'}
+                      </span>
+                      {diagramError.hasError && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title={t('editor.syntaxError')} />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {/* Fix with AI button — only when error */}
+                    {diagramError.hasError && currentDiagram && (
+                      <Tooltip content={isFixing ? t('editor.fixing') : t('editor.fixWithAI')} position="bottom">
+                        <button
+                          onClick={async () => {
+                            if (!currentDiagram || isFixing) return;
+                            setIsFixing(true);
+                            setFixError(null);
+                            try {
+                              const response = await api.fixDiagram(currentDiagram.id, {
+                                error_context: diagramError.errorContext,
+                                language: 'es'
+                              });
+                              handleFixSuccess(response);
+                            } catch (error: any) {
+                              let errorMessage = 'Error al corregir el diagrama';
+                              if (error.response) {
+                                const status = error.response.status;
+                                const detail = error.response.data?.detail || error.message;
+                                switch (status) {
+                                  case 401: errorMessage = 'No estás autenticado. Por favor inicia sesión.'; break;
+                                  case 403: errorMessage = 'No tienes permisos para corregir este diagrama.'; break;
+                                  case 404: errorMessage = 'Diagrama no encontrado.'; break;
+                                  case 408: errorMessage = 'La corrección tomó demasiado tiempo. Por favor intenta de nuevo.'; break;
+                                  case 422: errorMessage = `El código corregido no es válido: ${detail}`; break;
+                                  case 429: errorMessage = 'Límite de solicitudes excedido. Por favor intenta de nuevo en unos momentos.'; break;
+                                  case 500: case 502: case 503: errorMessage = `Error del servidor: ${detail}`; break;
+                                  default: errorMessage = detail || errorMessage;
+                                }
+                              } else if (error.message) {
+                                errorMessage = error.message;
+                              }
+                              handleFixError(errorMessage);
+                            } finally {
+                              setIsFixing(false);
+                            }
+                          }}
+                          disabled={isFixing}
+                          className={`px-2 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
+                            isFixing
+                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                              : 'bg-purple-500 text-white hover:bg-purple-400 shadow-sm shadow-purple-500/30'
+                          }`}
+                        >
+                          {isFixing ? (
+                            <>
+                              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              <span>{t('editor.fixing')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                                <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                              </svg>
+                              <span>{t('editor.fix')}</span>
+                            </>
+                          )}
+                        </button>
+                      </Tooltip>
+                    )}
+                    {/* Copy button */}
+                    <Tooltip content={codeCopied ? t('editor.copied') : t('editor.copyCode')} position="bottom">
+                      <button
+                        onClick={handleCopyCode}
+                        className={`p-1.5 rounded-md transition-colors ${codeCopied ? 'text-green-400 bg-green-900/30' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'}`}
+                      >
+                        {codeCopied ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        )}
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
 
-          {/* Preview */}
-          <div className="flex-1 flex flex-col bg-gray-50 relative">
+                {/* Editor with absolute positioning fix for Monaco */}
+                <div className="flex-1 relative min-h-0">
+                  <div className="absolute inset-0">
+                    <CodeEditor
+                      value={diagramCode}
+                      onChange={setDiagramCode}
+                      language={currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : currentDiagram?.diagram_type === 'd2' ? 'd2' : 'mermaid'}
+                      height="100%"
+                      borderless
+                      theme="vs-dark"
+                    />
+                  </div>
+                </div>
 
-            {/* Floating Modals */}
-            {/* Diagram Structure Modal */}
+                {/* Status bar */}
+                <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 dark:bg-gray-900 border-t border-gray-700 text-xs font-mono text-gray-400">
+                  <div className="flex items-center gap-3">
+                    {diagramError.hasError ? (
+                      <span className="flex items-center gap-1 text-red-400">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {t('editor.syntaxError')}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-green-400">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        {t('editor.noErrors')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span>{diagramCode.split('\n').length} {t('editor.lines')}</span>
+                    <span className="text-gray-500">|</span>
+                    <span className="uppercase">{currentDiagram?.diagram_type || 'mermaid'}</span>
+                  </div>
+                </div>
+              </div>
+            );
+
+            const previewPanel = (
+              <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-800 relative h-full">
+
+                {/* Floating Modals */}
+                {/* Diagram Structure Modal */}
             {showFloatingSidebar && (
               <div className="floating-sidebar absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white sm:rounded-xl shadow-lg border-r sm:border border-gray-200 sm:max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
                 {/* Header */}
@@ -2404,175 +2350,6 @@ export default function DiagramEditorPage() {
               </div>
             )}
 
-            {/* Code View Modal */}
-            {showCodeView && (
-              <div className="floating-code absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-[34rem] h-full sm:h-auto bg-gray-900 sm:rounded-xl shadow-2xl sm:border border-gray-700 sm:max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
-                {/* Title bar — IDE style */}
-                <div className="flex items-center justify-between px-3 py-2 bg-gray-800 border-b border-gray-700">
-                  <div className="flex items-center gap-3">
-                    {/* Window dots */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setShowCodeView(false)}
-                        className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
-                        aria-label={t('common.close')}
-                      />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                      <div className="w-3 h-3 rounded-full bg-green-500" />
-                    </div>
-                    {/* File tab */}
-                    <div className="flex items-center gap-1.5 bg-gray-900 rounded-t-md px-3 py-1 -mb-2 border border-gray-700 border-b-gray-900 relative top-[5px]">
-                      <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                      </svg>
-                      <span className="text-xs font-mono text-gray-300">
-                        {currentDiagram?.diagram_type === 'plantuml' ? 'diagram.puml' : currentDiagram?.diagram_type === 'd2' ? 'diagram.d2' : 'diagram.mmd'}
-                      </span>
-                      {diagramError.hasError && (
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title={t('editor.syntaxError')} />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {/* Fix with AI button — only when error */}
-                    {diagramError.hasError && currentDiagram && (
-                      <Tooltip content={isFixing ? t('editor.fixing') : t('editor.fixWithAI')} position="bottom">
-                        <button
-                          onClick={async () => {
-                            if (!currentDiagram || isFixing) return;
-                            setIsFixing(true);
-                            setFixError(null);
-                            try {
-                              const response = await api.fixDiagram(currentDiagram.id, {
-                                error_context: diagramError.errorContext,
-                                language: 'es'
-                              });
-                              handleFixSuccess(response);
-                            } catch (error: any) {
-                              let errorMessage = 'Error al corregir el diagrama';
-                              if (error.response) {
-                                const status = error.response.status;
-                                const detail = error.response.data?.detail || error.message;
-                                switch (status) {
-                                  case 401: errorMessage = 'No estás autenticado. Por favor inicia sesión.'; break;
-                                  case 403: errorMessage = 'No tienes permisos para corregir este diagrama.'; break;
-                                  case 404: errorMessage = 'Diagrama no encontrado.'; break;
-                                  case 408: errorMessage = 'La corrección tomó demasiado tiempo. Por favor intenta de nuevo.'; break;
-                                  case 422: errorMessage = `El código corregido no es válido: ${detail}`; break;
-                                  case 429: errorMessage = 'Límite de solicitudes excedido. Por favor intenta de nuevo en unos momentos.'; break;
-                                  case 500: case 502: case 503: errorMessage = `Error del servidor: ${detail}`; break;
-                                  default: errorMessage = detail || errorMessage;
-                                }
-                              } else if (error.message) {
-                                errorMessage = error.message;
-                              }
-                              handleFixError(errorMessage);
-                            } finally {
-                              setIsFixing(false);
-                            }
-                          }}
-                          disabled={isFixing}
-                          className={`px-2 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
-                            isFixing
-                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                              : 'bg-purple-500 text-white hover:bg-purple-400 shadow-sm shadow-purple-500/30'
-                          }`}
-                        >
-                          {isFixing ? (
-                            <>
-                              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
-                              <span>{t('editor.fixing')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
-                                <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
-                              </svg>
-                              <span>{t('editor.fix')}</span>
-                            </>
-                          )}
-                        </button>
-                      </Tooltip>
-                    )}
-                    {/* Copy button */}
-                    <Tooltip content={codeCopied ? t('editor.copied') : t('editor.copyCode')} position="bottom">
-                      <button
-                        onClick={handleCopyCode}
-                        className={`p-1.5 rounded-md transition-colors ${
-                          codeCopied
-                            ? 'text-green-400 bg-green-900/30'
-                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
-                        }`}
-                      >
-                        {codeCopied ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                          </svg>
-                        )}
-                      </button>
-                    </Tooltip>
-                    {/* Close button */}
-                    <button
-                      onClick={() => setShowCodeView(false)}
-                      className="p-1.5 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-md transition-colors"
-                      aria-label={t('common.close')}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Editor */}
-                <div className="flex-1 overflow-hidden" style={{ minHeight: '400px' }}>
-                  <CodeEditor
-                    value={diagramCode}
-                    onChange={setDiagramCode}
-                    language={currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : currentDiagram?.diagram_type === 'd2' ? 'd2' : 'mermaid'}
-                    height="500px"
-                    borderless
-                    theme="vs-dark"
-                  />
-                </div>
-
-                {/* Status bar */}
-                <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 border-t border-gray-700 text-xs font-mono text-gray-400">
-                  <div className="flex items-center gap-3">
-                    {diagramError.hasError ? (
-                      <span className="flex items-center gap-1 text-red-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        {t('editor.syntaxError')}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-green-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {t('editor.noErrors')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span>{diagramCode.split('\n').length} {t('editor.lines')}</span>
-                    <span className="text-gray-500">|</span>
-                    <span className="uppercase">{currentDiagram?.diagram_type || 'mermaid'}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Description View - removed, now a side panel outside main */}
 
             {/* Appearance Editor Modal */}
             {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml' || currentDiagram?.diagram_type === 'd2') && (
@@ -2898,7 +2675,7 @@ export default function DiagramEditorPage() {
 
             <div
               ref={containerRef}
-              className="flex-1 p-8 overflow-hidden"
+              className="flex-1 p-2 overflow-hidden"
               onMouseDown={activeTab === 'code' ? handleMouseDown : undefined}
               onMouseMove={activeTab === 'code' ? handleMouseMove : undefined}
               onMouseUp={activeTab === 'code' ? handleMouseUp : undefined}
@@ -2938,7 +2715,7 @@ export default function DiagramEditorPage() {
 
             {/* Barra de Estado Inferior */}
             {!isFullscreen && (
-              <div className="sticky bottom-0 bg-white border-t border-gray-200 px-2 sm:px-4 py-1.5 sm:py-2">
+              <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-2 sm:px-4 py-1.5 sm:py-2">
                 <div className="flex items-center justify-between text-xs">
                   {/* Información del lado izquierdo */}
                   <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
@@ -3035,6 +2812,28 @@ export default function DiagramEditorPage() {
               </div>
             )}
           </div>
+            );
+
+            return (
+              <div className="flex h-full w-full overflow-hidden">
+                {/* Code editor — always mounted, hidden via CSS when not active */}
+                <div
+                  className="flex-shrink-0 overflow-hidden transition-all duration-200"
+                  style={{ width: showCodeView ? '30%' : '0px', minWidth: showCodeView ? '250px' : '0px' }}
+                >
+                  {codeEditorPanel}
+                </div>
+                {/* Draggable divider — only visible when code is shown */}
+                {showCodeView && (
+                  <div className="flex-shrink-0 w-1 bg-gray-300 dark:bg-gray-600 hover:bg-purple-400 dark:hover:bg-purple-500 cursor-col-resize transition-colors" />
+                )}
+                {/* Preview — always visible */}
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  {previewPanel}
+                </div>
+              </div>
+            );
+          })()}
         </main>
 
         {/* Description Side Panel */}
@@ -3550,17 +3349,6 @@ export default function DiagramEditorPage() {
         confirmText="Eliminar"
         cancelText="Cancelar"
         isDangerous={true}
-      />
-
-      {/* Improve Diagram with AI Modal */}
-      <ImproveDiagramWithAIModal
-        isOpen={showImproveAIModal}
-        onClose={() => setShowImproveAIModal(false)}
-        onAccept={handleImproveAccept}
-        currentCode={diagramCode}
-        diagramType={currentDiagram?.diagram_type || 'mermaid'}
-        diagramId={diagramId}
-        aiSettings={aiSettings}
       />
 
       <NoAIProviderModal

@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # App environment
     APP_ENV: str = "production"
 
+    # Sentry (optional)
+    SENTRY_DSN: str | None = None
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

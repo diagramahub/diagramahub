@@ -1,6 +1,7 @@
 """
 Main FastAPI application entry point.
 """
+import logging
 from contextlib import asynccontextmanager
 
 from beanie import init_beanie
@@ -39,14 +40,89 @@ from app.api.v1.oauth.schemas import OAuthStateToken
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Sentry event sanitization (before_send callback)
+# ---------------------------------------------------------------------------
+
+# Headers and body parameter names that must be masked before sending to Sentry
+_SENSITIVE_HEADERS = {"authorization", "cookie"}
+_SENSITIVE_BODY_PARAMS = {"api_key", "password", "token", "secret", "jwt"}
+_MASK = "[Filtered]"
+
+
+def sanitize_sentry_event(event: dict, hint: dict) -> dict | None:
+    """Sanitize a Sentry event by removing/masking sensitive data.
+
+    Removes sensitive headers (Authorization, Cookie) and body parameters
+    (api_key, password, token, secret, jwt) from the event before it is
+    sent to Sentry.
+
+    Returns ``None`` when sanitization fails so that unsanitized data is
+    never transmitted.
+    """
+    try:
+        request_data = event.get("request")
+        if request_data and isinstance(request_data, dict):
+            # Sanitize headers
+            headers = request_data.get("headers")
+            if headers and isinstance(headers, dict):
+                for header_name in list(headers.keys()):
+                    if header_name.lower() in _SENSITIVE_HEADERS:
+                        headers[header_name] = _MASK
+
+            # Sanitize body / data params
+            data = request_data.get("data")
+            if data and isinstance(data, dict):
+                for param_name in list(data.keys()):
+                    if param_name.lower() in _SENSITIVE_BODY_PARAMS:
+                        data[param_name] = _MASK
+
+            # Sanitize query string params
+            query_string = request_data.get("query_string")
+            if query_string and isinstance(query_string, str):
+                import urllib.parse
+
+                parsed = urllib.parse.parse_qs(query_string)
+                sanitized_parts: list[str] = []
+                for key, values in parsed.items():
+                    if key.lower() in _SENSITIVE_BODY_PARAMS:
+                        sanitized_parts.append(f"{key}={_MASK}")
+                    else:
+                        for val in values:
+                            sanitized_parts.append(f"{key}={val}")
+                request_data["query_string"] = "&".join(sanitized_parts)
+
+        return event
+    except Exception:
+        # If sanitization fails, discard the event to avoid leaking data
+        logger.warning("Sentry event sanitization failed; discarding event")
+        return None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager for startup and shutdown events.
 
-    Handles MongoDB connection initialization and cleanup.
+    Handles Sentry initialization (when configured) and MongoDB connection.
     """
+    # Startup: Initialize Sentry (conditional — only when DSN is configured)
+    if settings.SENTRY_DSN:
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+
+        sentry_sdk.init(
+            dsn=settings.SENTRY_DSN,
+            environment=settings.APP_ENV,
+            release=settings.VERSION,
+            traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+            integrations=[FastApiIntegration()],
+            before_send=sanitize_sentry_event,
+        )
+        logger.info("Sentry initialized (environment=%s)", settings.APP_ENV)
+
     # Startup: Initialize MongoDB connection
     client = AsyncIOMotorClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]

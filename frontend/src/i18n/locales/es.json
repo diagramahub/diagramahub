@@ -118,7 +118,18 @@
       "errorExporting": "Error al exportar usuarios",
       "registered": "Registro:",
       "diagram": "diagrama",
-      "diagrams": "diagramas"
+      "diagrams": "diagramas",
+      "columnEmail": "Correo",
+      "columnName": "Nombre",
+      "columnRole": "Rol",
+      "columnPlan": "Plan",
+      "columnDiagrams": "Diagramas",
+      "columnMfaStatus": "Estado MFA",
+      "columnRecoveryCodes": "Códigos de recuperación",
+      "columnRegistered": "Registro",
+      "columnActions": "Acciones",
+      "user": "Usuario",
+      "noMfa": "Desactivado"
     }
   },
   "installation": {
@@ -243,10 +254,17 @@
     "exitFullscreen": "Salir de pantalla completa",
     "type": {
       "d2": "D2",
-      "d2Description": "Lenguaje de diagramación declarativo"
+      "d2Description": "Lenguaje de diagramación declarativo",
+      "dbml": "DBML",
+      "dbmlDescription": "Lenguaje de marcado para diagramas de bases de datos"
     },
     "d2": {
       "themeHint": "El tema se aplica automáticamente al diagrama D2"
+    },
+    "dbml": {
+      "name": "DBML",
+      "description": "Database Markup Language — define tablas, columnas y relaciones",
+      "renderError": "Error al renderizar el diagrama DBML. Verifica la sintaxis."
     },
     "render": {
       "error": "Error al renderizar el diagrama",
@@ -366,6 +384,16 @@
     "noDescription": "Sin descripción",
     "noChanges": "Sin cambios",
     "zoom": "Zoom",
+    "zoomIn": "Aumentar zoom",
+    "zoomOut": "Reducir zoom",
+    "fitToScreen": "Ajustar a pantalla",
+    "diagramStructure": "Estructura del proyecto",
+    "sharedLinkActive": "Este diagrama tiene un enlace compartido activo",
+    "shared": "Compartido",
+    "saveDiagramFirst": "Guarda el diagrama primero para compartir",
+    "shareDiagram": "Compartir diagrama",
+    "chatWithAI": "Chat con IA",
+    "improveWithAI": "Mejorar con IA",
     "exportDiagram": "Exportar Diagrama",
     "includeDescription": "Incluir descripción del diagrama",
     "includeProjectInfo": "Incluir información del proyecto",
@@ -394,7 +422,10 @@
     "fixWithAI": "Corregir con IA",
     "fix": "Corregir",
     "copied": "¡Copiado!",
-    "copyCode": "Copiar código"
+    "copyCode": "Copiar código",
+    "backToDashboard": "Dashboard",
+    "editDiagramTitle": "Editar título del diagrama",
+    "clickToEditTitle": "Clic para editar título"
   },
   "errors": {
     "genericError": "Ocurrió un error",
@@ -735,7 +766,8 @@
       "gemini": "Google Gemini",
       "openai": "OpenAI GPT",
       "claude": "Anthropic Claude",
-      "deepseek": "DeepSeek"
+      "deepseek": "DeepSeek",
+      "minimax": "Minimax"
     },
     "status": {
       "available": "Disponible",
@@ -830,6 +862,7 @@
       "openai": "Crea una cuenta en OpenAI y genera una clave API",
       "claude": "Regístrate en Anthropic Console para obtener acceso",
       "deepseek": "Visita DeepSeek para crear tu cuenta y obtener una clave",
+      "minimax": "Visita la plataforma de Minimax para obtener tu clave API",
       "security": "Tus claves API se almacenan de forma segura y encriptada",
       "providerCannotChange": "El proveedor no puede ser cambiado. Si necesitas usar otro proveedor, crea una nueva conexión.",
       "apiKeyUpdate": "Deja este campo vacío si no deseas cambiar la clave API actual",
@@ -910,5 +943,25 @@
     "generating": "Generando...",
     "generateError": "Error al generar el enlace",
     "revokeError": "Error al revocar el enlace"
+  },
+  "sidebar": {
+    "dashboard": "Panel de control",
+    "profile": "Perfil",
+    "aiSettings": "Configuraciones de IA",
+    "integrations": "Integraciones",
+    "userManagement": "Gestión de Usuarios",
+    "recentProjects": "Proyectos recientes",
+    "viewAll": "Ver todos",
+    "collapse": "Colapsar sidebar",
+    "expand": "Expandir sidebar",
+    "subscription": "Mi Suscripción",
+    "administration": "Administración",
+    "plans": "Planes",
+    "plansDescription": "Gestiona los planes de suscripción y precios",
+    "toggleTheme": "Cambiar tema",
+    "lightMode": "Modo claro",
+    "darkMode": "Modo oscuro",
+    "openMenu": "Abrir menú",
+    "noRecentProjects": "Sin proyectos recientes"
   }
 }

@@ -1,6 +1,7 @@
 import { Editor } from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import { registerD2Language } from '../utils/d2Language';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface CodeEditorProps {
   value: string;
@@ -19,8 +20,13 @@ export default function CodeEditor({
   height = '500px',
   readOnly = false,
   borderless = false,
-  theme: editorTheme = 'vs-light',
+  theme: editorThemeProp,
 }: CodeEditorProps) {
+  const { theme: appTheme } = useTheme();
+
+  // Use explicit prop if provided, otherwise auto-detect from ThemeContext
+  const editorTheme = editorThemeProp ?? (appTheme === 'dark' ? 'vs-dark' : 'vs-light');
+
   const handleEditorChange = (value: string | undefined) => {
     onChange(value || '');
   };
@@ -35,7 +41,7 @@ export default function CodeEditor({
   };
 
   return (
-    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 rounded overflow-hidden'}>
+    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 dark:border-gray-700 rounded overflow-hidden'}>
       <Editor
         beforeMount={handleEditorWillMount}
         height={height}
@@ -82,8 +88,8 @@ export default function CodeEditor({
           },
         }}
         loading={
-          <div className="flex items-center justify-center h-full bg-gray-50">
-            <div className="text-sm text-gray-500">Cargando editor...</div>
+          <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800">
+            <div className="text-sm text-gray-500 dark:text-gray-400">Cargando editor...</div>
           </div>
         }
       />
