@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
 
 interface TooltipProps {
   content: string;
@@ -9,10 +9,38 @@ interface TooltipProps {
 
 export default function Tooltip({ content, children, position = 'top', delay = 200 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
   let timeoutId: ReturnType<typeof setTimeout>;
 
   const handleMouseEnter = () => {
     timeoutId = setTimeout(() => {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        let top = 0;
+        let left = 0;
+
+        switch (position) {
+          case 'right':
+            top = rect.top + rect.height / 2;
+            left = rect.right + 8;
+            break;
+          case 'left':
+            top = rect.top + rect.height / 2;
+            left = rect.left - 8;
+            break;
+          case 'top':
+            top = rect.top - 8;
+            left = rect.left + rect.width / 2;
+            break;
+          case 'bottom':
+            top = rect.bottom + 8;
+            left = rect.left + rect.width / 2;
+            break;
+        }
+
+        setCoords({ top, left });
+      }
       setIsVisible(true);
     }, delay);
   };
@@ -22,37 +50,35 @@ export default function Tooltip({ content, children, position = 'top', delay = 2
     setIsVisible(false);
   };
 
-  const positionClasses = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-    left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-    right: 'left-full top-1/2 -translate-y-1/2 ml-2',
-  };
-
-  const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-b-transparent border-t-gray-900',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-l-transparent border-r-transparent border-t-transparent border-b-gray-900',
-    left: 'left-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-r-transparent border-l-gray-900',
-    right: 'right-full top-1/2 -translate-y-1/2 border-t-transparent border-b-transparent border-l-transparent border-r-gray-900',
+  const getTransformClass = () => {
+    switch (position) {
+      case 'right':
+        return 'translate-y-[-50%]';
+      case 'left':
+        return 'translate-x-[-100%] translate-y-[-50%]';
+      case 'top':
+        return 'translate-x-[-50%] translate-y-[-100%]';
+      case 'bottom':
+        return 'translate-x-[-50%]';
+    }
   };
 
   return (
-    <div 
+    <div
+      ref={triggerRef}
       className="relative inline-flex"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {children}
-      
+
       {isVisible && (
-        <div className={`absolute z-[100] ${positionClasses[position]} pointer-events-none`}>
-          <div className="relative">
-            {/* Tooltip content */}
-            <div className="bg-gray-900 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap animate-in fade-in zoom-in-95 duration-200">
-              {content}
-            </div>
-            {/* Arrow */}
-            <div className={`absolute w-0 h-0 border-4 ${arrowClasses[position]}`}></div>
+        <div
+          className={`fixed z-[9999] pointer-events-none ${getTransformClass()}`}
+          style={{ top: coords.top, left: coords.left }}
+        >
+          <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+            {content}
           </div>
         </div>
       )}

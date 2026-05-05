@@ -3040,14 +3040,14 @@ export default function DiagramEditorPage() {
       {/* New Folder Modal */}
       {showNewFolderModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">{t('editor.newFolder')}</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('editor.newFolder')}</h3>
             </div>
 
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nombre de la carpeta
                 </label>
                 <input
@@ -3055,21 +3055,21 @@ export default function DiagramEditorPage() {
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder={t('editor.folderNamePlaceholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Color
                 </label>
-                <div className="flex gap-2">
-                  {['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'].map(color => (
+                <div className="flex flex-wrap gap-2">
+                  {['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316', '#84CC16', '#6366F1', '#14B8A6', '#A855F7'].map(color => (
                     <button
                       key={color}
                       onClick={() => setNewFolderColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all ${newFolderColor === color ? 'border-gray-900 scale-110' : 'border-gray-300'
+                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${newFolderColor === color ? 'border-gray-900 dark:border-white scale-110 ring-2 ring-purple-300' : 'border-gray-300 dark:border-gray-600'
                         }`}
                       style={{ backgroundColor: color }}
                     />
@@ -3078,7 +3078,7 @@ export default function DiagramEditorPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setShowNewFolderModal(false);
@@ -3086,7 +3086,7 @@ export default function DiagramEditorPage() {
                   setNewFolderColor('#3B82F6');
                 }}
                 disabled={creatingFolder}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400"
               >
                 Cancelar
               </button>
