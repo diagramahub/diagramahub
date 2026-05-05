@@ -229,7 +229,6 @@ export default function DiagramEditorPage() {
   const [showFixDiffModal, setShowFixDiffModal] = useState(false);
   const [fixResult, setFixResult] = useState<FixDiagramResponse | null>(null);
   const [fixError, setFixError] = useState<string | null>(null);
-  const [isFixing, setIsFixing] = useState(false);
 
   // Share diagram state
   const [showShareModal, setShowShareModal] = useState(false);

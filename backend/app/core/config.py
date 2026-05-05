@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     # Sentry (optional)
     SENTRY_DSN: str | None = None
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    SENTRY_ENABLE_LOGS: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env",
