@@ -224,7 +224,6 @@ class ChatSessionService:
             RECENT_WINDOW = 4
             all_recent = await self.message_repo.get_recent_messages(session_id_str, limit=RECENT_WINDOW)
             history = self._build_message_history(all_recent, session.summary)
-            print(f"📋 CONTEXT: {len(all_recent)} recent msgs, session summary: {'YES (' + str(len(session.summary)) + ' chars)' if session.summary else 'NO'}")
 
             # Get provider config
             provider_type = AIProviderType(provider) if provider else None
@@ -276,20 +275,6 @@ class ChatSessionService:
                 diagram_code, diagram_type, language
             )
 
-            # === DEBUG: Input to AI ===
-            print(f"\n{'='*60}")
-            print(f"📨 USER MESSAGE: {content}")
-            print(f"📋 CONTEXT: diagram_type={diagram_type}, language={language}")
-            print(f"📋 HISTORY ({len(history)} messages):")
-            for i, msg in enumerate(history):
-                role_icon = "👤" if msg["role"] == "user" else "🤖"
-                text_preview = msg["content"][:120] + "..." if len(msg["content"]) > 120 else msg["content"]
-                print(f"   {role_icon} [{i}] {text_preview}")
-            print(f"📋 SYSTEM PROMPT length: {len(system_prompt)} chars")
-            print(f"📋 DIAGRAM CODE in system prompt: {len(diagram_code)} chars")
-            print(f"{'='*60}")
-            # === END DEBUG ===
-
             start = time.time()
 
             # Call AI with unified system prompt + conversation history
@@ -314,24 +299,6 @@ class ChatSessionService:
             ai_text = re.sub(r'<<<END_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
             ai_text = re.sub(r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text)
             ai_text = re.sub(r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text)
-
-            # === DEBUG LOGS ===
-            print(f"\n{'='*60}")
-            print(f"🤖 AI RESPONSE DEBUG")
-            print(f"{'='*60}")
-            print(f"📊 History messages sent: {len(history)}")
-            print(f"📝 AI response length: {len(ai_text)} chars")
-            print(f"⏱️  Generation time: {generation_time:.2f}s")
-            print(f"🔍 Contains <<<DIAGRAM>>>: {self.DIAGRAM_START in ai_text}")
-            print(f"🔍 Contains <<<END_DIAGRAM>>>: {self.DIAGRAM_END in ai_text}")
-            print(f"🔍 Contains ```code block: {'```' in ai_text}")
-            print(f"🔍 Contains @startuml: {'@startuml' in ai_text}")
-            print(f"📄 First 500 chars of response:")
-            print(ai_text[:500])
-            print(f"\n📄 Last 300 chars of response:")
-            print(ai_text[-300:] if len(ai_text) > 300 else ai_text)
-            print(f"{'='*60}\n")
-            # === END DEBUG LOGS ===
 
             # Parse response: check for diagram code
             improved_code = None
@@ -403,8 +370,6 @@ class ChatSessionService:
                                 improved_code = raw_code
 
             if improved_code:
-                print(f"✅ DIAGRAM CODE EXTRACTED ({len(improved_code)} chars)")
-                print(f"   First 200 chars: {improved_code[:200]}")
 
                 # Auto-retry: validate syntax and retry if invalid
                 # Skip retry for PlantUML and DBML — their validators give false positives
@@ -416,11 +381,9 @@ class ChatSessionService:
                         improved_code, diagram_type
                     )
                     if validation.is_valid:
-                        print(f"✅ Syntax validation PASSED")
                         break
 
                     retries += 1
-                    print(f"⚠️  RETRY {retries}/{MAX_RETRIES}: Syntax validation failed: {validation.error_message}")
                     logger.warning(
                         "Syntax validation failed (attempt %d/%d): %s",
                         retries,
@@ -499,15 +462,6 @@ class ChatSessionService:
                     )
                 improvement_status = ImprovementStatus.PENDING
 
-            # === DEBUG: Final state ===
-            print(f"\n{'='*40}")
-            print(f"📦 FINAL MESSAGE STATE:")
-            print(f"   improved_code: {'YES (' + str(len(improved_code)) + ' chars)' if improved_code else 'NO (text-only response)'}")
-            print(f"   display_text: {display_text[:150]}...")
-            print(f"   improvement_status: {improvement_status}")
-            print(f"{'='*40}\n")
-            # === END DEBUG ===
-
             ai_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
                 role=MessageRole.ASSISTANT,
@@ -529,7 +483,6 @@ class ChatSessionService:
                     had_code=improved_code is not None,
                 )
                 await self.session_repo.update_session_summary(session_id_str, new_summary)
-                print(f"📝 SUMMARY UPDATED ({len(new_summary)} chars)")
             except Exception as e:
                 logger.warning(f"Failed to update session summary: {e}")
 
@@ -574,8 +527,6 @@ class ChatSessionService:
         Encapsulates the client-specific call pattern so it can be reused
         for the initial request and for syntax-validation retries.
         """
-        import json as _json
-
         if hasattr(client, '_generate'):
             # Gemini: concatenate system + history into single prompt
             conversation_parts = [system_prompt, ""]
@@ -593,44 +544,24 @@ class ChatSessionService:
                 role_suffix = "Asistente:" if language == "es" else "Assistant:"
             conversation_parts.append(role_suffix)
             full_prompt = "\n".join(conversation_parts)
-            print(f"\n🔧 RAW PAYLOAD TO LLM (Gemini):")
-            print(f"   Total prompt length: {len(full_prompt)} chars")
-            print(f"   System prompt: {len(system_prompt)} chars")
-            print(f"   History messages: {len(history)}")
             return await client._generate(full_prompt)
         elif hasattr(client, '_chat_completion'):
             # OpenAI
             api_messages = [{"role": "system", "content": system_prompt}]
             for msg in history:
                 api_messages.append({"role": msg["role"], "content": msg["content"]})
-            print(f"\n🔧 RAW PAYLOAD TO LLM (OpenAI):")
-            print(f"   Messages count: {len(api_messages)}")
-            for i, m in enumerate(api_messages):
-                content_preview = m['content'][:200] + '...' if len(m['content']) > 200 else m['content']
-                print(f"   [{i}] {m['role']}: {content_preview}")
             return await client._chat_completion(api_messages)
         elif hasattr(client, '_make_request'):
             # DeepSeek / Minimax
             api_messages = [{"role": "system", "content": system_prompt}]
             for msg in history:
                 api_messages.append({"role": msg["role"], "content": msg["content"]})
-            print(f"\n🔧 RAW PAYLOAD TO LLM (DeepSeek/Minimax):")
-            print(f"   Messages count: {len(api_messages)}")
-            for i, m in enumerate(api_messages):
-                content_preview = m['content'][:200] + '...' if len(m['content']) > 200 else m['content']
-                print(f"   [{i}] {m['role']}: {content_preview}")
             return await client._make_request(api_messages)
         elif hasattr(client, '_messages_request'):
             # Claude
             api_messages = []
             for msg in history:
                 api_messages.append({"role": msg["role"], "content": msg["content"]})
-            print(f"\n🔧 RAW PAYLOAD TO LLM (Claude):")
-            print(f"   System: {len(system_prompt)} chars")
-            print(f"   Messages count: {len(api_messages)}")
-            for i, m in enumerate(api_messages):
-                content_preview = m['content'][:200] + '...' if len(m['content']) > 200 else m['content']
-                print(f"   [{i}] {m['role']}: {content_preview}")
             return await client._messages_request(
                 api_messages, system=system_prompt
             )
