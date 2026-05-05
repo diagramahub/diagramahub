@@ -1,5 +1,5 @@
 """
-Validador de sintaxis para diagramas Mermaid, PlantUML y D2.
+Validador de sintaxis para diagramas Mermaid, PlantUML, D2 y DBML.
 """
 import re
 from typing import Optional
@@ -23,7 +23,7 @@ class ValidationResult(BaseModel):
 
 
 class SyntaxValidator:
-    """Validador de sintaxis para diagramas Mermaid, PlantUML y D2."""
+    """Validador de sintaxis para diagramas Mermaid, PlantUML, D2 y DBML."""
     
     # Tipos de diagrama Mermaid válidos
     VALID_MERMAID_TYPES = [
@@ -267,13 +267,156 @@ class SyntaxValidator:
             )
 
     @staticmethod
+    async def validate_dbml(code: str) -> ValidationResult:
+        """
+        Validar sintaxis estructural básica de código DBML.
+
+        Realiza validación estructural: verifica que el código no esté vacío,
+        que contenga al menos una definición Table/Enum/Ref, que las llaves
+        estén balanceadas, y que las definiciones de tablas y relaciones
+        sigan el formato básico esperado.
+
+        Args:
+            code: Código del diagrama DBML
+
+        Returns:
+            ValidationResult con resultado de validación
+        """
+        try:
+            # Verificar código vacío
+            if not code or not code.strip():
+                return ValidationResult(
+                    is_valid=False,
+                    error_message="El código del diagrama está vacío",
+                )
+
+            lines = code.split("\n")
+
+            # Verificar balance de llaves { }
+            brace_depth = 0
+            for i, line in enumerate(lines, start=1):
+                line_stripped = line.strip()
+
+                # Ignorar comentarios de línea completa
+                if line_stripped.startswith("//"):
+                    continue
+
+                # Remover contenido dentro de strings para no contar llaves en strings
+                line_no_strings = re.sub(r"'[^']*'", "", line_stripped)
+                line_no_strings = re.sub(r'"[^"]*"', "", line_no_strings)
+
+                # Remover comentarios inline
+                comment_pos = line_no_strings.find("//")
+                if comment_pos >= 0:
+                    line_no_strings = line_no_strings[:comment_pos]
+
+                for char in line_no_strings:
+                    if char == "{":
+                        brace_depth += 1
+                    elif char == "}":
+                        brace_depth -= 1
+                        if brace_depth < 0:
+                            return ValidationResult(
+                                is_valid=False,
+                                error_message="'}' sin '{' correspondiente",
+                                error_line=i,
+                            )
+
+            if brace_depth > 0:
+                return ValidationResult(
+                    is_valid=False,
+                    error_message=f"{brace_depth} llave(s) '{{' sin cerrar (falta '}}' )",
+                )
+
+            # Verificar presencia de al menos una definición Table, Enum o Ref
+            has_table = bool(re.search(r"\bTable\b\s+\w+", code, re.IGNORECASE))
+            has_enum = bool(re.search(r"\bEnum\b\s+\w+", code, re.IGNORECASE))
+            has_ref = bool(re.search(r"\bRef\b\s*[:{]", code, re.IGNORECASE))
+            # También detectar refs inline dentro de columnas: [ref: > table.col]
+            has_inline_ref = bool(re.search(r"\[\s*ref\s*:", code, re.IGNORECASE))
+
+            if not (has_table or has_enum or has_ref or has_inline_ref):
+                return ValidationResult(
+                    is_valid=False,
+                    error_message=(
+                        "El código DBML debe contener al menos una definición "
+                        "de Table, Enum o Ref"
+                    ),
+                )
+
+            # Validar formato básico de definiciones de tabla: Table name { ... }
+            table_keyword_lines = [
+                (i, line)
+                for i, line in enumerate(lines, start=1)
+                if re.match(r"\s*Table\b", line, re.IGNORECASE)
+            ]
+            for line_num, line in table_keyword_lines:
+                line_clean = line.strip()
+                # Ignorar comentarios
+                if line_clean.startswith("//"):
+                    continue
+                # Verificar que la línea con Table siga el formato esperado
+                if not re.match(
+                    r"Table\s+\w+(\.\w+)?\s*(as\s+\w+\s*)?\{?\s*(//.*)?$",
+                    line_clean,
+                    re.IGNORECASE,
+                ):
+                    return ValidationResult(
+                        is_valid=False,
+                        error_message=(
+                            f"Formato de tabla inválido en línea {line_num}. "
+                            "Formato esperado: 'Table nombre {{...}}'"
+                        ),
+                        error_line=line_num,
+                    )
+
+            # Validar formato básico de relaciones standalone: Ref: table1.col > table2.col
+            ref_lines = [
+                (i, line)
+                for i, line in enumerate(lines, start=1)
+                if re.match(r"\s*Ref\b", line, re.IGNORECASE)
+            ]
+            for line_num, line in ref_lines:
+                line_clean = line.strip()
+                # Ignorar comentarios
+                if line_clean.startswith("//"):
+                    continue
+                # Ref con bloque: Ref name { ... } — solo verificar apertura
+                if re.match(r"Ref\s*(\w+\s*)?\{", line_clean, re.IGNORECASE):
+                    continue
+                # Ref inline: Ref: table1.col > table2.col (o <, -, <>)
+                if re.match(
+                    r"Ref\s*(\w+\s*)?:\s*\w+(\.\w+)+\s*[<>\-]+\s*\w+(\.\w+)+",
+                    line_clean,
+                    re.IGNORECASE,
+                ):
+                    continue
+                # Si no coincide con ningún formato válido
+                return ValidationResult(
+                    is_valid=False,
+                    error_message=(
+                        f"Formato de relación inválido en línea {line_num}. "
+                        "Formato esperado: 'Ref: tabla1.col > tabla2.col' o 'Ref nombre {{...}}'"
+                    ),
+                    error_line=line_num,
+                )
+
+            return ValidationResult(is_valid=True)
+
+        except Exception as e:
+            return ValidationResult(
+                is_valid=False,
+                error_message=f"Error al validar sintaxis: {str(e)}",
+            )
+
+    @staticmethod
     async def validate(code: str, diagram_type: str) -> ValidationResult:
         """
         Validar sintaxis según tipo de diagrama.
 
         Args:
             code: Código del diagrama
-            diagram_type: Tipo de diagrama ('mermaid', 'plantuml' o 'd2')
+            diagram_type: Tipo de diagrama ('mermaid', 'plantuml', 'd2' o 'dbml')
 
         Returns:
             ValidationResult con resultado de validación
@@ -286,6 +429,8 @@ class SyntaxValidator:
             return await SyntaxValidator.validate_plantuml(code)
         elif 'd2' in diagram_type_lower:
             return await SyntaxValidator.validate_d2(code)
+        elif 'dbml' in diagram_type_lower:
+            return await SyntaxValidator.validate_dbml(code)
         else:
             # Por defecto, intentar validar como Mermaid
             return await SyntaxValidator.validate_mermaid(code)

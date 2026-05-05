@@ -22,7 +22,7 @@ export const MERMAID_TYPES = [
   'gitgraph',
 ];
 
-export const SERVER_RENDERED_TYPES = ['plantuml', 'uml', 'd2'];
+export const SERVER_RENDERED_TYPES = ['plantuml', 'uml', 'd2', 'dbml'];
 
 export function isMermaidType(diagramType: string): boolean {
   return MERMAID_TYPES.includes(diagramType.toLowerCase());
@@ -79,20 +79,34 @@ async function renderServerSide(
     // Kroki renderers (like D2) prepend. Browsers cannot render SVG via innerHTML
     // when it starts with an XML processing instruction.
     svg = svg.replace(/^<\?xml[^?]*\?>\s*/i, '');
+    // Remove DOCTYPE declarations that some renderers include
+    svg = svg.replace(/<!DOCTYPE[^>]*>\s*/i, '');
     // Some Kroki renderers (e.g. D2) produce SVGs without explicit width/height
     // attributes on the root <svg> element. Without these, the SVG collapses to
     // 0×0 when injected via innerHTML. Extract dimensions from the viewBox and
     // set them as explicit width/height so the SVG sizes itself correctly.
     // Only check the FIRST <svg> tag (the root), not nested ones.
     const firstSvgTagMatch = svg.match(/^(<svg\b[^>]*>)/i);
-    if (firstSvgTagMatch && !/\bwidth\s*=/i.test(firstSvgTagMatch[1])) {
-      const viewBoxMatch = firstSvgTagMatch[1].match(/\bviewBox\s*=\s*"([^"]*)"/i);
-      if (viewBoxMatch) {
-        const parts = viewBoxMatch[1].trim().split(/\s+/);
-        if (parts.length === 4) {
-          const vbWidth = parts[2];
-          const vbHeight = parts[3];
-          svg = svg.replace(/^(<svg\b)/i, `$1 width="${vbWidth}" height="${vbHeight}"`);
+    if (firstSvgTagMatch) {
+      const svgTag = firstSvgTagMatch[1];
+      // If width/height use "pt" units (common in graphviz/DBML), convert to unitless
+      // values so the SVG scales properly in the browser viewport
+      const ptWidthMatch = svgTag.match(/\bwidth="(\d+(?:\.\d+)?)pt"/i);
+      const ptHeightMatch = svgTag.match(/\bheight="(\d+(?:\.\d+)?)pt"/i);
+      if (ptWidthMatch && ptHeightMatch) {
+        // Replace pt dimensions with 100% width and auto height for responsive scaling
+        svg = svg.replace(/^(<svg\b[^>]*)\bwidth="[^"]*"/i, '$1 width="100%"');
+        svg = svg.replace(/^(<svg\b[^>]*)\bheight="[^"]*"/i, '$1 height="100%"');
+      } else if (!/\bwidth\s*=/i.test(svgTag)) {
+        // No width at all — extract from viewBox
+        const viewBoxMatch = svgTag.match(/\bviewBox\s*=\s*"([^"]*)"/i);
+        if (viewBoxMatch) {
+          const parts = viewBoxMatch[1].trim().split(/\s+/);
+          if (parts.length === 4) {
+            const vbWidth = parts[2];
+            const vbHeight = parts[3];
+            svg = svg.replace(/^(<svg\b)/i, `$1 width="${vbWidth}" height="${vbHeight}"`);
+          }
         }
       }
     }

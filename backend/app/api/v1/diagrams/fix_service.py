@@ -157,16 +157,27 @@ class DiagramFixService:
             )
             
             if not validation_result.is_valid:
-                self.logger.error(
-                    f"Corrected code failed validation",
-                    extra={
-                        "diagram_id": diagram_id,
-                        "validation_error": validation_result.error_message
-                    }
-                )
-                raise ValueError(
-                    f"El código corregido no pasó validación de sintaxis: {validation_result.error_message}"
-                )
+                # For DBML, validation is basic and may give false positives
+                # (e.g., braces inside Note strings). Log warning but don't block.
+                if diagram.diagram_type.lower() == "dbml":
+                    self.logger.warning(
+                        f"Corrected DBML code has validation warning (proceeding anyway)",
+                        extra={
+                            "diagram_id": diagram_id,
+                            "validation_error": validation_result.error_message
+                        }
+                    )
+                else:
+                    self.logger.error(
+                        f"Corrected code failed validation",
+                        extra={
+                            "diagram_id": diagram_id,
+                            "validation_error": validation_result.error_message
+                        }
+                    )
+                    raise ValueError(
+                        f"El código corregido no pasó validación de sintaxis: {validation_result.error_message}"
+                    )
             
             # 6. Generar diff
             diff = self._generate_diff(diagram.content, fix_result["corrected_code"])

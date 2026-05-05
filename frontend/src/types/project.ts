@@ -5,6 +5,7 @@ export type Project = {
   emoji: string;
   user_id: string;
   diagram_count: number;
+  diagram_type_counts?: Record<string, number>;
   created_at: string;
   updated_at: string;
 }

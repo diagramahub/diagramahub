@@ -31,6 +31,7 @@ const ChevronRightIcon = ({ className = 'w-4 h-4' }: { className?: string }) => 
 
 const PAGE_SIZE = 15;
 
+
 export default function UserMfaManagement() {
   const { t } = useTranslation();
   const [users, setUsers] = useState<AdminUserMfaInfo[]>([]);
@@ -130,42 +131,42 @@ export default function UserMfaManagement() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
-            <ShieldIcon className="w-5 h-5 text-purple-600" />
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('admin.users.title')}</h2>
+            <ShieldIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('admin.users.title')}</h2>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={handleExportExcel}
               disabled={exporting}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 disabled:opacity-50 transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
               {exporting ? t('admin.users.exporting') : t('admin.users.exportExcel')}
             </button>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
               {t('admin.users.totalUsers', { count: total })}
             </span>
           </div>
         </div>
-        <p className="text-sm text-gray-500 mt-1">{t('admin.users.description')}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('admin.users.description')}</p>
       </div>
 
       <div className="px-4 sm:px-6 py-4">
         {/* Messages */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
         {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-600">{success}</p>
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+            <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
           </div>
         )}
 
@@ -176,117 +177,162 @@ export default function UserMfaManagement() {
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('admin.users.searchPlaceholder')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </div>
 
         {/* Loading state */}
         {loading ? (
           <div className="py-8 text-center">
-            <p className="text-sm text-gray-500">{t('common.loading')}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
           </div>
         ) : (
           <>
-            {/* User list */}
-            <div className="divide-y divide-gray-100">
-              {users.map((u) => (
-                <div key={u.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`flex-shrink-0 p-1.5 rounded-full ${u.mfa_enabled ? 'bg-green-100' : 'bg-gray-100'}`}>
-                      {u.mfa_enabled ? (
-                        <ShieldIcon className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <ShieldOffIcon className="w-4 h-4 text-gray-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-gray-900 truncate">{u.email}</p>
-                        {u.role === 'admin' && (
-                          <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full flex-shrink-0">
+            {/* User table */}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnEmail')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnName')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnRole')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnPlan')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnDiagrams')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnMfaStatus')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnRecoveryCodes')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnRegistered')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnActions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {users.map((u) => (
+                    <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {u.email}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {u.full_name || '—'}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {u.role === 'admin' ? (
+                          <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">
                             Admin
                           </span>
-                        )}
-                        {u.plan_name && (
-                          <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                            {u.plan_name}
+                        ) : (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {t('admin.users.user')}
                           </span>
                         )}
-                        <span className="text-xs bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {u.plan_name ? (
+                          <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
+                            {u.plan_name}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        <span className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
                           {u.diagram_count} {u.diagram_count === 1 ? t('admin.users.diagram') : t('admin.users.diagrams')}
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {u.full_name && (
-                          <p className="text-xs text-gray-500 truncate">{u.full_name}</p>
-                        )}
-                        {u.full_name && u.created_at && (
-                          <span className="text-xs text-gray-300">·</span>
-                        )}
-                        {u.created_at && (
-                          <p className="text-xs text-gray-400">
-                            {t('admin.users.registered')} {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    {u.mfa_enabled ? (
-                      <>
-                        <div className="text-right hidden sm:block">
-                          <p className="text-xs text-green-600 font-medium">
-                            MFA: {getMethodLabels(u.mfa_methods)}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {t('admin.users.recoveryCodes', { count: u.recovery_codes_remaining })}
-                          </p>
-                        </div>
-
-                        {resetConfirm === u.id ? (
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {u.mfa_enabled ? (
                           <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleResetMfa(u.id)}
-                              disabled={resetLoading}
-                              className="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
-                            >
-                              {resetLoading ? '...' : t('admin.users.confirmReset')}
-                            </button>
-                            <button
-                              onClick={() => setResetConfirm(null)}
-                              className="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                            >
-                              {t('common.cancel')}
-                            </button>
+                            <ShieldIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                              {getMethodLabels(u.mfa_methods)}
+                            </span>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => { setResetConfirm(u.id); setError(''); setSuccess(''); }}
-                            className="px-2.5 py-1 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors"
-                          >
-                            {t('admin.users.resetMfa')}
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <ShieldOffIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                              {t('admin.users.noMfa')}
+                            </span>
+                          </div>
                         )}
-                      </>
-                    ) : (
-                      <span className="text-xs text-gray-400">{t('admin.users.mfaDisabled')}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {u.mfa_enabled ? (
+                          <span className="text-xs">
+                            {t('admin.users.recoveryCodes', { count: u.recovery_codes_remaining })}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {u.created_at
+                          ? new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {u.mfa_enabled ? (
+                          resetConfirm === u.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleResetMfa(u.id)}
+                                disabled={resetLoading}
+                                className="px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 disabled:opacity-50 transition-colors"
+                              >
+                                {resetLoading ? '...' : t('admin.users.confirmReset')}
+                              </button>
+                              <button
+                                onClick={() => setResetConfirm(null)}
+                                className="px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                              >
+                                {t('common.cancel')}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setResetConfirm(u.id); setError(''); setSuccess(''); }}
+                              className="px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                            >
+                              {t('admin.users.resetMfa')}
+                            </button>
+                          )
+                        ) : (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
               {users.length === 0 && (
                 <div className="py-8 text-center">
-                  <p className="text-sm text-gray-500">{t('admin.users.noResults')}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.users.noResults')}</p>
                 </div>
               )}
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
-                <p className="text-xs text-gray-500">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {t('admin.users.pageInfo', {
                     from: (page - 1) * PAGE_SIZE + 1,
                     to: Math.min(page * PAGE_SIZE, total),
@@ -297,9 +343,9 @@ export default function UserMfaManagement() {
                   <button
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page <= 1}
-                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <ChevronLeftIcon className="w-4 h-4 text-gray-600" />
+                    <ChevronLeftIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                   </button>
                   {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                     let pageNum: number;
@@ -319,7 +365,7 @@ export default function UserMfaManagement() {
                         className={`w-8 h-8 text-xs rounded transition-colors ${
                           pageNum === page
                             ? 'bg-purple-600 text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {pageNum}
@@ -329,9 +375,9 @@ export default function UserMfaManagement() {
                   <button
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page >= totalPages}
-                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
-                    <ChevronRightIcon className="w-4 h-4 text-gray-600" />
+                    <ChevronRightIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                   </button>
                 </div>
               </div>

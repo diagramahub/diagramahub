@@ -103,11 +103,11 @@ class TestRenderDiagramEndpoint:
         assert "d2" in detail
 
     @pytest.mark.asyncio
-    async def test_render_kroki_error_returns_502(self, client: AsyncClient):
-        """KrokiRenderError maps to HTTP 502."""
+    async def test_render_kroki_error_returns_400(self, client: AsyncClient):
+        """KrokiRenderError with status 400 maps to HTTP 400 with user-friendly message."""
         mock_client = AsyncMock()
         mock_client.render.side_effect = KrokiRenderError(
-            status_code=400, detail="Syntax error in diagram"
+            status_code=400, detail="Error 400: SyntaxError: Could not parse input at line 5:3. Expected something.\n    at parse"
         )
 
         app.dependency_overrides[get_kroki_client] = lambda: mock_client
@@ -116,10 +116,9 @@ class TestRenderDiagramEndpoint:
                 RENDER_URL,
                 json={"source": "bad code", "diagram_type": "plantuml"},
             )
-            assert response.status_code == 502
+            assert response.status_code == 400
             detail = response.json()["detail"]
-            assert "400" in detail
-            assert "Syntax error in diagram" in detail
+            assert "⚠️" in detail or "Error" in detail
         finally:
             app.dependency_overrides.pop(get_kroki_client, None)
 

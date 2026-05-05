@@ -137,14 +137,14 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">{t('ai.addProvider')}</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('ai.addProvider')}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
               disabled={loading}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +158,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">
           {/* Provider Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('ai.form.provider')}
             </label>
             <div className="grid grid-cols-2 gap-3">
@@ -172,10 +172,10 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                     disabled={!isAvailable}
                     className={`relative p-4 border-2 rounded-lg text-left transition-all flex items-center space-x-3 ${
                       formData.provider === provider
-                        ? 'border-purple-500 bg-purple-50'
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                         : isAvailable
-                        ? 'border-gray-200 hover:border-gray-300'
-                        : 'border-gray-200 opacity-50 cursor-not-allowed'
+                        ? 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                        : 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
                     }`}
                   >
                     {isAvailable && formData.provider === provider && (
@@ -209,9 +209,9 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                     </div>
                     
                     <div>
-                      <div className="font-medium text-gray-900">{AI_PROVIDER_NAMES[provider]}</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{AI_PROVIDER_NAMES[provider]}</div>
                       {!isAvailable && (
-                        <span className="text-xs text-gray-500 mt-1 block">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
                           {t('ai.status.comingSoon')}
                         </span>
                       )}
@@ -225,14 +225,14 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
           {/* API Key */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('ai.form.apiKey')} *
               </label>
               <a
                 href={AI_PROVIDER_API_KEY_URLS[formData.provider]}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center gap-1"
               >
                 {t('ai.help.getApiKey')}
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,27 +248,27 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                 setTestResult(null);
               }}
               placeholder={t('ai.form.apiKeyPlaceholder')}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.api_key ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                errors.api_key ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               disabled={!isProviderAvailable}
             />
             {errors.api_key && (
-              <p className="mt-1 text-sm text-red-600">{errors.api_key}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.api_key}</p>
             )}
-            <p className="mt-2 text-xs text-gray-500">{t('ai.help.security')}</p>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('ai.help.security')}</p>
           </div>
 
           {/* Model Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('ai.form.model')} *
             </label>
             <select
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.model ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                errors.model ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
               disabled={!isProviderAvailable}
             >
@@ -279,13 +279,13 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               ))}
             </select>
             {errors.model && (
-              <p className="mt-1 text-sm text-red-600">{errors.model}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.model}</p>
             )}
           </div>
 
           {/* Display Name (optional) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('ai.form.displayName')}
             </label>
             <input
@@ -293,7 +293,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               placeholder={t('ai.form.displayNamePlaceholder')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               disabled={!isProviderAvailable}
             />
           </div>
@@ -305,10 +305,10 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               id="is_default"
               checked={formData.is_default}
               onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded"
               disabled={!isProviderAvailable}
             />
-            <label htmlFor="is_default" className="ml-2 text-sm text-gray-700">
+            <label htmlFor="is_default" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
               {t('ai.form.isDefault')}
             </label>
           </div>
@@ -318,8 +318,8 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             <div
               className={`p-3 rounded-lg ${
                 testResult.success
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
               }`}
             >
               <div className="flex items-start">
@@ -351,20 +351,20 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{errors.submit}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-300">{errors.submit}</p>
             </div>
           )}
 
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
           <button
             type="button"
             onClick={handleTestConnection}
             disabled={loading || testing || !isProviderAvailable || !formData.api_key}
-            className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {testing ? t('common.loading') : t('ai.testProvider')}
           </button>
@@ -373,7 +373,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
             >
               {t('common.cancel')}
             </button>

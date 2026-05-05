@@ -14,6 +14,7 @@ class AIProviderType(str, Enum):
     OPENAI = "openai"          # 🔜 Future
     CLAUDE = "claude"          # 🔜 Future
     DEEPSEEK = "deepseek"      # ✅ Implemented
+    MINIMAX = "minimax"        # ✅ Implemented
 
 
 class AIProviderConfig(BaseModel):

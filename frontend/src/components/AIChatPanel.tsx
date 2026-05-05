@@ -333,18 +333,18 @@ export default function AIChatPanel({
 
   return (
     <div
-      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white border-l border-gray-200 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto"
+      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto"
       style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : panelWidth }}
     >
       {/* Resize handle */}
       <div
         onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 active:bg-purple-400 transition-colors z-10 hidden sm:block"
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 dark:hover:bg-purple-600 active:bg-purple-400 dark:active:bg-purple-500 transition-colors z-10 hidden sm:block"
         title="Arrastrar para redimensionar"
       />
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-shrink-0">
-        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between flex-shrink-0">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
           <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
@@ -353,7 +353,7 @@ export default function AIChatPanel({
         <button
           type="button"
           onClick={onClose}
-          className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+          className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -362,7 +362,7 @@ export default function AIChatPanel({
       </div>
 
       {/* Session selector */}
-      <div className="px-3 py-2 border-b border-gray-100 flex-shrink-0">
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
         <ChatSessionSelector
           sessions={sessions}
           activeSessionId={activeSessionId}
@@ -375,8 +375,8 @@ export default function AIChatPanel({
 
       {/* Compaction notice */}
       {compactionNotice && (
-        <div className="px-3 py-2 bg-blue-50 border-b border-blue-100 flex-shrink-0">
-          <p className="text-xs text-blue-700 flex items-center gap-1">
+        <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-700 flex-shrink-0">
+          <p className="text-xs text-blue-700 dark:text-blue-400 flex items-center gap-1">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -387,8 +387,8 @@ export default function AIChatPanel({
 
       {/* Error */}
       {error && (
-        <div className="px-3 py-2 bg-red-50 border-b border-red-100 flex-shrink-0">
-          <p className="text-xs text-red-700">{error}</p>
+        <div className="px-3 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-700 flex-shrink-0">
+          <p className="text-xs text-red-700 dark:text-red-400">{error}</p>
         </div>
       )}
 
@@ -407,8 +407,8 @@ export default function AIChatPanel({
 
       {/* Input */}
       {isFinalized ? (
-        <div className="px-3 py-3 border-t border-gray-200 bg-gray-50 text-center flex-shrink-0">
-          <p className="text-xs text-gray-500">Sesión finalizada (solo lectura)</p>
+        <div className="px-3 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 text-center flex-shrink-0">
+          <p className="text-xs text-gray-500 dark:text-gray-400">Sesión finalizada (solo lectura)</p>
         </div>
       ) : (
         <ChatInput
@@ -424,13 +424,13 @@ export default function AIChatPanel({
       {/* Modal de preview expandido */}
       {expandedPreview && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setExpandedPreview(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
-              <span className="text-sm font-medium text-gray-700">Vista previa del diagrama</span>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Vista previa del diagrama</span>
               <button
                 type="button"
                 onClick={() => setExpandedPreview(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+                className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

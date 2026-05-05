@@ -148,14 +148,14 @@ export default function EditProviderModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">{t('ai.editProvider')}</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('ai.editProvider')}</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
+              className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
               disabled={loading}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,10 +169,10 @@ export default function EditProviderModal({
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-6">
           {/* Provider Info (Read-only) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('ai.form.provider')}
             </label>
-            <div className="p-4 border-2 border-gray-200 rounded-lg bg-gray-50 flex items-center space-x-3">
+            <div className="p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center space-x-3">
               <div className="flex-shrink-0">
                 <img 
                   src={`/images/ai-providers/${provider.provider}.svg`} 
@@ -183,19 +183,19 @@ export default function EditProviderModal({
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                   }}
                 />
-                <div className="hidden w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 font-bold">
+                <div className="hidden w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold">
                   {AI_PROVIDER_NAMES[provider.provider].charAt(0)}
                 </div>
               </div>
-              <div className="font-medium text-gray-900">{AI_PROVIDER_NAMES[provider.provider]}</div>
+              <div className="font-medium text-gray-900 dark:text-gray-100">{AI_PROVIDER_NAMES[provider.provider]}</div>
             </div>
-            <p className="mt-2 text-xs text-gray-500">{t('ai.help.providerCannotChange')}</p>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('ai.help.providerCannotChange')}</p>
           </div>
 
           {/* API Key */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t('ai.form.apiKey')}
               </label>
               {isEditingApiKey && (
@@ -203,7 +203,7 @@ export default function EditProviderModal({
                   href={AI_PROVIDER_API_KEY_URLS[provider.provider]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                  className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium flex items-center gap-1"
                 >
                   {t('ai.help.getApiKey')}
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,7 +218,7 @@ export default function EditProviderModal({
                   type="text"
                   value={provider.api_key}
                   readOnly
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                   onClick={() => {
                     setIsEditingApiKey(true);
                     setFormData({ ...formData, api_key: '' });
@@ -232,7 +232,7 @@ export default function EditProviderModal({
                     setFormData({ ...formData, api_key: '' });
                     setTestResult(null);
                   }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-600 hover:text-purple-700 text-sm font-medium"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-sm font-medium"
                 >
                   {t('ai.form.changeApiKey')}
                 </button>
@@ -247,8 +247,8 @@ export default function EditProviderModal({
                     setTestResult(null);
                   }}
                   placeholder={t('ai.form.apiKeyPlaceholder')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                    errors.api_key ? 'border-red-500' : 'border-gray-300'
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                    errors.api_key ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   autoFocus
                 />
@@ -260,30 +260,30 @@ export default function EditProviderModal({
                     setTestResult(null);
                     setErrors({ ...errors, api_key: '' });
                   }}
-                  className="text-sm text-gray-600 hover:text-gray-700"
+                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   {t('common.cancel')}
                 </button>
               </div>
             )}
             {errors.api_key && (
-              <p className="mt-1 text-sm text-red-600">{errors.api_key}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.api_key}</p>
             )}
             {!isEditingApiKey && (
-              <p className="mt-2 text-xs text-gray-500">{t('ai.help.clickToChangeApiKey')}</p>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('ai.help.clickToChangeApiKey')}</p>
             )}
           </div>
 
           {/* Model Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('ai.form.model')} *
             </label>
             <select
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.model ? 'border-red-500' : 'border-gray-300'
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                errors.model ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
             >
               {AI_PROVIDER_MODELS[provider.provider].map((m) => (
@@ -293,13 +293,13 @@ export default function EditProviderModal({
               ))}
             </select>
             {errors.model && (
-              <p className="mt-1 text-sm text-red-600">{errors.model}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.model}</p>
             )}
           </div>
 
           {/* Display Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('ai.form.displayName')}
             </label>
             <input
@@ -307,7 +307,7 @@ export default function EditProviderModal({
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               placeholder={t('ai.form.displayNamePlaceholder')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
 
@@ -318,9 +318,9 @@ export default function EditProviderModal({
               id="is_active"
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded"
             />
-            <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+            <label htmlFor="is_active" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
               {t('ai.form.isActive')}
             </label>
           </div>
@@ -330,8 +330,8 @@ export default function EditProviderModal({
             <div
               className={`p-3 rounded-lg ${
                 testResult.success
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
+                  ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'
               }`}
             >
               <div className="flex items-start">
@@ -363,19 +363,19 @@ export default function EditProviderModal({
 
           {/* Submit Error */}
           {errors.submit && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{errors.submit}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-800 dark:text-red-300">{errors.submit}</p>
             </div>
           )}
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
           <button
             type="button"
             onClick={handleTestConnection}
             disabled={loading || testing || !isEditingApiKey || !formData.api_key}
-            className="px-4 py-2 text-sm font-medium text-purple-600 hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {testing ? t('common.loading') : t('ai.testProvider')}
           </button>
@@ -384,7 +384,7 @@ export default function EditProviderModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50"
             >
               {t('common.cancel')}
             </button>
