@@ -118,6 +118,7 @@ async def lifespan(app: FastAPI):
             environment=settings.APP_ENV,
             release=settings.VERSION,
             traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+            enable_logs=settings.SENTRY_ENABLE_LOGS,
             integrations=[FastApiIntegration()],
             before_send=sanitize_sentry_event,
         )
