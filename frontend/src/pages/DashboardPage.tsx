@@ -154,7 +154,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <MfaBanner />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-6 pb-6 sm:py-12">
         {/* Welcome */}
         <div className="mb-8 sm:mb-10">
           <div className="mb-6">
@@ -308,6 +308,7 @@ const DashboardPage: React.FC = () => {
             <div className="space-y-2">
               {recentDiagrams.map((d) => {
                 const typeIcons: Record<string, string> = { mermaid: '🧜‍♀️', plantuml: '🌱', d2: '📐', dbml: '🗄️' };
+                const typeNames: Record<string, string> = { mermaid: 'Mermaid', plantuml: 'PlantUML', d2: 'D2', dbml: 'DBML' };
                 return (
                   <button
                     key={d.id}
@@ -318,7 +319,7 @@ const DashboardPage: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{d.title}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {d.project_emoji} {d.project_name} · {new Date(d.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                        {d.project_emoji} {d.project_name} · {typeNames[d.diagram_type] || d.diagram_type} · {new Date(d.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                       </p>
                     </div>
                     <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

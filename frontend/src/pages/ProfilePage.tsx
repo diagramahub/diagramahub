@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
@@ -32,11 +33,13 @@ const TIMEZONES = [
 ];
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Profile editing state
   const [fullName, setFullName] = useState(user?.full_name || '');
@@ -52,6 +55,11 @@ export default function ProfilePage() {
   // UI state
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
   const [loading, setLoading] = useState(false);
 
   const getUserInitials = () => {
@@ -153,12 +161,45 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('profile.title')}</h1>
-          <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {t('profile.subtitle')}
-          </p>
+        {/* Header with logout */}
+        <div className="mb-6 sm:mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('profile.title')}</h1>
+            <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {t('profile.subtitle')}
+            </p>
+          </div>
+          <div className="relative">
+            {showLogoutConfirm && (
+              <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-3 z-50">
+                <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{t('auth.logoutConfirm')}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleLogout}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    {t('common.logout')}
+                  </button>
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+              aria-label={t('common.logout')}
+              title={t('common.logout')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Messages */}

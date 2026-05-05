@@ -93,15 +93,6 @@ function MoonIcon() {
   );
 }
 
-function LogoutIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
-    </svg>
-  );
-}
-
 function CollapseIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +171,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   // Collapsed state persisted in localStorage
@@ -190,9 +181,6 @@ export default function Sidebar() {
 
   // Mobile overlay state
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  // Logout confirmation state
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Community modal state
   const [showCommunityModal, setShowCommunityModal] = useState(false);
@@ -216,12 +204,6 @@ export default function Sidebar() {
 
   // Check if a nav item is active
   const isActive = (path: string) => location.pathname === path;
-
-  // Handle logout
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   // --- Render helpers ---
 
@@ -367,28 +349,9 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* User info + logout */}
+        {/* User info */}
         {isExpanded ? (
-          <div className="relative flex items-center gap-2 px-3 py-2">
-            {showLogoutConfirm && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 mx-2 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-3 z-50">
-                <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{t('auth.logoutConfirm')}</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleLogout}
-                    className="flex-1 px-2 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-                  >
-                    {t('common.logout')}
-                  </button>
-                  <button
-                    onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="flex items-center gap-2 px-3 py-2">
             <button
               onClick={() => navigate('/profile')}
               className="flex-shrink-0 rounded-full hover:ring-2 hover:ring-purple-400 transition-all"
@@ -405,15 +368,6 @@ export default function Sidebar() {
                 {user?.full_name || user?.email || ''}
               </p>
             </button>
-            <Tooltip content={t('common.logout')} position="top">
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                className="flex-shrink-0 p-1 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors duration-200"
-                aria-label={t('common.logout')}
-              >
-                <LogoutIcon />
-              </button>
-            </Tooltip>
           </div>
         ) : (
           <Tooltip content={t('sidebar.profile')} position="right">
