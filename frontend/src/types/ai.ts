@@ -159,12 +159,13 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
     { id: 'claude-sonnet-4-6' },
   ],
   [AIProviderType.DEEPSEEK]: [
-    { id: 'deepseek-chat', recommended: true },
-    { id: 'deepseek-coder' },
+    { id: 'deepseek-v4-flash', recommended: true },
+    { id: 'deepseek-v4-pro' },
+    { id: 'deepseek-chat' },
   ],
   [AIProviderType.MINIMAX]: [
-    { id: 'minimax-01', recommended: true },
-    { id: 'abab6.5s-chat' },
+    { id: 'MiniMax-M2.7', recommended: true },
+    { id: 'MiniMax-M2.5' },
   ],
 };
 
@@ -195,7 +196,7 @@ export const AI_PROVIDER_API_KEY_URLS: Record<AIProviderType, string> = {
   [AIProviderType.OPENAI]: 'https://platform.openai.com/api-keys',
   [AIProviderType.CLAUDE]: 'https://console.anthropic.com/settings/keys',
   [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys',
-  [AIProviderType.MINIMAX]: 'https://platform.minimaxi.com/user-center/basic-information/interface-key'
+  [AIProviderType.MINIMAX]: 'https://platform.minimax.io/user-center/basic-information'
 };
 
 // Types for diagram fix functionality

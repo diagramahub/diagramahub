@@ -50,7 +50,13 @@ MODEL_TOKEN_LIMITS = {
     "gemini-1.5-pro": 1000000,
     "deepseek-chat": 64000,
     "deepseek-coder": 64000,
+    "deepseek-v4-flash": 1000000,
+    "deepseek-v4-pro": 1000000,
     "minimax-01": 1000000,
+    "MiniMax-Text-01": 1000000,
+    "MiniMax-M2.5": 1000000,
+    "MiniMax-M2.7": 1000000,
+    "MiniMax-Text-01-128k": 128000,
     "abab6.5s-chat": 32000,
 }
 
@@ -287,6 +293,15 @@ class ChatSessionService:
             )
 
             generation_time = time.time() - start
+
+            # Strip <think>...</think> tags (chain-of-thought from some models like DeepSeek/MiniMax)
+            import re
+            # Handle both closed and unclosed think tags
+            ai_text = re.sub(r'<think>.*?</think>\s*', '', ai_text, flags=re.DOTALL)
+            # If <think> is present but not closed (truncated), remove everything from <think> onwards
+            if '<think>' in ai_text:
+                ai_text = ai_text[:ai_text.index('<think>')].strip()
+            ai_text = ai_text.strip()
 
             # === DEBUG LOGS ===
             print(f"\n{'='*60}")

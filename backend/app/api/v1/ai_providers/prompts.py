@@ -1049,6 +1049,64 @@ def build_unified_chat_prompt(
     context = get_diagram_context(diagram_type, language)
     common_errors = get_common_errors_section(diagram_type, language)
 
+    # Add Kroki rendering context for server-rendered types
+    kroki_context = ""
+    if diagram_type in ("plantuml", "uml", "d2", "dbml"):
+        if language == "es":
+            kroki_context = (
+                "CONTEXTO DE RENDERIZADO:\n"
+                "Este diagrama se renderiza usando Kroki (servicio de renderizado de diagramas). "
+                "Kroki tiene limitaciones especificas:\n"
+            )
+            if diagram_type in ("plantuml", "uml"):
+                kroki_context += (
+                    "- PlantUML: soporta la sintaxis estandar. Evitar extensiones experimentales.\n"
+                    "- Los skinparam y temas estandar funcionan correctamente.\n"
+                    "- Siempre usar @startuml/@enduml.\n\n"
+                )
+            elif diagram_type == "d2":
+                kroki_context += (
+                    "- D2: soporta la sintaxis estandar de D2.\n"
+                    "- NO usar style.dash (usar style.stroke-dash: 5).\n"
+                    "- Los temas se aplican via vars block, no en el codigo directamente.\n"
+                    "- Propiedades de estilo validas: fill, stroke, stroke-width, stroke-dash, border-radius, opacity, font-color, font-size, shadow, bold, italic, underline, animated, 3d, multiple.\n\n"
+                )
+            elif diagram_type == "dbml":
+                kroki_context += (
+                    "- DBML: usa dbml-renderer (version basica).\n"
+                    "- SOLO soporta: Table, Enum, Ref, Note, TableGroup, indexes.\n"
+                    "- NO soporta: DiagramView, Schemas, Project, headercolor, alias con 'as'.\n"
+                    "- SIEMPRE usar comillas DOBLES (\") para notas y strings. NUNCA comillas simples (').\n"
+                    "- Las notas multilinea con triple comillas (''') NO estan soportadas.\n\n"
+                )
+        else:
+            kroki_context = (
+                "RENDERING CONTEXT:\n"
+                "This diagram is rendered using Kroki (diagram rendering service). "
+                "Kroki has specific limitations:\n"
+            )
+            if diagram_type in ("plantuml", "uml"):
+                kroki_context += (
+                    "- PlantUML: supports standard syntax. Avoid experimental extensions.\n"
+                    "- Standard skinparam and themes work correctly.\n"
+                    "- Always use @startuml/@enduml.\n\n"
+                )
+            elif diagram_type == "d2":
+                kroki_context += (
+                    "- D2: supports standard D2 syntax.\n"
+                    "- DO NOT use style.dash (use style.stroke-dash: 5).\n"
+                    "- Themes are applied via vars block, not directly in code.\n"
+                    "- Valid style properties: fill, stroke, stroke-width, stroke-dash, border-radius, opacity, font-color, font-size, shadow, bold, italic, underline, animated, 3d, multiple.\n\n"
+                )
+            elif diagram_type == "dbml":
+                kroki_context += (
+                    "- DBML: uses dbml-renderer (basic version).\n"
+                    "- ONLY supports: Table, Enum, Ref, Note, TableGroup, indexes.\n"
+                    "- Does NOT support: DiagramView, Schemas, Project, headercolor, alias with 'as'.\n"
+                    "- ALWAYS use DOUBLE quotes (\") for notes and strings. NEVER single quotes (').\n"
+                    "- Multi-line notes with triple quotes (''') are NOT supported.\n\n"
+                )
+
     if language == "es":
         lang_instruction = (
             "IDIOMA DE RESPUESTA:\n"
@@ -1070,6 +1128,7 @@ def build_unified_chat_prompt(
             f"Eres un asistente experto en diagramas {diagram_type}. El usuario esta trabajando "
             f"en el siguiente diagrama.\n\n"
             f"DIAGRAMA ACTUAL:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
             f"{complete_code_instruction}"
@@ -1116,6 +1175,7 @@ def build_unified_chat_prompt(
             f"You are an expert assistant in {diagram_type} diagrams. The user is working on "
             f"the following diagram.\n\n"
             f"CURRENT DIAGRAM:\n```{diagram_type}\n{diagram_code}\n```\n\n"
+            f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
             f"{complete_code_instruction}"

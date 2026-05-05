@@ -1075,13 +1075,18 @@ export default function DiagramEditorPage() {
 
     const saveViewport = async () => {
       try {
+        setSaveStatus('saving');
         await api.updateDiagram(currentDiagram.id, {
           viewport_zoom: zoom,
           viewport_x: pan.x,
           viewport_y: pan.y,
         });
+        setSaveStatus('saved');
+        setLastSavedTime(new Date());
+        setTimeout(() => setSaveStatus('idle'), 2000);
       } catch (err) {
         console.error('Error saving viewport:', err);
+        setSaveStatus('idle');
       }
     };
 
@@ -1900,6 +1905,17 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             )}
+            {/* New diagram button */}
+            <button
+              onClick={() => handleNewDiagram(null)}
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 rounded transition-colors flex-shrink-0"
+              aria-label={t('editor.newDiagram')}
+              title={t('editor.newDiagram')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
           </div>
           {/* Spacer */}
           <div className="flex-1" />
@@ -2017,7 +2033,7 @@ export default function DiagramEditorPage() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 </button>
                 <button onClick={handleFitToScreen} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors" aria-label={t('editor.fitToScreen')}>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 </button>
               </div>
 

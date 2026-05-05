@@ -21,7 +21,7 @@ from ..prompts import (
 class MinimaxClient(BaseAIClient):
     """Client for Minimax AI (OpenAI-compatible API)."""
 
-    BASE_URL = "https://api.minimaxi.chat/v1"
+    BASE_URL = "https://api.minimax.io/v1"
 
     def __init__(
         self, api_key: str, model: str = "minimax-01", parameters: Dict[str, Any] = None
