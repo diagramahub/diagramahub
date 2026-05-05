@@ -196,6 +196,12 @@ class ProjectService:
             diagrams = await self.diagram_repository.get_by_project_id(str(p.id))
             diagram_count = len(diagrams)
 
+            # Count by diagram type
+            type_counts: dict = {}
+            for d in diagrams:
+                dt = d.diagram_type or 'mermaid'
+                type_counts[dt] = type_counts.get(dt, 0) + 1
+
             project_responses.append(
                 ProjectResponse(
                     id=str(p.id),
@@ -204,6 +210,7 @@ class ProjectService:
                     emoji=p.emoji,
                     user_id=p.user_id,
                     diagram_count=diagram_count,
+                    diagram_type_counts=type_counts,
                     created_at=p.created_at,
                     updated_at=p.updated_at
                 )

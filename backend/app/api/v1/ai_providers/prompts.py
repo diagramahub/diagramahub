@@ -1052,7 +1052,7 @@ def build_unified_chat_prompt(
     if language == "es":
         lang_instruction = (
             "IDIOMA DE RESPUESTA:\n"
-            "DEBES responder SIEMPRE en espanol. Toda explicacion, comentario y texto "
+            "DEBES responder SIEMPRE en español. Toda explicacion, comentario y texto "
             "debe estar en espanol. Los nombres de elementos dentro del codigo del diagrama "
             "tambien deben estar en espanol cuando sea posible.\n\n"
         )

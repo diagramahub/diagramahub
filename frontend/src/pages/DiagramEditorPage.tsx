@@ -1821,8 +1821,59 @@ export default function DiagramEditorPage() {
       {/* Unified Toolbar */}
       {!isFullscreen && (
         <div className="flex items-center h-9 px-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 flex-shrink-0">
-          {/* Left: editable diagram title */}
-          <div className="flex items-center gap-2 min-w-0">
+          {/* Left: project name + diagram title */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Project name with selector */}
+            <div className="relative" ref={projectSelectorRef}>
+              <button
+                onClick={handleOpenProjectSelector}
+                className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1 max-w-[140px]"
+                title={project?.name || ''}
+              >
+                <span className="truncate">{project?.name || 'Proyecto'}</span>
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {/* Project selector dropdown */}
+              {showProjectSelector && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                  <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                    <input
+                      type="text"
+                      value={projectSearchQuery}
+                      onChange={(e) => setProjectSearchQuery(e.target.value)}
+                      placeholder={t('breadcrumb.searchProjects')}
+                      className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 focus:ring-1 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto py-1">
+                    {loadingProjects ? (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2 text-center">{t('common.loading')}</p>
+                    ) : filteredProjects.length === 0 ? (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-2 text-center">{t('breadcrumb.noProjectsFound')}</p>
+                    ) : (
+                      filteredProjects.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => handleSelectProject(p.id)}
+                          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${
+                            p.id === projectId ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <span>{p.emoji || '📁'}</span>
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Separator */}
+            <span className="text-gray-300 dark:text-gray-600 text-xs">/</span>
+            {/* Diagram title */}
             {isEditingDiagramTitle ? (
               <input
                 ref={titleInputRef}

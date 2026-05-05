@@ -42,6 +42,16 @@ class ChatSessionRepository(IChatSessionRepository):
             .to_list()
         )
 
+    async def get_sessions_by_user(
+        self, user_id: str
+    ) -> list[ChatSessionInDB]:
+        """Get all sessions for a user."""
+        return (
+            await ChatSessionInDB.find({"user_id": user_id})
+            .sort("-updated_at")
+            .to_list()
+        )
+
     async def get_session_by_id(
         self, session_id: str
     ) -> Optional[ChatSessionInDB]:

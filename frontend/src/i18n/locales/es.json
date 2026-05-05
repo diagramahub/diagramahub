@@ -27,7 +27,7 @@
     "timezone": "Zona horaria",
     "language": "Idioma",
     "profile": "Perfil",
-    "settings": "Configuraciones",
+    "settings": "Ajustes",
     "logout": "Salir"
   },
   "nav": {
@@ -35,7 +35,7 @@
     "projects": "Proyectos",
     "diagrams": "Diagramas",
     "myProfile": "Mi perfil",
-    "settings": "Configuraciones",
+    "settings": "Ajustes",
     "logout": "Cerrar sesión"
   },
   "breadcrumb": {
@@ -188,7 +188,10 @@
     "deleteProjectMessage": "¿Estás seguro de que quieres eliminar el proyecto \"{{projectName}}\"? Esta acción no se puede deshacer y se eliminarán todos los diagramas y carpetas asociados.",
     "projectDeleted": "Proyecto eliminado",
     "loading": "Cargando proyectos...",
-    "noDescription": "Sin descripción"
+    "noDescription": "Sin descripción",
+    "aiUsage": "Uso de motores de IA",
+    "totalAiMessages": "mensajes totales con IA",
+    "noAiUsage": "Sin uso de IA registrado"
   },
   "project": {
     "createTitle": "Crear nuevo proyecto",
@@ -333,7 +336,7 @@
     "linkedOn": "Vinculada el"
   },
   "settings": {
-    "title": "Configuraciones",
+    "title": "Ajustes",
     "comingSoon": "Próximamente",
     "comingSoonDescription": "Estamos trabajando en nuevas opciones de configuración para mejorar tu experiencia. Pronto podrás personalizar temas, notificaciones y mucho más.",
     "futureFeatures": "Próximas funcionalidades",
@@ -952,8 +955,9 @@
   },
   "sidebar": {
     "dashboard": "Inicio",
+    "projects": "Proyectos",
     "profile": "Perfil",
-    "aiSettings": "IA",
+    "aiSettings": "Ajustes",
     "integrations": "Integraciones",
     "userManagement": "Usuarios",
     "collapse": "Colapsar sidebar",

@@ -517,6 +517,16 @@ class ChatSessionService:
             except Exception as e:
                 logger.warning(f"Failed to update session summary: {e}")
 
+            # Update last_provider and last_model on the session
+            try:
+                session_doc = await self.session_repo.get_session_by_id(session_id_str)
+                if session_doc:
+                    session_doc.last_provider = provider_config.provider.value
+                    session_doc.last_model = actual_model
+                    await session_doc.save()
+            except Exception as e:
+                logger.warning(f"Failed to update session provider/model: {e}")
+
             await self.session_repo.update_session_status(session_id_str, session.status)
 
             return self._message_to_response(ai_msg)

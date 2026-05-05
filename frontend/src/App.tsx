@@ -16,6 +16,7 @@ import SubscriptionPage from './pages/SubscriptionPage';
 import AdminPage from './pages/AdminPage';
 import UserManagementPage from './pages/UserManagementPage';
 import PlansPage from './pages/PlansPage';
+import ProjectsPage from './pages/ProjectsPage';
 import SharedDiagramPage from './pages/SharedDiagramPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -87,6 +88,16 @@ function App() {
                       <PrivateRoute>
                         <SidebarLayout>
                           <DashboardPage />
+                        </SidebarLayout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects-list"
+                    element={
+                      <PrivateRoute>
+                        <SidebarLayout>
+                          <ProjectsPage />
                         </SidebarLayout>
                       </PrivateRoute>
                     }

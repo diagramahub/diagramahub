@@ -48,6 +48,7 @@ class ProjectResponse(BaseModel):
     emoji: str
     user_id: str
     diagram_count: int = 0
+    diagram_type_counts: dict = {}
     created_at: datetime
     updated_at: datetime
 

@@ -188,7 +188,10 @@
     "deleteProjectMessage": "Are you sure you want to delete the project \"{{projectName}}\"? This action cannot be undone and will delete all associated diagrams and folders.",
     "projectDeleted": "Project deleted",
     "loading": "Loading projects...",
-    "noDescription": "No description"
+    "noDescription": "No description",
+    "aiUsage": "AI Engine Usage",
+    "totalAiMessages": "total AI messages",
+    "noAiUsage": "No AI usage recorded"
   },
   "project": {
     "createTitle": "Create new project",
@@ -833,8 +836,9 @@
   },
   "sidebar": {
     "dashboard": "Home",
+    "projects": "Projects",
     "profile": "Profile",
-    "aiSettings": "AI",
+    "aiSettings": "Settings",
     "integrations": "Integrations",
     "userManagement": "Users",
     "collapse": "Collapse sidebar",

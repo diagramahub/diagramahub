@@ -495,6 +495,11 @@ class ApiService {
     return response.data;
   }
 
+  async getProviderUsageStats(): Promise<{ provider_counts: Record<string, number>; total_messages: number }> {
+    const response = await this.api.get<{ provider_counts: Record<string, number>; total_messages: number }>('/api/v1/chat-sessions/stats/provider-usage');
+    return response.data;
+  }
+
   // ============================================================================
   // Shared Links API (Authenticated - for diagram owners)
   // ============================================================================
