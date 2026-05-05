@@ -191,7 +191,8 @@
     "noDescription": "Sin descripción",
     "aiUsage": "Uso de motores de IA",
     "totalAiMessages": "mensajes totales con IA",
-    "noAiUsage": "Sin uso de IA registrado"
+    "noAiUsage": "Sin uso de IA registrado",
+    "recentDiagrams": "Últimos diagramas actualizados"
   },
   "project": {
     "createTitle": "Crear nuevo proyecto",
@@ -359,7 +360,7 @@
     "structure": "Explorador",
     "fullscreen": "Presentar",
     "exitFullscreen": "Salir",
-    "aiChat": "Chat IA",
+    "aiChat": "Chat con IA",
     "tools": "Herramientas",
     "actions": "Acciones",
     "viewProject": "Ver proyecto",
@@ -960,8 +961,8 @@
     "aiSettings": "Ajustes",
     "integrations": "Integraciones",
     "userManagement": "Usuarios",
-    "collapse": "Colapsar sidebar",
-    "expand": "Expandir sidebar",
+    "collapse": "Colapsar",
+    "expand": "Expandir",
     "subscription": "Suscripción",
     "administration": "Administración",
     "plans": "Planes",

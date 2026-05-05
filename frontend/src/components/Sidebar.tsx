@@ -477,7 +477,7 @@ export default function Sidebar() {
       {/* Mobile sidebar overlay */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-full w-52 bg-white dark:bg-gray-800
+          fixed top-0 left-0 z-50 h-full w-40 bg-white dark:bg-gray-800
           transform transition-transform duration-200 ease-in-out
           md:hidden
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -494,7 +494,7 @@ export default function Sidebar() {
           hidden md:flex flex-col fixed top-0 left-0 h-full z-30
           bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
           transition-all duration-200 ease-in-out
-          ${isExpanded ? 'w-52' : 'w-16'}
+          ${isExpanded ? 'w-40' : 'w-16'}
         `}
         role="navigation"
         aria-label="Sidebar"

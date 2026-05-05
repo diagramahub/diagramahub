@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -95,15 +96,18 @@ function DonutChart({ typeCounts }: { typeCounts: Record<string, number> }) {
 }
 
 const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [providerStats, setProviderStats] = useState<{ provider_counts: Record<string, number>; total_messages: number } | null>(null);
+  const [recentDiagrams, setRecentDiagrams] = useState<Array<{ id: string; title: string; diagram_type: string; project_id: string; project_name: string; project_emoji: string; updated_at: string }>>([]);
 
   useEffect(() => {
     loadProjects();
     loadProviderStats();
+    loadRecentDiagrams();
   }, []);
 
   const loadProjects = async () => {
@@ -124,6 +128,15 @@ const DashboardPage: React.FC = () => {
       setProviderStats(stats);
     } catch (error) {
       console.error('Error loading provider stats:', error);
+    }
+  };
+
+  const loadRecentDiagrams = async () => {
+    try {
+      const data = await api.getRecentDiagrams();
+      setRecentDiagrams(data);
+    } catch (error) {
+      console.error('Error loading recent diagrams:', error);
     }
   };
 
@@ -256,7 +269,7 @@ const DashboardPage: React.FC = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{displayName}</span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{count} · {pct}%</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{pct}%</span>
                             </div>
                             <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                               <div
@@ -268,9 +281,6 @@ const DashboardPage: React.FC = () => {
                         </div>
                       );
                     })}
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">
-                    {providerStats.total_messages} {t('dashboard.totalAiMessages')}
-                  </p>
                 </div>
               ) : (
                 <div className="flex items-center justify-center py-8 text-gray-400 dark:text-gray-500 text-sm">
@@ -285,6 +295,38 @@ const DashboardPage: React.FC = () => {
                 {t('dashboard.statsDiagrams')}
               </h2>
               <DonutChart typeCounts={typeCounts} />
+            </div>
+          </div>
+        )}
+
+        {/* Recent diagrams widget */}
+        {!loading && recentDiagrams.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mt-4">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+              {t('dashboard.recentDiagrams')}
+            </h2>
+            <div className="space-y-2">
+              {recentDiagrams.map((d) => {
+                const typeIcons: Record<string, string> = { mermaid: '🧜‍♀️', plantuml: '🌱', d2: '📐', dbml: '🗄️' };
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => navigate(`/projects/${d.project_id}/diagrams/${d.id}`)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                  >
+                    <span className="text-lg flex-shrink-0">{typeIcons[d.diagram_type] || '📄'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{d.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {d.project_emoji} {d.project_name} · {new Date(d.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                      </p>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

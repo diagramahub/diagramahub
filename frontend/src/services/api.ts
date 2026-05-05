@@ -500,6 +500,11 @@ class ApiService {
     return response.data;
   }
 
+  async getRecentDiagrams(): Promise<Array<{ id: string; title: string; diagram_type: string; project_id: string; project_name: string; project_emoji: string; updated_at: string }>> {
+    const response = await this.api.get('/api/v1/diagrams/recent');
+    return response.data;
+  }
+
   // ============================================================================
   // Shared Links API (Authenticated - for diagram owners)
   // ============================================================================

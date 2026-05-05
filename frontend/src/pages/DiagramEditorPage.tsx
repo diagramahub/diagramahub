@@ -1905,17 +1905,19 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             )}
-            {/* New diagram button */}
-            <button
-              onClick={() => handleNewDiagram(null)}
-              className="p-1 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 rounded transition-colors flex-shrink-0"
-              aria-label={t('editor.newDiagram')}
-              title={t('editor.newDiagram')}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
+            {/* New diagram button — hidden when editing title */}
+            {!isEditingDiagramTitle && (
+              <button
+                onClick={() => handleNewDiagram(null)}
+                className="p-1 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 rounded transition-colors flex-shrink-0"
+                aria-label={t('editor.newDiagram')}
+                title={t('editor.newDiagram')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            )}
           </div>
           {/* Spacer */}
           <div className="flex-1" />
@@ -1980,13 +1982,14 @@ export default function DiagramEditorPage() {
               <Tooltip content={t('editor.aiChat')} position="bottom">
                 <button
                   onClick={() => { if (validateAIConfiguration()) setShowChatPanel(true); }}
-                  className={`p-1.5 rounded-md transition-colors ${showChatPanel ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/50'}`}
+                  className={`px-2 py-1 rounded-md transition-colors flex items-center gap-1 ${showChatPanel ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:text-purple-300 dark:hover:bg-purple-900/50'}`}
                   aria-label={t('editor.aiChat')}
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
                     <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
                   </svg>
+                  <span className="text-xs font-semibold">AI</span>
                 </button>
               </Tooltip>
 

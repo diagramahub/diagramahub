@@ -143,6 +143,48 @@ def _parse_kroki_error(raw_detail: str, status_code: int) -> str:
 
 # ============ Public Endpoints (no auth required) ============
 
+@router.get("/diagrams/recent")
+async def get_recent_diagrams(
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+):
+    """Get the 4 most recently updated diagrams for the current user."""
+    from .repository import DiagramRepository
+    from ..projects.repository import ProjectRepository
+    
+    project_repo = ProjectRepository()
+    diagram_repo = DiagramRepository()
+    
+    # Get all user projects
+    projects = await project_repo.get_by_user_id(user_id)
+    
+    # Collect all diagrams across projects
+    all_diagrams = []
+    project_map = {}
+    for p in projects:
+        project_map[str(p.id)] = {"name": p.name, "emoji": p.emoji}
+        diagrams = await diagram_repo.get_by_project_id(str(p.id))
+        for d in diagrams:
+            all_diagrams.append(d)
+    
+    # Sort by updated_at descending and take top 4
+    all_diagrams.sort(key=lambda d: d.updated_at or d.created_at, reverse=True)
+    recent = all_diagrams[:4]
+    
+    return [
+        {
+            "id": str(d.id),
+            "title": d.title,
+            "diagram_type": d.diagram_type,
+            "project_id": d.project_id,
+            "project_name": project_map.get(d.project_id, {}).get("name", ""),
+            "project_emoji": project_map.get(d.project_id, {}).get("emoji", "📁"),
+            "updated_at": (d.updated_at or d.created_at).isoformat(),
+        }
+        for d in recent
+    ]
+
+
 @router.post("/diagrams/render")
 async def render_diagram(
     request: RenderDiagramRequest,

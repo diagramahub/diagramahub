@@ -191,7 +191,8 @@
     "noDescription": "No description",
     "aiUsage": "AI Engine Usage",
     "totalAiMessages": "total AI messages",
-    "noAiUsage": "No AI usage recorded"
+    "noAiUsage": "No AI usage recorded",
+    "recentDiagrams": "Recently updated diagrams"
   },
   "project": {
     "createTitle": "Create new project",
@@ -841,8 +842,8 @@
     "aiSettings": "Settings",
     "integrations": "Integrations",
     "userManagement": "Users",
-    "collapse": "Collapse sidebar",
-    "expand": "Expand sidebar",
+    "collapse": "Collapse",
+    "expand": "Expand",
     "subscription": "Subscription",
     "administration": "Administration",
     "plans": "Plans",
