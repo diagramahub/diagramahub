@@ -43,24 +43,24 @@ export default function ChatSessionSelector({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 px-3 py-1.5 text-xs text-left bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors min-w-0"
+          className="flex-1 flex items-center gap-2 px-3 py-1.5 text-xs text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-w-0"
         >
-          <span className="truncate flex-1 text-gray-700 font-medium">
+          <span className="truncate flex-1 text-gray-700 dark:text-gray-300 font-medium">
             {activeSession?.title || 'Seleccionar sesión'}
           </span>
           {activeSession?.status === 'finalized' && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded-full flex-shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-full flex-shrink-0">
               finalizada
             </span>
           )}
-          <svg className={`w-3.5 h-3.5 text-gray-400 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         <button
           type="button"
           onClick={onCreateSession}
-          className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors flex-shrink-0"
+          className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/50 rounded-lg transition-colors flex-shrink-0"
           title="Nueva sesión"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -71,15 +71,15 @@ export default function ChatSessionSelector({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
           {sessions.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-gray-400 text-center">Sin sesiones</p>
+            <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 text-center">Sin sesiones</p>
           ) : (
             sessions.map((session) => (
               <div
                 key={session.id}
-                className={`group flex items-center gap-1 px-3 py-2 hover:bg-gray-50 cursor-pointer ${
-                  session.id === activeSessionId ? 'bg-purple-50' : ''
+                className={`group flex items-center gap-1 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${
+                  session.id === activeSessionId ? 'bg-purple-50 dark:bg-purple-900/20' : ''
                 }`}
               >
                 {editingId === session.id ? (
@@ -93,7 +93,7 @@ export default function ChatSessionSelector({
                       if (e.key === 'Escape') setEditingId(null);
                     }}
                     autoFocus
-                    className="flex-1 text-xs px-1 py-0.5 border border-purple-300 rounded focus:ring-1 focus:ring-purple-500"
+                    className="flex-1 text-xs px-1 py-0.5 border border-purple-300 dark:border-purple-600 rounded focus:ring-1 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 ) : (
                   <>
@@ -102,8 +102,8 @@ export default function ChatSessionSelector({
                       onClick={() => { onSelectSession(session.id); setIsOpen(false); }}
                       className="flex-1 text-left min-w-0"
                     >
-                      <p className="text-xs text-gray-700 truncate">{session.title}</p>
-                      <span className="text-[10px] text-gray-400">
+                      <p className="text-xs text-gray-700 dark:text-gray-300 truncate">{session.title}</p>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
                         {session.message_count} msgs
                         {session.status === 'finalized' && ' • finalizada'}
                       </span>
@@ -112,7 +112,7 @@ export default function ChatSessionSelector({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleStartRename(session); }}
-                        className="p-0.5 text-gray-400 hover:text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Renombrar"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,7 +123,7 @@ export default function ChatSessionSelector({
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
-                      className="p-0.5 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Eliminar"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

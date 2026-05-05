@@ -4,10 +4,96 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Project } from '../types/project';
-import Navbar from '../components/Navbar';
 import MfaBanner from '../components/MfaBanner';
-import CreateProjectModal from '../components/CreateProjectModal';
-import ConfirmModal from '../components/ConfirmModal';
+
+/** SVG Donut Chart for diagram type distribution */
+function DonutChart({ typeCounts }: { typeCounts: Record<string, number> }) {
+  const { t } = useTranslation();
+
+  const colorMap: Record<string, string> = {
+    mermaid: '#10b981',
+    plantuml: '#22c55e',
+    d2: '#6366f1',
+    dbml: '#f97316',
+  };
+
+  const labelMap: Record<string, string> = {
+    mermaid: 'Mermaid',
+    plantuml: 'PlantUML',
+    d2: 'D2',
+    dbml: 'DBML',
+  };
+
+  const entries = Object.entries(typeCounts).filter(([, count]) => count > 0);
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+        {t('dashboard.noProjects')}
+      </div>
+    );
+  }
+
+  // Build SVG arcs
+  const radius = 40;
+  const cx = 50;
+  const cy = 50;
+  const strokeWidth = 14;
+  const circumference = 2 * Math.PI * radius;
+
+  let offset = 0;
+  const segments = entries.map(([type, count]) => {
+    const pct = count / total;
+    const dashLength = pct * circumference;
+    const dashOffset = -offset;
+    offset += dashLength;
+    return { type, count, pct, dashLength, dashOffset, color: colorMap[type] || '#9ca3af' };
+  });
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {/* Donut SVG */}
+      <div className="relative w-40 h-40">
+        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+          {segments.map((seg) => (
+            <circle
+              key={seg.type}
+              cx={cx}
+              cy={cy}
+              r={radius}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${seg.dashLength} ${circumference - seg.dashLength}`}
+              strokeDashoffset={seg.dashOffset}
+              className="transition-all duration-500"
+            />
+          ))}
+        </svg>
+        {/* Center total */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold text-gray-900 dark:text-gray-100">{total}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsDiagrams')}</span>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+        {segments.map((seg) => (
+          <div key={seg.type} className="flex items-center gap-1.5 text-sm">
+            <span
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: seg.color }}
+            />
+            <span className="text-gray-700 dark:text-gray-300">{labelMap[seg.type] || seg.type}</span>
+            <span className="text-gray-400 dark:text-gray-500 font-medium">{seg.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,19 +101,13 @@ const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editModal, setEditModal] = useState<{ isOpen: boolean; project: Project | null }>({
-    isOpen: false,
-    project: null
-  });
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; projectId: string | null; projectName: string }>({
-    isOpen: false,
-    projectId: null,
-    projectName: ''
-  });
+  const [providerStats, setProviderStats] = useState<{ provider_counts: Record<string, number>; total_messages: number } | null>(null);
+  const [recentDiagrams, setRecentDiagrams] = useState<Array<{ id: string; title: string; diagram_type: string; project_id: string; project_name: string; project_emoji: string; updated_at: string }>>([]);
 
   useEffect(() => {
     loadProjects();
+    loadProviderStats();
+    loadRecentDiagrams();
   }, []);
 
   const loadProjects = async () => {
@@ -42,134 +122,104 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const handleProjectClick = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
-  };
-
-  const handleCreateProject = () => {
-    setIsCreateModalOpen(true);
-  };
-
-  const handleProjectCreated = (projectId: string) => {
-    loadProjects();
-    navigate(`/projects/${projectId}`);
-  };
-
-  const handleEditProject = (project: Project) => {
-    setEditModal({
-      isOpen: true,
-      project
-    });
-  };
-
-  const handleProjectUpdated = () => {
-    loadProjects();
-  };
-
-  const handleDeleteProject = (projectId: string, projectName: string) => {
-    setDeleteConfirmModal({
-      isOpen: true,
-      projectId,
-      projectName
-    });
-  };
-
-  const confirmDeleteProject = async () => {
-    if (!deleteConfirmModal.projectId) return;
-
+  const loadProviderStats = async () => {
     try {
-      await api.deleteProject(deleteConfirmModal.projectId);
-      await loadProjects();
+      const stats = await api.getProviderUsageStats();
+      setProviderStats(stats);
     } catch (error) {
-      console.error('Error deleting project:', error);
-      // Puedes agregar un toast o notificación aquí en lugar de alert
+      console.error('Error loading provider stats:', error);
     }
   };
 
+  const loadRecentDiagrams = async () => {
+    try {
+      const data = await api.getRecentDiagrams();
+      setRecentDiagrams(data);
+    } catch (error) {
+      console.error('Error loading recent diagrams:', error);
+    }
+  };
+
+  // Aggregate diagram type counts across all projects
+  const typeCounts: Record<string, number> = {};
+  projects.forEach((p) => {
+    if (p.diagram_type_counts) {
+      Object.entries(p.diagram_type_counts).forEach(([type, count]) => {
+        typeCounts[type] = (typeCounts[type] || 0) + count;
+      });
+    }
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 transition-colors">
-      <Navbar />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <MfaBanner />
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-        {/* Welcome + Stats */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-6 pb-6 sm:py-12">
+        {/* Welcome */}
         <div className="mb-8 sm:mb-10">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
-                {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '' })} 👋
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">{t('dashboard.welcomeSubtitle')}</p>
-            </div>
-            <button
-              onClick={handleCreateProject}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm sm:text-base flex-shrink-0"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">{t('dashboard.newProject')}</span>
-              <span className="sm:hidden">{t('common.create')}</span>
-            </button>
+          <div className="mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+              {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '' })} 👋
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.welcomeSubtitle')}</p>
           </div>
 
           {/* Stats cards */}
-          {!loading && projects.length > 0 && (
+          {!loading && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{projects.length}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsProjects')}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{projects.length}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsProjects')}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{projects.reduce((sum, p) => sum + (p.diagram_count || 0), 0)}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsDiagrams')}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{projects.reduce((sum, p) => sum + (p.diagram_count || 0), 0)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsDiagrams')}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {projects.length > 0
                         ? new Date(Math.max(...projects.map(p => new Date(p.updated_at || p.created_at).getTime()))).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
                         : '—'}
                     </p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsLastActivity')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsLastActivity')}</p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-gray-900">{user?.subscription?.plan?.name || 'Free'}</p>
-                    <p className="text-xs text-gray-500">{t('dashboard.statsPlan')}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{user?.subscription?.plan?.name || 'Free'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.statsPlan')}</p>
                   </div>
                 </div>
               </div>
@@ -177,138 +227,115 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
-        {/* Projects section header */}
-        {!loading && projects.length > 0 && (
-          <div className="mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t('dashboard.title')}</h2>
+        {/* Widgets grid: AI Usage (left) + Donut Chart (right) */}
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* AI Provider Usage Widget */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                {t('dashboard.aiUsage')}
+              </h2>
+              {providerStats && providerStats.total_messages > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(providerStats.provider_counts)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([provider, count]) => {
+                      const pct = Math.round((count / providerStats.total_messages) * 100);
+                      const providerColors: Record<string, string> = {
+                        deepseek: 'bg-blue-500',
+                        openai: 'bg-emerald-500',
+                        gemini: 'bg-sky-500',
+                        claude: 'bg-orange-500',
+                        minimax: 'bg-pink-500',
+                      };
+                      const providerNames: Record<string, string> = {
+                        deepseek: 'DeepSeek',
+                        openai: 'OpenAI GPT',
+                        gemini: 'Google Gemini',
+                        claude: 'Anthropic Claude',
+                        minimax: 'Minimax',
+                      };
+                      const barColor = providerColors[provider] || 'bg-gray-500';
+                      const displayName = providerNames[provider] || provider;
+
+                      return (
+                        <div key={provider} className="flex items-center gap-3">
+                          <img
+                            src={`/images/ai-providers/${provider}.svg`}
+                            alt={displayName}
+                            className="w-7 h-7 object-contain flex-shrink-0"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{displayName}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{pct}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${barColor} transition-all duration-500`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+                  {t('dashboard.noAiUsage')}
+                </div>
+              )}
+            </div>
+
+            {/* Donut chart widget */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+                {t('dashboard.statsDiagrams')}
+              </h2>
+              <DonutChart typeCounts={typeCounts} />
+            </div>
           </div>
         )}
 
-        {loading ? (
-          <div className="text-center py-16 text-gray-500">{t('dashboard.loading')}</div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">{t('dashboard.noProjects')}</p>
-            <button
-              onClick={() => navigate('/onboarding')}
-              className="text-sm text-gray-900 hover:text-gray-600 underline"
-            >
-              {t('dashboard.createFirstProject')}
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map(project => (
-              <div
-                key={project.id}
-                className="relative bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group cursor-pointer"
-                onClick={() => handleProjectClick(project.id)}
-              >
-                {/* Header with emoji and name */}
-                <div className="p-5 border-b border-gray-100">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-gradient-to-br from-purple-50 to-purple-50 flex items-center justify-center text-2xl">
-                      {project.emoji}
-                    </div>
+        {/* Recent diagrams widget */}
+        {!loading && recentDiagrams.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mt-4">
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
+              {t('dashboard.recentDiagrams')}
+            </h2>
+            <div className="space-y-2">
+              {recentDiagrams.map((d) => {
+                const typeIcons: Record<string, string> = { mermaid: '🧜‍♀️', plantuml: '🌱', d2: '📐', dbml: '🗄️' };
+                const typeNames: Record<string, string> = { mermaid: 'Mermaid', plantuml: 'PlantUML', d2: 'D2', dbml: 'DBML' };
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => navigate(`/projects/${d.project_id}/diagrams/${d.id}`)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                  >
+                    <span className="text-lg flex-shrink-0">{typeIcons[d.diagram_type] || '📄'}</span>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors truncate">
-                        {project.name}
-                      </h3>
-                      {project.description ? (
-                        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                          {project.description}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-gray-400 italic mt-1">{t('dashboard.noDescription')}</p>
-                      )}
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{d.title}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {d.project_emoji} {d.project_name} · {typeNames[d.diagram_type] || d.diagram_type} · {new Date(d.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                      </p>
                     </div>
-                  </div>
-                </div>
-
-                {/* Stats section */}
-                <div className="px-5 py-3 bg-gray-50">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span className="font-medium">{project.diagram_count}</span>
-                      <span className="text-gray-500">{project.diagram_count === 1 ? t('dashboard.diagram') : t('dashboard.diagrams')}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {new Date(project.created_at).toLocaleDateString('es-ES', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action buttons */}
-                <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditProject(project);
-                    }}
-                    className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                    title={t('dashboard.editProject')}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProject(project.id, project.name);
-                    }}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title={t('dashboard.deleteProject')}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
+        )}
+
+        {loading && (
+          <div className="text-center py-16 text-gray-500 dark:text-gray-400">{t('dashboard.loading')}</div>
         )}
       </main>
-
-      {/* Create Project Modal */}
-      <CreateProjectModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={handleProjectCreated}
-        isFirstProject={false}
-      />
-
-      {/* Edit Project Modal */}
-      <CreateProjectModal
-        isOpen={editModal.isOpen}
-        onClose={() => setEditModal({ isOpen: false, project: null })}
-        onSuccess={handleProjectUpdated}
-        editMode={true}
-        projectToEdit={editModal.project || undefined}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <ConfirmModal
-        isOpen={deleteConfirmModal.isOpen}
-        onClose={() => setDeleteConfirmModal({ isOpen: false, projectId: null, projectName: '' })}
-        onConfirm={confirmDeleteProject}
-        title={t('dashboard.confirmDelete')}
-        message={t('dashboard.deleteProjectMessage', { projectName: deleteConfirmModal.projectName })}
-        confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
-        isDangerous={true}
-      />
     </div>
   );
 };

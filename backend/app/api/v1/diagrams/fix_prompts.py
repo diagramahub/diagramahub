@@ -279,6 +279,110 @@ IMPORTANTE: Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional antes o des
     return prompt
 
 
+def build_dbml_fix_prompt(
+    diagram_code: str,
+    error_context: Optional[str] = None,
+    language: str = "es"
+) -> str:
+    """
+    Construir prompt especializado para corrección de diagramas DBML.
+    
+    Usa delimitadores <<<CODE>>> en vez de JSON para evitar conflictos
+    con las llaves {} del código DBML.
+    """
+    lang_instructions = {
+        "es": {
+            "intro": (
+                "Eres un experto en DBML (Database Markup Language). "
+                "Analiza el siguiente código que tiene errores de sintaxis y corrígelo."
+            ),
+            "error_label": "ERROR DETECTADO:",
+            "rules_label": "REGLAS DE SINTAXIS DBML:",
+            "instructions_label": "INSTRUCCIONES:",
+            "instructions": [
+                "1. Identifica el error de sintaxis específico",
+                "2. Corrige SOLO el error, manteniendo la estructura original",
+                "3. Preserva todas las tablas, columnas y relaciones",
+                "4. NO cambies el significado del diagrama",
+                "5. NO agregues ni elimines elementos innecesariamente",
+            ],
+            "format_label": "FORMATO DE RESPUESTA:",
+        },
+        "en": {
+            "intro": (
+                "You are an expert in DBML (Database Markup Language). "
+                "Analyze the following code that has syntax errors and fix it."
+            ),
+            "error_label": "DETECTED ERROR:",
+            "rules_label": "DBML SYNTAX RULES:",
+            "instructions_label": "INSTRUCTIONS:",
+            "instructions": [
+                "1. Identify the specific syntax error",
+                "2. Fix ONLY the error, maintaining the original structure",
+                "3. Preserve all tables, columns and relationships",
+                "4. DO NOT change the diagram's meaning",
+                "5. DO NOT add or remove elements unnecessarily",
+            ],
+            "format_label": "RESPONSE FORMAT:",
+        },
+    }
+
+    lang = lang_instructions.get(language, lang_instructions["es"])
+
+    error_section = ""
+    if error_context:
+        error_section = f"""
+{lang["error_label"]}
+{error_context}
+"""
+
+    prompt = f"""{lang["intro"]}
+
+CÓDIGO ORIGINAL:
+```dbml
+{diagram_code}
+```
+{error_section}
+{lang["rules_label"]}
+- Tablas: Table nombre {{ columnas }}
+- Columnas: nombre tipo [opciones]
+- Opciones: [pk], [not null], [unique], [increment], [default: valor], [note: "texto"]
+- Enums: Enum nombre {{ valores }}
+- Relaciones: Ref: tabla1.col > tabla2.col (muchos a uno)
+- Relaciones: Ref: tabla1.col < tabla2.col (uno a muchos)
+- Relaciones: Ref: tabla1.col - tabla2.col (uno a uno)
+- Relaciones: Ref: tabla1.col <> tabla2.col (muchos a muchos)
+- Opciones de Ref: [delete: cascade], [update: no action]
+- Índices: indexes {{ columna [tipo] }}
+- Notas: Note: "texto" (SIEMPRE comillas dobles, NUNCA simples)
+- TableGroup: TableGroup nombre {{ tablas }}
+- Comentarios: // comentario de línea
+- CRITICO: SIEMPRE usar comillas DOBLES (") para notas y strings. NUNCA comillas simples ('). El renderer rechaza comillas simples.
+- CRITICO: NO usar DiagramView, Schemas ni Project. Solo soportados: Table, Enum, Ref, Note, TableGroup, indexes.
+
+{lang["instructions_label"]}
+{chr(10).join(lang["instructions"])}
+
+{lang["format_label"]}
+Responde con EXACTAMENTE este formato (usa los delimitadores tal cual):
+
+<<<EXPLANATION>>>
+explicación clara de qué se corrigió y por qué
+<<<END_EXPLANATION>>>
+
+<<<CHANGES>>>
+resumen breve de los cambios (1 línea)
+<<<END_CHANGES>>>
+
+<<<CODE>>>
+código DBML corregido completo aquí
+<<<END_CODE>>>
+
+IMPORTANTE: Usa EXACTAMENTE los delimitadores <<<EXPLANATION>>>, <<<CHANGES>>> y <<<CODE>>> con sus respectivos cierres. No uses JSON."""
+
+    return prompt
+
+
 def build_fix_prompt(
     diagram_code: str,
     diagram_type: str,
@@ -290,7 +394,7 @@ def build_fix_prompt(
 
     Args:
         diagram_code: Código del diagrama con errores
-        diagram_type: Tipo de diagrama (mermaid, plantuml, d2)
+        diagram_type: Tipo de diagrama (mermaid, plantuml, d2, dbml)
         error_context: Contexto del error (mensaje, línea)
         language: Idioma para la explicación (es, en)
 
@@ -303,6 +407,8 @@ def build_fix_prompt(
         return build_d2_fix_prompt(diagram_code, error_context, language)
     elif 'plantuml' in diagram_type_lower or diagram_type_lower == 'uml':
         return build_plantuml_fix_prompt(diagram_code, error_context, language)
+    elif 'dbml' in diagram_type_lower:
+        return build_dbml_fix_prompt(diagram_code, error_context, language)
     else:
         # Por defecto, usar prompt de Mermaid
         return build_mermaid_fix_prompt(diagram_code, error_context, language)

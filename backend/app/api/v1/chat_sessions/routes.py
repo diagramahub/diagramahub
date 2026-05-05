@@ -50,6 +50,39 @@ async def get_current_user_id(
     return str(user.id)
 
 
+# --- Stats endpoints ---
+
+@router.get("/stats/provider-usage")
+async def get_provider_usage_stats(
+    user_id: str = Depends(get_current_user_id),
+    service: ChatSessionService = Depends(get_chat_session_service),
+):
+    """Get AI provider usage statistics for the current user."""
+    message_repo = service.message_repo
+    session_repo = service.session_repo
+    
+    # Get all sessions for this user
+    from .schemas import ChatMessageInDB
+    
+    # Aggregate provider_used from all messages across user's sessions
+    sessions = await session_repo.get_sessions_by_user(user_id)
+    
+    provider_counts: dict = {}
+    total_messages = 0
+    
+    for session in sessions:
+        messages = await message_repo.get_recent_messages(str(session.id), limit=100)
+        for msg in messages:
+            if msg.provider_used:
+                provider_counts[msg.provider_used] = provider_counts.get(msg.provider_used, 0) + 1
+                total_messages += 1
+    
+    return {
+        "provider_counts": provider_counts,
+        "total_messages": total_messages,
+    }
+
+
 # --- Session endpoints ---
 
 @router.post("", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)

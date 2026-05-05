@@ -1,25 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
-import Navbar from '../components/Navbar';
-import ConfirmModal from '../components/ConfirmModal';
-import DeleteAccountModal from '../components/DeleteAccountModal';
-import AccountDeletedModal from '../components/AccountDeletedModal';
-import AIIntegrationsSection from '../components/AIIntegrationsSection';
-import PlanList from '../components/admin/PlanList';
-import IntegrationsSection from '../components/admin/IntegrationsSection';
-import SubscriptionCard from '../components/subscription/SubscriptionCard';
-import UsageIndicator from '../components/subscription/UsageIndicator';
-import PlanSelector from '../components/subscription/PlanSelector';
-import BillingHistory from '../components/subscription/BillingHistory';
-import SuccessCelebrationModal from '../components/subscription/SuccessCelebrationModal';
 import PremiumAvatar from '../components/PremiumAvatar';
 import MfaSetupSection from '../components/mfa/MfaSetupSection';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
-import UserMfaManagement from '../components/admin/UserMfaManagement';
-import { Subscription } from '../types/subscription';
 
 // Lista de zonas horarias comunes
 const TIMEZONES = [
@@ -47,49 +33,35 @@ const TIMEZONES = [
 ];
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  // Get tab from URL query params
-  const queryParams = new URLSearchParams(location.search);
-  let initialTab: 'profile' | 'settings' | 'subscription' | 'admin' = 'profile';
-  const tabParam = queryParams.get('tab');
-  if (tabParam === 'settings') initialTab = 'settings';
-  if (tabParam === 'subscription') initialTab = 'subscription';
-  if (tabParam === 'admin' && user?.role === 'admin') initialTab = 'admin';
-  
-  const [activeTab, setActiveTab] = useState<'profile' | 'settings' | 'subscription' | 'admin'>(initialTab);
+
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [showPlanSelector, setShowPlanSelector] = useState(false);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationPlan, setCelebrationPlan] = useState<any>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showDeletedModal, setShowDeletedModal] = useState(false);
-  const [isSoleAdmin, setIsSoleAdmin] = useState(false);
 
-  // Estados para edición de perfil
+  // Profile editing state
   const [fullName, setFullName] = useState(user?.full_name || '');
-  const [email, setEmail] = useState(user?.email || '');
+  const [email] = useState(user?.email || '');
   const [profilePicture, setProfilePicture] = useState<string | undefined>(user?.profile_picture);
   const [imagePreview, setImagePreview] = useState<string | undefined>(user?.profile_picture);
   const [timezone, setTimezone] = useState(user?.timezone || 'UTC');
 
-  // Estados para cambio de contraseña
+  // Password change state
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Estados de UI
+  // UI state
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
   const [loading, setLoading] = useState(false);
 
-  // Obtener iniciales para el avatar
   const getUserInitials = () => {
     if (user?.full_name) {
       const names = user.full_name.trim().split(' ');
@@ -104,24 +76,17 @@ export default function ProfilePage() {
     return 'U';
   };
 
-  // Manejar selección de imagen
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
       setError(t('profile.invalidImageType'));
       return;
     }
-
-    // Validar tamaño (máximo 2MB)
     if (file.size > 2 * 1024 * 1024) {
       setError(t('profile.imageTooLarge'));
       return;
     }
-
-    // Convertir a base64
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
@@ -132,7 +97,6 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  // Eliminar foto de perfil
   const handleRemoveImage = () => {
     setProfilePicture(undefined);
     setImagePreview(undefined);
@@ -143,21 +107,15 @@ export default function ProfilePage() {
     setError('');
     setSuccess('');
     setLoading(true);
-
     try {
       const updatedUser = await apiService.updateProfile({
         full_name: fullName,
         profile_picture: profilePicture,
-        timezone: timezone
+        timezone: timezone,
       });
-
-      // Actualizar usuario en localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));
-
       setSuccess(t('profile.profileUpdated'));
       setIsEditingProfile(false);
-
-      // Recargar página para reflejar cambios en toda la aplicación
       setTimeout(() => window.location.reload(), 1000);
     } catch (err: any) {
       setError(err.response?.data?.detail || t('profile.profileUpdateError'));
@@ -170,34 +128,25 @@ export default function ProfilePage() {
     e.preventDefault();
     setError('');
     setSuccess('');
-
-    // Validaciones
     if (!newPassword || !confirmPassword) {
       setError(t('profile.allFieldsRequired'));
       return;
     }
-
     if (newPassword !== confirmPassword) {
       setError(t('profile.passwordsDoNotMatch'));
       return;
     }
-
     if (newPassword.length < 12) {
       setError(t('profile.passwordTooShort'));
       return;
     }
-
     if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(newPassword)) {
       setError(t('validation.passwordSpecial'));
       return;
     }
-
     setLoading(true);
-
     try {
-      await apiService.changePassword({
-        new_password: newPassword
-      });
+      await apiService.changePassword({ new_password: newPassword });
       setSuccess(t('profile.passwordUpdated'));
       setNewPassword('');
       setConfirmPassword('');
@@ -209,169 +158,70 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const handlePlanSelected = () => {
-    // Refresh subscription components after plan change
-    setRefreshKey(prev => prev + 1);
-  };
-
-  const loadSubscription = async () => {
-    try {
-      const data = await apiService.getMySubscription();
-      setSubscription(data);
-      
-      // Check if we should show celebration modal
-      // This happens when user returns from successful payment
-      const urlParams = new URLSearchParams(window.location.search);
-      const showSuccess = urlParams.get('success');
-      const sessionId = urlParams.get('session_id');
-      
-      if (showSuccess === 'true' && sessionId && data.plan.price_usd > 0) {
-        // Only show celebration for paid plans
-        setCelebrationPlan(data.plan);
-        setShowCelebration(true);
-        
-        // Clean up URL
-        window.history.replaceState({}, '', '/profile?tab=subscription');
-      }
-    } catch (err) {
-      console.error('Error loading subscription:', err);
-    }
-  };
-
-  // Load subscription on mount if on subscription tab
-  useEffect(() => {
-    if (activeTab === 'subscription') {
-      loadSubscription();
-    }
-  }, [activeTab]);
-
-  // Load subscription on mount for profile tab (needed for danger zone)
-  useEffect(() => {
-    loadSubscription();
-    // Check if user is the sole admin
-    if (user?.role === 'admin') {
-      apiService.getAdminCount().then(data => {
-        setIsSoleAdmin(data.count <= 1);
-      }).catch(() => {});
-    }
-  }, []);
-
-  const hasActivePaidPlan = subscription?.status === 'active' && subscription.plan.price_usd > 0;
-  const cannotDelete = hasActivePaidPlan || isSoleAdmin;
-
-  const handleDeleteAccount = async (confirmationPhrase: string) => {
-    await apiService.deleteAccount(confirmationPhrase);
-    // Clear session data immediately
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    // Close confirmation modal, show deleted modal
-    setShowDeleteModal(false);
-    setShowDeletedModal(true);
-  };
-
-  const handleDeletedAcknowledged = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t('profile.title')}</h1>
-          <p className="mt-1 sm:mt-2 text-sm text-gray-600">
-            {t('profile.subtitle')}
-          </p>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200">
-          <nav className="-mb-px flex overflow-x-auto scrollbar-hide">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`${
-                activeTab === 'profile'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
-            >
-              {t('common.profile')}
-            </button>
-            <button
-              onClick={() => setActiveTab('settings')}
-              className={`${
-                activeTab === 'settings'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
-            >
-              {t('common.settings')}
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('subscription');
-                loadSubscription();
-              }}
-              className={`${
-                activeTab === 'subscription'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
-            >
-              Mi Suscripción
-            </button>
-            {user?.role === 'admin' && (
-              <button
-                onClick={() => setActiveTab('admin')}
-                className={`${
-                  activeTab === 'admin'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 border-b-2 font-medium text-sm transition-colors flex-shrink-0`}
-              >
-                Admin
-              </button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
+        {/* Header with logout */}
+        <div className="mb-6 sm:mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('profile.title')}</h1>
+            <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {t('profile.subtitle')}
+            </p>
+          </div>
+          <div className="relative">
+            {showLogoutConfirm && (
+              <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-3 z-50">
+                <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{t('auth.logoutConfirm')}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleLogout}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    {t('common.logout')}
+                  </button>
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
             )}
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="ml-auto whitespace-nowrap py-3 sm:py-4 px-3 sm:px-4 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+              className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+              aria-label={t('common.logout')}
+              title={t('common.logout')}
             >
-              {t('common.logout')}
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
+              </svg>
             </button>
-          </nav>
+          </div>
         </div>
 
-        {/* Mensajes de éxito o error */}
+        {/* Messages */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
         {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-600">{success}</p>
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+            <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
           </div>
         )}
 
-        {/* Profile Tab Content */}
-        {activeTab === 'profile' && (
-          <>
-        {/* Información del Perfil */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('profile.profileInformation')}</h2>
+        {/* Profile Information */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.profileInformation')}</h2>
             {!isEditingProfile && (
               <button
                 onClick={() => setIsEditingProfile(true)}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
               >
                 {t('profile.edit')}
               </button>
@@ -381,54 +231,45 @@ export default function ProfilePage() {
           <div className="px-4 sm:px-6 py-4 sm:py-6">
             {!isEditingProfile ? (
               <div className="space-y-6">
-                {/* Avatar */}
                 <div className="flex items-center gap-3 sm:gap-4">
                   <PremiumAvatar size="xl" showPremiumBadge={true} />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{t('profile.profilePicture')}</p>
-                    <p className="text-xs text-gray-500">{t('profile.photoLimitInfo')}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('profile.profilePicture')}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('profile.photoLimitInfo')}</p>
                   </div>
                 </div>
-
                 <div>
-                  <label className="text-sm font-medium text-gray-500">{t('profile.fullName')}</label>
-                  <p className="mt-1 text-gray-900">{user?.full_name || t('profile.notSpecified')}</p>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile.fullName')}</label>
+                  <p className="mt-1 text-gray-900 dark:text-gray-100">{user?.full_name || t('profile.notSpecified')}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">{t('profile.emailAddress')}</label>
-                  <p className="mt-1 text-gray-900">{user?.email}</p>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile.emailAddress')}</label>
+                  <p className="mt-1 text-gray-900 dark:text-gray-100">{user?.email}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">{t('profile.timezone')}</label>
-                  <p className="mt-1 text-gray-900">
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile.timezone')}</label>
+                  <p className="mt-1 text-gray-900 dark:text-gray-100">
                     {TIMEZONES.find(tz => tz.value === user?.timezone)?.label || 'UTC (Hora Universal)'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">{t('profile.memberSince')}</label>
-                  <p className="mt-1 text-gray-900">
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile.memberSince')}</label>
+                  <p className="mt-1 text-gray-900 dark:text-gray-100">
                     {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-ES', {
                       year: 'numeric',
                       month: 'long',
-                      day: 'numeric'
+                      day: 'numeric',
                     }) : 'N/A'}
                   </p>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleUpdateProfile} className="space-y-6">
-                {/* Upload de foto de perfil */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    {t('profile.profilePicture')}
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('profile.profilePicture')}</label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                     {imagePreview ? (
-                      <img
-                        src={imagePreview}
-                        alt={t('profile.profilePicture')}
-                        className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
-                      />
+                      <img src={imagePreview} alt={t('profile.profilePicture')} className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600" />
                     ) : (
                       <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-2xl font-semibold">
                         {getUserInitials()}
@@ -437,102 +278,42 @@ export default function ProfilePage() {
                     <div className="flex-1">
                       <div className="flex gap-3">
                         <label className="cursor-pointer">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                          />
-                          <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                          <span className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                             {t('profile.uploadPhoto')}
                           </span>
                         </label>
                         {imagePreview && (
-                          <button
-                            type="button"
-                            onClick={handleRemoveImage}
-                            className="px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-600 bg-white hover:bg-red-50 transition-colors"
-                          >
+                          <button type="button" onClick={handleRemoveImage} className="px-4 py-2 border border-red-300 dark:border-red-600 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                             {t('profile.removePhoto')}
                           </button>
                         )}
                       </div>
-                      <p className="mt-2 text-xs text-gray-500">
-                        {t('profile.photoLimitInfo')}
-                      </p>
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('profile.photoLimitInfo')}</p>
                     </div>
                   </div>
                 </div>
-
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.fullName')}
-                  </label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder={t('installation.fullNamePlaceholder')}
-                  />
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.fullName')}</label>
+                  <input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder={t('installation.fullNamePlaceholder')} />
                 </div>
-
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.emailAddress')}
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
-                    disabled
-                  />
-                  <p className="mt-1 text-xs text-gray-500">{t('profile.emailCannotChange')}</p>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.emailAddress')}</label>
+                  <input id="email" type="email" value={email} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400" disabled />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.emailCannotChange')}</p>
                 </div>
-
                 <div>
-                  <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.timezone')}
-                  </label>
-                  <select
-                    id="timezone"
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    {TIMEZONES.map((tz) => (
-                      <option key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </option>
-                    ))}
+                  <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.timezone')}</label>
+                  <select id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                    {TIMEZONES.map((tz) => (<option key={tz.value} value={tz.value}>{tz.label}</option>))}
                   </select>
-                  <p className="mt-1 text-xs text-gray-500">{t('profile.timezoneHint')}</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.timezoneHint')}</p>
                 </div>
-
                 <div className="flex gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
+                  <button type="submit" disabled={loading} className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                     {loading ? t('profile.saving') : t('profile.saveChanges')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditingProfile(false);
-                      setFullName(user?.full_name || '');
-                      setEmail(user?.email || '');
-                      setProfilePicture(user?.profile_picture);
-                      setImagePreview(user?.profile_picture);
-                      setTimezone(user?.timezone || 'UTC');
-                      setError('');
-                    }}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
+                  <button type="button" onClick={() => { setIsEditingProfile(false); setFullName(user?.full_name || ''); setProfilePicture(user?.profile_picture); setImagePreview(user?.profile_picture); setTimezone(user?.timezone || 'UTC'); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     {t('profile.cancelEdit')}
                   </button>
                 </div>
@@ -541,77 +322,36 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Seguridad - Cambiar Contraseña */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('profile.accountSecurity')}</h2>
+        {/* Security — Change Password */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.accountSecurity')}</h2>
             {!isChangingPassword && (
-              <button
-                onClick={() => setIsChangingPassword(true)}
-                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-              >
+              <button onClick={() => setIsChangingPassword(true)} className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium">
                 {t('profile.changePassword')}
               </button>
             )}
           </div>
-
           <div className="px-4 sm:px-6 py-4 sm:py-6">
             {!isChangingPassword ? (
-              <div>
-                <p className="text-sm text-gray-600">
-                  {t('profile.securityMessage')}
-                </p>
-              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('profile.securityMessage')}</p>
             ) : (
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.newPassword')}
-                  </label>
-                  <input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="••••••••"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">{t('profile.passwordMinLength')}</p>
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.newPassword')}</label>
+                  <input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.passwordMinLength')}</p>
                   <PasswordStrengthIndicator password={newPassword} email={user?.email} />
                 </div>
-
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('profile.confirmNewPassword')}
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    placeholder="••••••••"
-                  />
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.confirmNewPassword')}</label>
+                  <input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
                 </div>
-
                 <div className="flex gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
+                  <button type="submit" disabled={loading} className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                     {loading ? t('profile.updating') : t('profile.updatePassword')}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsChangingPassword(false);
-                      setNewPassword('');
-                      setConfirmPassword('');
-                      setError('');
-                    }}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
+                  <button type="button" onClick={() => { setIsChangingPassword(false); setNewPassword(''); setConfirmPassword(''); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     {t('profile.cancelEdit')}
                   </button>
                 </div>
@@ -620,193 +360,53 @@ export default function ProfilePage() {
           </div>
         </div>
 
-          {/* MFA Setup Section */}
-          <MfaSetupSection />
+        {/* MFA Setup Section */}
+        <MfaSetupSection />
 
-          {/* Linked Accounts Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
-            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('profile.linkedAccounts')}</h2>
-              <p className="mt-1 text-sm text-gray-500">{t('profile.linkedAccountsDescription')}</p>
-            </div>
-            <div className="px-4 sm:px-6 py-4 sm:py-6">
-              {user?.oauth_providers && user.oauth_providers.length > 0 ? (
-                <div className="space-y-4">
-                  {user.oauth_providers.map((entry, index) => (
-                    <div key={`${entry.provider}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex items-center gap-3">
-                        {entry.provider === 'google' && (
-                          <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24">
-                              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                            </svg>
-                          </div>
-                        )}
-                        {entry.provider !== 'google' && (
-                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                            <span className="text-sm font-semibold text-gray-600">{entry.provider.charAt(0).toUpperCase()}</span>
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {entry.provider.charAt(0).toUpperCase() + entry.provider.slice(1)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {t('profile.linkedOn')} {new Date(entry.linked_at).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
+        {/* Linked Accounts Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mt-6">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.linkedAccounts')}</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('profile.linkedAccountsDescription')}</p>
+          </div>
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
+            {user?.oauth_providers && user.oauth_providers.length > 0 ? (
+              <div className="space-y-4">
+                {user.oauth_providers.map((entry, index) => (
+                  <div key={`${entry.provider}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center gap-3">
+                      {entry.provider === 'google' ? (
+                        <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 flex items-center justify-center">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                          </svg>
                         </div>
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">{entry.provider.charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {entry.provider.charAt(0).toUpperCase() + entry.provider.slice(1)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {t('profile.linkedOn')} {new Date(entry.linked_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">{t('profile.noLinkedAccounts')}</p>
-              )}
-            </div>
-          </div>
-
-          </>
-        )}
-
-        {/* Settings Tab Content */}
-        {activeTab === 'settings' && (
-          <>
-            {/* AI Integrations Section */}
-            <div className="mb-6">
-              <AIIntegrationsSection />
-            </div>
-
-            {/* Zona de Peligro */}
-            <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 sm:p-6">
-              <h2 className="text-lg font-semibold text-red-800">{t('dangerZone.title')}</h2>
-              <p className="mt-2 text-sm text-red-700">{t('dangerZone.description')}</p>
-              {hasActivePaidPlan && (
-                <p className="mt-3 text-sm text-red-600 font-medium">
-                  {t('dangerZone.disabledMessage')}
-                </p>
-              )}
-              {isSoleAdmin && (
-                <p className="mt-3 text-sm text-red-600 font-medium">
-                  {t('dangerZone.soleAdminMessage')}
-                </p>
-              )}
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                disabled={cannotDelete}
-                className="mt-4 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('dangerZone.deleteButton')}
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Subscription Tab Content */}
-        {activeTab === 'subscription' && (
-          <div className="space-y-6">
-            {/* Current Subscription */}
-            <div key={`subscription-${refreshKey}`}>
-              <SubscriptionCard />
-            </div>
-
-            {/* Usage Indicator */}
-            <div key={`usage-${refreshKey}`}>
-              <UsageIndicator />
-            </div>
-
-            {/* Change Plan Button - hide for admin */}
-            {user?.role !== 'admin' && !showPlanSelector && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <button
-                  onClick={() => setShowPlanSelector(true)}
-                  className="w-full px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                >
-                  {t('subscription.changePlan')}
-                </button>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.noLinkedAccounts')}</p>
             )}
-
-            {/* Plan Selector (shown when button is clicked) */}
-            {showPlanSelector && (
-              <div key={`plans-${refreshKey}`}>
-                <div className="mb-4 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">{t('subscription.selectNewPlan')}</h3>
-                  <button
-                    onClick={() => setShowPlanSelector(false)}
-                    className="text-sm text-gray-600 hover:text-gray-800"
-                  >
-                    {t('subscription.cancelSelection')}
-                  </button>
-                </div>
-                <PlanSelector 
-                  currentSubscription={subscription}
-                  onPlanSelected={() => {
-                    handlePlanSelected();
-                    setShowPlanSelector(false);
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Billing History - hide for admin */}
-            {user?.role !== 'admin' && <BillingHistory />}
           </div>
-        )}
-
-        {/* Admin Tab Content */}
-        {activeTab === 'admin' && user?.role === 'admin' && (
-          <div className="space-y-8">
-            <UserMfaManagement />
-            <PlanList />
-            <IntegrationsSection />
-          </div>
-        )}
+        </div>
       </div>
     </div>
-
-    {/* Logout Confirmation Modal */}
-    <ConfirmModal
-      isOpen={showLogoutConfirm}
-      onClose={() => setShowLogoutConfirm(false)}
-      onConfirm={handleLogout}
-      title={t('auth.logoutConfirm')}
-      message={t('auth.logoutMessage')}
-      confirmText={t('common.logout')}
-      cancelText={t('common.cancel')}
-      isDangerous={true}
-    />
-
-    {/* Success Celebration Modal */}
-    {celebrationPlan && (
-      <SuccessCelebrationModal
-        isOpen={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        planName={celebrationPlan.name}
-        planPrice={celebrationPlan.price_usd}
-        maxProjects={celebrationPlan.max_projects}
-        maxDiagrams={celebrationPlan.max_diagrams}
-      />
-    )}
-
-    {/* Delete Account Modal */}
-    <DeleteAccountModal
-      isOpen={showDeleteModal}
-      onClose={() => setShowDeleteModal(false)}
-      onConfirm={handleDeleteAccount}
-    />
-
-    {/* Account Deleted Modal */}
-    <AccountDeletedModal
-      isOpen={showDeletedModal}
-      onConfirm={handleDeletedAcknowledged}
-    />
-    </>
   );
 }

@@ -7,6 +7,7 @@ from .gemini_client import GeminiClient
 from .openai_client import OpenAIClient
 from .claude_client import ClaudeClient
 from .deepseek_client import DeepSeekClient
+from .minimax_client import MinimaxClient
 from ..schemas import AIProviderType
 
 
@@ -19,6 +20,7 @@ class AIClientFactory:
         AIProviderType.OPENAI: OpenAIClient,
         AIProviderType.CLAUDE: ClaudeClient,
         AIProviderType.DEEPSEEK: DeepSeekClient,
+        AIProviderType.MINIMAX: MinimaxClient,
     }
 
     @classmethod

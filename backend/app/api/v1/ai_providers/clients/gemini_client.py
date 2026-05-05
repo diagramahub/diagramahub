@@ -28,7 +28,7 @@ class GeminiClient(BaseAIClient):
         return types.GenerateContentConfig(
             temperature=temperature or self.parameters.get("temperature", 0.7),
             top_p=self.parameters.get("top_p", 0.95),
-            max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 2048),
+            max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 4096),
         )
 
     async def _generate(self, prompt: str, temperature: float | None = None, max_tokens: int | None = None) -> str:
@@ -76,14 +76,17 @@ class GeminiClient(BaseAIClient):
         language: str = "es",
     ) -> Dict[str, str]:
         from ...diagrams.fix_prompts import build_fix_prompt
-        from ..prompts import extract_fix_json
+        from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             response_text = await self._generate(prompt, temperature=0.3)
 
-            fix_result = extract_fix_json(response_text, "Gemini")
-            fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
+            if diagram_type.lower() == "dbml":
+                fix_result = extract_fix_delimited(response_text, "Gemini")
+            else:
+                fix_result = extract_fix_json(response_text, "Gemini")
+                fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
             return fix_result
 
         except Exception as e:

@@ -54,10 +54,10 @@ export default function BillingHistory() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { color: string; text: string }> = {
-      paid: { color: 'bg-green-100 text-green-800', text: t('subscription.billing.paid') },
-      open: { color: 'bg-yellow-100 text-yellow-800', text: t('subscription.billing.pending') },
-      void: { color: 'bg-gray-100 text-gray-800', text: t('subscription.billing.failed') },
-      uncollectible: { color: 'bg-red-100 text-red-800', text: t('subscription.billing.failed') },
+      paid: { color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300', text: t('subscription.billing.paid') },
+      open: { color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300', text: t('subscription.billing.pending') },
+      void: { color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300', text: t('subscription.billing.failed') },
+      uncollectible: { color: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300', text: t('subscription.billing.failed') },
     };
 
     const badge = badges[status] || badges.open;
@@ -70,10 +70,10 @@ export default function BillingHistory() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Historial de Pagos</h2>
-          <p className="mt-1 text-sm text-gray-600">Revisa tus transacciones anteriores</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Historial de Pagos</h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Revisa tus transacciones anteriores</p>
         </div>
         <div className="px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex justify-center items-center py-8">
@@ -86,14 +86,14 @@ export default function BillingHistory() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Historial de Pagos</h2>
-          <p className="mt-1 text-sm text-gray-600">Revisa tus transacciones anteriores</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Historial de Pagos</h2>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Revisa tus transacciones anteriores</p>
         </div>
         <div className="px-4 sm:px-6 py-4 sm:py-6">
-          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         </div>
       </div>
@@ -101,16 +101,16 @@ export default function BillingHistory() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900">{t('subscription.billing.title')}</h2>
-        <p className="mt-1 text-sm text-gray-600">{t('subscription.billing.subtitle')}</p>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('subscription.billing.title')}</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{t('subscription.billing.subtitle')}</p>
       </div>
       <div className="px-4 sm:px-6 py-4 sm:py-6">
         {invoices.length === 0 ? (
           <div className="text-center py-8">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -122,43 +122,43 @@ export default function BillingHistory() {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <p className="mt-4 text-sm text-gray-500">{t('subscription.billing.noHistory')}</p>
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">{t('subscription.billing.noHistory')}</p>
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
               {t('subscription.billing.noHistoryDescription')}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('subscription.billing.date')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('subscription.billing.description')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('subscription.billing.amount')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('subscription.billing.status')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('common.actions')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={invoice.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {formatDate(invoice.created_at)}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100">
                       {invoice.description}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                       {formatAmount(invoice.amount, invoice.currency)}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm">
@@ -168,7 +168,7 @@ export default function BillingHistory() {
                       {invoice.invoice_pdf && (
                         <button
                           onClick={() => handleDownloadInvoice(invoice.id)}
-                          className="text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1"
+                          className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-medium flex items-center gap-1"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

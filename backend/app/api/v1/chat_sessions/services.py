@@ -22,7 +22,12 @@ from ..ai_providers.services import AIProviderService
 from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
+from ..diagrams.syntax_validator import SyntaxValidator
+
 logger = logging.getLogger(__name__)
+
+# --- Auto-retry constants ---
+MAX_RETRIES = 2
 
 # --- Context compaction constants ---
 CHARS_PER_TOKEN = 4
@@ -39,12 +44,23 @@ MODEL_TOKEN_LIMITS = {
     "gpt-4.1-nano": 128000,
     "claude-sonnet-4-6": 1000000,
     "claude-haiku-4-5-20251001": 200000,
+    "gemini-3.1-pro-preview": 1000000,
+    "gemini-3-flash-preview": 1000000,
+    "gemini-3.1-flash-lite-preview": 1000000,
     "gemini-2.5-flash": 1000000,
     "gemini-2.5-pro": 1000000,
     "gemini-2.0-flash": 1000000,
     "gemini-1.5-pro": 1000000,
     "deepseek-chat": 64000,
     "deepseek-coder": 64000,
+    "deepseek-v4-flash": 1000000,
+    "deepseek-v4-pro": 1000000,
+    "minimax-01": 1000000,
+    "MiniMax-Text-01": 1000000,
+    "MiniMax-M2.5": 1000000,
+    "MiniMax-M2.7": 1000000,
+    "MiniMax-Text-01-128k": 128000,
+    "abab6.5s-chat": 32000,
 }
 
 DEFAULT_TOKEN_LIMIT = 64000
@@ -203,9 +219,11 @@ class ChatSessionService:
         await self._maybe_auto_title(session, content)
 
         try:
-            # Build context from recent messages
-            recent = await self.message_repo.get_recent_messages(session_id_str, limit=20)
-            history = self._build_message_history(recent, session.summary)
+            # Build context: persistent summary + last few messages + current diagram
+            # Strategy: always use session.summary (if exists) + last 4 messages
+            RECENT_WINDOW = 4
+            all_recent = await self.message_repo.get_recent_messages(session_id_str, limit=RECENT_WINDOW)
+            history = self._build_message_history(all_recent, session.summary)
 
             # Get provider config
             provider_type = AIProviderType(provider) if provider else None
@@ -219,6 +237,8 @@ class ChatSessionService:
                 )
 
             actual_model = model or provider_config.model
+            # Fallback: if stored model is not in known limits, it may have been retired
+            # Use it anyway (the API will reject if truly invalid)
             client = AIClientFactory.create_client(
                 provider=provider_config.provider,
                 api_key=provider_config.api_key,
@@ -258,47 +278,27 @@ class ChatSessionService:
             start = time.time()
 
             # Call AI with unified system prompt + conversation history
-            if hasattr(client, '_generate'):
-                # Gemini: concatenate system + history into single prompt
-                conversation_parts = [system_prompt, ""]
-                for msg in history:
-                    role_label = (
-                        "Usuario" if msg["role"] == "user" else "Asistente"
-                    )
-                    if language != "es":
-                        role_label = (
-                            "User" if msg["role"] == "user" else "Assistant"
-                        )
-                    conversation_parts.append(
-                        f"{role_label}: {msg['content']}"
-                    )
-                role_suffix = "Asistente:" if language == "es" else "Assistant:"
-                conversation_parts.append(role_suffix)
-                ai_text = await client._generate("\n".join(conversation_parts))
-            elif hasattr(client, '_chat_completion'):
-                # OpenAI
-                api_messages = [{"role": "system", "content": system_prompt}]
-                for msg in history:
-                    api_messages.append({"role": msg["role"], "content": msg["content"]})
-                ai_text = await client._chat_completion(api_messages)
-            elif hasattr(client, '_make_request'):
-                # DeepSeek
-                api_messages = [{"role": "system", "content": system_prompt}]
-                for msg in history:
-                    api_messages.append({"role": msg["role"], "content": msg["content"]})
-                ai_text = await client._make_request(api_messages)
-            elif hasattr(client, '_messages_request'):
-                # Claude
-                api_messages = []
-                for msg in history:
-                    api_messages.append({"role": msg["role"], "content": msg["content"]})
-                ai_text = await client._messages_request(
-                    api_messages, system=system_prompt
-                )
-            else:
-                raise ValueError(f"Unsupported client: {type(client).__name__}")
+            ai_text = await self._call_ai_client(
+                client, system_prompt, history, language
+            )
 
             generation_time = time.time() - start
+
+            # Strip <think>...</think> tags (chain-of-thought from some models like DeepSeek/MiniMax)
+            import re
+            # Handle both closed and unclosed think tags
+            ai_text = re.sub(r'<think>.*?</think>\s*', '', ai_text, flags=re.DOTALL)
+            # If <think> is present but not closed (truncated), remove everything from <think> onwards
+            if '<think>' in ai_text:
+                ai_text = ai_text[:ai_text.index('<think>')].strip()
+            ai_text = ai_text.strip()
+
+            # Normalize diagram markers (AI sometimes translates them)
+            ai_text = re.sub(r'<<<DIAGRAMA>>>', '<<<DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<FIN_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<END_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text)
+            ai_text = re.sub(r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text)
 
             # Parse response: check for diagram code
             improved_code = None
@@ -310,10 +310,151 @@ class ChatSessionService:
                 end_idx = ai_text.index(self.DIAGRAM_END)
                 raw_code = ai_text[start_idx:end_idx].strip()
                 improved_code = clean_code_response(raw_code)
+            elif self.DIAGRAM_START in ai_text:
+                # Fallback: DIAGRAM_START present but END marker missing (truncated response)
+                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                raw_code = ai_text[start_idx:].strip()
+                improved_code = clean_code_response(raw_code)
+            else:
+                # Fallback: AI didn't use delimiters but may have included a code block
+                import re
+                # Try closed code block first
+                code_block_match = re.search(
+                    r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
+                    ai_text,
+                    re.DOTALL
+                )
+                if code_block_match:
+                    raw_code = code_block_match.group(1).strip()
+                    if raw_code and len(raw_code) > 20:
+                        improved_code = clean_code_response(raw_code)
+                
+                # If no closed code block, try unclosed (truncated response)
+                if not improved_code:
+                    unclosed_match = re.search(
+                        r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.+)',
+                        ai_text,
+                        re.DOTALL
+                    )
+                    if unclosed_match:
+                        raw_code = unclosed_match.group(1).strip()
+                        # Remove trailing ``` if partially present
+                        raw_code = re.sub(r'`{1,2}$', '', raw_code).strip()
+                        if raw_code and len(raw_code) > 20:
+                            improved_code = clean_code_response(raw_code)
 
-                explanation_end = ai_text.index(self.DIAGRAM_START)
-                display_text = ai_text[:explanation_end].strip()
-                if not display_text:
+                # Fallback 3: detect raw diagram code without any wrappers
+                if not improved_code:
+                    if diagram_type == 'plantuml' or diagram_type == 'uml':
+                        # PlantUML: detect @startuml...@enduml
+                        puml_match = re.search(r'(@startuml\b.*?@enduml\b)', ai_text, re.DOTALL)
+                        if puml_match:
+                            improved_code = puml_match.group(1).strip()
+                    elif diagram_type == 'mermaid':
+                        # Mermaid: detect common diagram type keywords at start of a line
+                        mermaid_match = re.search(
+                            r'^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)',
+                            ai_text,
+                            re.MULTILINE | re.DOTALL
+                        )
+                        if mermaid_match:
+                            raw_code = mermaid_match.group(1).strip()
+                            if len(raw_code) > 30:
+                                improved_code = raw_code
+                    elif diagram_type == 'dbml':
+                        # DBML: detect Table keyword followed by content
+                        dbml_match = re.search(r'(Table\s+\w+\s*\{.+)', ai_text, re.DOTALL)
+                        if dbml_match:
+                            raw_code = dbml_match.group(1).strip()
+                            if len(raw_code) > 30:
+                                improved_code = raw_code
+
+            if improved_code:
+
+                # Auto-retry: validate syntax and retry if invalid
+                # Skip retry for PlantUML and DBML — their validators give false positives
+                # with skinparam blocks and complex syntax. Let Kroki be the final validator.
+                skip_retry = diagram_type in ('plantuml', 'uml', 'dbml')
+                retries = 0
+                while improved_code and retries < MAX_RETRIES and not skip_retry:
+                    validation = await SyntaxValidator.validate(
+                        improved_code, diagram_type
+                    )
+                    if validation.is_valid:
+                        break
+
+                    retries += 1
+                    logger.warning(
+                        "Syntax validation failed (attempt %d/%d): %s",
+                        retries,
+                        MAX_RETRIES,
+                        validation.error_message,
+                    )
+
+                    # Build retry context with the error message
+                    if language == "es":
+                        retry_msg = (
+                            f"El código de diagrama que generaste tiene un error de sintaxis: "
+                            f"{validation.error_message}. "
+                            f"Por favor corrige el error y genera el diagrama completo nuevamente."
+                        )
+                    else:
+                        retry_msg = (
+                            f"The diagram code you generated has a syntax error: "
+                            f"{validation.error_message}. "
+                            f"Please fix the error and generate the complete diagram again."
+                        )
+
+                    # Append the error as a user message in the history for retry
+                    retry_history = history + [
+                        {"role": "assistant", "content": ai_text},
+                        {"role": "user", "content": retry_msg},
+                    ]
+
+                    retry_start = time.time()
+                    ai_text = await self._call_ai_client(
+                        client, system_prompt, retry_history, language
+                    )
+                    generation_time += time.time() - retry_start
+
+                    # Re-parse the retry response
+                    if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                        start_idx = ai_text.index(self.DIAGRAM_START) + len(
+                            self.DIAGRAM_START
+                        )
+                        end_idx = ai_text.index(self.DIAGRAM_END)
+                        raw_code = ai_text[start_idx:end_idx].strip()
+                        improved_code = clean_code_response(raw_code)
+                    elif self.DIAGRAM_START in ai_text:
+                        # Fallback: truncated retry response
+                        start_idx = ai_text.index(self.DIAGRAM_START) + len(
+                            self.DIAGRAM_START
+                        )
+                        raw_code = ai_text[start_idx:].strip()
+                        improved_code = clean_code_response(raw_code)
+                    else:
+                        # Retry response has no diagram code; stop retrying
+                        improved_code = None
+                        break
+
+                explanation_end = len(ai_text)
+                # Extract display text: combine text BEFORE and AFTER the diagram block
+                before_text = ''
+                after_text = ''
+                
+                if self.DIAGRAM_START in ai_text:
+                    before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
+                
+                if self.DIAGRAM_END in ai_text:
+                    end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
+                    after_text = ai_text[end_marker_pos:].strip()
+                
+                # Combine both parts
+                parts = [p for p in [before_text, after_text] if p and len(p) > 3]
+                if parts:
+                    display_text = '\n\n'.join(parts)
+                else:
+                    # No meaningful text before or after the diagram block
                     display_text = (
                         "Diagrama modificado según tu solicitud."
                         if language == "es"
@@ -332,6 +473,29 @@ class ChatSessionService:
                 generation_time=generation_time,
             )
 
+            # Update rolling summary in DB after each interaction
+            # This persists context for future messages
+            try:
+                new_summary = self._build_rolling_summary(
+                    existing_summary=session.summary,
+                    user_message=content,
+                    ai_response=display_text,
+                    had_code=improved_code is not None,
+                )
+                await self.session_repo.update_session_summary(session_id_str, new_summary)
+            except Exception as e:
+                logger.warning(f"Failed to update session summary: {e}")
+
+            # Update last_provider and last_model on the session
+            try:
+                session_doc = await self.session_repo.get_session_by_id(session_id_str)
+                if session_doc:
+                    session_doc.last_provider = provider_config.provider.value
+                    session_doc.last_model = actual_model
+                    await session_doc.save()
+            except Exception as e:
+                logger.warning(f"Failed to update session provider/model: {e}")
+
             await self.session_repo.update_session_status(session_id_str, session.status)
 
             return self._message_to_response(ai_msg)
@@ -346,6 +510,63 @@ class ChatSessionService:
                 content=str(exc),
             )
             return self._message_to_response(error_msg)
+
+    # ------------------------------------------------------------------ #
+    #  AI client dispatch helper (used by send_message + retries)
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    async def _call_ai_client(
+        client,
+        system_prompt: str,
+        history: list[dict],
+        language: str = "es",
+    ) -> str:
+        """Dispatch an AI request to the appropriate client method.
+
+        Encapsulates the client-specific call pattern so it can be reused
+        for the initial request and for syntax-validation retries.
+        """
+        if hasattr(client, '_generate'):
+            # Gemini: concatenate system + history into single prompt
+            conversation_parts = [system_prompt, ""]
+            for msg in history:
+                role_label = (
+                    "Usuario" if msg["role"] == "user" else "Asistente"
+                )
+                if language != "es":
+                    role_label = (
+                        "User" if msg["role"] == "user" else "Assistant"
+                    )
+                conversation_parts.append(
+                    f"{role_label}: {msg['content']}"
+                )
+                role_suffix = "Asistente:" if language == "es" else "Assistant:"
+            conversation_parts.append(role_suffix)
+            full_prompt = "\n".join(conversation_parts)
+            return await client._generate(full_prompt)
+        elif hasattr(client, '_chat_completion'):
+            # OpenAI
+            api_messages = [{"role": "system", "content": system_prompt}]
+            for msg in history:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            return await client._chat_completion(api_messages)
+        elif hasattr(client, '_make_request'):
+            # DeepSeek / Minimax
+            api_messages = [{"role": "system", "content": system_prompt}]
+            for msg in history:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            return await client._make_request(api_messages)
+        elif hasattr(client, '_messages_request'):
+            # Claude
+            api_messages = []
+            for msg in history:
+                api_messages.append({"role": msg["role"], "content": msg["content"]})
+            return await client._messages_request(
+                api_messages, system=system_prompt
+            )
+        else:
+            raise ValueError(f"Unsupported client: {type(client).__name__}")
 
     # ------------------------------------------------------------------ #
     #  Task 5.4 – Context compaction logic
@@ -487,19 +708,87 @@ class ChatSessionService:
     ) -> list[dict]:
         """Convert DB messages to the dict format expected by AI clients.
 
-        If the session has a summary (from compaction), prepend it as a system-like
-        assistant message so the AI has prior context.
-        Skips error messages from context.
+        Structure:
+        1. Summary as context (if exists)
+        2. Recent messages as conversation history (excluding the last user message)
+        3. Last user message marked as "[Nueva petición]" for clarity
+        
+        This helps the AI distinguish between historical context and the current request.
         """
         history: list[dict] = []
+        
         if summary:
-            history.append({"role": "assistant", "content": f"[Resumen de conversación anterior]\n{summary}"})
-        for m in messages:
-            if m.role == MessageRole.ERROR:
-                continue  # skip error messages from context
+            history.append({
+                "role": "assistant",
+                "content": (
+                    f"[Contexto de la conversación]\n{summary}\n\n"
+                    "IMPORTANTE: El diagrama actual ya refleja todos los cambios anteriores. "
+                    "Si el usuario pide modificaciones, genera el código COMPLETO entre <<<DIAGRAM>>> y <<<END_DIAGRAM>>>."
+                )
+            })
+        
+        # Filter out error messages
+        valid_messages = [m for m in messages if m.role != MessageRole.ERROR]
+        
+        if not valid_messages:
+            return history
+        
+        # Check if last message is from user (the new request)
+        last_msg = valid_messages[-1]
+        context_messages = valid_messages[:-1] if last_msg.role == MessageRole.USER else valid_messages
+        
+        # Add context messages (historical)
+        for m in context_messages:
             role = "user" if m.role == MessageRole.USER else "assistant"
             history.append({"role": role, "content": m.content})
+        
+        # Add the last user message with a clear marker
+        if last_msg.role == MessageRole.USER:
+            history.append({
+                "role": "user",
+                "content": f"[Nueva petición del usuario]:\n{last_msg.content}"
+            })
+        
         return history
+
+    @staticmethod
+    def _build_rolling_summary(
+        existing_summary: Optional[str],
+        user_message: str,
+        ai_response: str,
+        had_code: bool,
+    ) -> str:
+        """Build a rolling summary that accumulates conversation context.
+        
+        Keeps the summary concise by:
+        - Truncating old summary if too long
+        - Adding only key info from the latest exchange
+        - Limiting total summary to ~800 chars
+        """
+        MAX_SUMMARY_LENGTH = 800
+        
+        # Summarize the latest exchange
+        user_short = user_message[:100] + "..." if len(user_message) > 100 else user_message
+        ai_short = ai_response[:120] + "..." if len(ai_response) > 120 else ai_response
+        code_note = " (se generó código de diagrama)" if had_code else ""
+        
+        new_entry = f"- Usuario pidió: {user_short}\n - IA respondió: {ai_short}{code_note}"
+        
+        if existing_summary:
+            # Append new entry to existing summary
+            combined = f"{existing_summary}\n{new_entry}"
+            
+            # If too long, trim from the beginning (keep most recent)
+            if len(combined) > MAX_SUMMARY_LENGTH:
+                lines = combined.split('\n')
+                # Remove oldest lines until within limit
+                while len('\n'.join(lines)) > MAX_SUMMARY_LENGTH and len(lines) > 4:
+                    lines.pop(0)
+                combined = '\n'.join(lines)
+            
+            return combined
+        else:
+            return new_entry
 
     @staticmethod
     def _session_to_response(

@@ -6,7 +6,8 @@ export enum AIProviderType {
   GEMINI = 'gemini',
   OPENAI = 'openai',
   CLAUDE = 'claude',
-  DEEPSEEK = 'deepseek'
+  DEEPSEEK = 'deepseek',
+  MINIMAX = 'minimax'
 }
 
 export interface AIProviderConfig {
@@ -127,7 +128,8 @@ export const AI_PROVIDER_NAMES: Record<AIProviderType, string> = {
   [AIProviderType.GEMINI]: 'Google Gemini',
   [AIProviderType.OPENAI]: 'OpenAI GPT',
   [AIProviderType.CLAUDE]: 'Anthropic Claude',
-  [AIProviderType.DEEPSEEK]: 'DeepSeek'
+  [AIProviderType.DEEPSEEK]: 'DeepSeek',
+  [AIProviderType.MINIMAX]: 'Minimax'
 };
 
 export interface ModelOption {
@@ -137,10 +139,11 @@ export interface ModelOption {
 
 export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
   [AIProviderType.GEMINI]: [
-    { id: 'gemini-2.5-flash', recommended: true },
+    { id: 'gemini-3.1-pro-preview', recommended: true },
+    { id: 'gemini-3-flash-preview' },
+    { id: 'gemini-3.1-flash-lite-preview' },
+    { id: 'gemini-2.5-flash' },
     { id: 'gemini-2.5-pro' },
-    { id: 'gemini-2.0-flash' },
-    { id: 'gemini-1.5-pro' },
   ],
   [AIProviderType.OPENAI]: [
     { id: 'gpt-4.1-mini', recommended: true },
@@ -157,8 +160,13 @@ export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
     { id: 'claude-sonnet-4-6' },
   ],
   [AIProviderType.DEEPSEEK]: [
-    { id: 'deepseek-chat', recommended: true },
-    { id: 'deepseek-coder' },
+    { id: 'deepseek-v4-flash', recommended: true },
+    { id: 'deepseek-v4-pro' },
+    { id: 'deepseek-chat' },
+  ],
+  [AIProviderType.MINIMAX]: [
+    { id: 'MiniMax-M2.7', recommended: true },
+    { id: 'MiniMax-M2.5' },
   ],
 };
 
@@ -176,18 +184,32 @@ export function isRecommendedModel(provider: AIProviderType, modelId: string): b
   return rec?.id === modelId;
 }
 
+/**
+ * Helper: get the effective model for a provider.
+ * If the stored model has been retired (not in current list), falls back to recommended.
+ */
+export function getEffectiveModel(provider: AIProviderType, storedModel: string): string {
+  const models = AI_PROVIDER_MODELS[provider];
+  const exists = models.some((m) => m.id === storedModel);
+  if (exists) return storedModel;
+  // Model was retired — use recommended
+  return getRecommendedModel(provider);
+}
+
 export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_soon'> = {
   [AIProviderType.GEMINI]: 'available',
   [AIProviderType.OPENAI]: 'available',
   [AIProviderType.CLAUDE]: 'available',
-  [AIProviderType.DEEPSEEK]: 'available'
+  [AIProviderType.DEEPSEEK]: 'available',
+  [AIProviderType.MINIMAX]: 'available'
 };
 
 export const AI_PROVIDER_API_KEY_URLS: Record<AIProviderType, string> = {
   [AIProviderType.GEMINI]: 'https://aistudio.google.com/app/apikey',
   [AIProviderType.OPENAI]: 'https://platform.openai.com/api-keys',
   [AIProviderType.CLAUDE]: 'https://console.anthropic.com/settings/keys',
-  [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys'
+  [AIProviderType.DEEPSEEK]: 'https://platform.deepseek.com/api_keys',
+  [AIProviderType.MINIMAX]: 'https://platform.minimax.io/user-center/basic-information'
 };
 
 // Types for diagram fix functionality

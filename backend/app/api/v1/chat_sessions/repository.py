@@ -42,6 +42,16 @@ class ChatSessionRepository(IChatSessionRepository):
             .to_list()
         )
 
+    async def get_sessions_by_user(
+        self, user_id: str
+    ) -> list[ChatSessionInDB]:
+        """Get all sessions for a user."""
+        return (
+            await ChatSessionInDB.find({"user_id": user_id})
+            .sort("-updated_at")
+            .to_list()
+        )
+
     async def get_session_by_id(
         self, session_id: str
     ) -> Optional[ChatSessionInDB]:
@@ -59,6 +69,18 @@ class ChatSessionRepository(IChatSessionRepository):
         if not session:
             raise ValueError(f"Session {session_id} not found")
         session.title = title
+        session.updated_at = datetime.now(timezone.utc)
+        await session.save()
+        return session
+
+    async def update_session_summary(
+        self, session_id: str, summary: str
+    ) -> ChatSessionInDB:
+        """Update the rolling summary of a chat session."""
+        session = await self.get_session_by_id(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        session.summary = summary
         session.updated_at = datetime.now(timezone.utc)
         await session.save()
         return session
