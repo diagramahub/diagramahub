@@ -44,6 +44,9 @@ MODEL_TOKEN_LIMITS = {
     "gpt-4.1-nano": 128000,
     "claude-sonnet-4-6": 1000000,
     "claude-haiku-4-5-20251001": 200000,
+    "gemini-3.1-pro-preview": 1000000,
+    "gemini-3-flash-preview": 1000000,
+    "gemini-3.1-flash-lite-preview": 1000000,
     "gemini-2.5-flash": 1000000,
     "gemini-2.5-pro": 1000000,
     "gemini-2.0-flash": 1000000,
@@ -235,6 +238,8 @@ class ChatSessionService:
                 )
 
             actual_model = model or provider_config.model
+            # Fallback: if stored model is not in known limits, it may have been retired
+            # Use it anyway (the API will reject if truly invalid)
             client = AIClientFactory.create_client(
                 provider=provider_config.provider,
                 api_key=provider_config.api_key,
@@ -302,6 +307,13 @@ class ChatSessionService:
             if '<think>' in ai_text:
                 ai_text = ai_text[:ai_text.index('<think>')].strip()
             ai_text = ai_text.strip()
+
+            # Normalize diagram markers (AI sometimes translates them)
+            ai_text = re.sub(r'<<<DIAGRAMA>>>', '<<<DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<FIN_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<END_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text)
+            ai_text = re.sub(r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text)
 
             # === DEBUG LOGS ===
             print(f"\n{'='*60}")

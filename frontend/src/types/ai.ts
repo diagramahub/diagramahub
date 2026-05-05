@@ -139,10 +139,11 @@ export interface ModelOption {
 
 export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
   [AIProviderType.GEMINI]: [
-    { id: 'gemini-2.5-flash', recommended: true },
+    { id: 'gemini-3.1-pro-preview', recommended: true },
+    { id: 'gemini-3-flash-preview' },
+    { id: 'gemini-3.1-flash-lite-preview' },
+    { id: 'gemini-2.5-flash' },
     { id: 'gemini-2.5-pro' },
-    { id: 'gemini-2.0-flash' },
-    { id: 'gemini-1.5-pro' },
   ],
   [AIProviderType.OPENAI]: [
     { id: 'gpt-4.1-mini', recommended: true },
@@ -181,6 +182,18 @@ export function isRecommendedModel(provider: AIProviderType, modelId: string): b
   const models = AI_PROVIDER_MODELS[provider];
   const rec = models.find((m) => m.recommended);
   return rec?.id === modelId;
+}
+
+/**
+ * Helper: get the effective model for a provider.
+ * If the stored model has been retired (not in current list), falls back to recommended.
+ */
+export function getEffectiveModel(provider: AIProviderType, storedModel: string): string {
+  const models = AI_PROVIDER_MODELS[provider];
+  const exists = models.some((m) => m.id === storedModel);
+  if (exists) return storedModel;
+  // Model was retired — use recommended
+  return getRecommendedModel(provider);
 }
 
 export const AI_PROVIDER_STATUS: Record<AIProviderType, 'available' | 'coming_soon'> = {

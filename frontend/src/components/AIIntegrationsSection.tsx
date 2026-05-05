@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { UserAISettings, AIProviderConfig, AI_PROVIDER_NAMES, AI_PROVIDER_STATUS } from '../types/ai';
+import { UserAISettings, AIProviderConfig, AI_PROVIDER_NAMES, AI_PROVIDER_STATUS, AI_PROVIDER_MODELS } from '../types/ai';
 import apiService from '../services/api';
 import AddProviderModal from './AddProviderModal';
 import EditProviderModal from './EditProviderModal';
@@ -192,6 +192,9 @@ export default function AIIntegrationsSection() {
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             <span className="font-medium">{t('ai.form.model')}:</span> {provider.model}
+                            {!AI_PROVIDER_MODELS[provider.provider]?.some(m => m.id === provider.model) && (
+                              <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(retirado)</span>
+                            )}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             <span className="font-medium">{t('ai.form.apiKey')}:</span>{' '}
