@@ -40,7 +40,7 @@ class DeepSeekClient(BaseAIClient):
             "model": self.model,
             "messages": messages,
             "temperature": temperature or self.parameters.get("temperature", 0.7),
-            "max_tokens": max_tokens or self.parameters.get("max_output_tokens", 2048),
+            "max_tokens": max_tokens or self.parameters.get("max_output_tokens", 4096),
             "top_p": self.parameters.get("top_p", 1.0),
             "stream": False,
         }

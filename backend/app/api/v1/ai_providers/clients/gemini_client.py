@@ -28,7 +28,7 @@ class GeminiClient(BaseAIClient):
         return types.GenerateContentConfig(
             temperature=temperature or self.parameters.get("temperature", 0.7),
             top_p=self.parameters.get("top_p", 0.95),
-            max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 2048),
+            max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 4096),
         )
 
     async def _generate(self, prompt: str, temperature: float | None = None, max_tokens: int | None = None) -> str:

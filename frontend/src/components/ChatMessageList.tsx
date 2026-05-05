@@ -158,6 +158,10 @@ export default function ChatMessageList({
               <div className="chat-markdown break-words">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
               </div>
+            ) : msg.role === 'assistant' && msg.improved_code ? (
+              <div className="chat-markdown break-words mb-2">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
             ) : msg.role !== 'assistant' ? (
               <p className="whitespace-pre-wrap break-words">
                 {msg.content}

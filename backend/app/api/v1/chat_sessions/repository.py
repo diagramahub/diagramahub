@@ -63,6 +63,18 @@ class ChatSessionRepository(IChatSessionRepository):
         await session.save()
         return session
 
+    async def update_session_summary(
+        self, session_id: str, summary: str
+    ) -> ChatSessionInDB:
+        """Update the rolling summary of a chat session."""
+        session = await self.get_session_by_id(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        session.summary = summary
+        session.updated_at = datetime.now(timezone.utc)
+        await session.save()
+        return session
+
     async def update_session_status(
         self, session_id: str, status: str
     ) -> ChatSessionInDB:

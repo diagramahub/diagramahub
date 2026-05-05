@@ -210,9 +210,12 @@ class ChatSessionService:
         await self._maybe_auto_title(session, content)
 
         try:
-            # Build context from recent messages
-            recent = await self.message_repo.get_recent_messages(session_id_str, limit=20)
-            history = self._build_message_history(recent, session.summary)
+            # Build context: persistent summary + last few messages + current diagram
+            # Strategy: always use session.summary (if exists) + last 4 messages
+            RECENT_WINDOW = 4
+            all_recent = await self.message_repo.get_recent_messages(session_id_str, limit=RECENT_WINDOW)
+            history = self._build_message_history(all_recent, session.summary)
+            print(f"📋 CONTEXT: {len(all_recent)} recent msgs, session summary: {'YES (' + str(len(session.summary)) + ' chars)' if session.summary else 'NO'}")
 
             # Get provider config
             provider_type = AIProviderType(provider) if provider else None
@@ -262,6 +265,20 @@ class ChatSessionService:
                 diagram_code, diagram_type, language
             )
 
+            # === DEBUG: Input to AI ===
+            print(f"\n{'='*60}")
+            print(f"📨 USER MESSAGE: {content}")
+            print(f"📋 CONTEXT: diagram_type={diagram_type}, language={language}")
+            print(f"📋 HISTORY ({len(history)} messages):")
+            for i, msg in enumerate(history):
+                role_icon = "👤" if msg["role"] == "user" else "🤖"
+                text_preview = msg["content"][:120] + "..." if len(msg["content"]) > 120 else msg["content"]
+                print(f"   {role_icon} [{i}] {text_preview}")
+            print(f"📋 SYSTEM PROMPT length: {len(system_prompt)} chars")
+            print(f"📋 DIAGRAM CODE in system prompt: {len(diagram_code)} chars")
+            print(f"{'='*60}")
+            # === END DEBUG ===
+
             start = time.time()
 
             # Call AI with unified system prompt + conversation history
@@ -270,6 +287,24 @@ class ChatSessionService:
             )
 
             generation_time = time.time() - start
+
+            # === DEBUG LOGS ===
+            print(f"\n{'='*60}")
+            print(f"🤖 AI RESPONSE DEBUG")
+            print(f"{'='*60}")
+            print(f"📊 History messages sent: {len(history)}")
+            print(f"📝 AI response length: {len(ai_text)} chars")
+            print(f"⏱️  Generation time: {generation_time:.2f}s")
+            print(f"🔍 Contains <<<DIAGRAM>>>: {self.DIAGRAM_START in ai_text}")
+            print(f"🔍 Contains <<<END_DIAGRAM>>>: {self.DIAGRAM_END in ai_text}")
+            print(f"🔍 Contains ```code block: {'```' in ai_text}")
+            print(f"🔍 Contains @startuml: {'@startuml' in ai_text}")
+            print(f"📄 First 500 chars of response:")
+            print(ai_text[:500])
+            print(f"\n📄 Last 300 chars of response:")
+            print(ai_text[-300:] if len(ai_text) > 300 else ai_text)
+            print(f"{'='*60}\n")
+            # === END DEBUG LOGS ===
 
             # Parse response: check for diagram code
             improved_code = None
@@ -286,19 +321,79 @@ class ChatSessionService:
                 start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
                 raw_code = ai_text[start_idx:].strip()
                 improved_code = clean_code_response(raw_code)
+            else:
+                # Fallback: AI didn't use delimiters but may have included a code block
+                import re
+                # Try closed code block first
+                code_block_match = re.search(
+                    r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
+                    ai_text,
+                    re.DOTALL
+                )
+                if code_block_match:
+                    raw_code = code_block_match.group(1).strip()
+                    if raw_code and len(raw_code) > 20:
+                        improved_code = clean_code_response(raw_code)
+                
+                # If no closed code block, try unclosed (truncated response)
+                if not improved_code:
+                    unclosed_match = re.search(
+                        r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.+)',
+                        ai_text,
+                        re.DOTALL
+                    )
+                    if unclosed_match:
+                        raw_code = unclosed_match.group(1).strip()
+                        # Remove trailing ``` if partially present
+                        raw_code = re.sub(r'`{1,2}$', '', raw_code).strip()
+                        if raw_code and len(raw_code) > 20:
+                            improved_code = clean_code_response(raw_code)
+
+                # Fallback 3: detect raw diagram code without any wrappers
+                if not improved_code:
+                    if diagram_type == 'plantuml' or diagram_type == 'uml':
+                        # PlantUML: detect @startuml...@enduml
+                        puml_match = re.search(r'(@startuml\b.*?@enduml\b)', ai_text, re.DOTALL)
+                        if puml_match:
+                            improved_code = puml_match.group(1).strip()
+                    elif diagram_type == 'mermaid':
+                        # Mermaid: detect common diagram type keywords at start of a line
+                        mermaid_match = re.search(
+                            r'^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)',
+                            ai_text,
+                            re.MULTILINE | re.DOTALL
+                        )
+                        if mermaid_match:
+                            raw_code = mermaid_match.group(1).strip()
+                            if len(raw_code) > 30:
+                                improved_code = raw_code
+                    elif diagram_type == 'dbml':
+                        # DBML: detect Table keyword followed by content
+                        dbml_match = re.search(r'(Table\s+\w+\s*\{.+)', ai_text, re.DOTALL)
+                        if dbml_match:
+                            raw_code = dbml_match.group(1).strip()
+                            if len(raw_code) > 30:
+                                improved_code = raw_code
 
             if improved_code:
+                print(f"✅ DIAGRAM CODE EXTRACTED ({len(improved_code)} chars)")
+                print(f"   First 200 chars: {improved_code[:200]}")
 
                 # Auto-retry: validate syntax and retry if invalid
+                # Skip retry for PlantUML and DBML — their validators give false positives
+                # with skinparam blocks and complex syntax. Let Kroki be the final validator.
+                skip_retry = diagram_type in ('plantuml', 'uml', 'dbml')
                 retries = 0
-                while improved_code and retries < MAX_RETRIES:
+                while improved_code and retries < MAX_RETRIES and not skip_retry:
                     validation = await SyntaxValidator.validate(
                         improved_code, diagram_type
                     )
                     if validation.is_valid:
+                        print(f"✅ Syntax validation PASSED")
                         break
 
                     retries += 1
+                    print(f"⚠️  RETRY {retries}/{MAX_RETRIES}: Syntax validation failed: {validation.error_message}")
                     logger.warning(
                         "Syntax validation failed (attempt %d/%d): %s",
                         retries,
@@ -352,17 +447,50 @@ class ChatSessionService:
                         improved_code = None
                         break
 
-                explanation_end = ai_text.index(self.DIAGRAM_START) if (
-                    self.DIAGRAM_START in ai_text
-                ) else len(ai_text)
-                display_text = ai_text[:explanation_end].strip()
-                if not display_text:
-                    display_text = (
+                explanation_end = len(ai_text)
+                # Extract display text: combine text BEFORE and AFTER the diagram block
+                before_text = ''
+                after_text = ''
+                
+                if self.DIAGRAM_START in ai_text:
+                    before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
+                
+                if self.DIAGRAM_END in ai_text:
+                    end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
+                    after_text = ai_text[end_marker_pos:].strip()
+                
+                # Combine both parts
+                parts = [p for p in [before_text, after_text] if p]
+                if parts:
+                    display_text = '\n\n'.join(parts)
+                elif self.DIAGRAM_START in ai_text and not self.DIAGRAM_END in ai_text:
+                    # Truncated: only text before DIAGRAM_START
+                    display_text = before_text if before_text else (
                         "Diagrama modificado según tu solicitud."
                         if language == "es"
                         else "Diagram modified as requested."
                     )
+                else:
+                    # Code block fallback: text before the code block
+                    code_block_pos = ai_text.find('```')
+                    if code_block_pos > 0:
+                        display_text = ai_text[:code_block_pos].strip()
+                    if not display_text or display_text == ai_text:
+                        display_text = (
+                            "Diagrama modificado según tu solicitud."
+                            if language == "es"
+                            else "Diagram modified as requested."
+                        )
                 improvement_status = ImprovementStatus.PENDING
+
+            # === DEBUG: Final state ===
+            print(f"\n{'='*40}")
+            print(f"📦 FINAL MESSAGE STATE:")
+            print(f"   improved_code: {'YES (' + str(len(improved_code)) + ' chars)' if improved_code else 'NO (text-only response)'}")
+            print(f"   display_text: {display_text[:150]}...")
+            print(f"   improvement_status: {improvement_status}")
+            print(f"{'='*40}\n")
+            # === END DEBUG ===
 
             ai_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
@@ -374,6 +502,20 @@ class ChatSessionService:
                 model_used=actual_model,
                 generation_time=generation_time,
             )
+
+            # Update rolling summary in DB after each interaction
+            # This persists context for future messages
+            try:
+                new_summary = self._build_rolling_summary(
+                    existing_summary=session.summary,
+                    user_message=content,
+                    ai_response=display_text,
+                    had_code=improved_code is not None,
+                )
+                await self.session_repo.update_session_summary(session_id_str, new_summary)
+                print(f"📝 SUMMARY UPDATED ({len(new_summary)} chars)")
+            except Exception as e:
+                logger.warning(f"Failed to update session summary: {e}")
 
             await self.session_repo.update_session_status(session_id_str, session.status)
 
@@ -406,6 +548,8 @@ class ChatSessionService:
         Encapsulates the client-specific call pattern so it can be reused
         for the initial request and for syntax-validation retries.
         """
+        import json as _json
+
         if hasattr(client, '_generate'):
             # Gemini: concatenate system + history into single prompt
             conversation_parts = [system_prompt, ""]
@@ -422,24 +566,45 @@ class ChatSessionService:
                 )
                 role_suffix = "Asistente:" if language == "es" else "Assistant:"
             conversation_parts.append(role_suffix)
-            return await client._generate("\n".join(conversation_parts))
+            full_prompt = "\n".join(conversation_parts)
+            print(f"\n🔧 RAW PAYLOAD TO LLM (Gemini):")
+            print(f"   Total prompt length: {len(full_prompt)} chars")
+            print(f"   System prompt: {len(system_prompt)} chars")
+            print(f"   History messages: {len(history)}")
+            return await client._generate(full_prompt)
         elif hasattr(client, '_chat_completion'):
             # OpenAI
             api_messages = [{"role": "system", "content": system_prompt}]
             for msg in history:
                 api_messages.append({"role": msg["role"], "content": msg["content"]})
+            print(f"\n🔧 RAW PAYLOAD TO LLM (OpenAI):")
+            print(f"   Messages count: {len(api_messages)}")
+            for i, m in enumerate(api_messages):
+                content_preview = m['content'][:200] + '...' if len(m['content']) > 200 else m['content']
+                print(f"   [{i}] {m['role']}: {content_preview}")
             return await client._chat_completion(api_messages)
         elif hasattr(client, '_make_request'):
             # DeepSeek / Minimax
             api_messages = [{"role": "system", "content": system_prompt}]
             for msg in history:
                 api_messages.append({"role": msg["role"], "content": msg["content"]})
+            print(f"\n🔧 RAW PAYLOAD TO LLM (DeepSeek/Minimax):")
+            print(f"   Messages count: {len(api_messages)}")
+            for i, m in enumerate(api_messages):
+                content_preview = m['content'][:200] + '...' if len(m['content']) > 200 else m['content']
+                print(f"   [{i}] {m['role']}: {content_preview}")
             return await client._make_request(api_messages)
         elif hasattr(client, '_messages_request'):
             # Claude
             api_messages = []
             for msg in history:
                 api_messages.append({"role": msg["role"], "content": msg["content"]})
+            print(f"\n🔧 RAW PAYLOAD TO LLM (Claude):")
+            print(f"   System: {len(system_prompt)} chars")
+            print(f"   Messages count: {len(api_messages)}")
+            for i, m in enumerate(api_messages):
+                content_preview = m['content'][:200] + '...' if len(m['content']) > 200 else m['content']
+                print(f"   [{i}] {m['role']}: {content_preview}")
             return await client._messages_request(
                 api_messages, system=system_prompt
             )
@@ -586,19 +751,87 @@ class ChatSessionService:
     ) -> list[dict]:
         """Convert DB messages to the dict format expected by AI clients.
 
-        If the session has a summary (from compaction), prepend it as a system-like
-        assistant message so the AI has prior context.
-        Skips error messages from context.
+        Structure:
+        1. Summary as context (if exists)
+        2. Recent messages as conversation history (excluding the last user message)
+        3. Last user message marked as "[Nueva petición]" for clarity
+        
+        This helps the AI distinguish between historical context and the current request.
         """
         history: list[dict] = []
+        
         if summary:
-            history.append({"role": "assistant", "content": f"[Resumen de conversación anterior]\n{summary}"})
-        for m in messages:
-            if m.role == MessageRole.ERROR:
-                continue  # skip error messages from context
+            history.append({
+                "role": "assistant",
+                "content": (
+                    f"[Contexto de la conversación]\n{summary}\n\n"
+                    "IMPORTANTE: El diagrama actual ya refleja todos los cambios anteriores. "
+                    "Si el usuario pide modificaciones, genera el código COMPLETO entre <<<DIAGRAM>>> y <<<END_DIAGRAM>>>."
+                )
+            })
+        
+        # Filter out error messages
+        valid_messages = [m for m in messages if m.role != MessageRole.ERROR]
+        
+        if not valid_messages:
+            return history
+        
+        # Check if last message is from user (the new request)
+        last_msg = valid_messages[-1]
+        context_messages = valid_messages[:-1] if last_msg.role == MessageRole.USER else valid_messages
+        
+        # Add context messages (historical)
+        for m in context_messages:
             role = "user" if m.role == MessageRole.USER else "assistant"
             history.append({"role": role, "content": m.content})
+        
+        # Add the last user message with a clear marker
+        if last_msg.role == MessageRole.USER:
+            history.append({
+                "role": "user",
+                "content": f"[Nueva petición del usuario]:\n{last_msg.content}"
+            })
+        
         return history
+
+    @staticmethod
+    def _build_rolling_summary(
+        existing_summary: Optional[str],
+        user_message: str,
+        ai_response: str,
+        had_code: bool,
+    ) -> str:
+        """Build a rolling summary that accumulates conversation context.
+        
+        Keeps the summary concise by:
+        - Truncating old summary if too long
+        - Adding only key info from the latest exchange
+        - Limiting total summary to ~800 chars
+        """
+        MAX_SUMMARY_LENGTH = 800
+        
+        # Summarize the latest exchange
+        user_short = user_message[:100] + "..." if len(user_message) > 100 else user_message
+        ai_short = ai_response[:120] + "..." if len(ai_response) > 120 else ai_response
+        code_note = " (se generó código de diagrama)" if had_code else ""
+        
+        new_entry = f"- Usuario pidió: {user_short}\n - IA respondió: {ai_short}{code_note}"
+        
+        if existing_summary:
+            # Append new entry to existing summary
+            combined = f"{existing_summary}\n{new_entry}"
+            
+            # If too long, trim from the beginning (keep most recent)
+            if len(combined) > MAX_SUMMARY_LENGTH:
+                lines = combined.split('\n')
+                # Remove oldest lines until within limit
+                while len('\n'.join(lines)) > MAX_SUMMARY_LENGTH and len(lines) > 4:
+                    lines.pop(0)
+                combined = '\n'.join(lines)
+            
+            return combined
+        else:
+            return new_entry
 
     @staticmethod
     def _session_to_response(

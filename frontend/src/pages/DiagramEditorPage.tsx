@@ -241,6 +241,9 @@ export default function DiagramEditorPage() {
     currentDiagram?.diagram_type || 'mermaid'
   );
 
+  // Render error state (from Kroki)
+  const [renderError, setRenderError] = useState<string | null>(null);
+
   // Debug: Log error state
   useEffect(() => {
     console.log('🔍 Diagram Error State:', diagramError);
@@ -551,6 +554,7 @@ export default function DiagramEditorPage() {
 
     try {
       setLoading(true);
+      setError(null);
       const projectData = await api.getProject(projectId);
       setProject(projectData);
 
@@ -747,16 +751,18 @@ export default function DiagramEditorPage() {
 
         if ('svg' in result) {
           mermaidRef.current.innerHTML = result.svg;
+          setRenderError(null);
         } else {
           throw new Error(result.error);
         }
       } catch (err) {
         if (!mermaidRef.current) return;
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setRenderError(errorMessage);
 
         // Only show error if it's not just "Syntax error in text" (which is too generic)
         if (errorMessage.includes('Syntax error in text')) {
-          mermaidRef.current.innerHTML = `<div class="text-amber-600 p-4 border border-amber-300 bg-amber-50 rounded-lg">
+          mermaidRef.current.innerHTML = `<div class="text-amber-600 dark:text-amber-400 p-4 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
             <p class="font-semibold mb-2">⚠️ Error de sintaxis en el diagrama</p>
             <p class="text-sm">Verifica que:</p>
             <ul class="text-sm list-disc ml-5 mt-2">
@@ -767,7 +773,7 @@ export default function DiagramEditorPage() {
             </ul>
           </div>`;
         } else {
-          mermaidRef.current.innerHTML = `<div class="text-red-500 p-4 border border-red-300 bg-red-50 rounded-lg">
+          mermaidRef.current.innerHTML = `<div class="text-red-500 dark:text-red-400 p-4 border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 rounded-lg">
             <p class="font-semibold mb-2">❌ Error al renderizar diagrama</p>
             <p class="text-sm">${errorMessage}</p>
           </div>`;
@@ -1124,6 +1130,26 @@ export default function DiagramEditorPage() {
 
       const created = await api.createDiagram(projectId, createData);
 
+      // Reset all editor state for the new diagram
+      setShowDescriptionView(false);
+      setIsDescriptionPinned(false);
+      setShowFloatingSidebar(false);
+      setShowAppearanceEditor(false);
+      setShowChatPanel(false);
+      setShowCodeView(false);
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      setDiagramDescription('');
+      setBackgroundColor('#ffffff');
+      setBackgroundPattern(newDiagramType === 'mermaid' ? 'grid' : 'plain');
+      setPreferredProvider(null);
+      setPreferredModel(null);
+      setDescriptionFontSize(14);
+      setDescriptionPanelWidth(384);
+      setSaveStatus('idle');
+      setLastSavedTime(null);
+      setError(null);
+
       // Set current diagram and navigate
       setCurrentDiagram(created);
       setDiagramCode(created.content);
@@ -1131,11 +1157,6 @@ export default function DiagramEditorPage() {
       setDiagramTitle(created.title);
       setSelectedFolderId(created.folder_id || null);
       setActiveTab('code');
-      
-      // Set background pattern to grid for new Mermaid diagrams
-      if (newDiagramType === 'mermaid') {
-        setBackgroundPattern('grid');
-      }
 
       // Close modal and reload project
       setShowNewDiagramModal(false);
@@ -1989,8 +2010,8 @@ export default function DiagramEditorPage() {
                 value={diagramCode}
                 onChange={setDiagramCode}
                 diagramType={currentDiagram?.diagram_type || 'mermaid'}
-                hasError={diagramError.hasError}
-                errorMessage={diagramError.errorMessage}
+                hasError={diagramError.hasError || !!renderError}
+                errorMessage={diagramError.errorMessage || renderError || undefined}
                 onCopy={handleCopyCode}
                 copied={codeCopied}
                 onClose={() => setShowCodeView(false)}

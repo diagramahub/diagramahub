@@ -148,7 +148,7 @@ export default function DiagramCodePanel({
   const handleEditorWillMount = (monaco: Monaco) => {
     registerD2Language(monaco);
 
-    // Define custom Kiro dark theme (black + purple accents)
+    // Define custom Kiro dark theme (matching sidebar dark bg)
     monaco.editor.defineTheme('kiro-dark', {
       base: 'vs-dark',
       inherit: true,
@@ -164,16 +164,16 @@ export default function DiagramCodePanel({
         { token: 'delimiter', foreground: '94a3b8' },
       ],
       colors: {
-        'editor.background': '#0f0a1a',
+        'editor.background': '#1f2937',
         'editor.foreground': '#e2e8f0',
-        'editor.lineHighlightBackground': '#1e1033',
+        'editor.lineHighlightBackground': '#2d3748',
         'editor.selectionBackground': '#7c3aed40',
         'editor.inactiveSelectionBackground': '#7c3aed20',
         'editorCursor.foreground': '#a78bfa',
-        'editorLineNumber.foreground': '#4c1d95',
+        'editorLineNumber.foreground': '#4b5563',
         'editorLineNumber.activeForeground': '#a78bfa',
         'editor.selectionHighlightBackground': '#7c3aed30',
-        'editorIndentGuide.background1': '#1e1033',
+        'editorIndentGuide.background1': '#374151',
         'editorIndentGuide.activeBackground1': '#7c3aed50',
         'editorBracketMatch.background': '#7c3aed30',
         'editorBracketMatch.border': '#7c3aed',

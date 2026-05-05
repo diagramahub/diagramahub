@@ -34,7 +34,7 @@ class OpenAIClient(BaseAIClient):
         payload: dict = {
             "model": self.model,
             "messages": messages,
-            "max_completion_tokens": self.parameters.get("max_tokens", 2048),
+            "max_completion_tokens": self.parameters.get("max_tokens", 4096),
         }
         if response_format:
             payload["response_format"] = response_format
