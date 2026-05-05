@@ -79,6 +79,68 @@ def get_kroki_client() -> KrokiClient:
 logger = logging.getLogger(__name__)
 
 
+def _parse_kroki_error(raw_detail: str, status_code: int) -> str:
+    """
+    Parse raw Kroki error into a user-friendly message.
+    
+    Extracts the meaningful error from the stack trace and provides
+    actionable guidance to the user.
+    """
+    import re
+    
+    # Extract the core error message (before the stack trace)
+    # Pattern: "Error 400: ErrorType: message\n    at ..."
+    core_match = re.match(r'Error \d+:\s*(?:\w+:\s*)?(.*?)(?:\n\s+at\s|$)', raw_detail, re.DOTALL)
+    core_message = core_match.group(1).strip() if core_match else raw_detail
+    
+    # Remove "Error 400: " prefix if present
+    core_message = re.sub(r'^Error\s+\d+:\s*', '', core_message).strip()
+    # Remove error class prefix like "SyntaxError: " or "Error: "
+    error_class_match = re.match(r'^(\w+Error):\s*(.*)', core_message, re.DOTALL)
+    error_class = error_class_match.group(1) if error_class_match else None
+    if error_class_match:
+        core_message = error_class_match.group(2).strip()
+    
+    # Truncate at first newline (stack trace)
+    if '\n' in core_message:
+        core_message = core_message.split('\n')[0].strip()
+    
+    # Provide user-friendly messages based on error patterns
+    if 'does not exist' in core_message.lower():
+        # e.g., "Table locations does not exist"
+        return (
+            f"⚠️ {core_message}. "
+            "Verifica que todas las tablas referenciadas en Ref estén definidas en el diagrama."
+        )
+    
+    if 'could not parse input' in core_message.lower():
+        # Extract line info
+        line_match = re.search(r'at line (\d+):(\d+)', core_message)
+        if line_match:
+            line_num = line_match.group(1)
+            # Extract "Expected ... but ... found"
+            expected_match = re.search(r'Expected (.+?) but (.+?) found', core_message)
+            if expected_match:
+                found = expected_match.group(2).strip('"').strip("'")
+                if found == "end of input":
+                    return (
+                        f"⚠️ Error de sintaxis en línea {line_num}: el código está incompleto. "
+                        "Verifica que todas las llaves {{ }} estén cerradas y que no falte contenido al final."
+                    )
+                return f"⚠️ Error de sintaxis en línea {line_num}: carácter inesperado \"{found}\". Revisa la sintaxis en esa línea."
+            return f"⚠️ Error de sintaxis en línea {line_num}. Revisa la sintaxis del diagrama."
+        return f"⚠️ Error de sintaxis en el diagrama. Revisa que la estructura sea correcta."
+    
+    if 'end of input' in core_message.lower():
+        return "⚠️ El código del diagrama está incompleto. Verifica que todas las definiciones estén cerradas correctamente."
+    
+    # Default: return cleaned message
+    if core_message:
+        return f"⚠️ Error de renderizado: {core_message}"
+    
+    return f"Error de renderizado (código {status_code}). Verifica la sintaxis del diagrama."
+
+
 # ============ Public Endpoints (no auth required) ============
 
 @router.post("/diagrams/render")
@@ -111,9 +173,11 @@ async def render_diagram(
         return Response(content=svg, media_type="image/svg+xml")
 
     except KrokiRenderError as exc:
+        # Parse Kroki error to provide a user-friendly message
+        user_message = _parse_kroki_error(exc.detail, exc.status_code)
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Error de renderizado Kroki ({exc.status_code}): {exc.detail}",
+            status_code=status.HTTP_400_BAD_REQUEST if exc.status_code == 400 else status.HTTP_502_BAD_GATEWAY,
+            detail=user_message,
         )
 
     except KrokiTimeoutError:

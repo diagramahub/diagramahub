@@ -35,6 +35,8 @@ export function useDiagramErrorDetection(
       validatePlantUML(diagramCode);
     } else if (diagramTypeLower === 'd2') {
       validateD2(diagramCode);
+    } else if (diagramTypeLower === 'dbml') {
+      validateDBML(diagramCode);
     } else {
       // Default to Mermaid validation with actual parsing
       validateMermaidWithParser(diagramCode);
@@ -282,6 +284,118 @@ export function useDiagramErrorDetection(
       setError({
         hasError: true,
         errorMessage: 'Error al validar sintaxis de D2',
+        errorContext: `Error al validar sintaxis: ${e instanceof Error ? e.message : String(e)}`
+      });
+    }
+  };
+
+  const validateDBML = (code: string) => {
+    try {
+      const trimmedCode = code.trim();
+
+      // Check for unsupported keywords
+      const unsupportedMatch = trimmedCode.match(/^\s*(DiagramView|Schemas)\b/m);
+      if (unsupportedMatch) {
+        const keyword = unsupportedMatch[1];
+        const lineNum = trimmedCode.substring(0, unsupportedMatch.index).split('\n').length;
+        setError({
+          hasError: true,
+          errorMessage: `"${keyword}" no está soportado por el renderer`,
+          errorContext: `"${keyword}" en línea ${lineNum} no está soportado. Solo usar: Table, Enum, Ref, Note, TableGroup, indexes`,
+          errorLine: lineNum
+        });
+        return;
+      }
+
+      // Check for unsupported Project block
+      if (/^\s*Project\b/m.test(trimmedCode)) {
+        const match = trimmedCode.match(/^\s*Project\b/m);
+        const lineNum = trimmedCode.substring(0, match!.index).split('\n').length;
+        setError({
+          hasError: true,
+          errorMessage: '"Project" no está soportado por el renderer',
+          errorContext: `"Project" en línea ${lineNum} no está soportado. Elimínalo para que el diagrama renderice correctamente.`,
+          errorLine: lineNum
+        });
+        return;
+      }
+
+      // Check for unsupported [headercolor] in tables
+      const headerColorMatch = trimmedCode.match(/\[headercolor[:\s]/im);
+      if (headerColorMatch) {
+        const lineNum = trimmedCode.substring(0, headerColorMatch.index).split('\n').length;
+        setError({
+          hasError: true,
+          errorMessage: '[headercolor] no está soportado por el renderer',
+          errorContext: `[headercolor] en línea ${lineNum} no está soportado. Elimínalo.`,
+          errorLine: lineNum
+        });
+        return;
+      }
+
+      // Check for at least one Table, Enum, or Ref definition
+      const hasDefinition = /\b(Table|Enum|Ref|TableGroup)\b/i.test(trimmedCode);
+      if (!hasDefinition) {
+        setError({
+          hasError: true,
+          errorMessage: 'Falta definición de Table, Enum o Ref',
+          errorContext: 'El código DBML debe contener al menos una definición de Table, Enum o Ref',
+          errorLine: 1
+        });
+        return;
+      }
+
+      // Check balanced braces
+      let braceCount = 0;
+      const lines = trimmedCode.split('\n');
+
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+
+        // Remove single-line comments (// to end of line)
+        const commentIdx = line.indexOf('//');
+        if (commentIdx >= 0) {
+          line = line.substring(0, commentIdx);
+        }
+
+        // Remove strings to avoid counting braces inside them
+        line = line.replace(/'[^']*'/g, '').replace(/"[^"]*"/g, '');
+
+        for (const char of line) {
+          if (char === '{') braceCount++;
+          if (char === '}') braceCount--;
+
+          if (braceCount < 0) {
+            setError({
+              hasError: true,
+              errorMessage: "'}' sin '{' correspondiente",
+              errorContext: `'}' sin '{' correspondiente en línea ${i + 1}`,
+              errorLine: i + 1
+            });
+            return;
+          }
+        }
+      }
+
+      if (braceCount > 0) {
+        setError({
+          hasError: true,
+          errorMessage: `${braceCount} llave(s) sin cerrar`,
+          errorContext: `${braceCount} llave(s) '{' sin cerrar (falta '}')`
+        });
+        return;
+      }
+
+      // No errors detected
+      setError({
+        hasError: false,
+        errorMessage: '',
+        errorContext: ''
+      });
+    } catch (e) {
+      setError({
+        hasError: true,
+        errorMessage: 'Error al validar sintaxis de DBML',
         errorContext: `Error al validar sintaxis: ${e instanceof Error ? e.message : String(e)}`
       });
     }

@@ -212,28 +212,28 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
               </div>
               <div>
-                <h3 id="share-modal-title" className="text-lg font-semibold text-gray-900">
+                <h3 id="share-modal-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {t('sharing.title')}
                 </h3>
-                <p className="text-sm text-gray-500 truncate max-w-[280px]" title={diagramTitle}>
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[280px]" title={diagramTitle}>
                   {diagramTitle}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
               aria-label={t('sharing.closeModal')}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,14 +251,14 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span className="ml-2 text-gray-500">{t('sharing.loading')}</span>
+              <span className="ml-2 text-gray-500 dark:text-gray-400">{t('sharing.loading')}</span>
             </div>
           ) : existingLink ? (
             /* ===== Existing Link View ===== */
             <>
               {/* Link URL */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {t('sharing.sharedLink')}
                 </label>
                 <div className="flex gap-2">
@@ -266,7 +266,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     type="text"
                     readOnly
                     value={existingLink.share_url}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm focus:outline-none"
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm focus:outline-none"
                     aria-label={t('sharing.sharedLinkAria')}
                   />
                   <button
@@ -296,7 +296,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Access code (if protected) */}
               {existingLink.access_type === 'protected' && plainAccessCode && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('sharing.accessCode')}
                   </label>
                   <div className="flex gap-2">
@@ -304,12 +304,12 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       type="text"
                       readOnly
                       value={plainAccessCode}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm font-mono tracking-wider focus:outline-none"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-mono tracking-wider focus:outline-none"
                       aria-label={t('sharing.accessCode')}
                     />
                     <button
                       onClick={handleCopyAccessCode}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1"
+                      className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
                       aria-label={t('sharing.copyAccessCode')}
                     >
                       {codeCopied ? (
@@ -333,35 +333,35 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               )}
 
               {/* Link info */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{t('sharing.accessTypeLabel')}</span>
-                  <span className="font-medium text-gray-700">
+                  <span className="text-gray-500 dark:text-gray-400">{t('sharing.accessTypeLabel')}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-200">
                     {existingLink.access_type === 'public' ? t('sharing.accessPublic') : t('sharing.accessProtected')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{t('sharing.copyCodeLabel')}</span>
-                  <span className="font-medium text-gray-700">
+                  <span className="text-gray-500 dark:text-gray-400">{t('sharing.copyCodeLabel')}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-200">
                     {existingLink.allow_copy_code ? t('sharing.allowed') : t('sharing.notAllowed')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{t('sharing.createdAt')}</span>
-                  <span className="font-medium text-gray-700">
+                  <span className="text-gray-500 dark:text-gray-400">{t('sharing.createdAt')}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-200">
                     {formatDate(existingLink.created_at)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{t('sharing.expiresAt')}</span>
-                  <span className="font-medium text-gray-700">
+                  <span className="text-gray-500 dark:text-gray-400">{t('sharing.expiresAt')}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-200">
                     {existingLink.expires_at ? formatDate(existingLink.expires_at) : t('sharing.never')}
                   </span>
                 </div>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -371,7 +371,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
             <>
               {/* Expiration selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('sharing.linkExpiration')}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -382,8 +382,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       onClick={() => setExpiration(opt.value)}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         expiration === opt.value
-                          ? 'bg-purple-100 border-purple-500 text-purple-700'
-                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                          ? 'bg-purple-100 dark:bg-purple-900/30 border-purple-500 text-purple-700 dark:text-purple-300'
+                          : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                       }`}
                       aria-pressed={expiration === opt.value}
                     >
@@ -395,7 +395,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
 
               {/* Access type selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('sharing.accessTypeLabel')}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -404,8 +404,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     onClick={() => setAccessType('public')}
                     className={`px-4 py-3 text-sm font-medium rounded-lg border transition-colors flex items-center gap-2 ${
                       accessType === 'public'
-                        ? 'bg-purple-100 border-purple-500 text-purple-700'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 border-purple-500 text-purple-700 dark:text-purple-300'
+                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                     }`}
                     aria-pressed={accessType === 'public'}
                   >
@@ -422,8 +422,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                     }}
                     className={`px-4 py-3 text-sm font-medium rounded-lg border transition-colors flex items-center gap-2 ${
                       accessType === 'protected'
-                        ? 'bg-purple-100 border-purple-500 text-purple-700'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 border-purple-500 text-purple-700 dark:text-purple-300'
+                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                     }`}
                     aria-pressed={accessType === 'protected'}
                   >
@@ -438,7 +438,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Access code field (only if protected) */}
               {accessType === 'protected' && (
                 <div>
-                  <label htmlFor="access-code-input" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="access-code-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('sharing.accessCodeInput')}
                   </label>
                   <div className="flex gap-2">
@@ -449,12 +449,12 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       onChange={(e) => setAccessCode(e.target.value)}
                       placeholder={t('sharing.accessCodePlaceholder')}
                       maxLength={20}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm font-mono tracking-wider placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm font-mono tracking-wider placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                     <button
                       type="button"
                       onClick={handleGenerateAccessCode}
-                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1"
+                      className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
                       aria-label={t('sharing.generateCodeAria')}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -463,7 +463,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                       {t('sharing.generateCode')}
                     </button>
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {t('sharing.accessCodeHint')}
                   </p>
                 </div>
@@ -472,10 +472,10 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               {/* Allow copy code toggle */}
               <div className="flex items-center justify-between">
                 <div>
-                  <label htmlFor="allow-copy-toggle" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="allow-copy-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {t('sharing.allowCopyCode')}
                   </label>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {t('sharing.allowCopyCodeDesc')}
                   </p>
                 </div>
@@ -485,8 +485,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                   role="switch"
                   aria-checked={allowCopyCode}
                   onClick={() => setAllowCopyCode(!allowCopyCode)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
-                    allowCopyCode ? 'bg-purple-600' : 'bg-gray-300'
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                    allowCopyCode ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
                   }`}
                 >
                   <span
@@ -498,7 +498,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -507,13 +507,13 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg flex gap-3 justify-end border-t border-gray-200 dark:border-gray-700">
           {existingLink ? (
             <>
               <button
                 onClick={handleRevokeLink}
                 disabled={revoking}
-                className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-300 dark:border-red-700 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {revoking && (
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -525,7 +525,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 {t('sharing.close')}
               </button>
@@ -535,7 +535,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               <button
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('sharing.cancel')}
               </button>

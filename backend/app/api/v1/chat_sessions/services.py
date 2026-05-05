@@ -281,6 +281,13 @@ class ChatSessionService:
                 end_idx = ai_text.index(self.DIAGRAM_END)
                 raw_code = ai_text[start_idx:end_idx].strip()
                 improved_code = clean_code_response(raw_code)
+            elif self.DIAGRAM_START in ai_text:
+                # Fallback: DIAGRAM_START present but END marker missing (truncated response)
+                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                raw_code = ai_text[start_idx:].strip()
+                improved_code = clean_code_response(raw_code)
+
+            if improved_code:
 
                 # Auto-retry: validate syntax and retry if invalid
                 retries = 0
@@ -332,6 +339,13 @@ class ChatSessionService:
                         )
                         end_idx = ai_text.index(self.DIAGRAM_END)
                         raw_code = ai_text[start_idx:end_idx].strip()
+                        improved_code = clean_code_response(raw_code)
+                    elif self.DIAGRAM_START in ai_text:
+                        # Fallback: truncated retry response
+                        start_idx = ai_text.index(self.DIAGRAM_START) + len(
+                            self.DIAGRAM_START
+                        )
+                        raw_code = ai_text[start_idx:].strip()
                         improved_code = clean_code_response(raw_code)
                     else:
                         # Retry response has no diagram code; stop retrying

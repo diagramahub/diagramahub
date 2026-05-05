@@ -119,18 +119,30 @@ class ClaudeClient(BaseAIClient):
         language: str = "es",
     ) -> Dict[str, str]:
         from ...diagrams.fix_prompts import build_fix_prompt
-        from ..prompts import extract_fix_json
+        from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
+            is_dbml = diagram_type.lower() == "dbml"
+            system_msg = (
+                "You are an expert in fixing syntax errors in DBML diagrams. "
+                "Respond using the exact delimiter format requested."
+            ) if is_dbml else (
+                "You are an expert in fixing syntax errors in technical diagrams. "
+                "Always respond with valid JSON only, no markdown fences or extra text."
+            )
+
             response_text = await self._messages_request(
                 [{"role": "user", "content": prompt}],
-                system="You are an expert in fixing syntax errors in technical diagrams. Always respond with valid JSON only, no markdown fences or extra text.",
+                system=system_msg,
                 temperature=0.3,
             )
 
-            fix_result = extract_fix_json(response_text, "Claude")
-            fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
+            if is_dbml:
+                fix_result = extract_fix_delimited(response_text, "Claude")
+            else:
+                fix_result = extract_fix_json(response_text, "Claude")
+                fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
             return fix_result
 
         except httpx.TimeoutException:

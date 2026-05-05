@@ -28,7 +28,7 @@
     "language": "Idioma",
     "profile": "Perfil",
     "settings": "Configuraciones",
-    "logout": "Cerrar sesión"
+    "logout": "Salir"
   },
   "nav": {
     "dashboard": "Panel de control",
@@ -250,7 +250,7 @@
     "rendering": "Renderizando...",
     "copyCode": "Copiar código",
     "codeCopied": "Código copiado",
-    "fullscreen": "Pantalla completa",
+    "fullscreen": "Modo Presentación",
     "exitFullscreen": "Salir de pantalla completa",
     "type": {
       "d2": "D2",
@@ -353,6 +353,10 @@
     "advancedDescription": "Opciones avanzadas para usuarios expertos"
   },
   "editor": {
+    "structure": "Explorador",
+    "fullscreen": "Presentar",
+    "exitFullscreen": "Salir",
+    "aiChat": "Chat IA",
     "tools": "Herramientas",
     "actions": "Acciones",
     "viewProject": "Ver proyecto",
@@ -425,7 +429,9 @@
     "copyCode": "Copiar código",
     "backToDashboard": "Dashboard",
     "editDiagramTitle": "Editar título del diagrama",
-    "clickToEditTitle": "Clic para editar título"
+    "clickToEditTitle": "Clic para editar título",
+    "diagramCount": "diagramas",
+    "folderCount": "carpetas"
   },
   "errors": {
     "genericError": "Ocurrió un error",
@@ -945,16 +951,14 @@
     "revokeError": "Error al revocar el enlace"
   },
   "sidebar": {
-    "dashboard": "Panel de control",
+    "dashboard": "Inicio",
     "profile": "Perfil",
-    "aiSettings": "Configuraciones de IA",
+    "aiSettings": "IA",
     "integrations": "Integraciones",
-    "userManagement": "Gestión de Usuarios",
-    "recentProjects": "Proyectos recientes",
-    "viewAll": "Ver todos",
+    "userManagement": "Usuarios",
     "collapse": "Colapsar sidebar",
     "expand": "Expandir sidebar",
-    "subscription": "Mi Suscripción",
+    "subscription": "Suscripción",
     "administration": "Administración",
     "plans": "Planes",
     "plansDescription": "Gestiona los planes de suscripción y precios",
@@ -962,6 +966,10 @@
     "lightMode": "Modo claro",
     "darkMode": "Modo oscuro",
     "openMenu": "Abrir menú",
-    "noRecentProjects": "Sin proyectos recientes"
+    "community": "Comunidad",
+    "comingSoon": "Próximamente",
+    "communityModalTitle": "Comunidad DiagramaHub",
+    "communityModalDescription": "Estamos trabajando en un espacio donde podrás compartir tus diagramas, descubrir los de otros usuarios y colaborar con la comunidad. ¡Mantente atento!",
+    "communityModalClose": "Entendido"
   }
 }

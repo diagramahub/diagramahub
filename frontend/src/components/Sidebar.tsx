@@ -6,8 +6,6 @@ import { useTheme } from '../contexts/ThemeContext';
 import Tooltip from './Tooltip';
 import LanguageSelector from './LanguageSelector';
 import PremiumAvatar from './PremiumAvatar';
-import apiService from '../services/api';
-import { Project } from '../types/project';
 
 interface NavItem {
   key: string;
@@ -18,8 +16,6 @@ interface NavItem {
 }
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar_collapsed';
-const RECENT_PROJECTS_KEY = 'recent_projects';
-const MAX_RECENT_PROJECTS = 5;
 
 // --- SVG Icons (Heroicons style: w-5 h-5, stroke="currentColor") ---
 
@@ -28,15 +24,6 @@ function DashboardIcon() {
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-    </svg>
-  );
-}
-
-function ProfileIcon() {
-  return (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
   );
 }
@@ -77,11 +64,11 @@ function UsersIcon() {
   );
 }
 
-function FolderIcon() {
+function CommunityIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
   );
 }
@@ -108,7 +95,7 @@ function LogoutIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
     </svg>
   );
 }
@@ -146,6 +133,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { key: 'dashboard', labelKey: 'sidebar.dashboard', path: '/dashboard', icon: <DashboardIcon /> },
   { key: 'aiSettings', labelKey: 'sidebar.aiSettings', path: '/settings', icon: <AISettingsIcon /> },
   { key: 'subscription', labelKey: 'sidebar.subscription', path: '/subscription', icon: <SubscriptionIcon /> },
+  { key: 'community', labelKey: 'sidebar.community', path: '#community', icon: <CommunityIcon /> },
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
@@ -191,8 +179,11 @@ export default function Sidebar() {
   // Mobile overlay state
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Recent projects
-  const [recentProjects, setRecentProjects] = useState<Project[]>([]);
+  // Logout confirmation state
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Community modal state
+  const [showCommunityModal, setShowCommunityModal] = useState(false);
 
   // Persist collapsed state
   const toggleExpanded = useCallback(() => {
@@ -208,42 +199,6 @@ export default function Sidebar() {
     setIsMobileOpen(false);
   }, [location.pathname]);
 
-  // Fetch recent projects
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchRecentProjects() {
-      try {
-        const recentIds = readLocalStorage<string[]>(RECENT_PROJECTS_KEY, []);
-        if (recentIds.length === 0) {
-          // Fallback: fetch all projects and take the most recently updated
-          const allProjects = await apiService.getProjects();
-          const sorted = [...allProjects]
-            .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-            .slice(0, MAX_RECENT_PROJECTS);
-          if (!cancelled) setRecentProjects(sorted);
-          return;
-        }
-
-        // Fetch all projects and filter by recent IDs, preserving order
-        const allProjects = await apiService.getProjects();
-        const projectMap = new Map(allProjects.map((p) => [p.id, p]));
-        const recent = recentIds
-          .map((id) => projectMap.get(id))
-          .filter((p): p is Project => p !== undefined)
-          .slice(0, MAX_RECENT_PROJECTS);
-
-        if (!cancelled) setRecentProjects(recent);
-      } catch {
-        // Error loading projects — show empty section
-        if (!cancelled) setRecentProjects([]);
-      }
-    }
-
-    fetchRecentProjects();
-    return () => { cancelled = true; };
-  }, [location.pathname]);
-
   // Filter nav items by role
   const isAdmin = user?.role === 'admin';
 
@@ -256,35 +211,27 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  // Handle project click — track in recent projects
-  const handleProjectClick = (projectId: string) => {
-    // Update recent projects in localStorage
-    const recentIds = readLocalStorage<string[]>(RECENT_PROJECTS_KEY, []);
-    const updated = [projectId, ...recentIds.filter((id) => id !== projectId)].slice(0, MAX_RECENT_PROJECTS);
-    writeLocalStorage(RECENT_PROJECTS_KEY, updated);
-    navigate(`/projects/${projectId}`);
-  };
-
   // --- Render helpers ---
 
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.path);
     const label = t(item.labelKey);
+    const isCommunity = item.key === 'community';
 
     const button = (
       <button
         key={item.key}
-        onClick={() => navigate(item.path)}
+        onClick={() => { if (isCommunity) { setShowCommunityModal(true); } else { navigate(item.path); } }}
         className={`
           w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200
-          ${active
+          ${active && !isCommunity
             ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
             : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50'
           }
           ${!isExpanded ? 'justify-center' : ''}
         `}
         aria-label={label}
-        aria-current={active ? 'page' : undefined}
+        aria-current={active && !isCommunity ? 'page' : undefined}
       >
         <span className="flex-shrink-0">{item.icon}</span>
         {isExpanded && (
@@ -302,49 +249,6 @@ export default function Sidebar() {
     }
 
     return button;
-  };
-
-  const renderRecentProjects = () => {
-    if (recentProjects.length === 0) {
-      if (isExpanded) {
-        return (
-          <p className="text-xs text-gray-400 dark:text-gray-500 px-3 py-1">
-            {t('sidebar.noRecentProjects')}
-          </p>
-        );
-      }
-      return null;
-    }
-
-    return recentProjects.map((project) => {
-      const projectButton = (
-        <button
-          key={project.id}
-          onClick={() => handleProjectClick(project.id)}
-          className={`
-            w-full flex items-center gap-3 px-3 py-1.5 rounded-lg transition-colors duration-200
-            text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/50
-            ${!isExpanded ? 'justify-center' : ''}
-          `}
-          aria-label={project.name}
-        >
-          <span className="flex-shrink-0 text-sm">{project.emoji || '📁'}</span>
-          {isExpanded && (
-            <span className="text-sm truncate">{project.name}</span>
-          )}
-        </button>
-      );
-
-      if (!isExpanded) {
-        return (
-          <Tooltip key={project.id} content={project.name} position="right">
-            {projectButton}
-          </Tooltip>
-        );
-      }
-
-      return projectButton;
-    });
   };
 
   // --- Sidebar content (shared between desktop and mobile) ---
@@ -416,31 +320,6 @@ export default function Sidebar() {
           </>
         )}
 
-        {/* Divider */}
-        <div className="my-3 border-t border-gray-200 dark:border-gray-700" />
-
-        {/* Recent projects section */}
-        {isExpanded && (
-          <div className="flex items-center justify-between px-3 mb-1">
-            <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-              {t('sidebar.recentProjects')}
-            </span>
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
-            >
-              {t('sidebar.viewAll')}
-            </button>
-          </div>
-        )}
-        {!isExpanded && (
-          <Tooltip content={t('sidebar.recentProjects')} position="right">
-            <div className="flex justify-center px-3 mb-1">
-              <FolderIcon />
-            </div>
-          </Tooltip>
-        )}
-        {renderRecentProjects()}
       </nav>
 
       {/* Bottom zone */}
@@ -478,7 +357,26 @@ export default function Sidebar() {
 
         {/* User info + logout */}
         {isExpanded ? (
-          <div className="flex items-center gap-2 px-3 py-2">
+          <div className="relative flex items-center gap-2 px-3 py-2">
+            {showLogoutConfirm && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 mx-2 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-3 z-50">
+                <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{t('auth.logoutConfirm')}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleLogout}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+                  >
+                    {t('common.logout')}
+                  </button>
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
             <button
               onClick={() => navigate('/profile')}
               className="flex-shrink-0 rounded-full hover:ring-2 hover:ring-purple-400 transition-all"
@@ -497,7 +395,7 @@ export default function Sidebar() {
             </button>
             <Tooltip content={t('common.logout')} position="top">
               <button
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="flex-shrink-0 p-1 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 transition-colors duration-200"
                 aria-label={t('common.logout')}
               >
@@ -567,7 +465,7 @@ export default function Sidebar() {
       {/* Mobile sidebar overlay */}
       <aside
         className={`
-          fixed top-0 left-0 z-50 h-full w-60 bg-white dark:bg-gray-800
+          fixed top-0 left-0 z-50 h-full w-52 bg-white dark:bg-gray-800
           transform transition-transform duration-200 ease-in-out
           md:hidden
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -584,13 +482,46 @@ export default function Sidebar() {
           hidden md:flex flex-col fixed top-0 left-0 h-full z-30
           bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
           transition-all duration-200 ease-in-out
-          ${isExpanded ? 'w-60' : 'w-16'}
+          ${isExpanded ? 'w-52' : 'w-16'}
         `}
         role="navigation"
         aria-label="Sidebar"
       >
         {sidebarContent}
       </aside>
+
+      {/* Community Coming Soon Modal */}
+      {showCommunityModal && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCommunityModal(false); }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
+            <div className="px-6 pt-8 pb-4 text-center">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <CommunityIcon />
+              </div>
+              <span className="inline-block mb-3 text-[10px] font-bold uppercase tracking-widest bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-full">
+                {t('sidebar.comingSoon')}
+              </span>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                {t('sidebar.communityModalTitle')}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                {t('sidebar.communityModalDescription')}
+              </p>
+            </div>
+            <div className="px-6 pb-6 pt-2">
+              <button
+                onClick={() => setShowCommunityModal(false)}
+                className="w-full px-4 py-2.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors btn-glass"
+              >
+                {t('sidebar.communityModalClose')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

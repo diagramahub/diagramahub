@@ -413,7 +413,7 @@ def get_dbml_context(language: str) -> str:
             "- [unique] — valor unico\n"
             "- [default: valor] — valor por defecto (usar backticks para expresiones: `now()`)\n"
             "- [increment] — auto incremento\n"
-            "- [note: 'texto'] — nota descriptiva\n"
+            "- [note: \"texto\"] — nota descriptiva (SIEMPRE usar comillas dobles)\n"
             "- Se pueden combinar: [pk, not null, increment]\n\n"
             "RELACIONES (Ref):\n"
             "- Uno a muchos: Ref: posts.user_id > users.id\n"
@@ -425,16 +425,16 @@ def get_dbml_context(language: str) -> str:
             "Enum nombre_enum {\n"
             "  valor1\n"
             "  valor2\n"
-            "  valor3 [note: 'descripcion']\n"
+            "  valor3 [note: \"descripcion\"]\n"
             "}\n"
             "- Uso en columna: status enum_nombre\n\n"
             "NOTAS:\n"
-            "- Nota en tabla: Note: 'Descripcion de la tabla'\n"
-            "- Nota en columna: nombre tipo [note: 'descripcion']\n"
+            "- Nota en tabla: Note: \"Descripcion de la tabla\"\n"
+            "- Nota en columna: nombre tipo [note: \"descripcion\"]\n"
             "- Nota multilínea:\n"
             "  Note {\n"
-            "    'Linea 1'\n"
-            "    'Linea 2'\n"
+            "    \"Linea 1\"\n"
+            "    \"Linea 2\"\n"
             "  }\n\n"
             "INDICES:\n"
             "Table nombre {\n"
@@ -455,16 +455,16 @@ def get_dbml_context(language: str) -> str:
             "  id integer [pk, increment]\n"
             "  username varchar [not null, unique]\n"
             "  email varchar [not null, unique]\n"
-            "  role varchar [default: 'user']\n"
+            "  role varchar [default: \"user\"]\n"
             "  created_at timestamp [default: `now()`]\n"
             "\n"
-            "  Note: 'Tabla principal de usuarios'\n"
+            "  Note: \"Tabla principal de usuarios\"\n"
             "}\n\n"
             "Table posts {\n"
             "  id integer [pk, increment]\n"
             "  title varchar [not null]\n"
             "  body text\n"
-            "  status post_status [not null, default: 'draft']\n"
+            "  status post_status [not null, default: \"draft\"]\n"
             "  user_id integer [not null]\n"
             "  created_at timestamp [default: `now()`]\n"
             "\n"
@@ -477,7 +477,7 @@ def get_dbml_context(language: str) -> str:
             "Enum post_status {\n"
             "  draft\n"
             "  published\n"
-            "  archived [note: 'No visible para usuarios']\n"
+            "  archived [note: \"No visible para usuarios\"]\n"
             "}\n\n"
             "Ref: posts.user_id > users.id\n\n"
             "ERRORES COMUNES QUE CAUSAN PROBLEMAS (NUNCA hacer esto):\n\n"
@@ -517,7 +517,13 @@ def get_dbml_context(language: str) -> str:
             "5. Los Enums se definen fuera de las tablas y se referencian por nombre\n"
             "6. NO usar sintaxis SQL (CREATE TABLE, ALTER, etc.)\n"
             "7. NO usar sintaxis de Mermaid, PlantUML ni D2\n"
-            "8. Los comentarios usan // para linea simple"
+            "8. Los comentarios usan // para linea simple\n"
+            "9. SIEMPRE usar comillas DOBLES (\") para notas y strings. NUNCA usar comillas simples ('). El renderer NO soporta comillas simples.\n"
+            "10. Para defaults con strings usar comillas dobles: [default: \"valor\"]\n"
+            "11. NO usar DiagramView, Schemas ni Project — el renderer solo soporta: Table, Enum, Ref, Note, TableGroup, indexes\n"
+            "12. NO usar [headercolor] en tablas — no soportado por el renderer\n"
+            "13. NO usar notas multilinea con triple comillas (''') ni con llaves Note: {''} — solo Note: \"texto en una linea\"\n"
+            "14. NO usar alias con 'as' en tablas (Table orders as alias) — no soportado"
         )
     else:
         return (
@@ -703,7 +709,14 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "3. Relaciones usan > < - <> (NO usar ->)\n"
                 "4. Siempre especificar columnas en Ref: tabla.columna > tabla.columna\n"
                 "5. Expresiones default entre backticks: [default: `now()`]\n"
-                "6. Cada llave de apertura { debe tener su llave de cierre }"
+                "6. Cada llave de apertura { debe tener su llave de cierre }\n"
+                "7. NUNCA usar comillas simples (') — SIEMPRE usar comillas dobles (\") para notas, defaults y strings\n"
+                "   INCORRECTO: Note: 'Mi nota'\n"
+                "   CORRECTO:   Note: \"Mi nota\"\n"
+                "   INCORRECTO: [default: 'valor']\n"
+                "   CORRECTO:   [default: \"valor\"]\n"
+                "8. NO usar DiagramView, Schemas ni Project — NO estan soportados por el renderer\n"
+                "   Solo usar: Table, Enum, Ref, Note, TableGroup, indexes"
             )
         else:
             return ""
@@ -1191,6 +1204,74 @@ def clean_code_response(text: str) -> str:
         text = text[:-3].strip()
 
     return text
+
+
+def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
+    """
+    Extraer respuesta de fix usando delimitadores <<<SECTION>>>.
+    
+    Usado para DBML y otros lenguajes donde JSON es problemático
+    por el uso extensivo de llaves {}.
+    
+    Returns:
+        Dict con corrected_code, explanation, changes_summary
+    """
+    text = response_text.strip()
+    
+    result = {}
+    
+    # Extract explanation
+    if "<<<EXPLANATION>>>" in text and "<<<END_EXPLANATION>>>" in text:
+        start = text.index("<<<EXPLANATION>>>") + len("<<<EXPLANATION>>>")
+        end = text.index("<<<END_EXPLANATION>>>")
+        result["explanation"] = text[start:end].strip()
+    elif "<<<EXPLANATION>>>" in text:
+        start = text.index("<<<EXPLANATION>>>") + len("<<<EXPLANATION>>>")
+        # Find next delimiter or end
+        next_delim = text.find("<<<", start)
+        result["explanation"] = text[start:next_delim].strip() if next_delim > start else text[start:].strip()
+    
+    # Extract changes summary
+    if "<<<CHANGES>>>" in text and "<<<END_CHANGES>>>" in text:
+        start = text.index("<<<CHANGES>>>") + len("<<<CHANGES>>>")
+        end = text.index("<<<END_CHANGES>>>")
+        result["changes_summary"] = text[start:end].strip()
+    elif "<<<CHANGES>>>" in text:
+        start = text.index("<<<CHANGES>>>") + len("<<<CHANGES>>>")
+        next_delim = text.find("<<<", start)
+        result["changes_summary"] = text[start:next_delim].strip() if next_delim > start else text[start:].strip()
+    
+    # Extract code
+    if "<<<CODE>>>" in text and "<<<END_CODE>>>" in text:
+        start = text.index("<<<CODE>>>") + len("<<<CODE>>>")
+        end = text.index("<<<END_CODE>>>")
+        result["corrected_code"] = text[start:end].strip()
+    elif "<<<CODE>>>" in text:
+        start = text.index("<<<CODE>>>") + len("<<<CODE>>>")
+        result["corrected_code"] = text[start:].strip()
+    
+    # Validate required fields
+    if "corrected_code" not in result or not result["corrected_code"]:
+        # Fallback: try to find code in markdown block
+        import re
+        code_match = re.search(r'```(?:dbml)?\s*\n(.*?)```', text, re.DOTALL)
+        if code_match:
+            result["corrected_code"] = code_match.group(1).strip()
+        else:
+            raise ValueError(
+                f"No se pudo extraer el código corregido de la respuesta de {provider_name}"
+            )
+    
+    # Clean code from markdown fences if present
+    result["corrected_code"] = clean_code_response(result["corrected_code"])
+    
+    # Set defaults for missing fields
+    if "explanation" not in result:
+        result["explanation"] = "Código corregido"
+    if "changes_summary" not in result:
+        result["changes_summary"] = "Corrección de sintaxis aplicada"
+    
+    return result
 
 
 def extract_fix_json(response_text: str, provider_name: str) -> dict:

@@ -250,7 +250,7 @@
     "rendering": "Rendering...",
     "copyCode": "Copy code",
     "codeCopied": "Code copied",
-    "fullscreen": "Fullscreen",
+    "fullscreen": "Presentation Mode",
     "exitFullscreen": "Exit fullscreen",
     "type": {
       "d2": "D2",
@@ -353,6 +353,10 @@
     "advancedDescription": "Advanced options for expert users"
   },
   "editor": {
+    "structure": "Explorer",
+    "fullscreen": "Present",
+    "exitFullscreen": "Exit",
+    "aiChat": "AI Chat",
     "tools": "Tools",
     "actions": "Actions",
     "viewProject": "View project",
@@ -425,7 +429,9 @@
     "copyCode": "Copy code",
     "backToDashboard": "Dashboard",
     "editDiagramTitle": "Edit diagram title",
-    "clickToEditTitle": "Click to edit title"
+    "clickToEditTitle": "Click to edit title",
+    "diagramCount": "diagrams",
+    "folderCount": "folders"
   },
   "errors": {
     "genericError": "An error occurred",
@@ -826,16 +832,14 @@
     "revokeError": "Error revoking link"
   },
   "sidebar": {
-    "dashboard": "Dashboard",
+    "dashboard": "Home",
     "profile": "Profile",
-    "aiSettings": "AI Settings",
+    "aiSettings": "AI",
     "integrations": "Integrations",
-    "userManagement": "User Management",
-    "recentProjects": "Recent Projects",
-    "viewAll": "View all",
+    "userManagement": "Users",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
-    "subscription": "My Subscription",
+    "subscription": "Subscription",
     "administration": "Administration",
     "plans": "Plans",
     "plansDescription": "Manage subscription plans and pricing",
@@ -843,6 +847,10 @@
     "lightMode": "Light mode",
     "darkMode": "Dark mode",
     "openMenu": "Open menu",
-    "noRecentProjects": "No recent projects"
+    "community": "Community",
+    "comingSoon": "Coming soon",
+    "communityModalTitle": "DiagramaHub Community",
+    "communityModalDescription": "We're building a space where you can share your diagrams, discover others' work, and collaborate with the community. Stay tuned!",
+    "communityModalClose": "Got it"
   }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Sidebar from './Sidebar';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar_collapsed';
-const EXPANDED_WIDTH = 240;
+const EXPANDED_WIDTH = 208;
 const COLLAPSED_WIDTH = 64;
 
 interface SidebarLayoutProps {

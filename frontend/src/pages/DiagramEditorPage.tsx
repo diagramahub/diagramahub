@@ -13,13 +13,14 @@ import { UserAISettings } from '../types/ai';
 import DeleteFolderModal from '../components/DeleteFolderModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Tooltip from '../components/Tooltip';
-import CodeEditor from '../components/CodeEditor';
 import AIChatPanel from '../components/AIChatPanel';
 import NoAIProviderModal from '../components/NoAIProviderModal';
 import UpgradePlanModal from '../components/UpgradePlanModal';
 import MarkdownEditor from '../components/MarkdownEditor';
 import { DiagramDiffView } from '../components/DiagramDiffView';
 import ShareDiagramModal from '../components/ShareDiagramModal';
+import DiagramCodePanel from '../components/DiagramCodePanel';
+import DiagramFileBrowser from '../components/DiagramFileBrowser';
 import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
 import { FixDiagramResponse } from '../types/ai';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
@@ -176,7 +177,7 @@ export default function DiagramEditorPage() {
   const [showNewDiagramModal, setShowNewDiagramModal] = useState(false);
   const [newDiagramName, setNewDiagramName] = useState('');
   const [newDiagramFolderId, setNewDiagramFolderId] = useState<string | null>(null);
-  const [newDiagramType, setNewDiagramType] = useState<'mermaid' | 'plantuml' | 'd2'>('mermaid');
+  const [newDiagramType, setNewDiagramType] = useState<'mermaid' | 'plantuml' | 'd2' | 'dbml'>('mermaid');
   const [creatingDiagram, setCreatingDiagram] = useState(false);
   const [isFirstDiagram, setIsFirstDiagram] = useState(false);
   const [upgradePlan, setUpgradePlan] = useState<{ resourceType: string; currentUsage: number; limit: number } | null>(null);
@@ -194,6 +195,8 @@ export default function DiagramEditorPage() {
   // Floating panels state
   const [showFloatingSidebar, setShowFloatingSidebar] = useState(false);
   const [showCodeView, setShowCodeView] = useState(false);
+  const [codePanelWidth, setCodePanelWidth] = useState(350);
+  const isResizingCode = useRef(false);
   const [showDescriptionView, setShowDescriptionView] = useState(false);
   const [isDescriptionPinned, setIsDescriptionPinned] = useState(false);
   const [descriptionPanelWidth, setDescriptionPanelWidth] = useState(384);
@@ -293,19 +296,26 @@ export default function DiagramEditorPage() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
+      // Only close floating sidebar on click outside
       if (!target.closest('.floating-sidebar') && !target.closest('.floating-sidebar-button')) {
         setShowFloatingSidebar(false);
       }
-      if (!target.closest('.floating-code') && !target.closest('.floating-code-button')) {
-        setShowCodeView(false);
+      // Only close appearance editor on click outside
+      if (!target.closest('.floating-appearance') && !target.closest('.floating-appearance-button')) {
+        setShowAppearanceEditor(false);
       }
-      if (!target.closest('.floating-description') && !target.closest('.floating-description-button')) {
+      // Description panel: only close on click outside if not pinned
+      // BUT don't close if clicking on any toolbar button (code toggle, appearance, etc.)
+      if (
+        !target.closest('.floating-description') &&
+        !target.closest('.floating-description-button') &&
+        !target.closest('.floating-code-button') &&
+        !target.closest('.floating-appearance-button') &&
+        !target.closest('.floating-sidebar-button')
+      ) {
         if (!isDescriptionPinned) {
           setShowDescriptionView(false);
         }
-      }
-      if (!target.closest('.floating-appearance') && !target.closest('.floating-appearance-button')) {
-        setShowAppearanceEditor(false);
       }
     };
 
@@ -398,6 +408,34 @@ export default function DiagramEditorPage() {
 
     return { diagrams: filteredDiagrams, folders: filteredFolders };
   }, [project, diagramSearchQuery]);
+
+  // Code panel resize handler
+  const handleCodeResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingCode.current = true;
+    const startX = e.clientX;
+    const startWidth = codePanelWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingCode.current) return;
+      const delta = e.clientX - startX;
+      const newWidth = Math.min(Math.max(startWidth + delta, 200), 800);
+      setCodePanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingCode.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [codePanelWidth]);
 
   // Description panel resize handler
   const handleDescriptionResizeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -497,6 +535,7 @@ export default function DiagramEditorPage() {
 
   // Load project and diagram
   useEffect(() => {
+    initialLoadComplete.current = false;
     loadProject();
   }, [projectId, diagramId]);
 
@@ -1064,6 +1103,8 @@ export default function DiagramEditorPage() {
         defaultContent = 'graph TD\n  A[Start] --> B[End]';
       } else if (newDiagramType === 'd2') {
         defaultContent = 'x -> y: hello world';
+      } else if (newDiagramType === 'dbml') {
+        defaultContent = 'Table users {\n  id integer [primary key]\n  username varchar\n  email varchar\n  created_at timestamp\n}\n\nTable posts {\n  id integer [primary key]\n  title varchar\n  body text\n  user_id integer\n  created_at timestamp\n}\n\nRef: posts.user_id > users.id';
       } else {
         defaultContent = '@startuml\nAlice -> Bob: Hello\nBob -> Alice: Hi!\n@enduml';
       }
@@ -1338,8 +1379,24 @@ export default function DiagramEditorPage() {
     setPan({ x: 0, y: 0 });
   };
 
-  // Ajustar diagrama cuando se abre/cierra el panel de descripción
+  // Track if initial load is complete (to avoid fit-to-screen overriding restored viewport)
+  const initialLoadComplete = useRef(false);
+
+  // Mark initial load as complete after diagram loads
   useEffect(() => {
+    if (currentDiagram && !initialLoadComplete.current) {
+      // Wait for render to complete before marking as loaded
+      const timer = setTimeout(() => {
+        initialLoadComplete.current = true;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentDiagram]);
+
+  // Ajustar diagrama cuando se abre/cierra el panel de descripción
+  // Only after initial load to preserve restored viewport
+  useEffect(() => {
+    if (!initialLoadComplete.current) return;
     const timer = setTimeout(() => {
       handleFitToScreen();
     }, 300);
@@ -1906,7 +1963,10 @@ export default function DiagramEditorPage() {
                     {isFullscreen ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      <>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </>
                     )}
                   </svg>
                 </button>
@@ -1925,150 +1985,20 @@ export default function DiagramEditorPage() {
 
           {(() => {
             const codeEditorPanel = (
-              <div className="h-full flex flex-col bg-gray-900 dark:bg-gray-950">
-                {/* Title bar — IDE style */}
-                <div className="flex items-center justify-between px-3 py-2 bg-gray-800 dark:bg-gray-900 border-b border-gray-700">
-                  <div className="flex items-center gap-3">
-                    {/* Window dots */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setShowCodeView(false)}
-                        className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors"
-                        aria-label={t('common.close')}
-                      />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                      <div className="w-3 h-3 rounded-full bg-green-500" />
-                    </div>
-                    {/* File tab */}
-                    <div className="flex items-center gap-1.5 bg-gray-900 dark:bg-gray-950 rounded-t-md px-3 py-1 -mb-2 border border-gray-700 border-b-gray-900 dark:border-b-gray-950 relative top-[5px]">
-                      <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                      </svg>
-                      <span className="text-xs font-mono text-gray-300">
-                        {currentDiagram?.diagram_type === 'plantuml' ? 'diagram.puml' : currentDiagram?.diagram_type === 'd2' ? 'diagram.d2' : 'diagram.mmd'}
-                      </span>
-                      {diagramError.hasError && (
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title={t('editor.syntaxError')} />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {/* Fix with AI button — only when error */}
-                    {diagramError.hasError && currentDiagram && (
-                      <Tooltip content={isFixing ? t('editor.fixing') : t('editor.fixWithAI')} position="bottom">
-                        <button
-                          onClick={async () => {
-                            if (!currentDiagram || isFixing) return;
-                            setIsFixing(true);
-                            setFixError(null);
-                            try {
-                              const response = await api.fixDiagram(currentDiagram.id, {
-                                error_context: diagramError.errorContext,
-                                language: 'es'
-                              });
-                              handleFixSuccess(response);
-                            } catch (error: any) {
-                              let errorMessage = 'Error al corregir el diagrama';
-                              if (error.response) {
-                                const status = error.response.status;
-                                const detail = error.response.data?.detail || error.message;
-                                switch (status) {
-                                  case 401: errorMessage = 'No estás autenticado. Por favor inicia sesión.'; break;
-                                  case 403: errorMessage = 'No tienes permisos para corregir este diagrama.'; break;
-                                  case 404: errorMessage = 'Diagrama no encontrado.'; break;
-                                  case 408: errorMessage = 'La corrección tomó demasiado tiempo. Por favor intenta de nuevo.'; break;
-                                  case 422: errorMessage = `El código corregido no es válido: ${detail}`; break;
-                                  case 429: errorMessage = 'Límite de solicitudes excedido. Por favor intenta de nuevo en unos momentos.'; break;
-                                  case 500: case 502: case 503: errorMessage = `Error del servidor: ${detail}`; break;
-                                  default: errorMessage = detail || errorMessage;
-                                }
-                              } else if (error.message) {
-                                errorMessage = error.message;
-                              }
-                              handleFixError(errorMessage);
-                            } finally {
-                              setIsFixing(false);
-                            }
-                          }}
-                          disabled={isFixing}
-                          className={`px-2 py-1 text-xs font-medium rounded-md transition-all flex items-center gap-1.5 ${
-                            isFixing
-                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                              : 'bg-purple-500 text-white hover:bg-purple-400 shadow-sm shadow-purple-500/30'
-                          }`}
-                        >
-                          {isFixing ? (
-                            <>
-                              <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
-                              <span>{t('editor.fixing')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
-                                <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
-                              </svg>
-                              <span>{t('editor.fix')}</span>
-                            </>
-                          )}
-                        </button>
-                      </Tooltip>
-                    )}
-                    {/* Copy button */}
-                    <Tooltip content={codeCopied ? t('editor.copied') : t('editor.copyCode')} position="bottom">
-                      <button
-                        onClick={handleCopyCode}
-                        className={`p-1.5 rounded-md transition-colors ${codeCopied ? 'text-green-400 bg-green-900/30' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'}`}
-                      >
-                        {codeCopied ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                        )}
-                      </button>
-                    </Tooltip>
-                  </div>
-                </div>
-
-                {/* Editor with absolute positioning fix for Monaco */}
-                <div className="flex-1 relative min-h-0">
-                  <div className="absolute inset-0">
-                    <CodeEditor
-                      value={diagramCode}
-                      onChange={setDiagramCode}
-                      language={currentDiagram?.diagram_type === 'plantuml' ? 'plantuml' : currentDiagram?.diagram_type === 'd2' ? 'd2' : 'mermaid'}
-                      height="100%"
-                      borderless
-                      theme="vs-dark"
-                    />
-                  </div>
-                </div>
-
-                {/* Status bar */}
-                <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 dark:bg-gray-900 border-t border-gray-700 text-xs font-mono text-gray-400">
-                  <div className="flex items-center gap-3">
-                    {diagramError.hasError ? (
-                      <span className="flex items-center gap-1 text-red-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        {t('editor.syntaxError')}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-green-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                        {t('editor.noErrors')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span>{diagramCode.split('\n').length} {t('editor.lines')}</span>
-                    <span className="text-gray-500">|</span>
-                    <span className="uppercase">{currentDiagram?.diagram_type || 'mermaid'}</span>
-                  </div>
-                </div>
-              </div>
+              <DiagramCodePanel
+                value={diagramCode}
+                onChange={setDiagramCode}
+                diagramType={currentDiagram?.diagram_type || 'mermaid'}
+                hasError={diagramError.hasError}
+                errorMessage={diagramError.errorMessage}
+                onCopy={handleCopyCode}
+                copied={codeCopied}
+                onClose={() => setShowCodeView(false)}
+                isVisible={showCodeView}
+                diagramId={diagramId}
+                onFixSuccess={handleFixSuccess}
+                onFixError={handleFixError}
+              />
             );
 
             const previewPanel = (
@@ -2077,289 +2007,47 @@ export default function DiagramEditorPage() {
                 {/* Floating Modals */}
                 {/* Diagram Structure Modal */}
             {showFloatingSidebar && (
-              <div className="floating-sidebar absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white sm:rounded-xl shadow-lg border-r sm:border border-gray-200 sm:max-h-[calc(100vh-200px)] overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="p-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                      <span className="text-base">{project?.emoji || '📁'}</span>
-                      {project?.name}
-                    </h3>
-                    <button
-                      onClick={() => { setShowFloatingSidebar(false); setDiagramSearchQuery(''); }}
-                      className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-                      aria-label={t('common.close')}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  {/* Search */}
-                  <input
-                    type="text"
-                    value={diagramSearchQuery}
-                    onChange={(e) => setDiagramSearchQuery(e.target.value)}
-                    placeholder={t('editor.searchDiagrams')}
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                  />
-                  {/* Quick actions */}
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      onClick={() => handleNewDiagram()}
-                      className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg px-2 py-1 transition-colors"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      {t('editor.newDiagram')}
-                    </button>
-                    <button
-                      onClick={() => setShowNewFolderModal(true)}
-                      className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg px-2 py-1 transition-colors"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      {t('editor.newFolder')}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Diagram & folder list */}
-                <div className="overflow-y-auto flex-1 py-1">
-                  {/* Root diagrams */}
-                  {filteredSidebarData.diagrams.map(diagram => (
-                    <div
-                      key={diagram.id}
-                      className={`group flex items-center gap-1 mx-1 rounded-lg transition-colors ${
-                        diagram.id === currentDiagram?.id
-                          ? 'bg-purple-50'
-                          : 'hover:bg-gray-50'
-                      } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
-                    >
-                      <button
-                        draggable
-                        onDragStart={() => handleDragStart(diagram.id)}
-                        onClick={() => {
-                          navigate(`/projects/${projectId}/diagrams/${diagram.id}`);
-                          setShowFloatingSidebar(false);
-                          setDiagramSearchQuery('');
-                        }}
-                        className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2.5 cursor-move min-w-0 ${
-                          diagram.id === currentDiagram?.id
-                            ? 'text-purple-700 font-medium'
-                            : 'text-gray-600'
-                        }`}
-                      >
-                        <span className="text-base flex-shrink-0">
-                          {diagram.diagram_type === 'plantuml' ? '🌱' : diagram.diagram_type === 'd2' ? '📐' : '🧜‍♀️'}
-                        </span>
-                        <span className="truncate">{diagram.title}</span>
-                        {diagram.id === currentDiagram?.id && (
-                          <svg className="w-4 h-4 text-purple-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteDiagram(diagram.id, diagram.title);
-                        }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity mr-1"
-                        aria-label={t('editor.deleteDiagram')}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* Folders */}
-                  {filteredSidebarData.folders.map(folder => (
-                    <div
-                      key={folder.id}
-                      className="mt-0.5"
-                      onDragOver={(e) => handleDragOver(e, folder.id)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, folder.id)}
-                    >
-                      <div className={`flex items-center gap-1 mx-1 rounded-lg transition-colors ${
-                        dropTargetFolderId === folder.id ? 'bg-purple-100' : ''
-                      }`}>
-                        {editingFolderId === folder.id ? (
-                          <div className="flex-1 flex items-center gap-2 px-3 py-2">
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                            </svg>
-                            <input
-                              type="text"
-                              value={editingFolderName}
-                              onChange={(e) => setEditingFolderName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveFolderEdit();
-                                else if (e.key === 'Escape') handleCancelFolderEdit();
-                              }}
-                              className="flex-1 text-sm font-medium border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                              autoFocus
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleSaveFolderEdit(); }}
-                              className="p-1 text-green-600 hover:text-green-700 rounded-lg"
-                              aria-label={t('common.save')}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleCancelFolderEdit(); }}
-                              className="p-1 text-gray-400 hover:text-gray-600 rounded-lg"
-                              aria-label={t('common.cancel')}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => toggleFolder(folder.id)}
-                              className="flex-1 flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                            >
-                              <svg
-                                className={`w-3.5 h-3.5 flex-shrink-0 transition-transform text-gray-400 ${
-                                  expandedFolders.has(folder.id) ? 'rotate-90' : ''
-                                }`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: folder.color }}>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                              </svg>
-                              <span className="truncate font-medium">{folder.name}</span>
-                              <span className="text-xs text-gray-400 ml-auto flex-shrink-0">{folder.diagrams.length}</span>
-                            </button>
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => handleNewDiagram(folder.id)}
-                                className="p-1 text-gray-400 hover:text-green-600 rounded-lg"
-                                aria-label={t('editor.newDiagramInFolder')}
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleEditFolder(folder.id, folder.name)}
-                                className="p-1 text-gray-400 hover:text-purple-600 rounded-lg"
-                                aria-label={t('editor.editFolder')}
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteFolder(folder.id, folder.name, folder.diagrams.length)}
-                                className="p-1 text-gray-400 hover:text-red-600 rounded-lg"
-                                aria-label={t('editor.deleteFolder')}
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      {expandedFolders.has(folder.id) && (
-                        <div className="ml-4 border-l border-gray-100 pl-2">
-                          {folder.diagrams.map(diagram => (
-                            <div
-                              key={diagram.id}
-                              className={`group flex items-center gap-1 mx-1 rounded-lg transition-colors ${
-                                diagram.id === currentDiagram?.id
-                                  ? 'bg-purple-50'
-                                  : 'hover:bg-gray-50'
-                              } ${draggedDiagramId === diagram.id ? 'opacity-50' : ''}`}
-                            >
-                              <button
-                                draggable
-                                onDragStart={() => handleDragStart(diagram.id)}
-                                onClick={() => {
-                                  navigate(`/projects/${projectId}/diagrams/${diagram.id}`);
-                                  setShowFloatingSidebar(false);
-                                  setDiagramSearchQuery('');
-                                }}
-                                className={`flex-1 text-left px-3 py-2 text-sm flex items-center gap-2.5 cursor-move min-w-0 ${
-                                  diagram.id === currentDiagram?.id
-                                    ? 'text-purple-700 font-medium'
-                                    : 'text-gray-600'
-                                }`}
-                              >
-                                <span className="text-base flex-shrink-0">
-                                  {diagram.diagram_type === 'plantuml' ? '🌱' : diagram.diagram_type === 'd2' ? '📐' : '🧜‍♀️'}
-                                </span>
-                                <span className="truncate">{diagram.title}</span>
-                                {diagram.id === currentDiagram?.id && (
-                                  <svg className="w-4 h-4 text-purple-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                )}
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteDiagram(diagram.id, diagram.title);
-                                }}
-                                className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity mr-1"
-                                aria-label={t('editor.deleteDiagram')}
-                              >
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                          {folder.diagrams.length === 0 && (
-                            <p className="text-xs text-gray-400 px-3 py-2">{t('editor.noDiagrams')}</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* Empty state */}
-                  {filteredSidebarData.diagrams.length === 0 && filteredSidebarData.folders.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-4">
-                      {diagramSearchQuery.trim()
-                        ? t('editor.noSearchResults')
-                        : t('editor.noDiagramsOrFolders')
-                      }
-                    </p>
-                  )}
-                </div>
+              <div className="floating-sidebar absolute top-0 left-0 z-30 w-72 h-full sm:top-2 sm:left-2 sm:h-auto sm:max-h-[calc(100vh-200px)] sm:rounded-lg sm:shadow-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 overflow-hidden">
+                <DiagramFileBrowser
+                  projectName={project?.name || ''}
+                  projectEmoji={project?.emoji}
+                  projectId={projectId || ''}
+                  diagrams={filteredSidebarData.diagrams}
+                  folders={filteredSidebarData.folders}
+                  currentDiagramId={currentDiagram?.id}
+                  onClose={() => { setShowFloatingSidebar(false); setDiagramSearchQuery(''); }}
+                  onNewDiagram={(folderId) => handleNewDiagram(folderId)}
+                  onNewFolder={() => setShowNewFolderModal(true)}
+                  onDeleteDiagram={handleDeleteDiagram}
+                  onDeleteFolder={handleDeleteFolder}
+                  onEditFolder={handleEditFolder}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  draggedDiagramId={draggedDiagramId}
+                  dropTargetFolderId={dropTargetFolderId}
+                  expandedFolders={expandedFolders}
+                  onToggleFolder={toggleFolder}
+                  editingFolderId={editingFolderId}
+                  editingFolderName={editingFolderName}
+                  onEditingFolderNameChange={setEditingFolderName}
+                  onSaveFolderEdit={handleSaveFolderEdit}
+                  onCancelFolderEdit={handleCancelFolderEdit}
+                />
               </div>
             )}
 
 
             {/* Appearance Editor Modal */}
-            {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml' || currentDiagram?.diagram_type === 'd2') && (
-              <div className="floating-appearance absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white sm:rounded-lg shadow-xl sm:border border-gray-200 sm:max-h-[calc(100vh-100px)] overflow-y-auto">
-                <div className="p-4 border-b border-gray-100">
+            {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml' || currentDiagram?.diagram_type === 'd2' || currentDiagram?.diagram_type === 'dbml') && (
+              <div className="floating-appearance absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white dark:bg-gray-800 sm:rounded-lg shadow-xl sm:border border-gray-200 dark:border-gray-700 sm:max-h-[calc(100vh-100px)] overflow-y-auto">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramAppearance')}</h3>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('editor.diagramAppearance')}</h3>
                     <button
                       onClick={() => setShowAppearanceEditor(false)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
+                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2373,11 +2061,11 @@ export default function DiagramEditorPage() {
                   {currentDiagram?.diagram_type === 'mermaid' && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.theme')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('editor.theme')}</label>
                         <select
                           value={diagramTheme}
                           onChange={(e) => setDiagramTheme(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value="default">Default</option>
                           <option value="base">Base (Personalizable)</option>
@@ -2387,22 +2075,22 @@ export default function DiagramEditorPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.layout')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('editor.layout')}</label>
                         <select
                           value={diagramLayout}
                           onChange={(e) => setDiagramLayout(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value="dagre">Dagre</option>
                           <option value="elk">ELK</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.style')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('editor.style')}</label>
                         <select
                           value={diagramLook}
                           onChange={(e) => setDiagramLook(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value="classic">Classic (Tradicional)</option>
                           <option value="neo">Neo (Moderno)</option>
@@ -2410,11 +2098,11 @@ export default function DiagramEditorPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Líneas</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Líneas</label>
                         <select
                           value={diagramCurve}
                           onChange={(e) => setDiagramCurve(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value="basis">Suaves (Basis)</option>
                           <option value="linear">Rectas (Linear)</option>
@@ -2425,15 +2113,15 @@ export default function DiagramEditorPage() {
                       </div>
 
                       {/* Global Styling Options */}
-                      <div className="pt-3 border-t border-gray-200">
-                        <p className="text-xs font-medium text-gray-600 mb-2">Estilos Globales</p>
+                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Estilos Globales</p>
                         <div className="space-y-3">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Fuente</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fuente</label>
                             <select
                               value={diagramFontFamily}
                               onChange={(e) => setDiagramFontFamily(e.target.value)}
-                              className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                             >
                               <option value="">Por defecto</option>
                               <option value="Arial, sans-serif">Arial</option>
@@ -2446,11 +2134,11 @@ export default function DiagramEditorPage() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tamaño de Fuente (px)</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tamaño de Fuente (px)</label>
                             <select
                               value={diagramFontSize}
                               onChange={(e) => setDiagramFontSize(e.target.value)}
-                              className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                              className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                             >
                               <option value="12">12px (Pequeño)</option>
                               <option value="14">14px (Normal)</option>
@@ -2468,11 +2156,11 @@ export default function DiagramEditorPage() {
                   {currentDiagram?.diagram_type === 'plantuml' && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tema</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tema</label>
                         <select
                           value={plantUMLTheme}
                           onChange={(e) => setPlantUMLTheme(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value="">Sin tema (por defecto)</option>
                           <optgroup label="🎨 Estilos Modernos">
@@ -2510,7 +2198,7 @@ export default function DiagramEditorPage() {
                             <option value="unitide">Unitide</option>
                           </optgroup>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           El tema se aplica automáticamente al código PlantUML
                         </p>
                       </div>
@@ -2521,11 +2209,11 @@ export default function DiagramEditorPage() {
                   {currentDiagram?.diagram_type === 'd2' && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('editor.theme')}</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('editor.theme')}</label>
                         <select
                           value={d2ThemeId}
                           onChange={(e) => setD2ThemeId(Number(e.target.value))}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <optgroup label="☀️ Light">
                             {D2_THEMES.light.map((theme) => (
@@ -2543,7 +2231,7 @@ export default function DiagramEditorPage() {
                             ))}
                           </optgroup>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {t('diagram.d2.themeHint')}
                         </p>
                       </div>
@@ -2551,11 +2239,11 @@ export default function DiagramEditorPage() {
                   )}
 
                   {/* Background Customization - Always visible */}
-                  <div className="pt-3 border-t border-gray-200">
-                    <p className="text-xs font-medium text-gray-600 mb-3">Fondo del Visualizador</p>
+                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">Fondo del Visualizador</p>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Color de Fondo</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color de Fondo</label>
                         <div className="flex gap-1.5 flex-wrap">
                           {[
                             { color: '#ffffff', name: 'Blanco' },
@@ -2573,7 +2261,7 @@ export default function DiagramEditorPage() {
                               className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
                                 backgroundColor === color
                                   ? 'border-purple-500 ring-2 ring-purple-200'
-                                  : 'border-gray-300 hover:border-gray-400'
+                                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                               }`}
                               style={{ backgroundColor: color }}
                               title={name}
@@ -2582,11 +2270,11 @@ export default function DiagramEditorPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Patrón de Fondo</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Patrón de Fondo</label>
                         <select
                           value={backgroundPattern}
                           onChange={(e) => setBackgroundPattern(e.target.value)}
-                          className="w-full text-sm border border-gray-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                         >
                           <option value="plain">▭ Plano (Sin patrón)</option>
                           <option value="dots">⚬ Puntos</option>
@@ -2782,6 +2470,14 @@ export default function DiagramEditorPage() {
                         )}
                       </span>
                     </div>
+                    {currentDiagram?.created_at && (
+                      <>
+                        <div className="h-3 w-px bg-gray-300 dark:bg-gray-600"></div>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {new Date(currentDiagram.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   {/* Fecha y hora actual con timezone del usuario */}
@@ -2818,14 +2514,24 @@ export default function DiagramEditorPage() {
               <div className="flex h-full w-full overflow-hidden">
                 {/* Code editor — always mounted, hidden via CSS when not active */}
                 <div
-                  className="flex-shrink-0 overflow-hidden transition-all duration-200"
-                  style={{ width: showCodeView ? '30%' : '0px', minWidth: showCodeView ? '250px' : '0px' }}
+                  className="flex-shrink-0 overflow-hidden"
+                  style={{
+                    width: showCodeView ? `${codePanelWidth}px` : '0px',
+                    minWidth: showCodeView ? '200px' : '0px',
+                    opacity: showCodeView ? 1 : 0,
+                    transition: isResizingCode.current ? 'none' : 'width 200ms, opacity 200ms',
+                  }}
                 >
                   {codeEditorPanel}
                 </div>
                 {/* Draggable divider — only visible when code is shown */}
                 {showCodeView && (
-                  <div className="flex-shrink-0 w-1 bg-gray-300 dark:bg-gray-600 hover:bg-purple-400 dark:hover:bg-purple-500 cursor-col-resize transition-colors" />
+                  <div
+                    onMouseDown={handleCodeResizeMouseDown}
+                    className="flex-shrink-0 w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-purple-400 dark:hover:bg-purple-500 active:bg-purple-500 cursor-col-resize transition-colors flex items-center justify-center"
+                  >
+                    <div className="w-0.5 h-8 bg-gray-400 dark:bg-gray-500 rounded-full" />
+                  </div>
                 )}
                 {/* Preview — always visible */}
                 <div className="flex-1 min-w-0 overflow-hidden">
@@ -2842,42 +2548,42 @@ export default function DiagramEditorPage() {
             {/* Resize handle — outside the overflow-hidden panel so it's always accessible */}
             <div
               onMouseDown={handleDescriptionResizeMouseDown}
-              className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 border-l border-gray-200"
+              className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
               title="Arrastrar para redimensionar"
             >
-              <div className="w-0.5 h-8 bg-gray-300 rounded-full" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
             <div
-              className="floating-description fixed inset-0 sm:static sm:inset-auto border-l border-gray-200 bg-white flex flex-col flex-shrink-0 overflow-hidden z-40 sm:z-auto"
+              className="floating-description fixed inset-0 sm:static sm:inset-auto border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col flex-shrink-0 overflow-hidden z-40 sm:z-auto"
               style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : descriptionPanelWidth }}
             >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-100 flex-shrink-0">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <h3 className="text-sm font-medium text-gray-900">{t('editor.diagramDescription')}</h3>
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('editor.diagramDescription')}</h3>
                 </div>
                 <div className="flex items-center gap-1">
                   {/* Font size controls */}
-                  <div className="flex items-center gap-0.5 bg-gray-100 rounded-md px-1 py-0.5 mr-1">
+                  <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-md px-1 py-0.5 mr-1">
                     <button
                       onClick={() => setDescriptionFontSize(prev => Math.max(10, prev - 2))}
                       disabled={descriptionFontSize <= 10}
-                      className="p-1 text-gray-500 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Reducir tamaño de texto"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                       </svg>
                     </button>
-                    <span className="text-xs text-gray-500 font-mono min-w-[28px] text-center">{descriptionFontSize}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono min-w-[28px] text-center">{descriptionFontSize}</span>
                     <button
                       onClick={() => setDescriptionFontSize(prev => Math.min(32, prev + 2))}
                       disabled={descriptionFontSize >= 32}
-                      className="p-1 text-gray-500 hover:text-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Aumentar tamaño de texto"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2890,8 +2596,8 @@ export default function DiagramEditorPage() {
                     onClick={() => setIsDescriptionPinned(!isDescriptionPinned)}
                     className={`p-1.5 rounded transition-colors ${
                       isDescriptionPinned
-                        ? 'text-purple-600 bg-purple-50 hover:bg-purple-100'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                        ? 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                     title={isDescriptionPinned ? 'Desfijar panel' : 'Fijar panel'}
                   >
@@ -2903,7 +2609,7 @@ export default function DiagramEditorPage() {
                   {/* Close button */}
                   <button
                     onClick={() => { setShowDescriptionView(false); setIsDescriptionPinned(false); }}
-                    className="text-gray-400 hover:text-gray-600 p-1.5 rounded hover:bg-gray-100 transition-colors"
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2919,7 +2625,7 @@ export default function DiagramEditorPage() {
                     setShowDescriptionConfirmModal(true);
                   }}
                   disabled={generatingDescription || !diagramCode.trim()}
-                  className="w-full px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
+                  className="w-full px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
@@ -3077,28 +2783,28 @@ export default function DiagramEditorPage() {
       {/* New Diagram Modal */}
       {showNewDiagramModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`bg-white rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? 'max-w-2xl' : 'max-w-lg'}`}>
+          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? 'max-w-2xl' : 'max-w-lg'}`}>
             {isFirstDiagram && (
-              <div className="px-8 py-6 border-b border-gray-200 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700 text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
+                  <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Crea tu primer diagrama! 🎨</h3>
-                <p className="text-gray-600">{t('editor.startVisualizing')}</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">¡Crea tu primer diagrama! 🎨</h3>
+                <p className="text-gray-600 dark:text-gray-400">{t('editor.startVisualizing')}</p>
               </div>
             )}
 
             {!isFirstDiagram && (
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">{t('editor.newDiagram')}</h3>
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('editor.newDiagram')}</h3>
               </div>
             )}
 
             <div className={`space-y-5 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4'}`}>
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   {t('editor.diagramName')} <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -3106,17 +2812,17 @@ export default function DiagramEditorPage() {
                   value={newDiagramName}
                   onChange={(e) => setNewDiagramName(e.target.value)}
                   placeholder={t('editor.diagramNamePlaceholder')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   autoFocus
                 />
                 {isFirstDiagram && (
-                  <p className="mt-2 text-sm text-gray-500">{t('editor.diagramNameHint')}</p>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">{t('editor.diagramNameHint')}</p>
                 )}
               </div>
 
               {/* Diagram Type Selector */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
                   {t('editor.diagramType')} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex flex-col gap-2">
@@ -3124,6 +2830,7 @@ export default function DiagramEditorPage() {
                     { type: 'mermaid' as const, icon: '🧜‍♀️', name: 'Mermaid', desc: t('editor.mermaidDesc') },
                     { type: 'plantuml' as const, icon: '🌱', name: 'PlantUML', desc: t('editor.plantumlDesc') },
                     { type: 'd2' as const, icon: '📐', name: 'D2', desc: t('diagram.type.d2Description') },
+                    { type: 'dbml' as const, icon: '🗄️', name: 'DBML', desc: t('diagram.type.dbmlDescription') },
                   ]).map(({ type, icon, name, desc }) => (
                     <button
                       key={type}
@@ -3131,21 +2838,21 @@ export default function DiagramEditorPage() {
                       onClick={() => setNewDiagramType(type)}
                       className={`flex items-center gap-3 px-4 py-3 border-2 rounded-lg transition-all text-left ${
                         newDiagramType === type
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                       }`}
                     >
                       <span className={`text-xl flex-shrink-0 ${newDiagramType === type ? 'scale-110' : ''} transition-transform`}>
                         {icon}
                       </span>
                       <div className="min-w-0">
-                        <div className={`text-sm font-semibold ${newDiagramType === type ? 'text-purple-700' : 'text-gray-700'}`}>
+                        <div className={`text-sm font-semibold ${newDiagramType === type ? 'text-purple-700 dark:text-purple-300' : 'text-gray-700 dark:text-gray-300'}`}>
                           {name}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">{desc}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{desc}</div>
                       </div>
                       {newDiagramType === type && (
-                        <svg className="w-5 h-5 text-purple-600 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -3156,13 +2863,13 @@ export default function DiagramEditorPage() {
 
               {!isFirstDiagram && project?.folders && project.folders.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Carpeta (opcional)
                   </label>
                   <select
                     value={newDiagramFolderId || ''}
                     onChange={(e) => setNewDiagramFolderId(e.target.value || null)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Sin carpeta (raíz)</option>
                     {project.folders.map(folder => (
@@ -3175,13 +2882,13 @@ export default function DiagramEditorPage() {
               )}
 
               {isFirstDiagram && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                   <div className="flex items-start">
-                    <svg className="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-5 h-5 text-purple-500 dark:text-purple-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                     </svg>
                     <div className="flex-1">
-                      <p className="text-sm text-purple-800">
+                      <p className="text-sm text-purple-800 dark:text-purple-300">
                         <strong>¿Qué sigue?</strong> Después de crear tu diagrama, podrás escribir código Mermaid en el editor
                         y ver la visualización en tiempo real. ¡Es fácil y poderoso!
                       </p>
@@ -3192,7 +2899,7 @@ export default function DiagramEditorPage() {
 
             </div>
 
-            <div className={`border-t border-gray-200 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4 flex justify-end gap-3'}`}>
+            <div className={`border-t border-gray-200 dark:border-gray-700 ${isFirstDiagram ? 'px-8 py-6' : 'px-6 py-4 flex justify-end gap-3'}`}>
               {isFirstDiagram ? (
                 <div className="flex flex-col gap-3">
                   <button
@@ -3215,7 +2922,7 @@ export default function DiagramEditorPage() {
                   <button
                     onClick={() => navigate('/dashboard')}
                     disabled={creatingDiagram}
-                    className="w-full px-6 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:text-gray-400 transition-colors"
+                    className="w-full px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400 transition-colors"
                   >
                     Volver al dashboard
                   </button>
@@ -3230,7 +2937,7 @@ export default function DiagramEditorPage() {
                       setIsFirstDiagram(false);
                     }}
                     disabled={creatingDiagram}
-                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
+                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400"
                   >
                     Cancelar
                   </button>
@@ -3408,17 +3115,17 @@ export default function DiagramEditorPage() {
       {/* Generated Description Confirmation Modal */}
       {showDescriptionConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">{t('ai.description.modalTitle')}</h2>
-                  <p className="text-sm text-gray-500 mt-1">{t('ai.description.modalSubtitle')}</p>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('ai.description.modalTitle')}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('ai.description.modalSubtitle')}</p>
                 </div>
                 <button
                   onClick={handleRejectDescription}
-                  className="text-gray-400 hover:text-gray-500"
+                  className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -3436,11 +3143,11 @@ export default function DiagramEditorPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <p className="text-gray-500">{t('ai.description.refining')}</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('ai.description.refining')}</p>
                   </div>
                 </div>
               ) : (
-                <div className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-ul:text-gray-700 prose-ol:text-gray-700">
+                <div className="prose prose-sm max-w-none prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-700 dark:prose-code:text-purple-300 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/30 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {generatedDescription}
                   </ReactMarkdown>
@@ -3449,7 +3156,7 @@ export default function DiagramEditorPage() {
             </div>
 
             {/* Refine Input */}
-            <div className="px-6 py-3 border-t border-gray-100">
+            <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -3462,7 +3169,7 @@ export default function DiagramEditorPage() {
                   }}
                   placeholder={t('ai.description.refinePlaceholder')}
                   disabled={refining}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
                 <button
                   onClick={handleRefineDescription}
@@ -3485,10 +3192,10 @@ export default function DiagramEditorPage() {
             </div>
 
             {/* Footer - Actions */}
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
               <button
                 onClick={handleRejectDescription}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
               >
                 {t('ai.description.reject')}
               </button>
