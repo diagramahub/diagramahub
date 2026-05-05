@@ -487,27 +487,16 @@ class ChatSessionService:
                     after_text = ai_text[end_marker_pos:].strip()
                 
                 # Combine both parts
-                parts = [p for p in [before_text, after_text] if p]
+                parts = [p for p in [before_text, after_text] if p and len(p) > 3]
                 if parts:
                     display_text = '\n\n'.join(parts)
-                elif self.DIAGRAM_START in ai_text and not self.DIAGRAM_END in ai_text:
-                    # Truncated: only text before DIAGRAM_START
-                    display_text = before_text if before_text else (
+                else:
+                    # No meaningful text before or after the diagram block
+                    display_text = (
                         "Diagrama modificado según tu solicitud."
                         if language == "es"
                         else "Diagram modified as requested."
                     )
-                else:
-                    # Code block fallback: text before the code block
-                    code_block_pos = ai_text.find('```')
-                    if code_block_pos > 0:
-                        display_text = ai_text[:code_block_pos].strip()
-                    if not display_text or display_text == ai_text:
-                        display_text = (
-                            "Diagrama modificado según tu solicitud."
-                            if language == "es"
-                            else "Diagram modified as requested."
-                        )
                 improvement_status = ImprovementStatus.PENDING
 
             # === DEBUG: Final state ===
