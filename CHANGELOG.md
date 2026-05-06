@@ -5,6 +5,47 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.0] - 2026-05-05
+
+### Added
+- Sidebar estilo Toggl: colapsable, responsive, con toggle de tema, selector de idioma y navegación.
+- Dark mode completo en toda la aplicación (todos los modales, páginas y componentes).
+- Soporte para diagramas DBML (Database Markup Language) vía Kroki/dbml-renderer.
+- Proveedor de IA Minimax (BYOL) con modelos MiniMax-M2.7 y MiniMax-M2.5.
+- Página independiente de Proyectos (`/projects-list`) con vista de tabla.
+- Dashboard rediseñado: gráfico de dona por tipo de diagrama, widget de uso de AI, diagramas recientes.
+- Chat de IA: rolling summary persistente por sesión, formato código-primero, fallbacks de extracción.
+- Editor: breadcrumb de proyecto con selector, panel de código redimensionable, tema Kiro Dark para Monaco.
+- Botón de "Corregir con IA" en panel de código (funciona con errores de renderizado).
+- Sección "Comunidad" en sidebar (próximamente).
+- Endpoint `/diagrams/recent` para diagramas recientes del usuario.
+- Endpoint `/chat-sessions/stats/provider-usage` para estadísticas de uso de AI.
+- `SENTRY_ENABLE_LOGS` configurable vía `.env`.
+- `getEffectiveModel()` para fallback automático de modelos retirados.
+- Contexto de renderizado Kroki en prompts de AI para PlantUML, D2 y DBML.
+
+### Changed
+- Modelos actualizados: DeepSeek v4-flash/v4-pro, Gemini 3.1-pro-preview, MiniMax M2.7/M2.5.
+- `max_tokens` incrementado de 2048 a 4096 en todos los proveedores de AI.
+- Prompt del chat: código primero, explicación breve después.
+- Auto-retry desactivado para PlantUML y DBML (falsos positivos del validador).
+- Sidebar reducido a 160px expandido.
+- Logout movido del sidebar a la página de Perfil.
+- "IA" renombrado a "Ajustes" en el sidebar con ícono de engrane.
+- Selector de idioma: ancho completo, dropdown hacia arriba, chevron a la derecha.
+- Tooltip: usa `position: fixed` para evitar corte por overflow.
+- Mensajes de error de Kroki: parseados a formato amigable para el usuario.
+
+### Fixed
+- Monaco Editor no renderizaba código (ResizeObserver + layout forcing).
+- Toggle de código cerraba panel de descripción (click-outside independiente).
+- Zoom persistido se sobreescribía por fit-to-screen al cargar.
+- SVG de DBML con unidades `pt` no se mostraba (convertido a responsive).
+- Crear nuevo diagrama no reseteaba estado del editor anterior.
+- `last_provider`/`last_model` no se guardaban en la sesión de chat.
+- `<think>` tags de DeepSeek/MiniMax se mostraban en el chat.
+- `<<<DIAGRAMA>>>` (español) no se detectaba como marcador de código.
+
 ## [0.4.1] - 2026-04-30
 
 ### Fixed
