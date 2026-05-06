@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.5.0](0.5.0.md) | 2026-05-05 | UX Overhaul, Dark mode, DBML, Minimax, AI Chat |
 | [0.4.1](0.4.1.md) | 2026-04-30 | Fixes, i18n, mejoras visuales |
 | [0.4.0](0.4.0.md) | 2026-04-28 | Kroki, D2, mejoras UX/UI |
 | [0.3.1](0.3.1.md) | 2026-04-23 | Fix compilación TypeScript |
