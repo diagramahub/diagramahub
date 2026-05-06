@@ -8,7 +8,7 @@ y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 ## [0.5.0] - 2026-05-05
 
 ### Added
-- Sidebar estilo Toggl: colapsable, responsive, con toggle de tema, selector de idioma y navegación.
+- Sidebar colapsable: responsive, con toggle de tema, selector de idioma y navegación.
 - Dark mode completo en toda la aplicación (todos los modales, páginas y componentes).
 - Soporte para diagramas DBML (Database Markup Language) vía Kroki/dbml-renderer.
 - Proveedor de IA Minimax (BYOL) con modelos MiniMax-M2.7 y MiniMax-M2.5.
