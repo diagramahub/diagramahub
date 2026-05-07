@@ -21,6 +21,7 @@ import { DiagramDiffView } from '../components/DiagramDiffView';
 import ShareDiagramModal from '../components/ShareDiagramModal';
 import DiagramCodePanel from '../components/DiagramCodePanel';
 import DiagramFileBrowser from '../components/DiagramFileBrowser';
+import { EditorSkeleton } from '../components/Skeleton';
 import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
 import { FixDiagramResponse } from '../types/ai';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
@@ -1805,11 +1806,7 @@ export default function DiagramEditorPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">{t('editor.loading')}</div>
-      </div>
-    );
+    return <EditorSkeleton />;
   }
 
   if (error && !project) {

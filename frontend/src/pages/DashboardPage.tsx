@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Project } from '../types/project';
 import MfaBanner from '../components/MfaBanner';
+import { DashboardStatsSkeleton, DashboardWidgetsSkeleton } from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 /** SVG Donut Chart for diagram type distribution */
 function DonutChart({ typeCounts }: { typeCounts: Record<string, number> }) {
@@ -165,7 +167,9 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* Stats cards */}
-          {!loading && (
+          {loading ? (
+            <DashboardStatsSkeleton />
+          ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <div className="flex items-center gap-3">
@@ -227,8 +231,20 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
+        {/* Empty state: no projects yet */}
+        {!loading && projects.length === 0 && (
+          <EmptyState
+            title={t('dashboard.noProjects')}
+            description={t('dashboard.emptyDescription')}
+            actionLabel={t('dashboard.createProject')}
+            onAction={() => navigate('/projects-list?create=true')}
+          />
+        )}
+
         {/* Widgets grid: AI Usage (left) + Donut Chart (right) */}
-        {!loading && (
+        {loading ? (
+          <DashboardWidgetsSkeleton />
+        ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* AI Provider Usage Widget */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -297,7 +313,7 @@ const DashboardPage: React.FC = () => {
               <DonutChart typeCounts={typeCounts} />
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Recent diagrams widget */}
         {!loading && recentDiagrams.length > 0 && (
@@ -332,9 +348,6 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {loading && (
-          <div className="text-center py-16 text-gray-500 dark:text-gray-400">{t('dashboard.loading')}</div>
-        )}
       </main>
     </div>
   );
