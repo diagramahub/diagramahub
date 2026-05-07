@@ -1,998 +1,505 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Diagramahub project guidance — single source of truth for AI coding assistants (Claude Code, DeepSeek TUI, Open Code, etc.).
+
+---
 
 ## Project Overview
 
-Diagramahub is an open source platform for creating, organizing, and exporting diagrams using plain text (Mermaid, PlantUML, etc.). The project consists of:
+Diagramahub is an open-source, self-hostable platform for creating, organizing, and exporting diagrams using plain text markup (Mermaid, PlantUML, DBML). Targets developers and teams who prefer text-based diagramming. Server-side rendering via [Kroki](https://kroki.io/).
 
-- **Backend**: FastAPI + MongoDB with JWT authentication
-- **Frontend**: React 18 + TypeScript + Vite + TailwindCSS v3
-- **Infrastructure**: Docker Compose orchestration
-- **Testing**: pytest with 100% coverage of authentication endpoints
+- **License**: Apache 2.0
+- **Status**: Beta (v0.x) — APIs and data structures may change between versions
+- **Current version**: 0.5.0
+- **Repo**: https://github.com/alexdzul/diagramahub
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 19 + TypeScript 5.9+ + Vite 7 + TailwindCSS v3 |
+| **Backend** | Python 3.11+ + FastAPI + Beanie ODM (MongoDB) + Poetry |
+| **Database** | MongoDB 8 via Motor async driver |
+| **Diagram rendering** | Mermaid (client-side), PlantUML/DBML/D2 (server-side via Kroki) |
+| **Payments** | Stripe SDK |
+| **AI Clients** | google-genai, httpx (OpenAI/Claude/DeepSeek/MiniMax) |
+| **Email** | Resend (async) |
+| **Auth** | JWT (python-jose) + BCrypt (passlib) |
+| **Validation** | Pydantic v2 + pydantic-settings |
+| **Testing** | pytest + pytest-asyncio + pytest-cov + Hypothesis (property-based) |
+| **Lint/Format** | Ruff (line-length 100) + Black + mypy |
+| **i18n** | i18next + react-i18next (Spanish default, English) |
+| **Monitoring** | Sentry (conditional, backend + frontend) |
+| **Infrastructure** | Docker Compose (4 services) |
 
 ## Common Commands
 
-### Docker Development (Recommended)
+Everything runs via Docker Compose — no direct Poetry/npm on the host.
 
 ```bash
 # Start all services
 docker-compose up --build
+docker-compose up -d                    # background
 
-# Start in background
-docker-compose up -d
-
-# Stop services
+# Stop
 docker-compose down
 
-# View logs
+# Logs
 docker-compose logs -f backend
 docker-compose logs -f frontend
 
-# Access containers
+# Rebuild a specific service
+docker-compose build backend --no-cache
+docker-compose build frontend --no-cache
+
+# Shell access
 docker exec -it diagramahub-backend bash
 docker exec -it diagramahub-mongodb mongosh
 ```
 
-### Backend Development
+### Backend (inside container)
 
 ```bash
-cd backend
-
-# Install dependencies (requires Poetry)
-poetry install
-
-# Run tests with pytest (100% coverage)
-poetry run pytest
-docker exec diagramahub-backend poetry run pytest
-
-# Run tests without coverage (faster)
-poetry run pytest --no-cov
-
-# Run specific test markers
-poetry run pytest -m integration
-poetry run pytest -m unit
-
-# Generate HTML coverage report
-poetry run pytest --cov=app --cov-report=html
-# Open: backend/htmlcov/index.html
-
-# Run backend with hot reload
-poetry run uvicorn app.main:app --reload --port 5172
-
-# Code formatting
-poetry run black app/
-poetry run ruff check app/
-
-# Type checking
-poetry run mypy app/
+docker exec diagramahub-backend poetry run pytest           # all tests + coverage
+docker exec diagramahub-backend poetry run pytest --no-cov  # fast, no coverage
+docker exec diagramahub-backend poetry run pytest -m unit
+docker exec diagramahub-backend poetry run pytest -m integration
+docker exec diagramahub-backend poetry run pytest -m property
+docker exec diagramahub-backend poetry run pytest -x        # stop on first failure
+docker exec diagramahub-backend poetry run black app/
+docker exec diagramahub-backend poetry run ruff check app/
+docker exec diagramahub-backend poetry run mypy app/
 ```
 
-### Frontend Development
+### Frontend
 
 ```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run dev server (hot reload enabled)
-npm run dev
-
-# Build for production
-npm run build
-
-# Lint
-npm run lint
-
-# Preview production build
-npm run preview
+cd frontend && npm install
+npm run dev         # hot reload on 5173
+npm run build       # production build
+npm run lint        # ESLint
+npm run preview     # preview production build
 ```
 
-### Testing Scripts
+### Shell test scripts
 
 ```bash
-# Backend pytest suite (30 tests)
-docker exec diagramahub-backend poetry run pytest
-
-# Legacy shell script (basic API tests)
-./test-api.sh
-
-# Helper script for common test operations
-docker exec diagramahub-backend ./run-tests.sh
+bash test-api.sh
+bash test-onboarding.sh
+bash test-onboarding-wizard.sh
+bash verify-installation.sh
 ```
 
-## Architecture & Code Structure
+## Services & Ports
 
-### Backend Modular Structure (IMPORTANT)
+| Service | Container | Port | Notes |
+|---------|-----------|------|-------|
+| Frontend | diagramahub-frontend | 5173 | Vite dev server + HMR |
+| Backend | diagramahub-backend | 5172 | FastAPI + hot reload |
+| Kroki | diagramahub-kroki | internal | Diagram rendering (PlantUML, DBML, D2) |
+| MongoDB | diagramahub-mongodb | 27017 | Persistent volume |
 
-**CRITICAL: Each CRUD entity MUST have its own dedicated module folder.**
+All services on `diagramahub-network` bridge.
 
-The backend follows a strict modular architecture where **each entity (users, projects, diagrams, folders, etc.) lives in its own separate folder** under `backend/app/api/v1/`. This is mandatory for all new features.
+---
 
-**Current Module Structure:**
+## Architecture
+
+### Directory Map
+
 ```
-backend/app/api/v1/
-├── users/          # User authentication and management
-│   ├── __init__.py
-│   ├── interfaces.py      # Abstract interfaces (IUserRepository)
-│   ├── repository.py      # MongoDB implementation
-│   ├── services.py        # Business logic
-│   ├── schemas.py         # Pydantic models + Beanie Documents
-│   └── routes.py          # FastAPI endpoints
-│
-├── projects/       # Project CRUD operations
-│   ├── __init__.py
-│   ├── interfaces.py      # IProjectRepository
-│   ├── repository.py      # ProjectRepository
-│   ├── services.py        # ProjectService
-│   ├── schemas.py         # ProjectInDB, ProjectResponse, etc.
-│   └── routes.py          # /projects endpoints
-│
-├── diagrams/       # Diagram CRUD operations
-│   ├── __init__.py
-│   ├── interfaces.py      # IDiagramRepository
-│   ├── repository.py      # DiagramRepository
-│   ├── services.py        # DiagramService
-│   ├── schemas.py         # DiagramInDB, DiagramResponse, etc.
-│   └── routes.py          # /diagrams endpoints
-│
-└── folders/        # Folder CRUD operations
-    ├── __init__.py
-    ├── interfaces.py      # IFolderRepository
-    ├── repository.py      # FolderRepository
-    ├── services.py        # FolderService
-    ├── schemas.py         # FolderInDB, FolderResponse, etc.
-    └── routes.py          # /folders endpoints
+diagramahub/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI app, lifespan, router registration, Sentry
+│   │   ├── core/
+│   │   │   ├── config.py        # Pydantic Settings (env vars)
+│   │   │   └── security.py      # JWT + BCrypt utilities
+│   │   └── api/v1/              # All feature modules (14 modules, see below)
+│   ├── tests/
+│   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
+│   │   └── api/v1/              # Tests mirror module structure
+│   ├── pyproject.toml           # Poetry deps + tool config
+│   └── Dockerfile
+├── frontend/src/
+│   ├── App.tsx                  # Root + React Router v7 config
+│   ├── main.tsx                 # Entry point + Sentry init
+│   ├── index.css                # Tailwind directives + custom @layer components
+│   ├── components/              # Reusable UI (flat + feature subfolders)
+│   │   ├── admin/               # Admin panel components
+│   │   ├── annotations/         # Presentation annotation components
+│   │   ├── mfa/                 # MFA-related components
+│   │   └── subscription/        # Billing components
+│   ├── pages/                   # Route-level page components
+│   │   └── admin/               # Admin pages
+│   ├── contexts/                # AuthContext, ThemeContext
+│   ├── services/api.ts          # Axios instance + ApiService class
+│   ├── hooks/                   # Custom React hooks
+│   ├── types/                   # TypeScript types by domain
+│   ├── i18n/
+│   │   ├── config.ts            # i18next setup
+│   │   └── locales/             # es.json (default), en.json
+│   └── utils/                   # Utility functions
+├── deploy/
+│   ├── local-full/              # MongoDB 8 + Kroki + Backend + Frontend
+│   └── external-mongodb/        # Kroki + Backend + Frontend (external DB)
+├── docs/                        # MkDocs Material (ES/EN)
+├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-**Why This Structure?**
-- ✅ **Separation of Concerns**: Each entity is completely independent
-- ✅ **Scalability**: Easy to add new entities without touching existing code
-- ✅ **Maintainability**: Changes to one entity don't affect others
-- ✅ **Testability**: Each module can be tested in isolation
-- ✅ **Team Collaboration**: Multiple developers can work on different modules simultaneously
+### Backend Module Registry (All 14 Modules)
 
-### SOLID Principles Implementation
+Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
-Each module follows strict SOLID principles with the same file structure:
+| Module | Path | Purpose | Extra files beyond base pattern |
+|--------|------|---------|----------------------------------|
+| **users** | `users/` | Auth, registration, password mgmt, account deletion | `audit_log.py` |
+| **projects** | `projects/` | Project CRUD | — |
+| **diagrams** | `diagrams/` | Diagram CRUD, AI fix, syntax validation, Kroki proxy | `fix_service.py`, `syntax_validator.py`, `config_utils.py`, `fix_prompts.py`, `kroki_client.py` |
+| **folders** | `folders/` | Folder CRUD | — |
+| **ai_providers** | `ai_providers/` | AI provider config + LLM clients (5 providers) | `clients/` subfolder, `factory.py`, `prompts.py` |
+| **chat_sessions** | `chat_sessions/` | AI chat session management | — |
+| **subscriptions** | `subscriptions/` | Stripe billing, plans, webhooks | `billing_service.py`, `webhook_handler.py`, `webhook_routes.py`, `usage_limiter.py`, `payment_providers/`, `constants.py`, `exceptions.py`, `logger.py`, `plan_service.py`, `stripe_catalog_service.py`, `subscription_service.py`, `migration_service.py` |
+| **shared_links** | `shared_links/` | Public diagram sharing, rate limiting | `public_routes.py`, `rate_limiter.py` |
+| **prompt_history** | `prompt_history/` | AI prompt history tracking | — |
+| **integrations** | `integrations/` | Admin email/payment/OAuth vendor config | `email_service.py`, `email_vendors/`, `vendor_factory.py` |
+| **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
+| **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
+| **prompt_history** | `prompt_history/` | AI prompt history | — |
 
-**Standard Module Files (Required for every CRUD entity):**
-- `interfaces.py` - Abstract base classes defining contracts (e.g., `IProjectRepository`)
-  - Defines the interface/contract for data access
-  - Uses ABC (Abstract Base Class) from Python
-  - Example: `IProjectRepository` with methods like `create`, `get_by_id`, `update`, `delete`
+### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
 
-- `repository.py` - Concrete implementations of data access layer
-  - Implements the interface defined in `interfaces.py`
-  - Handles all MongoDB operations using Beanie ODM
-  - Example: `ProjectRepository(IProjectRepository)`
+```
+backend/app/api/v1/<entity>/
+├── __init__.py          # Module marker
+├── interfaces.py        # Abstract base classes (ABC) — repository contracts
+├── repository.py        # Concrete MongoDB implementation via Beanie ODM
+├── services.py          # Business logic — depends on interfaces, never on concrete repos
+├── schemas.py           # Pydantic v2: Base, Create, Update, InDB (Beanie Document), Response
+└── routes.py            # FastAPI APIRouter — HTTP parsing only, delegates to services
+```
 
-- `services.py` - Business logic layer (depends on interfaces, not implementations)
-  - Contains all business rules and validations
-  - Depends on interfaces (dependency injection)
-  - Calls repositories to access data
-  - Example: `ProjectService` receives `IProjectRepository` in `__init__`
+**Key rule**: Services depend on abstract interfaces, not concrete implementations (Dependency Inversion). Routes handle HTTP only — all logic delegates to services.
 
-- `schemas.py` - Pydantic models for validation and serialization
-  - **Beanie Documents**: Models that map to MongoDB collections (extend `Document`)
-  - **Request models**: For API input validation (e.g., `ProjectCreate`, `ProjectUpdate`)
-  - **Response models**: For API output serialization (e.g., `ProjectResponse`)
-  - Example structure:
-    - `ProjectBase` - Shared fields
-    - `ProjectCreate(ProjectBase)` - For POST requests
-    - `ProjectUpdate` - For PUT/PATCH requests
-    - `ProjectInDB(Document)` - Beanie model (MongoDB collection)
-    - `ProjectResponse` - For API responses
+### Module Registration Checklist
 
-- `routes.py` - FastAPI route handlers (HTTP layer)
-  - Defines all HTTP endpoints for the entity
-  - Uses FastAPI's `APIRouter`
-  - Handles request/response parsing
-  - Calls services for business logic
-  - Example: `@router.post("/projects")`, `@router.get("/projects/{id}")`
+When creating a new module, you MUST:
 
-**Key Principle: Dependency Inversion**
-- Services depend on abstractions (`IProjectRepository`), not concrete implementations
-- This enables easy mocking for tests and swapping implementations
-- Example: `ProjectService` receives `IProjectRepository` via dependency injection
-- Repositories are injected in route dependency functions
-
-### Backend Architecture
-
-**Database Layer** (`backend/app/api/v1/users/`):
-- Uses Beanie ODM (MongoDB Object-Document Mapper)
-- `UserInDB` is the Beanie Document model (extends `Document`)
-- Repositories handle all MongoDB operations
-- Connection initialized in `app/main.py` lifespan handler
-
-**Authentication Flow**:
-1. User registers → password hashed with BCrypt → stored in MongoDB
-2. User logs in → credentials validated → JWT token generated
-3. Protected routes → JWT validated via `get_current_user` dependency
-4. Token stored in frontend `localStorage`, sent via `Authorization: Bearer` header
-
-**Security** (`backend/app/core/security.py`):
-- JWT tokens with configurable expiration (default: 30 minutes)
-- BCrypt password hashing with automatic salting
-- Password validation: minimum 8 chars, uppercase, lowercase, number
-- Password reset with single-use tokens (1 hour expiration)
-
-**Configuration** (`backend/app/core/config.py`):
-- Pydantic Settings for environment variables
-- All secrets loaded from `.env` file
-- Never commit `.env` - use `.env.template` as reference
-- **Required**: `JWT_SECRET` must be set (min 32 characters)
+1. Register the Beanie `Document` model in `main.py` → `init_beanie(document_models=[...])`
+2. Register the router in `main.py` → `app.include_router(router, prefix=settings.API_V1_PREFIX)`
+3. If the module has webhook or public routes, register them as additional routers in `main.py`
 
 ### Frontend Architecture
 
-**State Management** (`frontend/src/contexts/AuthContext.tsx`):
-- React Context API for global auth state
-- Stores user info and JWT token
-- Token persisted in `localStorage`
-- Auto-logout on 401 responses
+**State & Auth**:
+- Auth: `AuthContext` (React Context) with JWT in `localStorage`, auto-logout on 401
+- Theme: `ThemeContext` — light/dark persisted in `localStorage` under key `theme`
 
-**API Service** (`frontend/src/services/api.ts`):
-- Axios instance with interceptors
-- Request interceptor: automatically adds JWT token
-- Response interceptor: handles 401 errors (token expiration)
+**Routing** (React Router v7):
+- Protected routes via `PrivateRoute` component
+- Initial setup enforced by `InstallationGuard`
+- Public routes (e.g., `/shared/:token`) placed outside `AuthProvider` in `App.tsx`
+
+**API Layer** (`services/api.ts`):
+- Axios instance with auth interceptor (auto-attaches `Authorization: Bearer`)
+- Response interceptor handles 401 → auto-logout
 - All API calls centralized in `ApiService` class
 
-**Routing** (`frontend/src/App.tsx`):
-- React Router v7 for navigation
-- `PrivateRoute` component protects authenticated routes
-- Auto-redirect to `/login` when unauthenticated
-- Routes: `/login`, `/register`, `/dashboard`
+### Frontend Design System
 
-**Styling**:
-- TailwindCSS v3 for utility-first styling
-- Hot reload configured in Docker
-- Responsive design patterns
+**Brand**: Purple gradient primary identity. Glassmorphism buttons (`.btn-glass` in `index.css`).
 
-**Internationalization (i18n)** (`frontend/src/i18n/`):
-- **Framework**: i18next + react-i18next
-- **Languages**: Spanish (default), English
-- **Translation Files**: `frontend/src/i18n/locales/es.json`, `en.json`
-- **Features**:
-  - Automatic browser language detection
-  - Persistent language preference in `localStorage`
-  - Instant language switching without page reload
-  - Pluralization support
-  - Variable interpolation in messages
-- **Configuration**: `frontend/src/i18n/config.ts`
-- **Component**: `LanguageSelector` in navbar for switching languages
-- **Coverage**: 100% of UI text (all pages, components, validations, errors)
+| Purpose | Tailwind Class |
+|---------|----------------|
+| Primary gradient | `bg-gradient-to-r from-purple-600 via-purple-400 to-purple-700` |
+| Primary solid | `bg-purple-600`, `text-purple-600` |
+| Primary hover | `bg-purple-700` |
+| Danger | `bg-red-600`, `text-red-600` |
+| Success | `bg-green-600`, `text-green-600` |
+| Neutral text | `text-gray-700`, `text-gray-500` |
+| Borders | `border-gray-200` |
+| Background | `bg-white` |
 
-### Testing Architecture
+**Rules**:
+- All UI text uses i18n keys via `t('key')` — never hardcode strings
+- Icons are inline SVGs (Heroicons-style), not icon libraries
+- No external UI libraries (no Ant Design, Material UI, Chakra UI)
+- TailwindCSS utility classes for all styling — no inline `style` for colors
+- Custom CSS in `index.css` under `@layer components` only when Tailwind is insufficient
+- Dark mode via `darkMode: 'class'` with `dark:` variants on all components
 
-**Backend Tests** (`backend/tests/`):
-- **Framework**: pytest + pytest-asyncio + pytest-cov
-- **Test Database**: Isolated MongoDB test database (dropped after each test)
-- **Fixtures**: Shared fixtures in `conftest.py` (client, authenticated_client, test_db)
-- **Coverage**: 30 integration tests covering all authentication endpoints
-- **Data Generation**: Faker library for random test data
-- **Async Support**: Full async/await support with httpx AsyncClient
+**Key custom classes** (`index.css`):
+- `.btn-glass` — glassmorphism button effect
+- `.chat-markdown` — compact markdown for AI chat bubbles
+- `.animate-slide-in-right` — slide-in animation for chat panel
+- `.markdown-wysiwyg` — EasyMDE WYSIWYG overrides
 
-**Test Structure**:
-```
-backend/tests/
-├── conftest.py                    # Shared fixtures
-├── api/v1/users/
-│   ├── test_auth.py              # Registration & Login (14 tests)
-│   └── test_password_management.py # Password ops (16 tests)
-```
+---
 
-**Test Coverage**:
-- ✅ User registration (success, duplicates, validations)
-- ✅ User login (success, wrong credentials, inactive users)
-- ✅ Change password (authenticated, authorization)
-- ✅ Password reset (request, confirm, token expiration)
-- ✅ All edge cases and error scenarios
+## Domain Model
 
-**Running Tests**:
-```bash
-# All tests with coverage
-docker exec diagramahub-backend poetry run pytest
+| Entity | Key Fields | Relationships |
+|--------|-----------|---------------|
+| **Diagram** | `content`, `diagram_type`, `config`, `user_preferences` | belongs to Project, optionally to Folder |
+| **Project** | name, owner | has many Diagrams, has many Folders |
+| **Folder** | name, project_id | belongs to Project, has many Diagrams |
+| **Shared Link** | token, access_type, expiration, `allow_copy_code` | references one Diagram |
+| **Subscription** | plan, user_id | belongs to User, references Plan |
+| **Plan** | `code` (e.g. `FREE`, `PRO`), limits, `prices` dict | has many Subscriptions |
+| **AI Provider** | provider type, encrypted API key | belongs to User |
+| **Chat Session** | messages, rolling summary | belongs to User + Diagram |
+| **Prompt History** | prompt text, provider, model, generation_time | belongs to User |
 
-# Fast execution without coverage
-docker exec diagramahub-backend poetry run pytest --no-cov
+## Features & Product Rules
 
-# Only integration tests
-docker exec diagramahub-backend poetry run pytest -m integration
+### Diagram Engine
+- Supported: **Mermaid** (client-side), **PlantUML**, **D2**, **DBML** (server-side via Kroki)
+- Monaco Editor with Dark theme, syntax highlighting, autocomplete
+- Export: PNG, PDF, Markdown
+- Mermaid: themes (default/dark/forest/neutral/base), layout engines (dagre/elk), visual styles (classic/handDrawn), curve types
+- PlantUML: themes + skinparam. D2: themes. DBML: background only.
+- Shared `DiagramConfig`: background color + pattern (plain/dots/grid)
+- Viewport state (zoom, x, y) persisted per diagram — **never overwrite on load**
+- Presentation mode with full-screen viewing and annotations
 
-# Verbose output
-docker exec diagramahub-backend poetry run pytest -v
+### AI Integration (BYOL)
+- 5 providers: Google Gemini, OpenAI GPT, Anthropic Claude, DeepSeek, **MiniMax**
+- Pattern: abstract `BaseAIClient` → concrete clients in `ai_providers/clients/` → registered in `factory.py`
+- Capabilities: generation, improvement, auto-fix, description generation, chat refinement
+- API keys stored Fernet-encrypted, returned masked in responses
+- `max_tokens`: 4096 across all providers
+- Auto-fix retry disabled for PlantUML and DBML (false positives)
+- AI content respects `language` parameter (`es`/`en`)
+- Code markers: `<<<DIAGRAM>>>`/`<<<END_DIAGRAM>>>` (English), `<<<DIAGRAMA>>>`/`<<<END_DIAGRAMA>>>` (Spanish)
+- Strip `<think>` tags from AI responses
 
-# Stop on first failure
-docker exec diagramahub-backend poetry run pytest -x
+### Auth & Security
+- JWT + BCrypt. Tokens in `localStorage`.
+- Two roles: `admin`, `user` (default)
+- Password policy: **min 12 chars**, uppercase + lowercase + digit + special character
+- Rate limiting: 10 login attempts/IP/minute. Lockout: 15 min after 5 failures.
+- Session invalidation on password change (`pca` claim in JWT)
+- MFA: email codes + TOTP (both active simultaneously, configurable default). 8 recovery codes.
+- Session duration: 2 days without MFA, 5 days with MFA. OAuth: 5 days (MFA bypass).
+- OAuth: provider-agnostic (`IOAuthProvider` interface). Google implemented. Auto-link by email.
+- Security headers: X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy, Permissions-Policy, Cache-Control
+- Swagger/OpenAPI + stack traces disabled in production
+- Sentry: conditional initialization, `before_send` sanitization (filters `Authorization`, `Cookie`, `api_key`, `password`, `token`, `secret`, `jwt`)
 
-# HTML coverage report
-docker exec diagramahub-backend poetry run pytest --cov-report=html
-```
+### Subscriptions & Billing
+- Every user gets FREE plan on registration (including OAuth)
+- Resource limits (`max_projects`, `max_diagrams`): `-1` or `None` = unlimited
+- Stripe: checkout sessions, idempotent webhooks (keyed by `event_id`), billing portal
+- Multi-currency pricing via `prices` dict on plans
+- Provider-agnostic payment gateway (Stripe active, Conekta placeholder)
 
-### Data Flow
+### Sharing
+- Access types: `public` (open) or `protected` (access code 4–20 chars)
+- Expiration: 5, 10, 30 days, or unlimited
+- `allow_copy_code` controls source visibility
+- Rate limiting + IP-hashed access logging
 
-```
-Frontend (React) → API Service (Axios) → Backend Routes (FastAPI)
-                                              ↓
-                                          Services (Business Logic)
-                                              ↓
-                                          Repository (Data Access)
-                                              ↓
-                                          MongoDB (Beanie ODM)
-```
+### Admin Panel
+- User management: pagination, search, MFA status, plan display, Excel export
+- Integrations (3 categories): Email (Resend), Payment (Stripe), OAuth (Google)
+- Connection testing required before activation. One active vendor per type per category.
 
-### API Endpoints
+### Security Audit Log
+- MongoDB collection with 90-day TTL auto-cleanup
+- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked
 
-All endpoints prefixed with `/api/v1`:
+## Key Invariants (Must Preserve)
 
-**Public**:
-- `POST /users/register` - Create new user
-- `POST /users/login` - Authenticate and get JWT
-- `POST /users/reset-password-request` - Request password reset token
-- `POST /users/reset-password-confirm` - Confirm password reset
+1. Every new user gets the FREE plan automatically
+2. Resource limits enforced server-side (never trust client)
+3. API keys never appear unmasked in any API response
+4. Stripe webhook processing must be idempotent (check `event_id`)
+5. Viewport state must not be overwritten when loading a diagram
+6. Shared link tokens must be cryptographically random and unique
+7. All security-sensitive actions must emit an audit log entry
+8. AI auto-fix retry is disabled for PlantUML and DBML
 
-**Protected** (requires JWT):
-- `GET /users/me` - Get current user info
-- `PUT /users/change-password` - Change password (authenticated)
+---
+
+## API Endpoints
+
+All prefixed with `/api/v1`. See Swagger UI at `/docs` for full interactive docs.
+
+**Auth (public)**:
+- `POST /users/register`, `POST /users/login`
+- `POST /users/reset-password-request`, `POST /users/reset-password-confirm`
+
+**OAuth (public)**:
+- `GET /oauth/providers` — list active providers
+- `GET /oauth/{provider}/authorize` — initiate flow
+- `GET /oauth/{provider}/callback` — handle callback
+
+**Protected** (JWT required):
+- `GET /users/me`, `PUT /users/change-password`
+- `CRUD /projects`, `CRUD /diagrams`, `CRUD /folders`
+- `CRUD /ai/providers`, `POST /ai/providers/{type}/test`
+- `CRUD /chat-sessions`, `POST /chat-sessions/{id}/messages`
+- `CRUD /shared-links`, `GET /shared-links/public/{token}` (public)
+- `GET /subscriptions/me`, `POST /subscriptions/checkout`, `GET /subscriptions/billing`
+- `GET /prompt-history`
+- `CRUD /mfa` (TOTP setup, verify, recovery codes)
+- Admin: `GET /admin/users`, `CRUD /integrations`
+- Webhooks: `POST /webhooks/stripe`
 
 **Health**:
-- `GET /` - Root endpoint with version info
-- `GET /health` - Health check
+- `GET /` — version info + status
+- `GET /health` — health check
 
-### Environment Configuration
+---
+
+## Environment Configuration
 
 **Backend** (`backend/.env`):
 ```bash
-# Generate secure JWT secret
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-
-# Required variables
-JWT_SECRET=<generated-secret>
+JWT_SECRET=<generated-32-char-min>
 MONGO_URI=mongodb://mongodb:27017
 DATABASE_NAME=diagramahub
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Optional
+SENTRY_DSN=
+SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_ENABLE_LOGS=True
 ```
 
-**Frontend** (docker-compose.yml):
+**Frontend** (via docker-compose or `.env`):
 ```bash
 VITE_API_URL=http://localhost:5172
+VITE_SENTRY_DSN=
+VITE_APP_ENV=development
+VITE_APP_VERSION=0.5.0
 ```
-
-### Docker Services
-
-- **mongodb** (port 27017): MongoDB 8 (latest 8.x) with persistent volume
-- **backend** (port 5172): FastAPI with hot reload enabled
-- **frontend** (port 5173): Vite dev server with hot reload
-
-Network: All services on `diagramahub-network` bridge
-
-**Hot Reload**:
-- Backend: `backend/app/` mounted → changes auto-reload
-- Frontend: `frontend/src/` mounted → Vite HMR active
-- Tests: `backend/tests/` mounted → test changes reflected immediately
-
-### Adding New Features
-
-**IMPORTANT: Creating a New Backend Module (CRUD Entity)**
-
-When adding a new entity (e.g., `comments`, `notifications`, `teams`), you MUST follow this exact structure:
-
-**Step-by-Step Guide:**
-
-1. **Create module directory**: `backend/app/api/v1/<entity_name>/`
-   ```bash
-   mkdir -p backend/app/api/v1/<entity_name>
-   ```
-
-2. **Create `__init__.py`**:
-   ```python
-   """<Entity> module."""
-   ```
-
-3. **Create `schemas.py`** (Pydantic models + Beanie Document):
-   ```python
-   """Pydantic models for <entity> module."""
-   from datetime import datetime
-   from typing import Optional, List
-   from pydantic import BaseModel, Field
-   from beanie import Document
-
-   # Base model with shared fields
-   class <Entity>Base(BaseModel):
-       """Base <entity> model."""
-       name: str = Field(..., min_length=1, max_length=100)
-       # Add your fields here
-
-   # For POST requests
-   class <Entity>Create(<Entity>Base):
-       """Model for creating a new <entity>."""
-       pass
-
-   # For PUT/PATCH requests
-   class <Entity>Update(BaseModel):
-       """Model for updating a <entity>."""
-       name: Optional[str] = Field(None, min_length=1, max_length=100)
-       # All fields optional
-
-   # MongoDB document (Beanie model)
-   class <Entity>InDB(Document):
-       """<Entity> document stored in MongoDB."""
-       name: str
-       user_id: str  # Owner (if applicable)
-       created_at: datetime = Field(default_factory=datetime.utcnow)
-       updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-       class Settings:
-           name = "<entity_plural>"  # MongoDB collection name
-           indexes = ["user_id"]  # Add indexes as needed
-
-   # For API responses
-   class <Entity>Response(BaseModel):
-       """Model for <entity> API responses."""
-       id: str
-       name: str
-       user_id: str
-       created_at: datetime
-       updated_at: datetime
-
-       class Config:
-           from_attributes = True
-   ```
-
-4. **Create `interfaces.py`** (Abstract repository interface):
-   ```python
-   """Abstract interfaces for <entity> repository."""
-   from abc import ABC, abstractmethod
-   from typing import Optional
-   from .schemas import <Entity>InDB, <Entity>Create, <Entity>Update
-
-   class I<Entity>Repository(ABC):
-       """Abstract interface for <entity> data access."""
-
-       @abstractmethod
-       async def create(self, data: <Entity>Create, user_id: str) -> <Entity>InDB:
-           """Create a new <entity>."""
-           pass
-
-       @abstractmethod
-       async def get_by_id(self, entity_id: str) -> Optional[<Entity>InDB]:
-           """Get <entity> by ID."""
-           pass
-
-       @abstractmethod
-       async def get_by_user_id(self, user_id: str) -> list[<Entity>InDB]:
-           """Get all <entities> for a user."""
-           pass
-
-       @abstractmethod
-       async def update(self, entity_id: str, data: <Entity>Update) -> Optional[<Entity>InDB]:
-           """Update <entity>."""
-           pass
-
-       @abstractmethod
-       async def delete(self, entity_id: str) -> bool:
-           """Delete <entity>."""
-           pass
-   ```
-
-5. **Create `repository.py`** (Concrete MongoDB implementation):
-   ```python
-   """Concrete implementation of <entity> repository."""
-   from datetime import datetime
-   from typing import Optional
-   from beanie import PydanticObjectId
-   from .interfaces import I<Entity>Repository
-   from .schemas import <Entity>InDB, <Entity>Create, <Entity>Update
-
-   class <Entity>Repository(I<Entity>Repository):
-       """MongoDB implementation of <entity> repository using Beanie."""
-
-       async def create(self, data: <Entity>Create, user_id: str) -> <Entity>InDB:
-           """Create a new <entity>."""
-           entity = <Entity>InDB(
-               name=data.name,
-               user_id=user_id,
-               created_at=datetime.utcnow(),
-               updated_at=datetime.utcnow()
-           )
-           await entity.insert()
-           return entity
-
-       async def get_by_id(self, entity_id: str) -> Optional[<Entity>InDB]:
-           """Get <entity> by ID."""
-           try:
-               return await <Entity>InDB.get(PydanticObjectId(entity_id))
-           except Exception:
-               return None
-
-       async def get_by_user_id(self, user_id: str) -> list[<Entity>InDB]:
-           """Get all <entities> for a user."""
-           entities = await <Entity>InDB.find(<Entity>InDB.user_id == user_id).to_list()
-           return entities
-
-       async def update(self, entity_id: str, data: <Entity>Update) -> Optional[<Entity>InDB]:
-           """Update <entity>."""
-           entity = await self.get_by_id(entity_id)
-           if not entity:
-               return None
-
-           update_data = data.model_dump(exclude_unset=True)
-           if update_data:
-               update_data["updated_at"] = datetime.utcnow()
-               await entity.set(update_data)
-
-           return entity
-
-       async def delete(self, entity_id: str) -> bool:
-           """Delete <entity>."""
-           entity = await self.get_by_id(entity_id)
-           if not entity:
-               return False
-
-           await entity.delete()
-           return True
-   ```
-
-6. **Create `services.py`** (Business logic):
-   ```python
-   """Business logic layer for <entities>."""
-   from fastapi import HTTPException, status
-   from .interfaces import I<Entity>Repository
-   from .schemas import <Entity>Create, <Entity>Update, <Entity>Response
-
-   class <Entity>Service:
-       """Service for <entity> business logic."""
-
-       def __init__(self, repository: I<Entity>Repository):
-           self.repository = repository
-
-       async def create_<entity>(self, data: <Entity>Create, user_id: str) -> <Entity>Response:
-           """Create a new <entity>."""
-           entity = await self.repository.create(data, user_id)
-           return <Entity>Response(
-               id=str(entity.id),
-               name=entity.name,
-               user_id=entity.user_id,
-               created_at=entity.created_at,
-               updated_at=entity.updated_at
-           )
-
-       async def get_<entity>(self, entity_id: str, user_id: str) -> <Entity>Response:
-           """Get <entity> by ID with authorization."""
-           entity = await self.repository.get_by_id(entity_id)
-           if not entity:
-               raise HTTPException(
-                   status_code=status.HTTP_404_NOT_FOUND,
-                   detail="<Entity> not found"
-               )
-
-           if entity.user_id != user_id:
-               raise HTTPException(
-                   status_code=status.HTTP_403_FORBIDDEN,
-                   detail="You don't have access to this <entity>"
-               )
-
-           return <Entity>Response(
-               id=str(entity.id),
-               name=entity.name,
-               user_id=entity.user_id,
-               created_at=entity.created_at,
-               updated_at=entity.updated_at
-           )
-
-       # Add more service methods (update, delete, list, etc.)
-   ```
-
-7. **Create `routes.py`** (FastAPI endpoints):
-   ```python
-   """FastAPI routes for <entities>."""
-   from fastapi import APIRouter, Depends, status
-   from app.api.v1.users.routes import get_current_user_email
-   from app.api.v1.users.repository import UserRepository
-   from .repository import <Entity>Repository
-   from .services import <Entity>Service
-   from .schemas import <Entity>Create, <Entity>Update, <Entity>Response
-
-   router = APIRouter()
-
-   # Dependency injection
-   def get_<entity>_service() -> <Entity>Service:
-       """Get <entity> service instance."""
-       return <Entity>Service(repository=<Entity>Repository())
-
-   async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
-       """Get current user ID from email."""
-       user_repo = UserRepository()
-       user = await user_repo.get_by_email(current_user_email)
-       return str(user.id)
-
-   @router.post("/<entities>", response_model=<Entity>Response, status_code=status.HTTP_201_CREATED)
-   async def create_<entity>(
-       data: <Entity>Create,
-       user_id: str = Depends(get_current_user_id),
-       service: <Entity>Service = Depends(get_<entity>_service)
-   ):
-       """Create a new <entity>."""
-       return await service.create_<entity>(data, user_id)
-
-   @router.get("/<entities>/{entity_id}", response_model=<Entity>Response)
-   async def get_<entity>(
-       entity_id: str,
-       user_id: str = Depends(get_current_user_id),
-       service: <Entity>Service = Depends(get_<entity>_service)
-   ):
-       """Get <entity> by ID."""
-       return await service.get_<entity>(entity_id, user_id)
-
-   # Add more endpoints (PUT, DELETE, etc.)
-   ```
-
-8. **Register in `backend/app/main.py`**:
-   ```python
-   # Add imports
-   from app.api.v1.<entity_plural>.routes import router as <entity_plural>_router
-   from app.api.v1.<entity_plural>.schemas import <Entity>InDB
-
-   # Add to Beanie initialization
-   await init_beanie(
-       database=database,
-       document_models=[UserInDB, ProjectInDB, <Entity>InDB],  # Add your model
-   )
-
-   # Register router
-   app.include_router(<entity_plural>_router, prefix=settings.API_V1_PREFIX)
-   ```
-
-9. **Write tests** in `backend/tests/api/v1/<entity_plural>/`
-   - Create test file for your endpoints
-   - Test CRUD operations
-   - Test authorization and edge cases
-
-10. **Update API types in frontend** (`frontend/src/types/<entity>.ts`)
-
-**Example: Creating a "comments" module**
-- Folder: `backend/app/api/v1/comments/`
-- Files: `__init__.py`, `interfaces.py`, `repository.py`, `services.py`, `schemas.py`, `routes.py`
-- Models: `CommentBase`, `CommentCreate`, `CommentUpdate`, `CommentInDB`, `CommentResponse`
-- Interface: `ICommentRepository`
-- Implementation: `CommentRepository(ICommentRepository)`
-- Service: `CommentService`
-- Routes: `/api/v1/comments` endpoints
-
-**DO NOT:**
-- ❌ Put multiple entities in the same module
-- ❌ Mix different entity logic in shared files
-- ❌ Create monolithic repository files
-- ❌ Skip the interface layer (always create `interfaces.py`)
-
-**DO:**
-- ✅ One entity = One module folder
-- ✅ Follow the 5-file structure (interfaces, repository, services, schemas, routes)
-- ✅ Use dependency injection (services depend on interfaces)
-- ✅ Write tests for each new module
-- ✅ Register router and Beanie model in `main.py`
-
-**Frontend feature**:
-1. Create page component in `frontend/src/pages/`
-2. Add route in `frontend/src/App.tsx`
-3. Add API methods to `frontend/src/services/api.ts`
-4. Update types in `frontend/src/types/`
-5. Add to navigation if needed
-
-**Writing Tests** (Backend):
-1. Create test file: `test_<feature>.py` in appropriate directory
-2. Import pytest and pytest_asyncio
-3. Use `@pytest.mark.asyncio` for async tests
-4. Use fixtures from `conftest.py` (client, authenticated_client, test_db)
-5. Test success cases, error cases, edge cases, validations
-6. Run tests: `docker exec diagramahub-backend poetry run pytest`
-
-Example test:
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.integration
-class TestMyFeature:
-    @pytest.mark.asyncio
-    async def test_my_endpoint_success(self, client: AsyncClient):
-        response = await client.post("/api/v1/my-endpoint", json={"data": "value"})
-        assert response.status_code == 200
-        assert response.json()["result"] == "expected"
-```
-
-### Common Patterns
-
-**Adding a protected endpoint**:
-```python
-from app.core.security import get_current_user
-from app.api.v1.users.schemas import UserInDB
-
-@router.get("/protected")
-async def protected_route(current_user: UserInDB = Depends(get_current_user)):
-    return {"user_id": str(current_user.id)}
-```
-
-**Creating a new service**:
-```python
-class MyService:
-    def __init__(self, repository: IMyRepository):
-        self.repository = repository
-
-    async def do_something(self, data: MySchema):
-        # Business logic here
-        return await self.repository.create(data)
-```
-
-**Frontend authenticated request**:
-```typescript
-// Token automatically added by axios interceptor
-const user = await apiService.getCurrentUser();
-```
-
-**Adding test fixtures**:
-```python
-@pytest_asyncio.fixture
-async def my_fixture(client: AsyncClient) -> MyType:
-    """Fixture description."""
-    # Setup
-    result = await create_test_data()
-    yield result
-    # Teardown (optional)
-    await cleanup_test_data()
-```
-
-### Code Quality Standards
-
-- **Type hints**: All Python functions must have type hints
-- **Validation**: Use Pydantic models for all API inputs/outputs
-- **Async/await**: Use async patterns consistently in backend
-- **Error handling**: Use FastAPI HTTPException for API errors
-- **Naming**: Snake_case (Python), camelCase (TypeScript)
-- **Testing**: Write tests for all new endpoints (aim for 100% coverage)
-- **Documentation**: Add docstrings to all functions and classes
-
-### Troubleshooting
-
-**Port conflicts**:
-- Backend: 5172 (changed from default 8000)
-- Frontend: 5173
-- MongoDB: 27017
-
-**TailwindCSS issues**:
-- Using TailwindCSS v3 (not v4) for PostCSS compatibility
-- Config: `frontend/tailwind.config.js`
-
-**Test failures**:
-- Ensure MongoDB is running: `docker-compose ps`
-- Check test database cleanup: Tests use `diagramahub_test` database
-- View logs: `docker-compose logs backend`
-
-**Hot reload not working**:
-- Check volume mounts in `docker-compose.yml`
-- Restart containers: `docker-compose restart`
-
-### Documentation
-
-- **Swagger UI**: http://localhost:5172/docs (interactive)
-- **ReDoc**: http://localhost:5172/redoc (alternative)
-- **README.md**: Main project documentation
-- **SETUP.md**: Detailed installation and troubleshooting guide
-- **PROJECT_SUMMARY.md**: Implementation details and decisions
-- **CLAUDE.md**: This file (for Claude Code AI)
-
-### License
-
-Apache 2.0 - See LICENSE file for details
 
 ---
 
 ## Internationalization (i18n)
 
-### Overview
+- **Framework**: i18next + react-i18next
+- **Languages**: Spanish (default), English
+- **Files**: `frontend/src/i18n/locales/es.json`, `en.json`
+- **Rule**: ALL UI text uses `t('key')` — never hardcode strings
+- **New text**: add keys to BOTH `es.json` and `en.json`
+- Language preference persisted in `localStorage` under key `language`
+- AI-generated content accepts `language` parameter (`es`/`en`)
 
-The frontend is fully internationalized using **i18next** and **react-i18next**. All user-facing text supports multiple languages.
-
-### Supported Languages
-
-- **Spanish (es)** - Default language
-- **English (en)** - Full translation
-
-### File Structure
-
-```
-frontend/src/i18n/
-├── config.ts              # i18n configuration and initialization
-└── locales/
-    ├── es.json           # Spanish translations (283 keys)
-    └── en.json           # English translations (283 keys)
-```
-
-### How to Use Translations in Components
-
-**Basic usage:**
-```tsx
-import { useTranslation } from 'react-i18next';
-
-function MyComponent() {
-  const { t } = useTranslation();
-
-  return (
-    <div>
-      <h1>{t('common.title')}</h1>
-      <button>{t('common.save')}</button>
-    </div>
-  );
-}
-```
-
-**With pluralization:**
-```tsx
-const { t } = useTranslation();
-const count = 5;
-
-return (
-  <p>
-    {count} {count === 1 ? t('dashboard.project') : t('dashboard.projects')}
-  </p>
-);
-```
-
-**With variable interpolation:**
-```tsx
-const { t } = useTranslation();
-const projectName = "My Project";
-
-return (
-  <p>{t('dashboard.deleteProjectMessage', { projectName })}</p>
-);
-// Result: "¿Estás seguro de que quieres eliminar el proyecto "My Project"?"
-```
-
-### Translation Key Organization
-
-All translations are organized into logical sections:
-
-| Section | File Location | Description |
-|---------|---------------|-------------|
-| `common` | Both files | Shared UI elements (save, cancel, delete, etc.) |
-| `nav` | Both files | Navigation items |
-| `auth` | Both files | Authentication (login, register, logout) |
-| `validation` | Both files | Form validation messages |
-| `dashboard` | Both files | Dashboard page |
-| `project` | Both files | Project management |
-| `diagram` | Both files | Diagram editor |
-| `profile` | Both files | User profile |
-| `settings` | Both files | Settings page |
-| `editor` | Both files | Diagram editor tools |
-| `errors` | Both files | Error messages |
-
-### Adding New Translations
-
-**When adding new UI text:**
-
-1. **NEVER hardcode text in components**
-   ```tsx
-   // ❌ BAD
-   <button>Save</button>
-
-   // ✅ GOOD
-   <button>{t('common.save')}</button>
-   ```
-
-2. **Add the translation key to BOTH language files:**
-
-   In `frontend/src/i18n/locales/es.json`:
-   ```json
-   {
-     "myFeature": {
-       "title": "Mi Nueva Función",
-       "description": "Esta es la descripción"
-     }
-   }
-   ```
-
-   In `frontend/src/i18n/locales/en.json`:
-   ```json
-   {
-     "myFeature": {
-       "title": "My New Feature",
-       "description": "This is the description"
-     }
-   }
-   ```
-
-3. **Use the translation in your component:**
-   ```tsx
-   import { useTranslation } from 'react-i18next';
-
-   function MyNewFeature() {
-     const { t } = useTranslation();
-
-     return (
-       <div>
-         <h1>{t('myFeature.title')}</h1>
-         <p>{t('myFeature.description')}</p>
-       </div>
-     );
-   }
-   ```
-
-### Language Switching
-
-The language selector is available in the `Navbar` component. Users can switch between languages instantly, and their preference is saved in `localStorage`.
-
-**Implementation details:**
-- Component: `frontend/src/components/LanguageSelector.tsx`
-- Persistence: `localStorage.setItem('language', languageCode)`
-- Detection: Automatic browser language detection on first visit
-- No page reload required when switching languages
-
-### Adding a New Language
-
-To add support for a new language (e.g., French):
-
-1. **Create new translation file:**
-   ```bash
-   cp frontend/src/i18n/locales/en.json frontend/src/i18n/locales/fr.json
-   ```
-
-2. **Translate all keys in the new file** (283 keys)
-
-3. **Update `frontend/src/i18n/config.ts`:**
-   ```typescript
-   import translationFR from './locales/fr.json';
-
-   const resources = {
-     es: { translation: translationES },
-     en: { translation: translationEN },
-     fr: { translation: translationFR }  // Add new language
-   };
-   ```
-
-4. **Update `frontend/src/components/LanguageSelector.tsx`:**
-   ```tsx
-   const languages = [
-     { code: 'es', name: 'Español', flag: '🇪🇸' },
-     { code: 'en', name: 'English', flag: '🇺🇸' },
-     { code: 'fr', name: 'Français', flag: '🇫🇷' }  // Add new option
-   ];
-   ```
-
-### Best Practices
-
-1. **Always add translations to both language files** - Missing keys will display the key itself
-2. **Use descriptive key names** - `auth.loginButton` is better than `btn1`
-3. **Group related translations** - Use sections like `auth`, `profile`, `dashboard`
-4. **Test language switching** - Verify all text changes when switching languages
-5. **Avoid concatenating translations** - Use interpolation instead
-6. **Keep translations consistent** - Use the same terminology across the app
-
-### Troubleshooting
-
-**Translation not showing:**
-- Check if the key exists in both `es.json` and `en.json`
-- Verify the key path is correct (e.g., `common.save` not `save`)
-- Check browser console for i18next warnings
-
-**Language not persisting:**
-- Verify `localStorage` is enabled in the browser
-- Check that `localStorage.setItem('language', code)` is called when switching
-
-**New language not appearing:**
-- Ensure the language is added to `resources` in `config.ts`
-- Verify the translation file is imported correctly
-- Check that `LanguageSelector` includes the new language option
+Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashboard`, `project`, `diagram`, `profile`, `settings`, `editor`, `errors`.
 
 ---
 
-## Tips for Claude Code
+## Testing Architecture
 
-- Always run tests after making changes to backend code
-- Use pytest fixtures to avoid code duplication in tests
-- Follow SOLID principles when adding new features
-- Check existing patterns before implementing new ones
-- Update this file when adding significant new features or patterns
-- **When adding new UI text, ALWAYS use i18n translations** - never hardcode text
-- **Add translation keys to both Spanish and English files** when creating new features
+### Backend Tests (`backend/tests/`)
+
+- **Framework**: pytest + pytest-asyncio (mode: `auto` — no `@pytest.mark.asyncio` needed) + pytest-cov + Hypothesis
+- **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
+- **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
+- **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`
+- Tests mirror module structure under `tests/api/v1/`
+
+### Frontend Tests
+
+- No framework configured yet (no Jest/Vitest in `package.json`)
+- UI property validation done via example-based tests or manual verification
+
+---
+
+## Data Flow
+
+```
+React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business logic) → Repository (Beanie) → MongoDB
+```
+
+---
+
+## Adding New Features
+
+### Creating a Backend Module
+
+1. Create `backend/app/api/v1/<entity_name>/` with 5 files: `__init__.py`, `interfaces.py`, `repository.py`, `services.py`, `schemas.py`, `routes.py`
+2. Define Beanie Document in `schemas.py` (extends `Document`)
+3. Define abstract interface in `interfaces.py` (extends `ABC`)
+4. Implement repository in `repository.py` (implements interface)
+5. Implement service in `services.py` (depends on interface, not repository)
+6. Define routes in `routes.py` (FastAPI APIRouter, delegates to service)
+7. Register Document in `main.py` → `init_beanie(document_models=[...])`
+8. Register router in `main.py` → `app.include_router(router, prefix=...)`
+9. Write tests in `tests/api/v1/<entity_name>/`
+
+### Adding an AI Provider
+
+1. Create client class extending `BaseAIClient` in `ai_providers/clients/`
+2. Register in `factory.py` → `_clients_map`
+3. Add frontend UI in provider configuration
+4. Add provider type to `AIProviderType` enum (backend + frontend)
+5. Add models to `AI_PROVIDER_MODELS` in frontend types
+6. Add translations in `es.json` + `en.json`
+
+### Adding a Frontend Page
+
+1. Create page component in `pages/`
+2. Add route in `App.tsx`
+3. Add API methods to `services/api.ts`
+4. Add types in `types/`
+5. All text via i18n keys, added to both `es.json` and `en.json`
+
+---
+
+## Versioning
+
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.0**.
+
+| Bump | When |
+|------|------|
+| PATCH | Fixes, polish, internal refactors, prompt tweaks — no new capability |
+| MINOR | New backwards-compatible feature or capability |
+| MAJOR | Breaking changes to API, data structures, contracts |
+
+Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in Spanish (Keep a Changelog format). Git tags without `v` prefix (e.g., `0.5.0`).
+
+---
+
+## Code Quality Standards
+
+- **Type hints**: All Python functions must have type hints
+- **Validation**: Pydantic models for all API inputs/outputs
+- **Async/await**: Consistent throughout backend
+- **Error handling**: FastAPI HTTPException for API errors
+- **Naming**: snake_case (Python), camelCase (TypeScript)
+- **Testing**: Write tests for all new endpoints
+- **Documentation**: Docstrings on all functions and classes
+- **One entity = one module folder** — never mix entities
+
+---
+
+## Troubleshooting
+
+| Issue | Check |
+|-------|-------|
+| Port conflicts | Backend 5172, Frontend 5173, MongoDB 27017 |
+| TailwindCSS | Using v3 (not v4) for PostCSS compatibility |
+| Test failures | `docker-compose ps` to confirm MongoDB is running. Tests use `diagramahub_test` DB |
+| Hot reload not working | Verify volume mounts in `docker-compose.yml`, restart containers |
+| Sentry not reporting | Ensure `SENTRY_DSN` / `VITE_SENTRY_DSN` is set; Sentry is conditional |
+| i18n key showing as raw text | Key missing from `es.json` or `en.json`, or path incorrect |
+
+---
+
+## Documentation Links
+
+- **Swagger UI**: http://localhost:5172/docs
+- **ReDoc**: http://localhost:5172/redoc
+- **README.md**: Public project overview
+- **INSTALL.md**: Installation + production deployment
+- **STRIPE_QUICKSTART.md**: Stripe setup
+- **CHANGELOG.md**: Version history (Spanish)
+- **backend/README.md**, **frontend/README.md**: Layer-specific docs
+
+---
+
+License: Apache 2.0 — see LICENSE file.
