@@ -436,7 +436,14 @@
     "editDiagramTitle": "Editar título del diagrama",
     "clickToEditTitle": "Clic para editar título",
     "diagramCount": "diagramas",
-    "folderCount": "carpetas"
+    "folderCount": "carpetas",
+    "backgroundColor": "Color de fondo",
+    "backgroundPattern": "Patrón de fondo",
+    "plain": "Plano",
+    "dots": "Puntos",
+    "grid": "Cuadrícula",
+    "exporting": "Exportando...",
+    "downloadSource": "Descargar código fuente"
   },
   "errors": {
     "genericError": "Ocurrió un error",

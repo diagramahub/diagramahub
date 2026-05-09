@@ -1,4 +1,4 @@
-import { ReactNode, useState, useRef } from 'react';
+import { ReactNode, useState, useRef, useMemo } from 'react';
 
 interface TooltipProps {
   content: string;
@@ -12,6 +12,15 @@ export default function Tooltip({ content, children, position = 'top', delay = 2
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
   let timeoutId: ReturnType<typeof setTimeout>;
+
+  // Skip tooltips on touch devices (no hover support)
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return !window.matchMedia('(hover: hover)').matches;
+  }, []);
+
+  // On touch devices, render children without tooltip wrapper
+  if (isTouchDevice) return <>{children}</>;
 
   const handleMouseEnter = () => {
     timeoutId = setTimeout(() => {

@@ -436,7 +436,14 @@
     "editDiagramTitle": "Edit diagram title",
     "clickToEditTitle": "Click to edit title",
     "diagramCount": "diagrams",
-    "folderCount": "folders"
+    "folderCount": "folders",
+    "backgroundColor": "Background color",
+    "backgroundPattern": "Background pattern",
+    "plain": "Plain",
+    "dots": "Dots",
+    "grid": "Grid",
+    "exporting": "Exporting...",
+    "downloadSource": "Download source code"
   },
   "errors": {
     "genericError": "An error occurred",
