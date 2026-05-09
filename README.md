@@ -79,7 +79,7 @@ Server-side rendering powered by [Kroki](https://kroki.io/). Self-hostable via D
 
 <table>
 <tr>
-<td width="100"><img src="snyk/snyk_badge_round.svg" alt="Snyk Badge" width="80"></td>
+<td width="100"><img src="snyk/snyk_badge_round.svg" alt="Snyk Badge" width="150"></td>
 <td>We've partnered with <strong><a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta">Snyk</a></strong> through their <strong>Secure Developer Program for Open Source</strong> to continuously monitor our dependencies and codebase.</td>
 </tr>
 </table>
