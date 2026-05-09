@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Natural tumbleweed icon — a dried desert plant rolling across the screen.
