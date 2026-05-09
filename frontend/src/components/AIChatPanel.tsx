@@ -62,7 +62,7 @@ export default function AIChatPanel({
       setViewportHeight(window.visualViewport!.height);
     };
     window.visualViewport.addEventListener('resize', handleResize);
-    return () => window.visualViewport.removeEventListener('resize', handleResize);
+    return () => window.visualViewport?.removeEventListener('resize', handleResize);
   }, []);
 
   // Sincronizar proveedor cuando cambian aiSettings
