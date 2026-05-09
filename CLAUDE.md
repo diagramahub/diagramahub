@@ -452,7 +452,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.1**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.2**.
 
 | Bump | When |
 |------|------|
