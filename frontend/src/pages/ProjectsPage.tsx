@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { Project } from '../types/project';
 import CreateProjectModal from '../components/CreateProjectModal';
 import ConfirmModal from '../components/ConfirmModal';
+import Skeleton from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 
 const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +32,17 @@ const ProjectsPage: React.FC = () => {
   useEffect(() => {
     loadProjects();
   }, []);
+
+  // Auto-open create modal when arriving with ?create=true
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setIsCreateModalOpen(true);
+      // Clear the param so refresh doesn't re-trigger
+      const next = new URLSearchParams(searchParams);
+      next.delete('create');
+      setSearchParams(next, { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadProjects = async () => {
     try {
@@ -99,22 +113,16 @@ const ProjectsPage: React.FC = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-            {t('dashboard.loading')}
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <Skeleton variant="table" />
           </div>
         ) : projects.length === 0 ? (
-          <div className="text-center py-16">
-            <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">{t('dashboard.noProjects')}</p>
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="text-sm text-purple-600 dark:text-purple-400 hover:underline"
-            >
-              {t('dashboard.createFirstProject')}
-            </button>
-          </div>
+          <EmptyState
+            title={t('dashboard.noProjects')}
+            description={t('dashboard.emptyDescription')}
+            actionLabel={t('dashboard.createProject')}
+            onAction={() => setIsCreateModalOpen(true)}
+          />
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="overflow-x-auto">

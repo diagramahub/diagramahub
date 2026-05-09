@@ -5,6 +5,28 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.1] - 2026-05-09
+
+### Added
+- Componente `Skeleton` reutilizable con variantes (`text`, `card`, `chart`, `table`) para estados de carga.
+- Estados de carga esqueleto en Dashboard, ProjectsPage, DiagramEditorPage y ProfilePage.
+- Componente `EmptyState` con icono, título, descripción y acción sugerida (CTA).
+- Estados vacíos guiados en Dashboard (sin proyectos), Editor (sin diagramas) y Chat (sin sesiones).
+- `MobileEditorLayout`: layout adaptativo para editor en dispositivos móviles (<768px).
+- Bottom sheets deslizables para paneles de código y descripción en móvil.
+- Barra de herramientas inferior fija en móvil con iconos contextuales.
+- Hook `useTouchZoomPan`: zoom con pellizco y pan con dos dedos en previsualización de diagramas.
+- Sidebar se oculta automáticamente al entrar en modo presentación y se restaura al salir.
+
+### Changed
+- Diálogos de confirmación unificados bajo componente `ConfirmModal` (eliminar proyecto, cerrar sesión, eliminar mensaje de chat).
+- Layout desktop del editor no se modifica; la vista móvil es un wrapper separado.
+
+### Fixed
+- Teclado virtual en móvil ya no oculta el input del chat (usa `visualViewport` API).
+- Tooltips no aparecen en dispositivos táctiles (previene activación accidental).
+- Modal de exportación es scrolleable en viewports pequeños.
+
 ## [0.5.0] - 2026-05-05
 
 ### Added

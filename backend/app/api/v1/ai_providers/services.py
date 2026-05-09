@@ -24,6 +24,18 @@ from .clients.base import BaseAIClient
 from app.core.security import mask_api_key
 
 
+import re
+
+
+def _strip_think_tags(text: str) -> str:
+    """Remove <think>...</think> chain-of-thought tags from AI responses (DeepSeek, MiniMax)."""
+    text = re.sub(r'<think>.*?</think>\s*', '', text, flags=re.DOTALL)
+    # Handle unclosed <think> tag (truncated response)
+    if '<think>' in text:
+        text = text[:text.index('<think>')].strip()
+    return text.strip()
+
+
 class AIProviderService:
     """Service for AI provider business logic."""
 
@@ -297,6 +309,9 @@ class AIProviderService:
                 language=request.language
             )
 
+            # Strip <think>...</think> tags (chain-of-thought from DeepSeek/MiniMax)
+            description = _strip_think_tags(description)
+
             return GenerateDescriptionResponse(
                 description=description,
                 provider_used=provider_config.provider,
@@ -358,6 +373,8 @@ class AIProviderService:
             description = clean_code_response(
                 await self._call_with_prompt(client, prompt)
             )
+            # Strip <think>...</think> tags (chain-of-thought from DeepSeek/MiniMax)
+            description = _strip_think_tags(description)
             elapsed = time.time() - start
 
             return RefineDescriptionResponse(

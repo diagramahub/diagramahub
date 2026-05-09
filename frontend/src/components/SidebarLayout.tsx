@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import Sidebar from './Sidebar';
+import { usePresentationMode } from '../contexts/PresentationContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar_collapsed';
 const EXPANDED_WIDTH = 160;
@@ -66,12 +67,20 @@ export default function SidebarLayout({ children }: SidebarLayoutProps) {
     };
   }, [syncCollapsedState]);
 
+  // Check if presentation mode is active (editor fullscreen)
+  const isPresentation = usePresentationMode();
+
   // On mobile, no margin-left (sidebar is overlay). On desktop, dynamic margin.
-  const marginLeft = isMobile ? 0 : isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH;
+  // When in presentation mode, sidebar is hidden completely.
+  const marginLeft = isPresentation || isMobile
+    ? 0
+    : isCollapsed
+      ? COLLAPSED_WIDTH
+      : EXPANDED_WIDTH;
 
   return (
     <div className="min-h-screen">
-      <Sidebar />
+      {!isPresentation && <Sidebar />}
       <div
         style={{
           marginLeft: `${marginLeft}px`,

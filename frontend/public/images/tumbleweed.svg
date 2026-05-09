@@ -1,0 +1,46 @@
+<svg width="320" height="220" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="320" height="220" fill="transparent"/>
+
+  <!-- Ground -->
+  <path d="M40 170C82 162 116 176 154 170C199 163 232 160 280 170" stroke="#D8DEE9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M88 184H232" stroke="#EEF1F5" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Tumbleweed shadow -->
+  <ellipse cx="160" cy="158" rx="52" ry="10" fill="#E5E7EB"/>
+
+  <!-- Tumbleweed body -->
+  <g stroke="#B98245" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="160" cy="130" r="45"/>
+    <path d="M120 132C138 114 153 104 182 89"/>
+    <path d="M118 117C143 124 173 139 199 164"/>
+    <path d="M132 94C153 120 166 144 173 174"/>
+    <path d="M202 101C178 116 150 136 121 158"/>
+    <path d="M143 87C148 113 151 141 143 173"/>
+    <path d="M195 131C169 125 146 123 116 126"/>
+    <path d="M184 92C190 117 199 143 203 160"/>
+    <path d="M130 160C154 150 181 143 204 142"/>
+  </g>
+
+  <!-- Small branches -->
+  <g stroke="#D19A5E" stroke-width="3" stroke-linecap="round">
+    <path d="M137 104L126 98"/>
+    <path d="M148 91L142 78"/>
+    <path d="M176 98L188 88"/>
+    <path d="M199 121L213 116"/>
+    <path d="M192 153L206 164"/>
+    <path d="M157 169L153 186"/>
+    <path d="M127 145L111 151"/>
+    <path d="M137 126L125 119"/>
+    <path d="M166 119L176 107"/>
+    <path d="M170 148L181 156"/>
+  </g>
+
+  <!-- Empty state sparkles / dust -->
+  <g fill="#CBD5E1">
+    <circle cx="72" cy="134" r="3"/>
+    <circle cx="248" cy="126" r="3"/>
+    <circle cx="230" cy="92" r="2"/>
+    <circle cx="91" cy="96" r="2"/>
+  </g>
+
+</svg>

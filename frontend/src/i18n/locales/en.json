@@ -171,8 +171,9 @@
     "statsPlan": "Current plan",
     "createProject": "Create project",
     "newProject": "New project",
-    "noProjects": "You have no projects yet",
+    "noProjects": "Nothing here yet",
     "noProjectsDescription": "Create your first project to start organizing your diagrams",
+    "emptyDescription": "Create your first project to start organizing your diagrams",
     "getStarted": "Get started",
     "createFirstProject": "Create your first project",
     "project": "project",
@@ -435,7 +436,14 @@
     "editDiagramTitle": "Edit diagram title",
     "clickToEditTitle": "Click to edit title",
     "diagramCount": "diagrams",
-    "folderCount": "folders"
+    "folderCount": "folders",
+    "backgroundColor": "Background color",
+    "backgroundPattern": "Background pattern",
+    "plain": "Plain",
+    "dots": "Dots",
+    "grid": "Grid",
+    "exporting": "Exporting...",
+    "downloadSource": "Download source code"
   },
   "errors": {
     "genericError": "An error occurred",

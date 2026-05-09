@@ -24,6 +24,7 @@ import MfaVerifyPage from './pages/MfaVerifyPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
 import InstallationGuard from './components/InstallationGuard';
+import { PresentationProvider } from './contexts/PresentationContext';
 
 function App() {
   return (
@@ -59,14 +60,16 @@ function App() {
                     }
                   />
 
-                  {/* Editor Portal routes — with Sidebar */}
+                  {/* Editor Portal routes — with Sidebar + PresentationProvider */}
                   <Route
                     path="/projects/:projectId"
                     element={
                       <PrivateRoute>
-                        <SidebarLayout>
-                          <DiagramEditorPage />
-                        </SidebarLayout>
+                        <PresentationProvider>
+                          <SidebarLayout>
+                            <DiagramEditorPage />
+                          </SidebarLayout>
+                        </PresentationProvider>
                       </PrivateRoute>
                     }
                   />
@@ -74,9 +77,11 @@ function App() {
                     path="/projects/:projectId/diagrams/:diagramId"
                     element={
                       <PrivateRoute>
-                        <SidebarLayout>
-                          <DiagramEditorPage />
-                        </SidebarLayout>
+                        <PresentationProvider>
+                          <SidebarLayout>
+                            <DiagramEditorPage />
+                          </SidebarLayout>
+                        </PresentationProvider>
                       </PrivateRoute>
                     }
                   />
