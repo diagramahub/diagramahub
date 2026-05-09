@@ -11,6 +11,7 @@ interface MarkdownEditorProps {
   className?: string;
   minHeight?: string;
   fontSize?: number;
+  onFontSizeChange?: (size: number) => void;
 }
 
 export default function MarkdownEditor({

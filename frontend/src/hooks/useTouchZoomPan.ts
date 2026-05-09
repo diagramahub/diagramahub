@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 
 interface UseTouchZoomPanOptions {
   /** Current zoom level */
@@ -49,14 +49,14 @@ export function useTouchZoomPan({
     midpoint: { x: 0, y: 0 },
   });
 
-  const getTouchDistance = (touches: TouchList): number => {
+  const getTouchDistance = (touches: React.TouchList): number => {
     if (touches.length < 2) return 0;
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  const getTouchMidpoint = (touches: TouchList): { x: number; y: number } => {
+  const getTouchMidpoint = (touches: React.TouchList): { x: number; y: number } => {
     if (touches.length < 2) {
       return { x: touches[0]?.clientX || 0, y: touches[0]?.clientY || 0 };
     }

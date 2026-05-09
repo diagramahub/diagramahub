@@ -1,4 +1,3 @@
-import React from 'react';
 
 type SkeletonVariant = 'text' | 'card' | 'chart' | 'table';
 
