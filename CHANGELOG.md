@@ -5,6 +5,23 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.2] - 2026-05-10
+
+### Changed
+- axios actualizado de 1.12.2 a 1.16.0 (corrige 2 vulnerabilidades críticas, 5 altas y 5 medias reportadas por Snyk).
+- jspdf actualizado de 2.5.2 a 4.2.1 (corrige 1 vulnerabilidad crítica, 7 altas y 2 medias).
+- react-router-dom actualizado de 7.9.4 a 7.15.0 (corrige 2 vulnerabilidades altas y 2 medias).
+- mermaid actualizado de 11.4.1 a 11.14.0 (corrige vulnerabilidades en dependencias transitivas: dompurify, lodash-es, dagre-d3-es, uuid).
+- easymde actualizado de 2.18.0 a 2.21.0 (corrige vulnerabilidad ReDoS en codemirror transitivo).
+- Versión corregida en `backend/app/core/config.py` (1.0.0 → 0.5.2).
+
+### Added
+- Badge de Snyk en README.md mostrando estado de vulnerabilidades conocidas.
+- Integración con Snyk Secure Developer Program para Open Source.
+
+### Security
+- Dependencias frontend actualizadas para resolver 4 vulnerabilidades críticas, 14 altas y 10+ medias reportadas por Snyk.
+
 ## [0.5.1] - 2026-05-09
 
 ### Added

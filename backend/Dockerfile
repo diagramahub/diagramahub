@@ -1,11 +1,11 @@
 # Use official Python runtime as base image
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies and apply security patches
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     gcc \
     curl \
     && rm -rf /var/lib/apt/lists/*
