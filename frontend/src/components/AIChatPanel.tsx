@@ -54,6 +54,17 @@ export default function AIChatPanel({
     preferredModelProp || null
   );
 
+  // Mobile keyboard handling — adjust height when virtual keyboard opens
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const handleResize = () => {
+      setViewportHeight(window.visualViewport!.height);
+    };
+    window.visualViewport.addEventListener('resize', handleResize);
+    return () => window.visualViewport.removeEventListener('resize', handleResize);
+  }, []);
+
   // Sincronizar proveedor cuando cambian aiSettings
   useEffect(() => {
     if (aiSettings?.default_provider && !activeProvider) {
@@ -334,7 +345,13 @@ export default function AIChatPanel({
   return (
     <div
       className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto"
-      style={{ width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : panelWidth }}
+      style={{
+        width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : panelWidth,
+        // Adjust height for mobile keyboard: use visualViewport height when available
+        ...(viewportHeight && window.innerWidth < 640 ? { height: viewportHeight } : {}),
+        // Push input above the mobile bottom toolbar (h-14 = 56px)
+        paddingBottom: typeof window !== 'undefined' && window.innerWidth < 640 ? '56px' : undefined,
+      }}
     >
       {/* Resize handle */}
       <div

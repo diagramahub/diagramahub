@@ -1,7 +1,7 @@
 # Política de Versionamiento
 
 Este proyecto adopta oficialmente **Semantic Versioning (SemVer)**.
-Versión actual: **0.4.0**.
+Versión actual: **0.5.1**.
 
 ## Formato
 
@@ -99,7 +99,8 @@ Al crear una nueva versión:
 3. Agregar la nueva versión al índice en `docs/es/release-notes/index.md` y `docs/en/release-notes/index.md`.
 4. Agregar las nuevas páginas de release notes al `nav` en `mkdocs.yml` bajo las secciones "Notas de Versión" / "Release Notes".
 5. Actualizar `CHANGELOG.md`.
-6. Etiquetar el commit como `{VERSION}`.
+6. Actualizar la "Versión actual" en este archivo (`VERSIONING.md`).
+7. Actualizar la "Current version" en `CLAUDE.md` (tanto en el encabezado como en la sección Versioning).
 
 ## Referencia
 

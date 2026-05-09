@@ -196,7 +196,9 @@ def get_plantuml_context(language: str) -> str:
             "3. skinparam va ANTES de los elementos del diagrama\n"
             "4. NO usar sintaxis de Mermaid (classDef, style, -->, etc.)\n"
             "5. Relaciones: -> (solida), --> (punteada), ->> (asincrona)\n"
-            "6. Usar comillas para nombres con espacios: participant \"Mi Servicio\" as MS"
+            "6. Usar comillas para nombres con espacios: participant \"Mi Servicio\" as MS\n"
+            "7. NUNCA generes mas de UN diagrama (un solo @startuml...@enduml). Si necesitas multiples diagramas, indicalo al usuario.\n"
+            "8. Cada 'activate' debe tener su 'deactivate' correspondiente. No dejes participantes activados sin cerrar."
         )
     else:
         return (
@@ -244,7 +246,9 @@ def get_plantuml_context(language: str) -> str:
             "3. skinparam goes BEFORE diagram elements\n"
             "4. DO NOT use Mermaid syntax (classDef, style, -->, etc.)\n"
             "5. Relationships: -> (solid), --> (dotted), ->> (async)\n"
-            "6. Use quotes for names with spaces: participant \"My Service\" as MS"
+            "6. Use quotes for names with spaces: participant \"My Service\" as MS\n"
+            "7. NEVER generate more than ONE diagram (a single @startuml...@enduml). If multiple diagrams are needed, tell the user.\n"
+            "8. Every 'activate' must have a matching 'deactivate'. Don't leave participants activated without closing."
         )
 
 
@@ -679,7 +683,14 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "3. NO usar classDef/style en sequenceDiagram, classDiagram, erDiagram ni pie\n"
                 "4. NO poner espacios en IDs de nodos — usar camelCase: procesoA, no \"proceso A\"\n"
                 "5. classDef y class SIEMPRE van DESPUES de todos los nodos y conexiones\n"
-                "6. Cada classDef en su propia linea"
+                "6. Cada classDef en su propia linea\n\n"
+                "CHECKLIST DE AUTO-VERIFICACION (revisa MENTALMENTE antes de responder):\n"
+                "☐ ¿Use classDef con nombre NO reservado? (no 'subgraph', 'end', 'default', 'graph', 'flowchart', 'style')\n"
+                "☐ ¿Class solo referencia IDs de nodos sin comillas? (class A,B estilo — NO class \"texto\" estilo)\n"
+                "☐ ¿ClassDef y class van DESPUES de todos los nodos y conexiones?\n"
+                "☐ ¿No use classDef/style en sequenceDiagram, classDiagram, erDiagram o pie?\n"
+                "☐ ¿Los IDs de nodos no tienen espacios? (camelCase)\n"
+                "☐ ¿Cada classDef esta en su propia linea?"
             )
         elif diagram_type == "plantuml":
             return (
@@ -700,8 +711,12 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "4. Los colores van entre comillas: \"#4CAF50\"\n"
                 "5. Comentarios con # (no con // ni ')\n"
                 "6. Conexiones usan -> (no --> ni ->>)\n"
-                "7. NO usar style.dash — usar style.stroke-dash: 5\n"
-                "8. Propiedades de estilo validas: fill, stroke, stroke-width, stroke-dash, border-radius, opacity, font-color, font-size, shadow, bold, italic, underline, animated, 3d, multiple"
+                "7. ⚠️ NO usar style.dash — usar style.stroke-dash: 5 (dash NO existe en D2)\n"
+                "8. ⚠️ NO usar style.fill-pattern, style.stroke-pattern ni style.shadow-color — NO soportados\n"
+                "9. Propiedades de estilo UNICAMENTE validas:\n"
+                "   fill, stroke, stroke-width, stroke-dash, border-radius, opacity,\n"
+                "   font-color, font-size, font, shadow, bold, italic, underline,\n"
+                "   animated, 3d, multiple, label, shape, style.fill, style.stroke"
             )
         elif diagram_type == "dbml":
             return (
@@ -731,7 +746,14 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "3. DO NOT use classDef/style in sequenceDiagram, classDiagram, erDiagram or pie\n"
                 "4. DO NOT put spaces in node IDs — use camelCase: processA, not \"process A\"\n"
                 "5. classDef and class ALWAYS go AFTER all nodes and connections\n"
-                "6. Each classDef on its own line"
+                "6. Each classDef on its own line\n\n"
+                "SELF-VERIFICATION CHECKLIST (mentally review BEFORE responding):\n"
+                "☐ Did I use a NON-reserved classDef name? (not 'subgraph', 'end', 'default', 'graph', 'flowchart', 'style')\n"
+                "☐ Does 'class' only reference node IDs without quotes? (class A,B style — NOT class \"text\" style)\n"
+                "☐ Are classDef and class AFTER all nodes and connections?\n"
+                "☐ Did I NOT use classDef/style in sequenceDiagram, classDiagram, erDiagram or pie?\n"
+                "☐ Do node IDs have no spaces? (camelCase)\n"
+                "☐ Is each classDef on its own line?"
             )
         elif diagram_type == "plantuml":
             return (
@@ -748,10 +770,16 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "COMMON ERRORS TO AVOID IN D2:\n"
                 "1. DO NOT use @startuml/@enduml — that's PlantUML, NOT D2\n"
                 "2. DO NOT use Mermaid syntax (graph TD, -->, classDef)\n"
-                "3. Curly braces { } MUST be balanced\n"
+                "3. Braces { } MUST be balanced\n"
                 "4. Colors go in quotes: \"#4CAF50\"\n"
                 "5. Comments use # (not // or ')\n"
-                "6. Connections use -> (not --> or ->>)"
+                "6. Connections use -> (not --> or ->>)\n"
+                "7. ⚠️ DO NOT use style.dash — use style.stroke-dash: 5 (dash does NOT exist in D2)\n"
+                "8. ⚠️ DO NOT use style.fill-pattern, style.stroke-pattern or style.shadow-color — NOT supported\n"
+                "9. ONLY valid style properties:\n"
+                "   fill, stroke, stroke-width, stroke-dash, border-radius, opacity,\n"
+                "   font-color, font-size, font, shadow, bold, italic, underline,\n"
+                "   animated, 3d, multiple, label, shape, style.fill, style.stroke"
             )
         elif diagram_type == "dbml":
             return (
@@ -761,7 +789,14 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "3. Relationships use > < - <> (DO NOT use ->)\n"
                 "4. Always specify columns in Ref: table.column > table.column\n"
                 "5. Default expressions in backticks: [default: `now()`]\n"
-                "6. Every opening brace { must have a matching closing brace }"
+                "6. Every opening brace { must have a matching closing brace }\n"
+                "7. NEVER use single quotes (') — ALWAYS use double quotes (\") for notes, defaults and strings\n"
+                "   WRONG:   Note: 'My note'\n"
+                "   CORRECT: Note: \"My note\"\n"
+                "   WRONG:   [default: 'value']\n"
+                "   CORRECT: [default: \"value\"]\n"
+                "8. Do NOT use DiagramView, Schemas or Project — NOT supported by the renderer\n"
+                "   Only use: Table, Enum, Ref, Note, TableGroup, indexes"
             )
         else:
             return ""

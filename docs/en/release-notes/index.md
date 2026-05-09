@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.5.1](0.5.1.md) | 2026-05-09 | UX Polish, Mobile Responsiveness |
 | [0.5.0](0.5.0.md) | 2026-05-05 | UX Overhaul, Dark mode, DBML, Minimax, AI Chat |
 | [0.4.1](0.4.1.md) | 2026-04-30 | Fixes, i18n, visual improvements |
 | [0.4.0](0.4.0.md) | 2026-04-28 | Kroki, D2, UX/UI improvements |

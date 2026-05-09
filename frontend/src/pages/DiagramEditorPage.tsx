@@ -21,6 +21,12 @@ import { DiagramDiffView } from '../components/DiagramDiffView';
 import ShareDiagramModal from '../components/ShareDiagramModal';
 import DiagramCodePanel from '../components/DiagramCodePanel';
 import DiagramFileBrowser from '../components/DiagramFileBrowser';
+import { EditorSkeleton } from '../components/Skeleton';
+import { useSetPresentationMode } from '../contexts/PresentationContext';
+import { useTouchZoomPan } from '../hooks/useTouchZoomPan';
+import { useIsMobile } from '../hooks/useIsMobile';
+import MobileBottomToolbar from '../components/MobileBottomToolbar';
+import BottomSheet from '../components/BottomSheet';
 import { useDiagramErrorDetection } from '../hooks/useDiagramErrorDetection';
 import { FixDiagramResponse } from '../types/ai';
 import { configInitBlockManager } from '../utils/configInitBlockManager';
@@ -152,6 +158,9 @@ export default function DiagramEditorPage() {
   const [isPanning, setIsPanning] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
 
+  // Touch gestures (pinch-to-zoom + single-finger pan)
+  const touchHandlers = useTouchZoomPan({ zoom, pan, setZoom, setPan });
+
   // Export options state
   const [showExportModal, setShowExportModal] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(false);
@@ -191,6 +200,15 @@ export default function DiagramEditorPage() {
 
   // Collapsible panels state
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Sync presentation mode to the layout context (hides sidebar)
+  const setPresentationMode = useSetPresentationMode();
+  useEffect(() => {
+    setPresentationMode(isFullscreen);
+  }, [isFullscreen, setPresentationMode]);
+
+  // Mobile detection
+  const isMobile = useIsMobile();
 
   // Floating panels state
   const [showFloatingSidebar, setShowFloatingSidebar] = useState(false);
@@ -294,8 +312,10 @@ export default function DiagramEditorPage() {
   const [isEditingDiagramTitle, setIsEditingDiagramTitle] = useState(false);
   const [editingDiagramTitle, setEditingDiagramTitle] = useState('');
 
-  // Close floating panels when clicking outside
+  // Close floating panels when clicking outside (desktop only — mobile uses BottomSheets)
   useEffect(() => {
+    if (isMobile) return; // BottomSheets handle their own dismissal via backdrop & swipe
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       // Only close floating sidebar on click outside
@@ -323,7 +343,7 @@ export default function DiagramEditorPage() {
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isDescriptionPinned]);
+  }, [isDescriptionPinned, isMobile]);
 
   // Close project selector when clicking outside
   useEffect(() => {
@@ -1805,11 +1825,7 @@ export default function DiagramEditorPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">{t('editor.loading')}</div>
-      </div>
-    );
+    return <EditorSkeleton />;
   }
 
   if (error && !project) {
@@ -1823,7 +1839,7 @@ export default function DiagramEditorPage() {
   return (
     <div className="h-screen bg-white dark:bg-gray-900 flex flex-col overflow-hidden">
       {/* Unified Toolbar */}
-      {!isFullscreen && (
+      {!isFullscreen && !isMobile && (
         <div className="flex items-center h-9 px-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 flex-shrink-0">
           {/* Left: project name + diagram title */}
           <div className="flex items-center gap-1.5 min-w-0">
@@ -2084,7 +2100,7 @@ export default function DiagramEditorPage() {
                 onCopy={handleCopyCode}
                 copied={codeCopied}
                 onClose={() => setShowCodeView(false)}
-                isVisible={showCodeView}
+                isVisible={showCodeView && !isMobile}
                 diagramId={diagramId}
                 onFixSuccess={handleFixSuccess}
                 onFixError={handleFixError}
@@ -2096,7 +2112,7 @@ export default function DiagramEditorPage() {
 
                 {/* Floating Modals */}
                 {/* Diagram Structure Modal */}
-            {showFloatingSidebar && (
+            {showFloatingSidebar && !isMobile && (
               <div className="floating-sidebar absolute top-0 left-0 z-30 w-72 h-full sm:top-2 sm:left-2 sm:h-auto sm:max-h-[calc(100vh-200px)] sm:rounded-lg sm:shadow-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 overflow-hidden">
                 <DiagramFileBrowser
                   projectName={project?.name || ''}
@@ -2130,7 +2146,7 @@ export default function DiagramEditorPage() {
 
 
             {/* Appearance Editor Modal */}
-            {showAppearanceEditor && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml' || currentDiagram?.diagram_type === 'd2' || currentDiagram?.diagram_type === 'dbml') && (
+            {showAppearanceEditor && !isMobile && (currentDiagram?.diagram_type === 'mermaid' || currentDiagram?.diagram_type === 'plantuml' || currentDiagram?.diagram_type === 'd2' || currentDiagram?.diagram_type === 'dbml') && (
               <div className="floating-appearance absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white dark:bg-gray-800 sm:rounded-lg shadow-xl sm:border border-gray-200 dark:border-gray-700 sm:max-h-[calc(100vh-100px)] overflow-y-auto">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between">
@@ -2459,6 +2475,7 @@ export default function DiagramEditorPage() {
               onMouseUp={activeTab === 'code' ? handleMouseUp : undefined}
               onMouseLeave={activeTab === 'code' ? handleMouseUp : undefined}
               onWheel={activeTab === 'code' ? handleWheel : undefined}
+              {...touchHandlers}
               style={{
                 cursor: isPanning ? 'grabbing' : (activeTab === 'code' ? 'grab' : 'default'),
                 ...getBackgroundStyle()
@@ -2606,16 +2623,16 @@ export default function DiagramEditorPage() {
                 <div
                   className="flex-shrink-0 overflow-hidden"
                   style={{
-                    width: showCodeView ? `${codePanelWidth}px` : '0px',
-                    minWidth: showCodeView ? '200px' : '0px',
-                    opacity: showCodeView ? 1 : 0,
+                    width: (showCodeView && !isMobile) ? `${codePanelWidth}px` : '0px',
+                    minWidth: (showCodeView && !isMobile) ? '200px' : '0px',
+                    opacity: (showCodeView && !isMobile) ? 1 : 0,
                     transition: isResizingCode.current ? 'none' : 'width 200ms, opacity 200ms',
                   }}
                 >
                   {codeEditorPanel}
                 </div>
                 {/* Draggable divider — only visible when code is shown */}
-                {showCodeView && (
+                {showCodeView && !isMobile && (
                   <div
                     onMouseDown={handleCodeResizeMouseDown}
                     className="flex-shrink-0 w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-purple-400 dark:hover:bg-purple-500 active:bg-purple-500 cursor-col-resize transition-colors flex items-center justify-center"
@@ -2633,7 +2650,7 @@ export default function DiagramEditorPage() {
         </main>
 
         {/* Description Side Panel */}
-        {showDescriptionView && (
+        {showDescriptionView && !isMobile && (
           <>
             {/* Resize handle — outside the overflow-hidden panel so it's always accessible */}
             <div
@@ -2785,10 +2802,10 @@ export default function DiagramEditorPage() {
 
       {/* Export Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">{t('editor.exportDiagram')}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-auto overflow-y-auto max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('editor.exportDiagram')}</h3>
             </div>
 
             <div className="px-6 py-4 space-y-4">
@@ -2798,9 +2815,9 @@ export default function DiagramEditorPage() {
                     type="checkbox"
                     checked={exportOptions.includeDescription}
                     onChange={(e) => setExportOptions({ ...exportOptions, includeDescription: e.target.checked })}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
                   />
-                  <span className="text-sm text-gray-700">{t('editor.includeDescription')}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('editor.includeDescription')}</span>
                 </label>
               </div>
 
@@ -2810,14 +2827,14 @@ export default function DiagramEditorPage() {
                     type="checkbox"
                     checked={exportOptions.includeProjectInfo}
                     onChange={(e) => setExportOptions({ ...exportOptions, includeProjectInfo: e.target.checked })}
-                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
                   />
-                  <span className="text-sm text-gray-700">{t('editor.includeProjectInfo')}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{t('editor.includeProjectInfo')}</span>
                 </label>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-3">{t('editor.selectFormat')}</p>
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t('editor.selectFormat')}</p>
                 <div className="flex gap-3">
                   <button
                     onClick={handleExportPNG}
@@ -2827,7 +2844,7 @@ export default function DiagramEditorPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    {exporting ? 'Exportando...' : 'PNG'}
+                    {exporting ? t('editor.exporting') : 'PNG'}
                   </button>
                   <button
                     onClick={handleExportPDF}
@@ -2837,17 +2854,17 @@ export default function DiagramEditorPage() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
-                    {exporting ? 'Exportando...' : 'PDF'}
+                    {exporting ? t('editor.exporting') : 'PDF'}
                   </button>
                 </div>
               </div>
 
               {/* Download source file */}
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500 mb-3">Descargar código fuente</p>
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t('editor.downloadSource')}</p>
                 <button
                   onClick={handleDownloadSource}
-                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
@@ -2857,13 +2874,13 @@ export default function DiagramEditorPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
               <button
                 onClick={() => setShowExportModal(false)}
                 disabled={exporting}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:text-gray-400"
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400 dark:disabled:text-gray-600"
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
             </div>
           </div>
@@ -3298,6 +3315,209 @@ export default function DiagramEditorPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Mobile bottom toolbar — replaces top toolbar on small screens */}
+      {isMobile && !isFullscreen && (
+        <MobileBottomToolbar
+          onToggleCode={() => { setShowCodeView(!showCodeView); setShowChatPanel(false); }}
+          onToggleDescription={() => { setShowDescriptionView(!showDescriptionView); setShowChatPanel(false); }}
+          onToggleFileBrowser={() => { setShowFloatingSidebar(!showFloatingSidebar); setShowChatPanel(false); }}
+          onToggleAppearance={() => { setShowAppearanceEditor(!showAppearanceEditor); setShowChatPanel(false); }}
+          onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+          onExport={() => setShowExportModal(true)}
+          onShare={() => setShowShareModal(true)}
+          onToggleChat={() => {
+            if (validateAIConfiguration()) setShowChatPanel(!showChatPanel);
+          }}
+          isCodeOpen={showCodeView}
+          isDescriptionOpen={showDescriptionView}
+          isFullscreen={isFullscreen}
+          isChatOpen={showChatPanel}
+          isShared={isShared}
+        />
+      )}
+
+      {/* Mobile bottom sheets for code and description panels */}
+      {isMobile && (
+        <>
+          <BottomSheet
+            isOpen={showCodeView}
+            onClose={() => setShowCodeView(false)}
+            height="h-[65vh]"
+          >
+            <DiagramCodePanel
+              value={diagramCode}
+              onChange={setDiagramCode}
+              diagramType={currentDiagram?.diagram_type || 'mermaid'}
+              hasError={diagramError.hasError || !!renderError}
+              errorMessage={diagramError.errorMessage || renderError || undefined}
+              onCopy={handleCopyCode}
+              copied={codeCopied}
+              diagramId={diagramId}
+              onFixSuccess={handleFixSuccess}
+              onFixError={handleFixError}
+              onClose={() => setShowCodeView(false)}
+            />
+          </BottomSheet>
+
+          <BottomSheet
+            isOpen={showDescriptionView}
+            onClose={() => { setShowDescriptionView(false); setIsDescriptionPinned(false); }}
+            title={t('editor.description')}
+            height="h-[55vh]"
+          >
+            <div className="p-4 h-full flex flex-col">
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <MarkdownEditor
+                  value={diagramDescription}
+                  onChange={setDiagramDescription}
+                  fontSize={descriptionFontSize}
+                  onFontSizeChange={setDescriptionFontSize}
+                />
+              </div>
+              {/* AI Generate / Refine button — same as desktop */}
+              <div className="flex-shrink-0 pt-3 border-t border-gray-100 dark:border-gray-700">
+                {diagramDescription.trim() ? (
+                  <button
+                    onClick={() => {
+                      setGeneratedDescription(diagramDescription);
+                      setShowDescriptionConfirmModal(true);
+                    }}
+                    disabled={generatingDescription || !diagramCode.trim()}
+                    className="w-full px-3 py-2 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                    </svg>
+                    <span>{t('ai.description.refineButton')}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleGenerateDescription}
+                    disabled={generatingDescription || !diagramCode.trim()}
+                    className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {generatingDescription ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>{t('ai.generate.generating')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M10 2C10 5.866 7.866 8 4 8C7.866 8 10 10.134 10 14C10 10.134 12.134 8 16 8C12.134 8 10 5.866 10 2Z" />
+                          <path d="M18 8C18 10.21 16.71 11.5 14.5 11.5C16.71 11.5 18 12.79 18 15C18 12.79 19.29 11.5 21.5 11.5C19.29 11.5 18 10.21 18 8Z" />
+                        </svg>
+                        <span>{t('ai.generate.button')}</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </BottomSheet>
+
+          <BottomSheet
+            isOpen={showFloatingSidebar}
+            onClose={() => setShowFloatingSidebar(false)}
+            height="h-[70vh]"
+          >
+            <DiagramFileBrowser
+              projectName={project?.name || ''}
+              projectEmoji={project?.emoji}
+              projectId={projectId || ''}
+              diagrams={project?.diagrams || []}
+              folders={project?.folders || []}
+              currentDiagramId={diagramId}
+              onClose={() => setShowFloatingSidebar(false)}
+              onNewDiagram={() => { setShowFloatingSidebar(false); setShowNewDiagramModal(true); }}
+              onNewFolder={() => { setShowFloatingSidebar(false); setShowNewFolderModal(true); }}
+              onDeleteDiagram={(id, name) => setDeleteDiagramModal({
+                isOpen: true, diagramId: id, diagramName: name
+              })}
+              onDeleteFolder={(id, name, count) => setDeleteFolderModal({
+                isOpen: true, folderId: id, folderName: name, diagramCount: count
+              })}
+              onEditFolder={(id, name) => {
+                setEditingFolderId(id);
+                setEditingFolderName(name);
+              }}
+              onDragStart={(id) => setDraggedDiagramId(id)}
+              onDragOver={() => {}}
+              onDragLeave={() => {}}
+              onDrop={() => {}}
+              draggedDiagramId={draggedDiagramId}
+              dropTargetFolderId={dropTargetFolderId}
+              expandedFolders={expandedFolders}
+              onToggleFolder={(id) => setExpandedFolders(prev => {
+                const next = new Set(prev);
+                next.has(id) ? next.delete(id) : next.add(id);
+                return next;
+              })}
+              editingFolderId={editingFolderId}
+              editingFolderName={editingFolderName}
+              onEditingFolderNameChange={setEditingFolderName}
+              onSaveFolderEdit={() => {
+                // TODO: implement folder rename
+                setEditingFolderId(null);
+              }}
+              onCancelFolderEdit={() => setEditingFolderId(null)}
+            />
+          </BottomSheet>
+
+          <BottomSheet
+            isOpen={showAppearanceEditor}
+            onClose={() => setShowAppearanceEditor(false)}
+            title={t('editor.style')}
+            height="h-[60vh]"
+          >
+            <div className="p-4 h-full overflow-y-auto space-y-4">
+              {/* Theme / layout controls — reuse existing state */}
+              {currentDiagram?.diagram_type === 'mermaid' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{t('editor.theme')}</label>
+                    <select value={diagramTheme} onChange={e => setDiagramTheme(e.target.value)}
+                      className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600">
+                      <option value="default">Default</option>
+                      <option value="dark">Dark</option>
+                      <option value="forest">Forest</option>
+                      <option value="neutral">Neutral</option>
+                      <option value="base">Base</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{t('editor.layout')}</label>
+                    <select value={diagramLayout} onChange={e => setDiagramLayout(e.target.value)}
+                      className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600">
+                      <option value="dagre">Dagre</option>
+                      <option value="elk">ELK</option>
+                    </select>
+                  </div>
+                </>
+              )}
+              {/* Background controls */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t('editor.backgroundColor')}</label>
+                <input type="color" value={backgroundColor} onChange={e => setBackgroundColor(e.target.value)}
+                  className="w-full h-8 rounded cursor-pointer" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">{t('editor.backgroundPattern')}</label>
+                <select value={backgroundPattern} onChange={e => setBackgroundPattern(e.target.value)}
+                  className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600">
+                  <option value="plain">{t('editor.plain')}</option>
+                  <option value="dots">{t('editor.dots')}</option>
+                  <option value="grid">{t('editor.grid')}</option>
+                </select>
+              </div>
+            </div>
+          </BottomSheet>
+        </>
       )}
     </div>
   );

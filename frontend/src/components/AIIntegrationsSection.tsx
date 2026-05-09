@@ -4,6 +4,7 @@ import { UserAISettings, AIProviderConfig, AI_PROVIDER_NAMES, AI_PROVIDER_STATUS
 import apiService from '../services/api';
 import AddProviderModal from './AddProviderModal';
 import EditProviderModal from './EditProviderModal';
+import ConfirmModal from './ConfirmModal';
 
 export default function AIIntegrationsSection() {
   const { t } = useTranslation();
@@ -13,6 +14,7 @@ export default function AIIntegrationsSection() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<{ provider: AIProviderConfig; index: number } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [removeIndex, setRemoveIndex] = useState<number | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -30,9 +32,10 @@ export default function AIIntegrationsSection() {
     }
   };
 
-  const handleRemoveProvider = async (index: number) => {
-    if (!window.confirm(t('ai.messages.removeConfirm'))) return;
-
+  const handleRemoveProvider = async () => {
+    if (removeIndex === null) return;
+    const index = removeIndex;
+    setRemoveIndex(null);
     try {
       setActionLoading(`remove-${index}`);
       await apiService.removeAIProvider(index);
@@ -249,7 +252,7 @@ export default function AIIntegrationsSection() {
                           </button>
                         )}
                         <button
-                          onClick={() => handleRemoveProvider(originalIndex)}
+                          onClick={() => setRemoveIndex(originalIndex)}
                           disabled={actionLoading === `remove-${originalIndex}`}
                           className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
                           title={t('ai.removeProvider')}
@@ -287,6 +290,18 @@ export default function AIIntegrationsSection() {
         onSuccess={loadSettings}
         provider={editingProvider?.provider || null}
         providerIndex={editingProvider?.index || 0}
+      />
+
+      {/* Remove Confirmation Modal */}
+      <ConfirmModal
+        isOpen={removeIndex !== null}
+        onClose={() => setRemoveIndex(null)}
+        onConfirm={handleRemoveProvider}
+        title={t('ai.messages.removeTitle')}
+        message={t('ai.messages.removeConfirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        isDangerous={true}
       />
     </>
   );
