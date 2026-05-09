@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.5.2](0.5.2.md) | 2026-05-10 | Seguridad: actualización de dependencias |
 | [0.5.1](0.5.1.md) | 2026-05-09 | Pulido UX, Responsividad Móvil |
 | [0.5.0](0.5.0.md) | 2026-05-05 | UX Overhaul, Dark mode, DBML, Minimax, AI Chat |
 | [0.4.1](0.4.1.md) | 2026-04-30 | Fixes, i18n, mejoras visuales |
