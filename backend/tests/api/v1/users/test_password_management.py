@@ -58,7 +58,7 @@ class TestChangePassword:
             json={"new_password": "NewTestPass456"}
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     @pytest.mark.asyncio
     async def test_change_password_same_as_current(
