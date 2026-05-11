@@ -1,14 +1,17 @@
 # Use official Python runtime as base image
-FROM python:3.11-slim-bookworm
+# Rebuild regularly to pick up latest Debian security patches
+FROM python:3.12-slim-bookworm
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies and apply security patches
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+# Install system build dependencies with full security upgrade
+# dist-upgrade handles dependency changes that 'upgrade' misses,
+# ensuring packages like gnutls28, zlib, systemd get patched
+RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y \
     gcc \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean
 
 # Install Poetry
 RUN pip install --no-cache-dir poetry==1.8.3
@@ -29,7 +32,11 @@ RUN if [ "$APP_ENV" = "development" ] || [ "$APP_ENV" = "dev" ]; then \
         poetry lock --no-interaction --no-ansi && \
         poetry install --no-interaction --no-ansi --no-root --only main && \
         pip install --no-cache-dir gunicorn; \
-    fi
+    fi \
+    && apt-get remove -y gcc \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy application code
 COPY ./app ./app

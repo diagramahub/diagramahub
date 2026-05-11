@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import api from '../services/api';
 import { renderDiagram, isServerRenderedType } from '../utils/diagramRenderer';
+import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
 import { SharedLinkInfo, SharedDiagram } from '../types/sharing';
 import AccessCodeForm from '../components/AccessCodeForm';
 import CodeEditor from '../components/CodeEditor';
@@ -180,13 +181,14 @@ export default function SharedDiagramPage() {
         if (!diagramRef.current) return;
 
         if ('svg' in result) {
+          const safeSvg = sanitizeSvg(result.svg);
           if (isServerRenderedType(type)) {
-            diagramRef.current.innerHTML = `<div style="max-width:none;" draggable="false">${result.svg}</div>`;
+            diagramRef.current.innerHTML = `<div style="max-width:none;" draggable="false">${safeSvg}</div>`;
           } else {
-            diagramRef.current.innerHTML = result.svg;
+            diagramRef.current.innerHTML = safeSvg;
           }
         } else {
-          diagramRef.current.innerHTML = `<div class="text-amber-600 p-4 text-center"><p class="font-medium">⚠️ ${result.error}</p></div>`;
+          diagramRef.current.innerHTML = `<div class="text-amber-600 p-4 text-center"><p class="font-medium">⚠️ ${escapeHtml(result.error)}</p></div>`;
         }
       } catch {
         if (diagramRef.current) {

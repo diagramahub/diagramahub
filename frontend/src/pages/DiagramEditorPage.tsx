@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { renderDiagram as renderDiagramUtil, isServerRenderedType } from '../utils/diagramRenderer';
+import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2canvas from 'html2canvas';
@@ -769,7 +770,7 @@ export default function DiagramEditorPage() {
         if (!mermaidRef.current) return;
 
         if ('svg' in result) {
-          mermaidRef.current.innerHTML = result.svg;
+          mermaidRef.current.innerHTML = sanitizeSvg(result.svg);
           setRenderError(null);
         } else {
           throw new Error(result.error);
@@ -794,7 +795,7 @@ export default function DiagramEditorPage() {
         } else {
           mermaidRef.current.innerHTML = `<div class="text-red-500 dark:text-red-400 p-4 border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 rounded-lg">
             <p class="font-semibold mb-2">❌ Error al renderizar diagrama</p>
-            <p class="text-sm">${errorMessage}</p>
+            <p class="text-sm">${escapeHtml(errorMessage)}</p>
           </div>`;
         }
       }
@@ -1586,7 +1587,7 @@ export default function DiagramEditorPage() {
       descSection.appendChild(descTitle);
 
       const descContent = document.createElement('div');
-      descContent.innerHTML = diagramDescription.replace(/\n/g, '<br>');
+      descContent.innerHTML = escapeHtml(diagramDescription).replace(/\n/g, '<br>');
       descContent.style.fontSize = '14px';
       descContent.style.color = '#374151';
       descContent.style.lineHeight = '1.6';
