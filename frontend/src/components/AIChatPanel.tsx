@@ -67,6 +67,7 @@ export default function AIChatPanel({
     diagramCode: null,
     error: null,
     retryCount: 0,
+    isDiagramGenerating: false,
   });
   const streamControllerRef = useRef<AbortController | null>(null);
   const lastSendParamsRef = useRef<{ content: string } | null>(null);
