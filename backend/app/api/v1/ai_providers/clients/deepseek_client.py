@@ -1,8 +1,12 @@
 """
 DeepSeek AI client implementation.
 """
+import json
+import time
+
 import httpx
-from typing import Dict, Any, List
+from typing import AsyncGenerator, Dict, Any, List
+
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
@@ -194,6 +198,116 @@ class DeepSeekClient(BaseAIClient):
             )
         except Exception as e:
             raise ValueError(f"Error summarizing conversation with DeepSeek: {str(e)}")
+
+    async def chat_with_context_stream(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es",
+    ) -> AsyncGenerator[str, None]:
+        """Stream chat response token by token using DeepSeek streaming API.
+
+        DeepSeek uses an OpenAI-compatible format. This method also strips
+        ``<think>`` tags that DeepSeek reasoning models may emit.
+
+        Args:
+            messages: Conversation history
+            diagram_code: Current diagram code
+            diagram_type: Diagram type (mermaid, plantuml, etc.)
+            language: Response language (es, en)
+
+        Yields:
+            String chunks as they arrive from DeepSeek
+
+        Raises:
+            ValueError: If streaming fails or times out
+        """
+        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
+        api_messages = [{"role": "system", "content": system_content}]
+        for msg in messages:
+            api_messages.append({"role": msg["role"], "content": msg["content"]})
+
+        payload = {
+            "model": self.model,
+            "messages": api_messages,
+            "temperature": self.parameters.get("temperature", 0.7),
+            "max_tokens": self.parameters.get("max_output_tokens", 4096),
+            "top_p": self.parameters.get("top_p", 1.0),
+            "stream": True,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(120.0, connect=10.0)
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.BASE_URL}/chat/completions",
+                    headers=self.headers,
+                    json=payload,
+                ) as response:
+                    if response.status_code == 429:
+                        raise ValueError(
+                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
+                        )
+                    if response.status_code != 200:
+                        raise ValueError(
+                            f"DeepSeek API error: {response.status_code}"
+                        )
+
+                    last_token_time = time.time()
+                    in_think_block = False
+
+                    async for line in response.aiter_lines():
+                        if time.time() - last_token_time > 60:
+                            raise ValueError(
+                                f"{self.provider_name} stream timeout: no token received in 60s"
+                            )
+
+                        if not line.startswith("data: "):
+                            continue
+                        data = line[6:]
+                        if data == "[DONE]":
+                            return
+
+                        try:
+                            chunk = json.loads(data)
+                        except json.JSONDecodeError:
+                            continue
+
+                        choices = chunk.get("choices", [])
+                        if not choices:
+                            continue
+
+                        delta = choices[0].get("delta", {})
+                        content = delta.get("content")
+                        if content:
+                            last_token_time = time.time()
+
+                            # Strip <think> blocks from reasoning models
+                            if "<think>" in content:
+                                in_think_block = True
+                                content = content.split("<think>")[0]
+                                if content:
+                                    yield content
+                                continue
+                            if in_think_block:
+                                if "</think>" in content:
+                                    in_think_block = False
+                                    content = content.split("</think>", 1)[1]
+                                    if content:
+                                        yield content
+                                continue
+
+                            yield content
+
+        except httpx.TimeoutException:
+            raise ValueError(f"{self.provider_name} API streaming request timed out")
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f"Error in streaming chat with {self.provider_name}: {str(e)}")
 
     @property
     def provider_name(self) -> str:

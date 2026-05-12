@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { ChatSession, ChatMessage } from '../types/chat';
 import { UserAISettings, AIProviderType } from '../types/ai';
+import { StreamingState, SSEDoneEvent } from '../types/streaming';
+import { createStreamConsumer } from '../services/streamConsumer';
+import { extractDiagramCode, isDiagramInProgress } from '../utils/diagramCodeAccumulator';
 import ChatSessionSelector from './ChatSessionSelector';
 import ChatMessageList from './ChatMessageList';
 import ChatInput from './ChatInput';
@@ -32,6 +36,7 @@ export default function AIChatPanel({
   preferredModel: preferredModelProp,
   onPreferredModelChange,
 }: AIChatPanelProps) {
+  const { i18n } = useTranslation();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -53,6 +58,18 @@ export default function AIChatPanel({
   const [activeModel, setActiveModel] = useState<string | null>(
     preferredModelProp || null
   );
+
+  // Streaming state
+  const [streaming, setStreaming] = useState<StreamingState>({
+    isStreaming: false,
+    accumulatedText: '',
+    currentPhase: null,
+    diagramCode: null,
+    error: null,
+    retryCount: 0,
+  });
+  const streamControllerRef = useRef<AbortController | null>(null);
+  const lastSendParamsRef = useRef<{ content: string } | null>(null);
 
   // Mobile keyboard handling — adjust height when virtual keyboard opens
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
@@ -235,9 +252,12 @@ export default function AIChatPanel({
     }
   };
 
-  // Enviar mensaje
+  // Enviar mensaje (streaming)
   const handleSendMessage = async (content: string) => {
     if (!activeSessionId || isFinalized) return;
+
+    // Save params for retry
+    lastSendParamsRef.current = { content };
 
     // Agregar mensaje del usuario de forma optimista
     const optimisticMsg: ChatMessage = {
@@ -252,41 +272,128 @@ export default function AIChatPanel({
     setIsLoading(true);
     setError('');
     setCompactionNotice('');
-    try {
-      const aiMessage = await apiService.sendChatMessage(activeSessionId, {
+
+    // Reset streaming state
+    setStreaming({
+      isStreaming: true,
+      accumulatedText: '',
+      currentPhase: 'Pensando…',
+      diagramCode: null,
+      error: null,
+      retryCount: streaming.retryCount,
+      isDiagramGenerating: false,
+    });
+
+    // Abort any existing stream
+    if (streamControllerRef.current) {
+      streamControllerRef.current.abort();
+    }
+
+    const controller = createStreamConsumer(
+      activeSessionId,
+      {
         content,
         diagram_code: diagramCode,
         diagram_type: diagramType,
         provider: activeProvider || aiSettings?.default_provider || undefined,
         model: activeModel || undefined,
-        language: 'es',
-      });
+        language: i18n.language?.startsWith('en') ? 'en' : 'es',
+      },
+      {
+        onToken: (tokenContent: string) => {
+          setStreaming((prev) => {
+            // If mode is "code", still accumulate but don't change display behavior
+            const newText = prev.accumulatedText + tokenContent;
+            const inProgress = isDiagramInProgress(newText);
+            return {
+              ...prev,
+              accumulatedText: newText,
+              currentPhase: inProgress ? 'Generando código…' : prev.currentPhase,
+              isDiagramGenerating: inProgress || prev.isDiagramGenerating,
+            };
+          });
+        },
+        onMode: (mode: 'text' | 'code') => {
+          // When mode is "code", hide content from the start
+          setStreaming((prev) => ({
+            ...prev,
+            isDiagramGenerating: mode === 'code',
+          }));
+        },
+        onPhase: (phase: string) => {
+          setStreaming((prev) => ({ ...prev, currentPhase: phase }));
+        },
+        onDone: (event: SSEDoneEvent) => {
+          // Extract diagram code from accumulated text
+          setStreaming((prev) => {
+            const result = extractDiagramCode(prev.accumulatedText, diagramType);
+            return {
+              ...prev,
+              isStreaming: false,
+              currentPhase: null,
+              diagramCode: event.improved_code || result.diagramCode,
+              isDiagramGenerating: false,
+            };
+          });
 
-      // Si la respuesta viene de una sesión diferente (compactación), actualizar
-      if (aiMessage.session_id !== activeSessionId) {
-        setCompactionNotice('Se creó una nueva sesión por límite de contexto');
-        setActiveSessionId(aiMessage.session_id);
-        await loadSessions();
-        await loadMessages(aiMessage.session_id);
-      } else {
-        // Recargar mensajes para obtener tanto el del usuario real como la respuesta de IA
-        await loadMessages(activeSessionId);
-        // Actualizar sesiones (el título puede haber cambiado)
-        await loadSessions();
+          // Reload messages to get the persisted version with all metadata
+          setIsLoading(false);
+          if (activeSessionId) {
+            loadMessages(activeSessionId);
+            loadSessions();
+          }
+        },
+        onError: (message: string) => {
+          setStreaming((prev) => ({
+            ...prev,
+            isStreaming: false,
+            currentPhase: null,
+            error: message,
+            accumulatedText: '',
+            isDiagramGenerating: false,
+          }));
+          setIsLoading(false);
+          // Reload messages to get any error message saved by the backend
+          if (activeSessionId) loadMessages(activeSessionId);
+        },
+      },
+    );
+
+    streamControllerRef.current = controller;
+  };
+
+  // Retry streaming after error
+  const handleStreamRetry = () => {
+    if (!lastSendParamsRef.current) return;
+    if (streaming.retryCount >= 3) return;
+    setStreaming((prev) => ({ ...prev, error: null, retryCount: prev.retryCount + 1 }));
+    handleSendMessage(lastSendParamsRef.current.content);
+  };
+
+  // Cancel active stream on panel close or diagram change
+  useEffect(() => {
+    return () => {
+      if (streamControllerRef.current) {
+        streamControllerRef.current.abort();
+        streamControllerRef.current = null;
       }
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      if (detail) {
-        setError(typeof detail === 'string' ? detail : 'Error al enviar mensaje');
-      } else {
-        setError('Error de red al enviar mensaje');
-      }
-      // Recargar mensajes por si se guardó el mensaje de error
-      if (activeSessionId) await loadMessages(activeSessionId);
-    } finally {
+    };
+  }, []);
+
+  // Cancel stream when diagram changes
+  useEffect(() => {
+    if (streamControllerRef.current && streaming.isStreaming) {
+      streamControllerRef.current.abort();
+      streamControllerRef.current = null;
+      setStreaming((prev) => ({
+        ...prev,
+        isStreaming: false,
+        currentPhase: null,
+        accumulatedText: '',
+      }));
       setIsLoading(false);
     }
-  };
+  }, [diagramId]);
 
   // Aceptar mejora
   const handleAcceptImprovement = async (messageId: string, code: string) => {
@@ -317,6 +424,11 @@ export default function AIChatPanel({
 
   // Reintentar mensaje de error
   const handleRetry = async (messageId: string) => {
+    // If it's a streaming error, use the streaming retry
+    if (streaming.error && lastSendParamsRef.current) {
+      handleStreamRetry();
+      return;
+    }
     const errorMsg = messages.find((m) => m.id === messageId);
     if (!errorMsg) return;
     // Buscar el último mensaje del usuario antes del error
@@ -412,7 +524,7 @@ export default function AIChatPanel({
       {/* Messages */}
       <ChatMessageList
         messages={messages}
-        isLoading={isLoading}
+        isLoading={isLoading && !streaming.isStreaming}
         diagramType={diagramType}
         onAccept={handleAcceptImprovement}
         onReject={handleRejectImprovement}
@@ -420,6 +532,11 @@ export default function AIChatPanel({
         onDeleteMessage={handleDeleteMessage}
         onRestore={(code) => onAcceptImprovement(code)}
         onExpandPreview={(code, dt) => setExpandedPreview({ code, diagramType: dt })}
+        streamingContent={streaming.isStreaming ? streaming.accumulatedText : undefined}
+        streamingPhase={streaming.currentPhase}
+        streamingError={streaming.error}
+        onStreamRetry={streaming.error && streaming.retryCount < 3 ? handleStreamRetry : undefined}
+        streamingHideContent={streaming.isDiagramGenerating}
       />
 
       {/* Input */}
@@ -430,7 +547,7 @@ export default function AIChatPanel({
       ) : (
         <ChatInput
           onSend={handleSendMessage}
-          disabled={isLoading}
+          disabled={isLoading || streaming.isStreaming}
           aiSettings={aiSettings}
           activeProvider={activeProvider}
           activeModel={activeModel}

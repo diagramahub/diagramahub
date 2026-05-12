@@ -1,8 +1,12 @@
 """
 Anthropic Claude client implementation.
 """
+import json
+import time
+
 import httpx
-from typing import Dict, Any
+from typing import AsyncGenerator, Dict, Any
+
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
@@ -200,6 +204,105 @@ class ClaudeClient(BaseAIClient):
             raise ValueError("Claude API request timed out")
         except Exception as e:
             raise ValueError(f"Error summarizing conversation with Claude: {str(e)}")
+
+    async def chat_with_context_stream(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es",
+    ) -> AsyncGenerator[str, None]:
+        """Stream chat response token by token using Anthropic streaming API.
+
+        Claude uses a different SSE event format than OpenAI:
+        - ``content_block_delta`` events contain text chunks
+        - ``message_stop`` signals completion
+        - ``error`` events signal failures
+
+        Args:
+            messages: Conversation history
+            diagram_code: Current diagram code
+            diagram_type: Diagram type (mermaid, plantuml, etc.)
+            language: Response language (es, en)
+
+        Yields:
+            String chunks as they arrive from Claude
+
+        Raises:
+            ValueError: If streaming fails or times out
+        """
+        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
+        api_messages = [{"role": msg["role"], "content": msg["content"]} for msg in messages]
+
+        payload: dict = {
+            "model": self.model,
+            "max_tokens": self.parameters.get("max_tokens", 4096),
+            "temperature": self.parameters.get("temperature", 0.7),
+            "system": system_content,
+            "messages": api_messages,
+            "stream": True,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(120.0, connect=10.0)
+            ) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.base_url}/messages",
+                    headers=self.headers,
+                    json=payload,
+                ) as response:
+                    if response.status_code == 429:
+                        raise ValueError(
+                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
+                        )
+                    if response.status_code != 200:
+                        raise ValueError(
+                            f"Claude API error: {response.status_code}"
+                        )
+
+                    last_token_time = time.time()
+                    async for line in response.aiter_lines():
+                        if time.time() - last_token_time > 60:
+                            raise ValueError(
+                                f"{self.provider_name} stream timeout: "
+                                "no token received in 60s"
+                            )
+
+                        if not line.startswith("data: "):
+                            continue
+
+                        try:
+                            event_data = json.loads(line[6:])
+                        except json.JSONDecodeError:
+                            continue
+
+                        event_type = event_data.get("type")
+
+                        if event_type == "content_block_delta":
+                            text = event_data.get("delta", {}).get("text", "")
+                            if text:
+                                last_token_time = time.time()
+                                yield text
+                        elif event_type == "message_stop":
+                            return
+                        elif event_type == "error":
+                            error_msg = event_data.get("error", {}).get(
+                                "message", "Unknown Claude stream error"
+                            )
+                            raise ValueError(
+                                f"Claude stream error: {error_msg}"
+                            )
+
+        except httpx.TimeoutException:
+            raise ValueError(f"{self.provider_name} API streaming request timed out")
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(
+                f"Error in streaming chat with {self.provider_name}: {str(e)}"
+            )
 
     @property
     def provider_name(self) -> str:

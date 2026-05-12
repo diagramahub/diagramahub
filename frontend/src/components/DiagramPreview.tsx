@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { renderDiagram } from '../utils/diagramRenderer';
+import { sanitizeSvg } from '../utils/sanitize';
 
 interface DiagramPreviewProps {
   code: string;

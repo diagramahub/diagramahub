@@ -2,7 +2,7 @@
 Base abstract client for AI providers.
 """
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import AsyncGenerator, Dict, Any
 
 
 class BaseAIClient(ABC):
@@ -186,6 +186,39 @@ class BaseAIClient(ABC):
             Provider name
         """
         pass
+
+    async def chat_with_context_stream(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es",
+    ) -> AsyncGenerator[str, None]:
+        """
+        Stream chat response token by token.
+
+        Override this method in provider clients that support streaming.
+        The StreamingService detects streaming support by checking whether
+        this method has been overridden (not raising NotImplementedError).
+
+        Args:
+            messages: Conversation history [{"role": "user"|"assistant", "content": "..."}]
+            diagram_code: Current diagram code
+            diagram_type: Diagram type (mermaid, plantuml, d2, dbml)
+            language: Response language (es, en)
+
+        Yields:
+            String chunks as they arrive from the provider
+
+        Raises:
+            NotImplementedError: If the provider does not support streaming
+            ValueError: If streaming fails or times out
+        """
+        raise NotImplementedError(
+            f"{self.provider_name} does not support streaming"
+        )
+        # Make this an async generator (yield is unreachable but required by Python)
+        yield ""  # pragma: no cover
 
     def _build_prompt(self, diagram_code: str, diagram_type: str, language: str) -> str:
         """

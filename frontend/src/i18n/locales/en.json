@@ -235,7 +235,12 @@
     "editTitle": "Edit diagram",
     "name": "Diagram name",
     "namePlaceholder": "My diagram",
-    "type": "Diagram type",
+    "type": {
+      "d2": "D2",
+      "d2Description": "Declarative diagramming language",
+      "dbml": "DBML",
+      "dbmlDescription": "Database Markup Language for ER diagrams"
+    },
     "folder": "Folder",
     "noFolder": "No folder",
     "selectFolder": "Select folder",
@@ -251,18 +256,17 @@
     "exportSVG": "Export as SVG",
     "preview": "Preview",
     "code": "Code",
-    "render": "Render",
+    "render": {
+      "error": "Error rendering diagram",
+      "timeout": "Diagram rendering timed out",
+      "serverError": "Rendering server error. Check the syntax.",
+      "networkError": "Could not connect to the rendering server"
+    },
     "rendering": "Rendering...",
     "copyCode": "Copy code",
     "codeCopied": "Code copied",
     "fullscreen": "Presentation Mode",
     "exitFullscreen": "Exit fullscreen",
-    "type": {
-      "d2": "D2",
-      "d2Description": "Declarative diagramming language",
-      "dbml": "DBML",
-      "dbmlDescription": "Database Markup Language for ER diagrams"
-    },
     "d2": {
       "themeHint": "The theme is automatically applied to the D2 diagram"
     },
@@ -270,12 +274,6 @@
       "name": "DBML",
       "description": "Database Markup Language — define tables, columns, and relationships",
       "renderError": "Error rendering DBML diagram. Check the syntax."
-    },
-    "render": {
-      "error": "Error rendering diagram",
-      "timeout": "Diagram rendering timed out",
-      "serverError": "Rendering server error. Check the syntax.",
-      "networkError": "Could not connect to the rendering server"
     }
   },
   "folder": {
@@ -793,6 +791,20 @@
       "refining": "Refining...",
       "reject": "Cancel",
       "accept": "Accept"
+    },
+    "streaming": {
+      "thinking": "Thinking…",
+      "analyzingDiagram": "Analyzing your diagram…",
+      "generatingCode": "Generating code…",
+      "validatingSyntax": "Validating syntax…",
+      "preparingResponse": "Preparing response…",
+      "interrupted": "Generation interrupted",
+      "retry": "Retry",
+      "errorNetwork": "Network error: connection interrupted",
+      "errorProvider": "AI provider error",
+      "errorTimeout": "Request timed out",
+      "errorPersistence": "Error saving message",
+      "errorTryLater": "Too many failed attempts. Please try again later."
     }
   },
   "oauth": {

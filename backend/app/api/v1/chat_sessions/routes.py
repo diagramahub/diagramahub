@@ -2,6 +2,7 @@
 FastAPI routes for chat sessions.
 """
 from fastapi import APIRouter, Depends, Query, status, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.v1.users.routes import get_current_user_email
@@ -170,6 +171,44 @@ async def send_message(
         provider=body.provider,
         model=body.model,
         language=body.language,
+    )
+
+
+@router.post("/{session_id}/messages/stream")
+async def stream_message(
+    session_id: str,
+    body: SendMessageRequest,
+    user_id: str = Depends(get_current_user_id),
+    service: ChatSessionService = Depends(get_chat_session_service),
+):
+    """Stream an AI response via Server-Sent Events.
+
+    Returns a text/event-stream response that delivers AI-generated tokens
+    incrementally. Each event is a JSON-encoded SSE ``data:`` line.
+
+    Event types:
+    - ``token``: A text chunk from the AI provider
+    - ``phase``: Generation phase indicator (e.g., "Thinking…")
+    - ``done``: Stream completed with message metadata
+    - ``error``: An error occurred
+    """
+    return StreamingResponse(
+        service.stream_message(
+            session_id=session_id,
+            user_id=user_id,
+            content=body.content,
+            diagram_code=body.diagram_code,
+            diagram_type=body.diagram_type,
+            provider=body.provider,
+            model=body.model,
+            language=body.language,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
