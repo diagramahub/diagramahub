@@ -455,11 +455,7 @@ class ChatSessionService:
                     display_text = '\n\n'.join(parts)
                 else:
                     # No meaningful text before or after the diagram block
-                    display_text = (
-                        "Diagrama modificado según tu solicitud."
-                        if language == "es"
-                        else "Diagram modified as requested."
-                    )
+                    display_text = ""
                 improvement_status = ImprovementStatus.PENDING
 
             ai_msg = await self.message_repo.create_message(
@@ -510,6 +506,431 @@ class ChatSessionService:
                 content=str(exc),
             )
             return self._message_to_response(error_msg)
+
+    # ------------------------------------------------------------------ #
+    #  Streaming chat message handler
+    # ------------------------------------------------------------------ #
+
+    async def stream_message(
+        self,
+        session_id: str,
+        user_id: str,
+        content: str,
+        diagram_code: str,
+        diagram_type: str,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        language: str = "es",
+    ):
+        """Stream an AI response as SSE events.
+
+        Mirrors the logic of ``send_message`` but yields formatted SSE event
+        strings instead of returning a single response. The frontend consumes
+        these via a ``ReadableStream``.
+
+        Yields:
+            Formatted SSE event strings (``data: {...}\\n\\n``).
+        """
+        import re
+        from typing import AsyncGenerator
+        from app.api.v1.ai_providers.prompts import (
+            build_unified_chat_prompt,
+            clean_code_response,
+        )
+        from .sse_events import token_event, phase_event, done_event, error_event, mode_event
+
+        session = await self.session_repo.get_session_by_id(session_id)
+        if not session:
+            yield error_event("Sesión no encontrada")
+            return
+        if session.status == "finalized":
+            yield error_event("No se pueden enviar mensajes a una sesión finalizada")
+            return
+
+        session_id_str = str(session.id)
+
+        # Save user message
+        await self.message_repo.create_message(
+            session_id=session_id_str,
+            role=MessageRole.USER,
+            content=content,
+        )
+
+        await self._maybe_auto_title(session, content)
+
+        try:
+            # Detect response mode: "code" if user is requesting diagram changes,
+            # "text" if asking questions or requesting analysis.
+            response_mode = self._detect_response_mode(content)
+            yield mode_event(response_mode)
+
+            # Emit initial phase
+            yield phase_event("Thinking…" if language == "en" else "Pensando…")
+
+            # Build context
+            RECENT_WINDOW = 4
+            all_recent = await self.message_repo.get_recent_messages(
+                session_id_str, limit=RECENT_WINDOW
+            )
+            history = self._build_message_history(all_recent, session.summary)
+
+            # Get provider config
+            provider_type = AIProviderType(provider) if provider else None
+            provider_config = await self.ai_service.repository.get_active_provider(
+                user_id, provider_type
+            )
+            if not provider_config:
+                yield error_event("No hay proveedor de IA configurado.")
+                return
+
+            actual_model = model or provider_config.model
+            client = AIClientFactory.create_client(
+                provider=provider_config.provider,
+                api_key=provider_config.api_key,
+                model=actual_model,
+                parameters=provider_config.parameters,
+            )
+
+            # Context compaction check
+            compacted_session = await self._maybe_compact_context(
+                session=session,
+                user_id=user_id,
+                history=history,
+                diagram_code=diagram_code,
+                model=actual_model,
+                client=client,
+                language=language,
+            )
+            if compacted_session is not None:
+                new_sid = str(compacted_session.id)
+                await self.message_repo.create_message(
+                    session_id=new_sid,
+                    role=MessageRole.USER,
+                    content=content,
+                )
+                recent_new = await self.message_repo.get_recent_messages(new_sid, limit=20)
+                history = self._build_message_history(
+                    recent_new, compacted_session.summary
+                )
+                session = compacted_session
+                session_id_str = new_sid
+
+            # Build unified system prompt
+            system_prompt = build_unified_chat_prompt(
+                diagram_code, diagram_type, language
+            )
+
+            start = time.time()
+            accumulated_text = ""
+            first_token_received = False
+            # Think-tag filtering state
+            in_think_block = False
+            think_buffer = ""
+            think_content_parts: list[str] = []
+
+            # Check if client supports streaming
+            import inspect
+            supports_streaming = (
+                hasattr(client, "chat_with_context_stream")
+                and inspect.ismethod(client.chat_with_context_stream)
+                and type(client).chat_with_context_stream
+                is not type(client).__mro__[1].chat_with_context_stream
+            )
+
+            # Simpler detection: try calling and catch NotImplementedError
+            if hasattr(client, "chat_with_context_stream"):
+                try:
+                    stream_gen = client.chat_with_context_stream(
+                        messages=history,
+                        diagram_code=diagram_code,
+                        diagram_type=diagram_type,
+                        language=language,
+                    )
+
+                    async for chunk in stream_gen:
+                        if not first_token_received:
+                            first_token_received = True
+                            analyzing_phase = (
+                                "Analyzing your diagram…"
+                                if language == "en"
+                                else "Analizando tu diagrama…"
+                            )
+                            yield phase_event(analyzing_phase)
+
+                        # --- Think-tag filtering ---
+                        # Buffer content to detect and strip <think>...</think>
+                        think_buffer += chunk
+
+                        while think_buffer:
+                            if in_think_block:
+                                # Looking for </think> to end the block
+                                end_idx = think_buffer.find("</think>")
+                                if end_idx != -1:
+                                    # Capture think content
+                                    think_content_parts.append(think_buffer[:end_idx])
+                                    think_buffer = think_buffer[end_idx + len("</think>"):]
+                                    in_think_block = False
+                                    # Continue processing remaining buffer
+                                else:
+                                    # Still inside think block, might be split
+                                    # Keep buffer but check for partial </think>
+                                    if len(think_buffer) > 8:
+                                        # Safe to capture all but last 8 chars
+                                        think_content_parts.append(think_buffer[:-8])
+                                        think_buffer = think_buffer[-8:]
+                                    break
+                            else:
+                                # Looking for <think> to start a block
+                                start_idx = think_buffer.find("<think>")
+                                if start_idx != -1:
+                                    # Emit content before <think>
+                                    before = think_buffer[:start_idx]
+                                    if before:
+                                        accumulated_text += before
+                                        yield token_event(before)
+                                    think_buffer = think_buffer[start_idx + len("<think>"):]
+                                    in_think_block = True
+                                    # Continue processing
+                                else:
+                                    # No <think> found — check for partial tag
+                                    # Keep last 7 chars in buffer (len("<think>") - 1)
+                                    if len(think_buffer) > 7:
+                                        safe = think_buffer[:-7]
+                                        think_buffer = think_buffer[-7:]
+                                        accumulated_text += safe
+                                        yield token_event(safe)
+                                    break
+
+                        # Detect diagram markers for phase update
+                        if (
+                            self.DIAGRAM_START in accumulated_text
+                            and not accumulated_text.endswith(self.DIAGRAM_END)
+                        ):
+                            generating_phase = (
+                                "Generating code…"
+                                if language == "en"
+                                else "Generando código…"
+                            )
+                            # Only emit once (check if we already emitted)
+                            if accumulated_text.count(self.DIAGRAM_START) == 1 and \
+                               accumulated_text.index(self.DIAGRAM_START) == len(accumulated_text) - len(chunk) - len(self.DIAGRAM_START) + len(chunk):
+                                yield phase_event(generating_phase)
+
+                    # Flush remaining buffer after stream ends
+                    if think_buffer and not in_think_block:
+                        accumulated_text += think_buffer
+                        yield token_event(think_buffer)
+                    elif think_buffer and in_think_block:
+                        # Unclosed think block — capture as think content
+                        think_content_parts.append(think_buffer)
+                    think_buffer = ""
+
+                except NotImplementedError:
+                    # Fallback to non-streaming
+                    supports_streaming = False
+
+            if not first_token_received and not supports_streaming:
+                # Non-streaming fallback
+                ai_text = await self._call_ai_client(
+                    client, system_prompt, history, language
+                )
+                accumulated_text = ai_text
+                yield token_event(ai_text)
+
+            generation_time = time.time() - start
+            ai_text = accumulated_text
+
+            # Strip <think>...</think> tags
+            ai_text = re.sub(r'<think>.*?</think>\s*', '', ai_text, flags=re.DOTALL)
+            if '<think>' in ai_text:
+                ai_text = ai_text[:ai_text.index('<think>')].strip()
+            ai_text = ai_text.strip()
+
+            # Normalize diagram markers
+            ai_text = re.sub(r'<<<DIAGRAMA>>>', '<<<DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<FIN_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r'<<<END_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(
+                r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text
+            )
+            ai_text = re.sub(
+                r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text
+            )
+
+            # Parse response: extract diagram code
+            improved_code = None
+            display_text = ai_text
+            improvement_status = None
+
+            if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                end_idx = ai_text.index(self.DIAGRAM_END)
+                raw_code = ai_text[start_idx:end_idx].strip()
+                improved_code = clean_code_response(raw_code)
+            elif self.DIAGRAM_START in ai_text:
+                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                raw_code = ai_text[start_idx:].strip()
+                improved_code = clean_code_response(raw_code)
+            else:
+                # Fallback: fenced code block detection
+                code_block_match = re.search(
+                    r'```(?:' + re.escape(diagram_type)
+                    + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
+                    ai_text,
+                    re.DOTALL,
+                )
+                if code_block_match:
+                    raw_code = code_block_match.group(1).strip()
+                    if raw_code and len(raw_code) > 20:
+                        improved_code = clean_code_response(raw_code)
+
+            if improved_code:
+                # Auto-retry: validate syntax (skip for plantuml/dbml)
+                skip_retry = diagram_type in ('plantuml', 'uml', 'dbml')
+                retries = 0
+                while improved_code and retries < MAX_RETRIES and not skip_retry:
+                    validation = await SyntaxValidator.validate(
+                        improved_code, diagram_type
+                    )
+                    if validation.is_valid:
+                        break
+
+                    retries += 1
+                    validating_phase = (
+                        "Validating syntax…"
+                        if language == "en"
+                        else "Validando sintaxis…"
+                    )
+                    yield phase_event(validating_phase)
+
+                    if language == "es":
+                        retry_msg = (
+                            f"El código de diagrama que generaste tiene un error de sintaxis: "
+                            f"{validation.error_message}. "
+                            f"Por favor corrige el error y genera el diagrama completo nuevamente."
+                        )
+                    else:
+                        retry_msg = (
+                            f"The diagram code you generated has a syntax error: "
+                            f"{validation.error_message}. "
+                            f"Please fix the error and generate the complete diagram again."
+                        )
+
+                    retry_history = history + [
+                        {"role": "assistant", "content": ai_text},
+                        {"role": "user", "content": retry_msg},
+                    ]
+
+                    retry_start = time.time()
+                    ai_text = await self._call_ai_client(
+                        client, system_prompt, retry_history, language
+                    )
+                    generation_time += time.time() - retry_start
+
+                    if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                        s_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                        e_idx = ai_text.index(self.DIAGRAM_END)
+                        raw_code = ai_text[s_idx:e_idx].strip()
+                        improved_code = clean_code_response(raw_code)
+                    elif self.DIAGRAM_START in ai_text:
+                        s_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                        raw_code = ai_text[s_idx:].strip()
+                        improved_code = clean_code_response(raw_code)
+                    else:
+                        improved_code = None
+                        break
+
+                # Build display text
+                before_text = ''
+                after_text = ''
+                if self.DIAGRAM_START in ai_text:
+                    before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
+                if self.DIAGRAM_END in ai_text:
+                    end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
+                    after_text = ai_text[end_marker_pos:].strip()
+
+                parts = [p for p in [before_text, after_text] if p and len(p) > 3]
+                if parts:
+                    display_text = '\n\n'.join(parts)
+                else:
+                    # No explanation text outside diagram markers.
+                    # Use thinking content as explanation if available.
+                    thinking_text = "".join(think_content_parts).strip()
+                    if thinking_text and len(thinking_text) > 10:
+                        # Extract a concise summary from the thinking (first ~200 chars)
+                        summary = thinking_text[:200]
+                        # Try to cut at a sentence boundary
+                        for sep in ['. ', '.\n', '\n\n']:
+                            last_sep = summary.rfind(sep)
+                            if last_sep > 50:
+                                summary = summary[:last_sep + 1]
+                                break
+                        display_text = summary.strip()
+                    else:
+                        # No explanation available — leave empty, frontend shows
+                        # only the diff preview without redundant generic text.
+                        display_text = ""
+                improvement_status = ImprovementStatus.PENDING
+
+            # Persist the AI message
+            ai_msg = await self.message_repo.create_message(
+                session_id=session_id_str,
+                role=MessageRole.ASSISTANT,
+                content=display_text,
+                improved_code=improved_code,
+                improvement_status=improvement_status,
+                provider_used=provider_config.provider.value,
+                model_used=actual_model,
+                generation_time=generation_time,
+            )
+
+            # Update rolling summary
+            try:
+                new_summary = self._build_rolling_summary(
+                    existing_summary=session.summary,
+                    user_message=content,
+                    ai_response=display_text,
+                    had_code=improved_code is not None,
+                )
+                await self.session_repo.update_session_summary(session_id_str, new_summary)
+            except Exception as e:
+                logger.warning(f"Failed to update session summary: {e}")
+
+            # Update last_provider and last_model
+            try:
+                session_doc = await self.session_repo.get_session_by_id(session_id_str)
+                if session_doc:
+                    session_doc.last_provider = provider_config.provider.value
+                    session_doc.last_model = actual_model
+                    await session_doc.save()
+            except Exception as e:
+                logger.warning(f"Failed to update session provider/model: {e}")
+
+            # Emit done event
+            thinking_text = "".join(think_content_parts).strip() or None
+            yield done_event(
+                message_id=str(ai_msg.id),
+                improved_code=improved_code,
+                provider_used=provider_config.provider.value,
+                model_used=actual_model,
+                generation_time=generation_time,
+                thinking_content=thinking_text,
+            )
+
+        except HTTPException as exc:
+            yield error_event(exc.detail)
+        except Exception as exc:
+            logger.error("Stream chat error: %s", exc)
+            # Save error message to session
+            try:
+                await self.message_repo.create_message(
+                    session_id=session_id_str,
+                    role=MessageRole.ERROR,
+                    content=str(exc),
+                )
+            except Exception:
+                pass
+            yield error_event(str(exc))
 
     # ------------------------------------------------------------------ #
     #  AI client dispatch helper (used by send_message + retries)
@@ -696,6 +1117,44 @@ class ChatSessionService:
         # Truncate at word boundary
         truncated = first_line[:max_length].rsplit(" ", 1)[0]
         return truncated + "…"
+
+    @staticmethod
+    def _detect_response_mode(content: str) -> str:
+        """Detect whether the user's message will produce code or text.
+
+        Returns "code" if the message is a request to create, modify, improve,
+        or fix a diagram. Returns "text" if it's a question or analysis request.
+        """
+        lower = content.lower().strip()
+
+        # Question indicators → text mode
+        question_markers = ['?', '¿', 'qué es', 'what is', 'explain', 'explica',
+                           'describe', 'analiza', 'analyze', 'por qué', 'why',
+                           'cómo funciona', 'how does', 'cuántos', 'how many']
+        for marker in question_markers:
+            if marker in lower:
+                return "text"
+
+        # Code generation indicators → code mode
+        code_markers = ['agrega', 'añade', 'add', 'crea', 'create', 'genera',
+                       'generate', 'modifica', 'modify', 'cambia', 'change',
+                       'mejora', 'improve', 'corrige', 'fix', 'actualiza',
+                       'update', 'elimina', 'remove', 'delete', 'quita',
+                       'renombra', 'rename', 'mueve', 'move', 'reorganiza',
+                       'reorganize', 'refactoriza', 'refactor', 'simplifica',
+                       'simplify', 'optimiza', 'optimize', 'convierte',
+                       'convert', 'transforma', 'transform', 'haz', 'make',
+                       'pon', 'put', 'incluye', 'include', 'conecta',
+                       'connect', 'enlaza', 'link', 'separa', 'separate',
+                       'divide', 'split', 'combina', 'combine', 'merge',
+                       'reemplaza', 'replace', 'sustituye', 'substitute']
+        for marker in code_markers:
+            if marker in lower:
+                return "code"
+
+        # Default: if it starts with a verb-like word, assume code mode
+        # Otherwise assume text (safer default for questions)
+        return "text"
 
     # ------------------------------------------------------------------ #
     #  Helpers

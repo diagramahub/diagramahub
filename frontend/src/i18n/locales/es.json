@@ -5,7 +5,7 @@
     "success": "Éxito",
     "save": "Guardar",
     "cancel": "Cancelar",
-    "delete": "Eliminar",     
+    "delete": "Eliminar",
     "edit": "Editar",
     "create": "Crear",
     "back": "Atrás",
@@ -235,7 +235,12 @@
     "editTitle": "Editar diagrama",
     "name": "Nombre del diagrama",
     "namePlaceholder": "Mi diagrama",
-    "type": "Tipo de diagrama",
+    "type": {
+      "d2": "D2",
+      "d2Description": "Lenguaje de diagramación declarativo",
+      "dbml": "DBML",
+      "dbmlDescription": "Lenguaje de marcado para diagramas de bases de datos"
+    },
     "folder": "Carpeta",
     "noFolder": "Sin carpeta",
     "selectFolder": "Seleccionar carpeta",
@@ -251,18 +256,17 @@
     "exportSVG": "Exportar como SVG",
     "preview": "Vista previa",
     "code": "Código",
-    "render": "Renderizar",
+    "render": {
+      "error": "Error al renderizar el diagrama",
+      "timeout": "El renderizado del diagrama excedió el tiempo límite",
+      "serverError": "Error del servidor de renderizado. Verifica la sintaxis.",
+      "networkError": "No se pudo conectar al servidor de renderizado"
+    },
     "rendering": "Renderizando...",
     "copyCode": "Copiar código",
     "codeCopied": "Código copiado",
     "fullscreen": "Modo Presentación",
     "exitFullscreen": "Salir de pantalla completa",
-    "type": {
-      "d2": "D2",
-      "d2Description": "Lenguaje de diagramación declarativo",
-      "dbml": "DBML",
-      "dbmlDescription": "Lenguaje de marcado para diagramas de bases de datos"
-    },
     "d2": {
       "themeHint": "El tema se aplica automáticamente al diagrama D2"
     },
@@ -270,12 +274,6 @@
       "name": "DBML",
       "description": "Database Markup Language — define tablas, columnas y relaciones",
       "renderError": "Error al renderizar el diagrama DBML. Verifica la sintaxis."
-    },
-    "render": {
-      "error": "Error al renderizar el diagrama",
-      "timeout": "El renderizado del diagrama excedió el tiempo límite",
-      "serverError": "Error del servidor de renderizado. Verifica la sintaxis.",
-      "networkError": "No se pudo conectar al servidor de renderizado"
     }
   },
   "folder": {
@@ -912,6 +910,20 @@
       "refining": "Refinando...",
       "reject": "Cancelar",
       "accept": "Aceptar"
+    },
+    "streaming": {
+      "thinking": "Pensando…",
+      "analyzingDiagram": "Analizando tu diagrama…",
+      "generatingCode": "Generando código…",
+      "validatingSyntax": "Validando sintaxis…",
+      "preparingResponse": "Preparando respuesta…",
+      "interrupted": "Generación interrumpida",
+      "retry": "Reintentar",
+      "errorNetwork": "Error de red: conexión interrumpida",
+      "errorProvider": "Error del proveedor de IA",
+      "errorTimeout": "Tiempo de espera agotado",
+      "errorPersistence": "Error al guardar el mensaje",
+      "errorTryLater": "Demasiados intentos fallidos. Intenta de nuevo más tarde."
     }
   },
   "oauth": {

@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "diagramahub-backend"
-version = "0.5.2"
+version = "0.5.3"
 description = "Diagramahub backend API with FastAPI and MongoDB"
 authors = ["Diagramahub Team"]
 license = "Apache-2.0"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.115.0"
+python = "^3.12"
+fastapi = ">=0.115.0,<0.129.0"
 uvicorn = {extras = ["standard"], version = "^0.32.0"}
 beanie = "^1.27.0"
 motor = "^3.6.0"
@@ -17,7 +17,7 @@ pydantic-settings = "^2.6.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 bcrypt = "4.0.1"
-python-multipart = "^0.0.12"
+python-multipart = "^0.0.18"
 email-validator = "^2.2.0"
 google-genai = "^1.0.0"
 cryptography = "^43.0.0"
@@ -46,14 +46,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 100
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false

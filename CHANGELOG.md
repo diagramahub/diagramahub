@@ -5,6 +5,32 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.3] - 2026-05-12
+
+### Added
+- Streaming de respuestas AI en tiempo real mediante Server-Sent Events (SSE).
+- Indicadores de fase progresivos: "Pensando…", "Analizando tu diagrama…", "Generando código…", "Validando sintaxis…".
+- Detección automática de modo de respuesta (texto vs código) para ocultar contenido interno durante generación de diagramas.
+- Filtrado en tiempo real de `<think>` tags de modelos de razonamiento durante streaming.
+- Cancelación automática del stream al cerrar panel o cambiar diagrama.
+- Botón de reintento (máx 3 intentos) en errores de streaming.
+- Fallback automático a flujo no-streaming si el proveedor no lo soporta.
+- Módulo `sanitize.ts` para sanitización XSS de SVG (DOMPurify).
+- 45 nuevos tests (unit, property-based con Hypothesis, integración).
+
+### Changed
+- Python actualizado de 3.11 a 3.12 (Dockerfile, pyproject.toml, tooling).
+- FastAPI pin actualizado a `>=0.115.0,<0.129.0`.
+- `python-multipart` actualizado de `^0.0.12` a `^0.0.18`.
+- Imagen Docker base actualizada a `python:3.12-slim-bookworm` con `dist-upgrade`.
+- Ícono de estructura movido a la izquierda del nombre del diagrama.
+- Parámetro `language` del chat usa idioma activo del usuario (i18n).
+- Sanitización SVG aplicada solo a diagramas server-rendered, no a Mermaid local.
+
+### Fixed
+- Textos de nodos Mermaid invisibles por sanitización incorrecta de `foreignObject`.
+- Test `test_change_password_without_auth` actualizado para HTTP 401.
+
 ## [0.5.2] - 2026-05-10
 
 ### Changed

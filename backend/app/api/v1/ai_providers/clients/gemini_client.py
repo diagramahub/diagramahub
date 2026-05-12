@@ -2,9 +2,12 @@
 Google Gemini AI client implementation.
 Usa el nuevo SDK google-genai (reemplaza al deprecado google-generativeai).
 """
+import time
+
 from google import genai
 from google.genai import types
-from typing import Dict, Any
+from typing import AsyncGenerator, Dict, Any
+
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
@@ -142,6 +145,68 @@ class GeminiClient(BaseAIClient):
             return await self._generate(prompt, temperature=0.5, max_tokens=1024)
         except Exception as e:
             raise ValueError(f"Error summarizing conversation with Gemini: {str(e)}")
+
+    async def chat_with_context_stream(
+        self,
+        messages: list[dict],
+        diagram_code: str,
+        diagram_type: str,
+        language: str = "es",
+    ) -> AsyncGenerator[str, None]:
+        """Stream chat response token by token using Gemini async streaming API.
+
+        Uses ``client.aio.models.generate_content_stream`` from the google-genai SDK.
+
+        Args:
+            messages: Conversation history
+            diagram_code: Current diagram code
+            diagram_type: Diagram type (mermaid, plantuml, etc.)
+            language: Response language (es, en)
+
+        Yields:
+            String chunks as they arrive from Gemini
+
+        Raises:
+            ValueError: If streaming fails or times out
+        """
+        system_prompt = build_chat_system_prompt(diagram_code, diagram_type, language)
+
+        # Build concatenated prompt (same pattern as chat_with_context)
+        conversation_parts = [system_prompt, ""]
+        for msg in messages:
+            role_label = "Usuario" if msg["role"] == "user" else "Asistente"
+            if language != "es":
+                role_label = "User" if msg["role"] == "user" else "Assistant"
+            conversation_parts.append(f"{role_label}: {msg['content']}")
+
+        if language == "es":
+            conversation_parts.append("Asistente:")
+        else:
+            conversation_parts.append("Assistant:")
+
+        full_prompt = "\n".join(conversation_parts)
+
+        try:
+            last_token_time = time.time()
+            async for chunk in await self.client.aio.models.generate_content_stream(
+                model=self.model,
+                contents=full_prompt,
+                config=self._gen_config(),
+            ):
+                if time.time() - last_token_time > 60:
+                    raise ValueError(
+                        f"{self.provider_name} stream timeout: no token received in 60s"
+                    )
+                if chunk.text:
+                    last_token_time = time.time()
+                    yield chunk.text
+
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(
+                f"Error in streaming chat with {self.provider_name}: {str(e)}"
+            )
 
     @property
     def provider_name(self) -> str:
