@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.5.3](0.5.3.md) | 2026-05-12 | AI Streaming, Python 3.12, Upgrades |
 | [0.5.2](0.5.2.md) | 2026-05-10 | Security: dependency updates |
 | [0.5.1](0.5.1.md) | 2026-05-09 | UX Polish, Mobile Responsiveness |
 | [0.5.0](0.5.0.md) | 2026-05-05 | UX Overhaul, Dark mode, DBML, Minimax, AI Chat |
