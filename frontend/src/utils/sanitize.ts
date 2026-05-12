@@ -31,14 +31,17 @@ export function escapeHtml(text: string): string {
  * DOMPurify is configured to allow SVG elements and attributes while stripping
  * script tags, event handlers, and other XSS vectors.
  *
+ * Mermaid renders text labels inside <foreignObject> elements containing HTML
+ * (div, span, p), so we must allow both SVG and HTML profiles.
+ *
  * @param svg - Raw SVG string from diagram renderer (Kroki / Mermaid)
  * @returns Sanitized SVG string safe for innerHTML
  */
 export function sanitizeSvg(svg: string): string {
   return DOMPurify.sanitize(svg, {
-    USE_PROFILES: { svg: true, svgFilters: true },
-    ADD_TAGS: ['use'], // Allow <use> for SVG sprites
-    ADD_ATTR: ['href', 'xlink:href'], // Allow xlink attributes
+    USE_PROFILES: { svg: true, svgFilters: true, html: true },
+    ADD_TAGS: ['use', 'foreignObject'],
+    ADD_ATTR: ['href', 'xlink:href', 'xmlns', 'xmlns:xlink', 'requiredExtensions'],
   });
 }
 

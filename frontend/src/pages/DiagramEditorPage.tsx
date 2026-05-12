@@ -1894,6 +1894,18 @@ export default function DiagramEditorPage() {
             </div>
             {/* Separator */}
             <span className="text-gray-300 dark:text-gray-600 text-xs">/</span>
+            {/* Structure toggle (folder icon) */}
+            <Tooltip content={t('editor.structure')} position="bottom">
+              <button
+                onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
+                className={`floating-sidebar-button p-1 rounded-md transition-colors flex-shrink-0 ${showFloatingSidebar ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
+                aria-label={t('editor.structure')}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+              </button>
+            </Tooltip>
             {/* Diagram title */}
             {isEditingDiagramTitle ? (
               <input
@@ -1939,19 +1951,6 @@ export default function DiagramEditorPage() {
           <div className="flex-1" />
           {/* Right: all toolbar buttons */}
           <div className="flex items-center gap-0.5">
-              {/* Structure toggle */}
-              <Tooltip content={t('editor.structure')} position="bottom">
-                <button
-                  onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
-                  className={`floating-sidebar-button p-1.5 rounded-md transition-colors ${showFloatingSidebar ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'}`}
-                  aria-label={t('editor.structure')}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
-                </button>
-              </Tooltip>
-
               {/* Code toggle */}
               <Tooltip content={t('editor.code')} position="bottom">
                 <button

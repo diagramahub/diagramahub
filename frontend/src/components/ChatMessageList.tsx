@@ -14,6 +14,16 @@ interface ChatMessageListProps {
   onDeleteMessage?: (messageId: string) => void;
   onRestore?: (code: string) => void;
   onExpandPreview?: (code: string, diagramType: string) => void;
+  /** Progressive streaming content (shown as a temporary assistant message). */
+  streamingContent?: string;
+  /** Current generation phase label (e.g., "Thinking…"). */
+  streamingPhase?: string | null;
+  /** Streaming error message. */
+  streamingError?: string | null;
+  /** Callback to retry after a streaming error. */
+  onStreamRetry?: (() => void) | undefined;
+  /** When true, hide streamed text (diagram code is being generated). */
+  streamingHideContent?: boolean;
 }
 
 function formatRelativeDate(dateStr: string): string {
@@ -77,6 +87,11 @@ export default function ChatMessageList({
   onDeleteMessage,
   onRestore,
   onExpandPreview,
+  streamingContent,
+  streamingPhase,
+  streamingError,
+  onStreamRetry,
+  streamingHideContent,
 }: ChatMessageListProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +106,13 @@ export default function ChatMessageList({
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  // Auto-scroll during streaming
+  useEffect(() => {
+    if (streamingContent) {
+      scrollToBottom();
+    }
+  }, [streamingContent]);
 
   if (messages.length === 0 && !isLoading) {
     return (
@@ -212,6 +234,60 @@ export default function ChatMessageList({
               <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
               <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Streaming response */}
+      {streamingContent !== undefined && (
+        <div className="flex items-start">
+          <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-3 max-w-[90%]">
+            {/* Phase indicator — shown when no content yet or diagram is generating */}
+            {streamingPhase && (!streamingContent || streamingHideContent) && (
+              <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
+                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
+                <span>{streamingPhase}</span>
+              </div>
+            )}
+            {/* Progressive content — only shown for text responses (not diagram generation) */}
+            {streamingContent && !streamingHideContent && (
+              <>
+                {streamingPhase && (
+                  <div className="flex items-center gap-2 mb-2 text-xs text-purple-600 dark:text-purple-400">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
+                    <span>{streamingPhase}</span>
+                  </div>
+                )}
+                <div className="chat-markdown text-sm text-gray-800 dark:text-gray-200 prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {streamingContent}
+                  </ReactMarkdown>
+                  {/* Streaming cursor */}
+                  <span className="inline-block w-2 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Streaming error */}
+      {streamingError && (
+        <div className="flex items-start">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 max-w-[90%]">
+            <p className="text-sm text-red-600 dark:text-red-400">{streamingError}</p>
+            {onStreamRetry && (
+              <button
+                type="button"
+                onClick={onStreamRetry}
+                className="mt-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-medium flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reintentar
+              </button>
+            )}
           </div>
         </div>
       )}
