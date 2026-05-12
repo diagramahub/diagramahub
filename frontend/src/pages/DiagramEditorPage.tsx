@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { renderDiagram as renderDiagramUtil, isServerRenderedType } from '../utils/diagramRenderer';
-import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
+import { escapeHtml } from '../utils/sanitize';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import html2canvas from 'html2canvas';
