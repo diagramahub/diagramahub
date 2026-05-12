@@ -770,7 +770,7 @@ export default function DiagramEditorPage() {
         if (!mermaidRef.current) return;
 
         if ('svg' in result) {
-          mermaidRef.current.innerHTML = sanitizeSvg(result.svg);
+          mermaidRef.current.innerHTML = result.svg;
           setRenderError(null);
         } else {
           throw new Error(result.error);
