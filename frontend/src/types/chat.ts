@@ -4,6 +4,7 @@ export type ChatMode = 'improvement' | 'conversation';
 export type MessageRole = 'user' | 'assistant' | 'error';
 export type ImprovementStatus = 'pending' | 'accepted' | 'rejected';
 export type SessionStatus = 'active' | 'finalized';
+export type ChatPresetAction = 'explain' | 'improve_ui' | 'improve_process' | 'fix';
 
 export interface ChatSession {
   id: string;
@@ -49,6 +50,7 @@ export interface SendMessageRequest {
   provider?: string;
   model?: string;
   language?: string;
+  preset_action?: ChatPresetAction;
 }
 
 export interface UpdateMessageStatusRequest {

@@ -19,6 +19,7 @@ export type DiagramUserPreferences = {
   description_pinned?: boolean;
   description_font_size?: number | null;
   description_panel_width?: number | null;
+  chat_panel_width?: number | null;
   preferred_provider?: string | null;
   preferred_model?: string | null;
 };

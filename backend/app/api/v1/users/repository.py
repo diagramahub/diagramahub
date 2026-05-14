@@ -1,6 +1,7 @@
 """
 User repository implementation using Beanie ODM.
 """
+from datetime import datetime, timezone
 import time
 from typing import Optional
 
@@ -92,6 +93,16 @@ class UserRepository(IUserRepository):
 
         user.reset_token = None
         user.reset_token_expires = None
+        await user.save()
+        return True
+
+    async def update_last_login(self, user_id: str, last_login_at: datetime | None = None) -> bool:
+        """Persist the user's most recent successful login time."""
+        user = await self.get_by_id(user_id)
+        if not user:
+            return False
+
+        user.last_login_at = last_login_at or datetime.now(timezone.utc)
         await user.save()
         return True
 

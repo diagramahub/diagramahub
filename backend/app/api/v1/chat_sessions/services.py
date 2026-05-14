@@ -14,6 +14,7 @@ from .schemas import (
     ChatMessageInDB,
     MessageRole,
     ImprovementStatus,
+    ChatPresetAction,
     ChatSessionResponse,
     ChatMessageResponse,
     ChatSessionWithMessagesResponse,
@@ -183,6 +184,7 @@ class ChatSessionService:
         provider: Optional[str] = None,
         model: Optional[str] = None,
         language: str = "es",
+        preset_action: Optional[ChatPresetAction] = None,
     ) -> ChatMessageResponse:
         """Send a message in a chat session.
 
@@ -272,8 +274,13 @@ class ChatSessionService:
 
             # Build unified system prompt
             system_prompt = build_unified_chat_prompt(
-                diagram_code, diagram_type, language
+                diagram_code,
+                diagram_type,
+                language,
+                preset_action.value if preset_action else None,
             )
+
+            response_mode = self._detect_response_mode(content, preset_action)
 
             start = time.time()
 
@@ -300,74 +307,77 @@ class ChatSessionService:
             ai_text = re.sub(r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text)
             ai_text = re.sub(r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text)
 
-            # Parse response: check for diagram code
+            # Parse response
             improved_code = None
             display_text = ai_text
             improvement_status = None
 
-            if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                end_idx = ai_text.index(self.DIAGRAM_END)
-                raw_code = ai_text[start_idx:end_idx].strip()
-                improved_code = clean_code_response(raw_code)
-            elif self.DIAGRAM_START in ai_text:
-                # Fallback: DIAGRAM_START present but END marker missing (truncated response)
-                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                raw_code = ai_text[start_idx:].strip()
-                improved_code = clean_code_response(raw_code)
-            else:
-                # Fallback: AI didn't use delimiters but may have included a code block
-                import re
-                # Try closed code block first
-                code_block_match = re.search(
-                    r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
-                    ai_text,
-                    re.DOTALL
-                )
-                if code_block_match:
-                    raw_code = code_block_match.group(1).strip()
-                    if raw_code and len(raw_code) > 20:
-                        improved_code = clean_code_response(raw_code)
-                
-                # If no closed code block, try unclosed (truncated response)
-                if not improved_code:
-                    unclosed_match = re.search(
-                        r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.+)',
+            if response_mode == "code":
+                if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                    end_idx = ai_text.index(self.DIAGRAM_END)
+                    raw_code = ai_text[start_idx:end_idx].strip()
+                    improved_code = clean_code_response(raw_code)
+                elif self.DIAGRAM_START in ai_text:
+                    # Fallback: DIAGRAM_START present but END marker missing (truncated response)
+                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                    raw_code = ai_text[start_idx:].strip()
+                    improved_code = clean_code_response(raw_code)
+                else:
+                    # Fallback: AI didn't use delimiters but may have included a code block
+                    import re
+                    # Try closed code block first
+                    code_block_match = re.search(
+                        r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
                         ai_text,
                         re.DOTALL
                     )
-                    if unclosed_match:
-                        raw_code = unclosed_match.group(1).strip()
-                        # Remove trailing ``` if partially present
-                        raw_code = re.sub(r'`{1,2}$', '', raw_code).strip()
+                    if code_block_match:
+                        raw_code = code_block_match.group(1).strip()
                         if raw_code and len(raw_code) > 20:
                             improved_code = clean_code_response(raw_code)
-
-                # Fallback 3: detect raw diagram code without any wrappers
-                if not improved_code:
-                    if diagram_type == 'plantuml' or diagram_type == 'uml':
-                        # PlantUML: detect @startuml...@enduml
-                        puml_match = re.search(r'(@startuml\b.*?@enduml\b)', ai_text, re.DOTALL)
-                        if puml_match:
-                            improved_code = puml_match.group(1).strip()
-                    elif diagram_type == 'mermaid':
-                        # Mermaid: detect common diagram type keywords at start of a line
-                        mermaid_match = re.search(
-                            r'^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)',
+                    
+                    # If no closed code block, try unclosed (truncated response)
+                    if not improved_code:
+                        unclosed_match = re.search(
+                            r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.+)',
                             ai_text,
-                            re.MULTILINE | re.DOTALL
+                            re.DOTALL
                         )
-                        if mermaid_match:
-                            raw_code = mermaid_match.group(1).strip()
-                            if len(raw_code) > 30:
-                                improved_code = raw_code
-                    elif diagram_type == 'dbml':
-                        # DBML: detect Table keyword followed by content
-                        dbml_match = re.search(r'(Table\s+\w+\s*\{.+)', ai_text, re.DOTALL)
-                        if dbml_match:
-                            raw_code = dbml_match.group(1).strip()
-                            if len(raw_code) > 30:
-                                improved_code = raw_code
+                        if unclosed_match:
+                            raw_code = unclosed_match.group(1).strip()
+                            # Remove trailing ``` if partially present
+                            raw_code = re.sub(r'`{1,2}$', '', raw_code).strip()
+                            if raw_code and len(raw_code) > 20:
+                                improved_code = clean_code_response(raw_code)
+
+                    # Fallback 3: detect raw diagram code without any wrappers
+                    if not improved_code:
+                        if diagram_type == 'plantuml' or diagram_type == 'uml':
+                            # PlantUML: detect @startuml...@enduml
+                            puml_match = re.search(r'(@startuml\b.*?@enduml\b)', ai_text, re.DOTALL)
+                            if puml_match:
+                                improved_code = puml_match.group(1).strip()
+                        elif diagram_type == 'mermaid':
+                            # Mermaid: detect common diagram type keywords at start of a line
+                            mermaid_match = re.search(
+                                r'^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)',
+                                ai_text,
+                                re.MULTILINE | re.DOTALL
+                            )
+                            if mermaid_match:
+                                raw_code = mermaid_match.group(1).strip()
+                                if len(raw_code) > 30:
+                                    improved_code = raw_code
+                        elif diagram_type == 'dbml':
+                            # DBML: detect Table keyword followed by content
+                            dbml_match = re.search(r'(Table\s+\w+\s*\{.+)', ai_text, re.DOTALL)
+                            if dbml_match:
+                                raw_code = dbml_match.group(1).strip()
+                                if len(raw_code) > 30:
+                                    improved_code = raw_code
+            else:
+                display_text = ai_text
 
             if improved_code:
 
@@ -521,6 +531,7 @@ class ChatSessionService:
         provider: Optional[str] = None,
         model: Optional[str] = None,
         language: str = "es",
+        preset_action: Optional[ChatPresetAction] = None,
     ):
         """Stream an AI response as SSE events.
 
@@ -561,7 +572,7 @@ class ChatSessionService:
         try:
             # Detect response mode: "code" if user is requesting diagram changes,
             # "text" if asking questions or requesting analysis.
-            response_mode = self._detect_response_mode(content)
+            response_mode = self._detect_response_mode(content, preset_action)
             yield mode_event(response_mode)
 
             # Emit initial phase
@@ -617,8 +628,13 @@ class ChatSessionService:
 
             # Build unified system prompt
             system_prompt = build_unified_chat_prompt(
-                diagram_code, diagram_type, language
+                diagram_code,
+                diagram_type,
+                language,
+                preset_action.value if preset_action else None,
             )
+
+            response_mode = self._detect_response_mode(content, preset_action)
 
             start = time.time()
             accumulated_text = ""
@@ -757,32 +773,36 @@ class ChatSessionService:
                 r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text
             )
 
-            # Parse response: extract diagram code
+            # Parse response
             improved_code = None
             display_text = ai_text
             improvement_status = None
 
-            if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                end_idx = ai_text.index(self.DIAGRAM_END)
-                raw_code = ai_text[start_idx:end_idx].strip()
-                improved_code = clean_code_response(raw_code)
-            elif self.DIAGRAM_START in ai_text:
-                start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                raw_code = ai_text[start_idx:].strip()
-                improved_code = clean_code_response(raw_code)
+            if response_mode == "code":
+                if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
+                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                    end_idx = ai_text.index(self.DIAGRAM_END)
+                    raw_code = ai_text[start_idx:end_idx].strip()
+                    improved_code = clean_code_response(raw_code)
+                elif self.DIAGRAM_START in ai_text:
+                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
+                    raw_code = ai_text[start_idx:].strip()
+                    improved_code = clean_code_response(raw_code)
+                else:
+                    # Fallback: fenced code block detection
+                    code_block_match = re.search(
+                        r'```(?:' + re.escape(diagram_type)
+                        + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
+                        ai_text,
+                        re.DOTALL,
+                    )
+                    if code_block_match:
+                        raw_code = code_block_match.group(1).strip()
+                        if raw_code and len(raw_code) > 20:
+                            improved_code = clean_code_response(raw_code)
+
             else:
-                # Fallback: fenced code block detection
-                code_block_match = re.search(
-                    r'```(?:' + re.escape(diagram_type)
-                    + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
-                    ai_text,
-                    re.DOTALL,
-                )
-                if code_block_match:
-                    raw_code = code_block_match.group(1).strip()
-                    if raw_code and len(raw_code) > 20:
-                        improved_code = clean_code_response(raw_code)
+                display_text = ai_text
 
             if improved_code:
                 # Auto-retry: validate syntax (skip for plantuml/dbml)
@@ -840,36 +860,33 @@ class ChatSessionService:
                         improved_code = None
                         break
 
-                # Build display text
-                before_text = ''
-                after_text = ''
-                if self.DIAGRAM_START in ai_text:
-                    before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
-                if self.DIAGRAM_END in ai_text:
-                    end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
-                    after_text = ai_text[end_marker_pos:].strip()
+                if response_mode == "code":
+                    # Build display text for code responses only
+                    before_text = ''
+                    after_text = ''
+                    if self.DIAGRAM_START in ai_text:
+                        before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
+                    if self.DIAGRAM_END in ai_text:
+                        end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
+                        after_text = ai_text[end_marker_pos:].strip()
 
-                parts = [p for p in [before_text, after_text] if p and len(p) > 3]
-                if parts:
-                    display_text = '\n\n'.join(parts)
-                else:
-                    # No explanation text outside diagram markers.
-                    # Use thinking content as explanation if available.
-                    thinking_text = "".join(think_content_parts).strip()
-                    if thinking_text and len(thinking_text) > 10:
-                        # Extract a concise summary from the thinking (first ~200 chars)
-                        summary = thinking_text[:200]
-                        # Try to cut at a sentence boundary
-                        for sep in ['. ', '.\n', '\n\n']:
-                            last_sep = summary.rfind(sep)
-                            if last_sep > 50:
-                                summary = summary[:last_sep + 1]
-                                break
-                        display_text = summary.strip()
+                    parts = [p for p in [before_text, after_text] if p and len(p) > 3]
+                    if parts:
+                        display_text = '\n\n'.join(parts)
                     else:
-                        # No explanation available — leave empty, frontend shows
-                        # only the diff preview without redundant generic text.
-                        display_text = ""
+                        # No explanation text outside diagram markers.
+                        # Use thinking content as explanation if available.
+                        thinking_text = "".join(think_content_parts).strip()
+                        if thinking_text and len(thinking_text) > 10:
+                            summary = thinking_text[:200]
+                            for sep in ['. ', '.\n', '\n\n']:
+                                last_sep = summary.rfind(sep)
+                                if last_sep > 50:
+                                    summary = summary[:last_sep + 1]
+                                    break
+                            display_text = summary.strip()
+                        else:
+                            display_text = ""
                 improvement_status = ImprovementStatus.PENDING
 
             # Persist the AI message
@@ -1119,12 +1136,24 @@ class ChatSessionService:
         return truncated + "…"
 
     @staticmethod
-    def _detect_response_mode(content: str) -> str:
+    def _detect_response_mode(
+        content: str,
+        preset_action: Optional[ChatPresetAction] = None,
+    ) -> str:
         """Detect whether the user's message will produce code or text.
 
         Returns "code" if the message is a request to create, modify, improve,
         or fix a diagram. Returns "text" if it's a question or analysis request.
         """
+        if preset_action == ChatPresetAction.EXPLAIN:
+            return "text"
+        if preset_action in (
+            ChatPresetAction.IMPROVE_UI,
+            ChatPresetAction.IMPROVE_PROCESS,
+            ChatPresetAction.FIX,
+        ):
+            return "code"
+
         lower = content.lower().strip()
 
         # Question indicators → text mode

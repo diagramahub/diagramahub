@@ -221,6 +221,8 @@ export default function DiagramEditorPage() {
   const [descriptionPanelWidth, setDescriptionPanelWidth] = useState(384);
   const [descriptionFontSize, setDescriptionFontSize] = useState(14);
   const isResizingDescription = useRef(false);
+  const [chatPanelWidth, setChatPanelWidth] = useState(400);
+  const isResizingChat = useRef(false);
   const [preferredProvider, setPreferredProvider] = useState<string | null>(null);
   const [preferredModel, setPreferredModel] = useState<string | null>(null);
   const [showAppearanceEditor, setShowAppearanceEditor] = useState(false);
@@ -332,6 +334,7 @@ export default function DiagramEditorPage() {
       if (
         !target.closest('.floating-description') &&
         !target.closest('.floating-description-button') &&
+        !target.closest('.floating-description-resize-handle') &&
         !target.closest('.floating-code-button') &&
         !target.closest('.floating-appearance-button') &&
         !target.closest('.floating-sidebar-button')
@@ -487,6 +490,49 @@ export default function DiagramEditorPage() {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [descriptionPanelWidth]);
+
+  const handleChatResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingChat.current = true;
+    const startX = e.clientX;
+    const startWidth = chatPanelWidth;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isResizingChat.current) return;
+      const delta = startX - event.clientX;
+      const newWidth = Math.min(Math.max(startWidth + delta, 320), 700);
+      setChatPanelWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingChat.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [chatPanelWidth]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !diagramId) return;
+    const savedWidth = window.localStorage.getItem(`chatPanelWidth_${diagramId}`);
+    if (savedWidth) {
+      const parsed = Number(savedWidth);
+      if (!Number.isNaN(parsed)) {
+        setChatPanelWidth(Math.min(Math.max(parsed, 320), 700));
+      }
+    }
+  }, [diagramId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !diagramId) return;
+    window.localStorage.setItem(`chatPanelWidth_${diagramId}`, String(chatPanelWidth));
+  }, [diagramId, chatPanelWidth]);
 
   // Update current time every second
   useEffect(() => {
@@ -672,6 +718,9 @@ export default function DiagramEditorPage() {
             }
             if (diagram.user_preferences.description_panel_width) {
               setDescriptionPanelWidth(diagram.user_preferences.description_panel_width);
+            }
+            if (diagram.user_preferences.chat_panel_width) {
+              setChatPanelWidth(diagram.user_preferences.chat_panel_width);
             }
             if (diagram.user_preferences.preferred_provider) {
               setPreferredProvider(diagram.user_preferences.preferred_provider);
@@ -878,13 +927,14 @@ export default function DiagramEditorPage() {
             background_color: backgroundColor,
             background_pattern: backgroundPattern
           },
-          user_preferences: {
-            description_pinned: isDescriptionPinned,
-            description_font_size: descriptionFontSize,
-            description_panel_width: descriptionPanelWidth,
-            preferred_provider: preferredProvider,
-            preferred_model: preferredModel,
-          },
+            user_preferences: {
+              description_pinned: isDescriptionPinned,
+              description_font_size: descriptionFontSize,
+              description_panel_width: descriptionPanelWidth,
+              chat_panel_width: chatPanelWidth,
+              preferred_provider: preferredProvider,
+              preferred_model: preferredModel,
+            },
           folder_id: selectedFolderId,
           viewport_zoom: zoom,
           viewport_x: pan.x,
@@ -940,7 +990,7 @@ export default function DiagramEditorPage() {
 
     const debounce = setTimeout(autoSave, 1500);
     return () => clearTimeout(debounce);
-  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, d2ThemeId, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, descriptionFontSize, descriptionPanelWidth, preferredProvider, preferredModel]);
+  }, [diagramCode, diagramDescription, diagramTitle, diagramTheme, diagramLayout, diagramLook, diagramCurve, diagramFontFamily, diagramFontSize, plantUMLTheme, d2ThemeId, backgroundColor, backgroundPattern, selectedFolderId, isDescriptionPinned, descriptionFontSize, descriptionPanelWidth, chatPanelWidth, preferredProvider, preferredModel]);
 
   // Parse config from content when user manually edits Mermaid code with init block
   useEffect(() => {
@@ -2655,7 +2705,7 @@ export default function DiagramEditorPage() {
             {/* Resize handle — outside the overflow-hidden panel so it's always accessible */}
             <div
               onMouseDown={handleDescriptionResizeMouseDown}
-              className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
+              className="floating-description-resize-handle hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
               title="Arrastrar para redimensionar"
             >
               <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
@@ -2782,21 +2832,34 @@ export default function DiagramEditorPage() {
 
         {/* Panel de Chat con IA */}
         {showChatPanel && (
-          <AIChatPanel
-            isOpen={showChatPanel}
-            onClose={() => setShowChatPanel(false)}
-            diagramCode={diagramCode}
-            diagramType={currentDiagram?.diagram_type || 'mermaid'}
-            diagramId={diagramId || ''}
-            onAcceptImprovement={handleImproveAccept}
-            aiSettings={aiSettings}
-            preferredProvider={preferredProvider}
-            preferredModel={preferredModel}
-            onPreferredModelChange={(provider, model) => {
-              setPreferredProvider(provider);
-              setPreferredModel(model);
-            }}
-          />
+          <>
+            {/* Resize handle — outside the overflow-hidden panel so it's always accessible */}
+            {!isMobile && (
+              <div
+                onMouseDown={handleChatResizeMouseDown}
+                className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
+                title="Arrastrar para redimensionar"
+              >
+                <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              </div>
+            )}
+            <AIChatPanel
+              isOpen={showChatPanel}
+              onClose={() => setShowChatPanel(false)}
+              diagramCode={diagramCode}
+              diagramType={currentDiagram?.diagram_type || 'mermaid'}
+              diagramId={diagramId || ''}
+              onAcceptImprovement={handleImproveAccept}
+              aiSettings={aiSettings}
+              preferredProvider={preferredProvider}
+              preferredModel={preferredModel}
+              panelWidth={chatPanelWidth}
+              onPreferredModelChange={(provider, model) => {
+                setPreferredProvider(provider);
+                setPreferredModel(model);
+              }}
+            />
+          </>
         )}
       </div>
 

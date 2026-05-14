@@ -71,4 +71,5 @@ export interface SendMessageStreamRequest {
   provider?: string;
   model?: string;
   language: string;
+  preset_action?: 'explain' | 'improve_ui' | 'improve_process' | 'fix';
 }

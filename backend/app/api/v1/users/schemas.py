@@ -104,6 +104,7 @@ class UserInDB(Document):
     is_active: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    last_login_at: Optional[datetime] = None
 
     # Password reset fields
     reset_token: Optional[str] = None

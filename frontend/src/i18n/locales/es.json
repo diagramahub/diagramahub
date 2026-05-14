@@ -117,19 +117,39 @@
       "exporting": "Exportando...",
       "errorExporting": "Error al exportar usuarios",
       "registered": "Registro:",
+      "project": "proyecto",
+      "projects": "proyectos",
       "diagram": "diagrama",
       "diagrams": "diagramas",
       "columnEmail": "Correo",
       "columnName": "Nombre",
       "columnRole": "Rol",
       "columnPlan": "Plan",
-      "columnDiagrams": "Diagramas",
+      "columnLicenseUsage": "Uso de licencia",
+      "columnAiModels": "Modelos IA",
+      "columnLastLogin": "Último login",
       "columnMfaStatus": "Estado MFA",
       "columnRecoveryCodes": "Códigos de recuperación",
       "columnRegistered": "Registro",
       "columnActions": "Acciones",
       "user": "Usuario",
-      "noMfa": "Desactivado"
+      "noMfa": "Desactivado",
+      "noAiModels": "Sin modelos conectados"
+    }
+  },
+    "chat": {
+    "sendMessage": "Enviar mensaje",
+    "model": "Modelo",
+    "recommended": "Recomendado",
+    "quickActions": {
+      "explain": "🧠 Explicar",
+      "improveUi": "🎨 Mejorar UI",
+      "improveProcess": "⚙️ Mejorar Proceso",
+      "fix": "🛠️ Reparar",
+      "explainPrompt": "Explica este diagrama de forma clara y breve.",
+      "improveUiPrompt": "Mejora la UI del diagrama, haciéndolo más claro, ordenado y legible.",
+      "improveProcessPrompt": "Mejora el proceso del diagrama para que sea más eficiente y claro.",
+      "fixPrompt": "Corrige errores de sintaxis, estructura o renderizado del diagrama actual. Mantén la intención original y devuelve el diagrama completo corregido."
     }
   },
   "installation": {
@@ -844,6 +864,7 @@
       "subtitle": "La IA mejorará tu diagrama según tus instrucciones",
       "improvementRequest": "¿Qué quieres mejorar?",
       "improvementPlaceholder": "Ej: Agrega más detalles al flujo de error, usa colores para diferenciar tipos de nodos, simplifica la estructura",
+      "explainBlocked": "Esta acción es para mejorar diagramas, no para explicarlos. Usa la acción rápida 'Explicar' en el chat de IA.",
       "generating": "Mejorando diagrama...",
       "success": "Diagrama mejorado exitosamente",
       "error": "Error al mejorar diagrama",

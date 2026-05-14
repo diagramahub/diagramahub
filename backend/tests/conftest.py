@@ -13,6 +13,9 @@ from faker import Faker
 from app.main import app
 from app.core.config import settings
 from app.api.v1.users.schemas import UserInDB as User
+from app.api.v1.ai_providers.schemas import UserAISettingsInDB
+from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB
+from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.integrations.schemas import VendorConfigInDB
 
 # Initialize Faker
@@ -42,7 +45,14 @@ async def test_db() -> AsyncGenerator:
     # Initialize Beanie with test database
     await init_beanie(
         database=client[TEST_DATABASE_NAME],
-        document_models=[User, VendorConfigInDB]
+        document_models=[
+            User,
+            UserAISettingsInDB,
+            ChatSessionInDB,
+            ChatMessageInDB,
+            ProjectInDB,
+            VendorConfigInDB,
+        ],
     )
 
     yield client[TEST_DATABASE_NAME]
@@ -68,7 +78,7 @@ def user_data() -> dict:
     """Generate random valid user data for registration."""
     return {
         "email": fake.email(),
-        "password": "TestPass123",
+        "password": "TestPass123!Aa",
         "full_name": fake.name()
     }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
-import { ChatSession, ChatMessage } from '../types/chat';
+import { ChatSession, ChatMessage, ChatPresetAction } from '../types/chat';
 import { UserAISettings, AIProviderType } from '../types/ai';
 import { StreamingState, SSEDoneEvent } from '../types/streaming';
 import { createStreamConsumer } from '../services/streamConsumer';
@@ -22,6 +22,7 @@ interface AIChatPanelProps {
   preferredProvider?: string | null;
   preferredModel?: string | null;
   onPreferredModelChange?: (provider: string, model: string) => void;
+  panelWidth?: number;
 }
 
 export default function AIChatPanel({
@@ -35,6 +36,7 @@ export default function AIChatPanel({
   preferredProvider: preferredProviderProp,
   preferredModel: preferredModelProp,
   onPreferredModelChange,
+  panelWidth,
 }: AIChatPanelProps) {
   const { i18n } = useTranslation();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -46,10 +48,6 @@ export default function AIChatPanel({
 
   // Estado para modal de preview expandido
   const [expandedPreview, setExpandedPreview] = useState<{ code: string; diagramType: string } | null>(null);
-
-  // Estado para panel redimensionable
-  const [panelWidth, setPanelWidth] = useState(400);
-  const isResizing = useRef(false);
 
   // Estado para proveedor activo
   const [activeProvider, setActiveProvider] = useState<AIProviderType | null>(
@@ -69,8 +67,10 @@ export default function AIChatPanel({
     retryCount: 0,
     isDiagramGenerating: false,
   });
+  const currentStreamModeRef = useRef<'text' | 'code' | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
-  const lastSendParamsRef = useRef<{ content: string } | null>(null);
+  const lastSendParamsRef = useRef<{ content: string; presetAction?: ChatPresetAction } | null>(null);
+  const lastStreamTextRef = useRef('');
 
   // Mobile keyboard handling — adjust height when virtual keyboard opens
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
@@ -96,35 +96,6 @@ export default function AIChatPanel({
       }
     }
   }, [aiSettings]);
-
-  // Resize handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isResizing.current = true;
-    const startX = e.clientX;
-    const startWidth = panelWidth;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      // El panel está a la derecha, así que mover a la izquierda agranda
-      const delta = startX - e.clientX;
-      const newWidth = Math.min(Math.max(startWidth + delta, 320), 700);
-      setPanelWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      isResizing.current = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [panelWidth]);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const isFinalized = activeSession?.status === 'finalized';
@@ -254,11 +225,13 @@ export default function AIChatPanel({
   };
 
   // Enviar mensaje (streaming)
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, presetAction?: ChatPresetAction) => {
     if (!activeSessionId || isFinalized) return;
 
     // Save params for retry
-    lastSendParamsRef.current = { content };
+    lastSendParamsRef.current = { content, presetAction };
+    currentStreamModeRef.current = null;
+    lastStreamTextRef.current = '';
 
     // Agregar mensaje del usuario de forma optimista
     const optimisticMsg: ChatMessage = {
@@ -299,12 +272,14 @@ export default function AIChatPanel({
         provider: activeProvider || aiSettings?.default_provider || undefined,
         model: activeModel || undefined,
         language: i18n.language?.startsWith('en') ? 'en' : 'es',
+        preset_action: presetAction,
       },
       {
         onToken: (tokenContent: string) => {
           setStreaming((prev) => {
             // If mode is "code", still accumulate but don't change display behavior
             const newText = prev.accumulatedText + tokenContent;
+            lastStreamTextRef.current = newText;
             const inProgress = isDiagramInProgress(newText);
             return {
               ...prev,
@@ -315,6 +290,7 @@ export default function AIChatPanel({
           });
         },
         onMode: (mode: 'text' | 'code') => {
+          currentStreamModeRef.current = mode;
           // When mode is "code", hide content from the start
           setStreaming((prev) => ({
             ...prev,
@@ -325,6 +301,24 @@ export default function AIChatPanel({
           setStreaming((prev) => ({ ...prev, currentPhase: phase }));
         },
         onDone: (event: SSEDoneEvent) => {
+          const shouldPersistTextOnly = currentStreamModeRef.current === 'text' && !event.improved_code;
+
+          if (shouldPersistTextOnly) {
+            const finalText = lastStreamTextRef.current.trim();
+            if (finalText) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `temp-assistant-${Date.now()}`,
+                  session_id: activeSessionId || '',
+                  role: 'assistant',
+                  content: finalText,
+                  created_at: new Date().toISOString(),
+                },
+              ]);
+            }
+          }
+
           // Extract diagram code from accumulated text
           setStreaming((prev) => {
             const result = extractDiagramCode(prev.accumulatedText, diagramType);
@@ -339,10 +333,10 @@ export default function AIChatPanel({
 
           // Reload messages to get the persisted version with all metadata
           setIsLoading(false);
-          if (activeSessionId) {
+          if (activeSessionId && !shouldPersistTextOnly) {
             loadMessages(activeSessionId);
-            loadSessions();
           }
+          loadSessions();
         },
         onError: (message: string) => {
           setStreaming((prev) => ({
@@ -368,7 +362,7 @@ export default function AIChatPanel({
     if (!lastSendParamsRef.current) return;
     if (streaming.retryCount >= 3) return;
     setStreaming((prev) => ({ ...prev, error: null, retryCount: prev.retryCount + 1 }));
-    handleSendMessage(lastSendParamsRef.current.content);
+    handleSendMessage(lastSendParamsRef.current.content, lastSendParamsRef.current.presetAction);
   };
 
   // Cancel active stream on panel close or diagram change
@@ -457,21 +451,17 @@ export default function AIChatPanel({
 
   return (
     <div
-      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto"
+      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto flex-shrink-0"
       style={{
-        width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : panelWidth,
+        width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : (panelWidth ?? 400),
+        minWidth: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : (panelWidth ?? 400),
+        maxWidth: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : (panelWidth ?? 400),
         // Adjust height for mobile keyboard: use visualViewport height when available
         ...(viewportHeight && window.innerWidth < 640 ? { height: viewportHeight } : {}),
         // Push input above the mobile bottom toolbar (h-14 = 56px)
         paddingBottom: typeof window !== 'undefined' && window.innerWidth < 640 ? '56px' : undefined,
       }}
     >
-      {/* Resize handle */}
-      <div
-        onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-purple-300 dark:hover:bg-purple-600 active:bg-purple-400 dark:active:bg-purple-500 transition-colors z-10 hidden sm:block"
-        title="Arrastrar para redimensionar"
-      />
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between flex-shrink-0">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
