@@ -117,19 +117,39 @@
       "exporting": "Exporting...",
       "errorExporting": "Error exporting users",
       "registered": "Registered:",
+      "project": "project",
+      "projects": "projects",
       "diagram": "diagram",
       "diagrams": "diagrams",
       "columnEmail": "Email",
       "columnName": "Name",
       "columnRole": "Role",
       "columnPlan": "Plan",
-      "columnDiagrams": "Diagrams",
+      "columnLicenseUsage": "License Usage",
+      "columnAiModels": "AI Models",
+      "columnLastLogin": "Last login",
       "columnMfaStatus": "MFA Status",
       "columnRecoveryCodes": "Recovery Codes",
       "columnRegistered": "Registered",
       "columnActions": "Actions",
       "user": "User",
-      "noMfa": "Disabled"
+      "noMfa": "Disabled",
+      "noAiModels": "No connected models"
+    }
+  },
+  "chat": {
+    "sendMessage": "Send message",
+    "model": "Model",
+    "recommended": "Recommended",
+    "quickActions": {
+      "explain": "🧠 Explain",
+      "improveUi": "🎨 Improve UI",
+      "improveProcess": "⚙️ Improve Process",
+      "fix": "🛠️ Fix",
+      "explainPrompt": "Explain this diagram clearly and briefly.",
+      "improveUiPrompt": "Improve the diagram UI so it is clearer, cleaner, and easier to read.",
+      "improveProcessPrompt": "Improve the process represented by the diagram to make it more efficient and clear.",
+      "fixPrompt": "Fix any syntax, structure, or rendering issues in the current diagram. Keep the original intent and return the complete corrected diagram."
     }
   },
   "installation": {
@@ -742,6 +762,7 @@
       "subtitle": "AI will improve your diagram according to your instructions",
       "improvementRequest": "What do you want to improve?",
       "improvementPlaceholder": "E.g: Add more details to error flow, use colors to differentiate node types, simplify structure",
+      "explainBlocked": "This action is for improving diagrams, not explaining them. Use the 'Explain' quick action in the AI chat.",
       "generating": "Improving diagram...",
       "success": "Diagram improved successfully",
       "error": "Error improving diagram",

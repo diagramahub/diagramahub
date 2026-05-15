@@ -25,7 +25,9 @@ from app.api.v1.mfa.schemas import (
     RecoveryCodesResponse,
 )
 from app.api.v1.mfa.services import MfaService
+from app.api.v1.ai_providers.repository import AIProviderRepository
 from app.api.v1.users.routes import get_current_user_email
+from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserInDB
 from app.core.security import create_access_token, decode_mfa_temp_token
 
@@ -404,6 +406,8 @@ async def verify_mfa(
         password_changed_at=user.password_changed_at,
     )
 
+    await UserRepository().update_last_login(user_id)
+
     response: dict = {
         "access_token": access_token,
         "token_type": "bearer",
@@ -523,7 +527,9 @@ async def admin_list_users(
     if search:
         import re
         pattern = re.compile(re.escape(search), re.IGNORECASE)
-        query = UserInDB.find({"$or": [{"email": pattern}, {"full_name": pattern}]})
+        query = UserInDB.find(
+            {"$or": [{"email": pattern}, {"full_name": pattern}]}
+        )
 
     total = await query.count()
 
@@ -536,6 +542,7 @@ async def admin_list_users(
             1 for c in u.recovery_codes
             if not (c.used if hasattr(c, "used") else c.get("used", False))
         )
+        last_login_at = u.last_login_at.isoformat() if u.last_login_at else None
 
         # Fetch subscription & plan name
         plan_name = None
@@ -552,7 +559,33 @@ async def admin_list_users(
         except Exception:
             pass
 
-        # Count diagrams via projects
+        connected_ai_models = []
+        try:
+            ai_repo = AIProviderRepository()
+            ai_settings = await ai_repo.get_user_settings(str(u.id))
+            if ai_settings and ai_settings.providers:
+                for provider in ai_settings.providers:
+                    if not provider.is_active:
+                        continue
+                    provider_name = (
+                        provider.provider.value
+                        if hasattr(provider.provider, "value")
+                        else provider.provider
+                    )
+                    connected_ai_models.append(
+                        {
+                            "provider": provider_name,
+                            "model": provider.model,
+                            "is_default": provider.is_default,
+                            "is_active": provider.is_active,
+                            "display_name": provider.display_name,
+                        }
+                    )
+        except Exception:
+            pass
+
+        # Count projects and diagrams via projects
+        project_count = 0
         diagram_count = 0
         try:
             from app.api.v1.projects.schemas import ProjectInDB
@@ -561,6 +594,7 @@ async def admin_list_users(
                 ProjectInDB.user_id == str(u.id)
             ).to_list()
             if user_projects:
+                project_count = len(user_projects)
                 project_ids = [str(p.id) for p in user_projects]
                 diagram_count = await DiagramInDB.find(
                     {"project_id": {"$in": project_ids}}
@@ -580,7 +614,10 @@ async def admin_list_users(
             "recovery_codes_remaining": unused_codes,
             "created_at": u.created_at.isoformat() if u.created_at else None,
             "plan_name": plan_name,
+            "project_count": project_count,
             "diagram_count": diagram_count,
+            "connected_ai_models": connected_ai_models,
+            "last_login_at": last_login_at,
         })
 
     return {
@@ -657,13 +694,13 @@ async def admin_export_users_excel(
     # Headers
     if lang == "en":
         headers = [
-            "Email", "Full Name", "Role", "Plan", "Diagrams", "Active", "MFA Enabled",
+            "Email", "Full Name", "Role", "Plan", "License Usage", "Active", "MFA Enabled",
             "MFA Methods", "Default Method", "Recovery Codes Remaining",
             "Created At",
         ]
     else:
         headers = [
-            "Correo", "Nombre completo", "Rol", "Plan", "Diagramas", "Activo", "MFA Habilitado",
+            "Correo", "Nombre completo", "Rol", "Plan", "Uso de licencia", "Activo", "MFA Habilitado",
             "Métodos MFA", "Método predeterminado", "Códigos de recuperación",
             "Fecha de registro",
         ]
@@ -711,7 +748,8 @@ async def admin_export_users_excel(
         except Exception:
             pass
 
-        # Count diagrams
+        # Count projects and diagrams
+        project_count = 0
         diagram_count = 0
         try:
             from app.api.v1.projects.schemas import ProjectInDB
@@ -720,6 +758,7 @@ async def admin_export_users_excel(
                 ProjectInDB.user_id == str(u.id)
             ).to_list()
             if user_projects:
+                project_count = len(user_projects)
                 project_ids = [str(p.id) for p in user_projects]
                 diagram_count = await DiagramInDB.find(
                     {"project_id": {"$in": project_ids}}
@@ -729,13 +768,18 @@ async def admin_export_users_excel(
 
         yes = "Yes" if lang == "en" else "Sí"
         no = "No"
+        project_label = "project" if project_count == 1 else "projects"
+        diagram_label = "diagram" if diagram_count == 1 else "diagrams"
+        if lang != "en":
+            project_label = "proyecto" if project_count == 1 else "proyectos"
+            diagram_label = "diagrama" if diagram_count == 1 else "diagramas"
 
         row_data = [
             u.email,
             u.full_name or "",
             u.role,
             plan_name,
-            diagram_count,
+            f"{project_count} {project_label} / {diagram_count} {diagram_label}",
             yes if u.is_active else no,
             yes if u.mfa_enabled else no,
             methods_str,

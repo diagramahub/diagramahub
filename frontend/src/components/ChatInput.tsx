@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UserAISettings, AIProviderType, AI_PROVIDER_NAMES, AI_PROVIDER_MODELS } from '../types/ai';
+import { ChatPresetAction } from '../types/chat';
 
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, presetAction?: ChatPresetAction) => void;
   disabled?: boolean;
   aiSettings?: UserAISettings | null;
   activeProvider: AIProviderType | null;
@@ -11,6 +13,7 @@ interface ChatInputProps {
 }
 
 export default function ChatInput({ onSend, disabled = false, aiSettings, activeProvider, activeModel, onModelChange }: ChatInputProps) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   const [showProviderMenu, setShowProviderMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -55,10 +58,59 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
     setText('');
   };
 
+  const handleQuickAction = (action: ChatPresetAction) => {
+    if (disabled) return;
+    const actionPrompts: Record<ChatPresetAction, string> = {
+      explain: t('chat.quickActions.explainPrompt'),
+      improve_ui: t('chat.quickActions.improveUiPrompt'),
+      improve_process: t('chat.quickActions.improveProcessPrompt'),
+      fix: t('chat.quickActions.fixPrompt'),
+    };
+    onSend(actionPrompts[action], action);
+  };
+
   const canSend = text.trim().length > 0 && !disabled;
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
+      <div
+        className="flex flex-nowrap gap-2 px-3 pt-3 pb-5 overflow-x-auto overflow-y-hidden"
+        style={{ scrollbarGutter: 'stable both-edges' }}
+      >
+        <button
+          type="button"
+          onClick={() => handleQuickAction('explain')}
+          disabled={disabled}
+          className="flex-shrink-0 whitespace-nowrap px-2 py-1 text-xs font-medium rounded-full border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 disabled:opacity-50 transition-colors"
+        >
+          {t('chat.quickActions.explain')}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleQuickAction('improve_ui')}
+          disabled={disabled}
+          className="flex-shrink-0 whitespace-nowrap px-2 py-1 text-xs font-medium rounded-full border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 disabled:opacity-50 transition-colors"
+        >
+          {t('chat.quickActions.improveUi')}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleQuickAction('improve_process')}
+          disabled={disabled}
+          className="flex-shrink-0 whitespace-nowrap px-2 py-1 text-xs font-medium rounded-full border border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 disabled:opacity-50 transition-colors"
+        >
+          {t('chat.quickActions.improveProcess')}
+        </button>
+        <button
+          type="button"
+          onClick={() => handleQuickAction('fix')}
+          disabled={disabled}
+          className="flex-shrink-0 whitespace-nowrap px-2 py-1 text-xs font-medium rounded-full border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 disabled:opacity-50 transition-colors"
+        >
+          {t('chat.quickActions.fix')}
+        </button>
+      </div>
+
       {/* Textarea + send */}
       <div className="flex items-end gap-2 px-3 pt-3 pb-1.5">
         <textarea
@@ -76,7 +128,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
           onClick={handleSend}
           disabled={!canSend}
           className="p-2 text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
-          aria-label="Enviar mensaje"
+          aria-label={t('chat.sendMessage')}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -102,7 +154,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
                 />
               )}
               <span className="font-medium truncate max-w-[120px]">
-                {activeModel || (activeProvider ? AI_PROVIDER_NAMES[activeProvider] : 'Modelo')}
+                {activeModel || (activeProvider ? AI_PROVIDER_NAMES[activeProvider] : t('chat.model'))}
               </span>
               <svg className={`w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform ${showProviderMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
@@ -142,7 +194,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
                             </span>
                             {m.recommended && (
                               <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-full">
-                                Recomendado
+                                {t('chat.recommended')}
                               </span>
                             )}
                             {isSelected && (

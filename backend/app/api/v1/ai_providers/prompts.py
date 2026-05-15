@@ -1078,11 +1078,13 @@ def build_chat_system_prompt(
 def build_unified_chat_prompt(
     diagram_code: str,
     diagram_type: str,
-    language: str = "es"
+    language: str = "es",
+    preset_action: str | None = None,
 ) -> str:
     """System prompt unificado que detecta intencion automaticamente."""
     context = get_diagram_context(diagram_type, language)
     common_errors = get_common_errors_section(diagram_type, language)
+    action_instruction = _get_chat_action_instruction(preset_action, language)
 
     # Add Kroki rendering context for server-rendered types
     kroki_context = ""
@@ -1150,7 +1152,7 @@ def build_unified_chat_prompt(
             "tambien deben estar en espanol cuando sea posible.\n\n"
         )
 
-        complete_code_instruction = (
+        complete_code_instruction = "" if preset_action == "explain" else (
             "CODIGO COMPLETO OBLIGATORIO:\n"
             "Cuando generes o modifiques codigo de diagrama, SIEMPRE incluye el codigo COMPLETO "
             "del diagrama, no fragmentos parciales. El usuario reemplazara todo el codigo actual "
@@ -1166,6 +1168,7 @@ def build_unified_chat_prompt(
             f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
+            f"{action_instruction}"
             f"{complete_code_instruction}"
             f"{lang_instruction}"
             "INSTRUCCIONES DE COMPORTAMIENTO:\n"
@@ -1197,7 +1200,7 @@ def build_unified_chat_prompt(
             "should also be in English when possible.\n\n"
         )
 
-        complete_code_instruction = (
+        complete_code_instruction = "" if preset_action == "explain" else (
             "COMPLETE CODE REQUIRED:\n"
             "When generating or modifying diagram code, ALWAYS include the COMPLETE "
             "diagram code, not partial fragments. The user will replace all current code "
@@ -1213,6 +1216,7 @@ def build_unified_chat_prompt(
             f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
+            f"{action_instruction}"
             f"{complete_code_instruction}"
             f"{lang_instruction}"
             "BEHAVIOR INSTRUCTIONS:\n"
@@ -1236,6 +1240,68 @@ def build_unified_chat_prompt(
             "- If unsure about intent, respond with text and ask if they want you to modify the diagram\n"
             "- Always respond in English"
         )
+
+
+def _get_chat_action_instruction(preset_action: str | None, language: str) -> str:
+    """Return extra instructions for a predefined chat action."""
+    if not preset_action:
+        return ""
+
+    if language == "es":
+        if preset_action == "explain":
+            return (
+                "ACCION PREDEFINIDA: EXPLICAR\n"
+                "Responde solo con una explicacion clara y concisa del diagrama actual. "
+                "No incluyas codigo, bloques de codigo, delimitadores, sintaxis de diagrama ni "
+                "sugerencias de cambios. Si necesitas referirte a elementos del diagrama, hazlo "
+                "solo en lenguaje natural.\n\n"
+            )
+        if preset_action == "improve_ui":
+            return (
+                "ACCION PREDEFINIDA: MEJORAR UI\n"
+                "Mejora la presentacion visual del diagrama actual: orden, legibilidad, "
+                "estilo, etiquetas y claridad. Devuelve el diagrama completo modificado.\n\n"
+            )
+        if preset_action == "improve_process":
+            return (
+                "ACCION PREDEFINIDA: MEJORAR PROCESO\n"
+                "Mejora el flujo o proceso representado por el diagrama actual: pasos, "
+                "secuencias, validaciones y decisiones. Devuelve el diagrama completo modificado.\n\n"
+            )
+        if preset_action == "fix":
+            return (
+                "ACCION PREDEFINIDA: REPARAR\n"
+                "Corrige errores de sintaxis, estructura o renderizado del diagrama actual. "
+                "Mantén la intención original y devuelve el diagrama completo corregido.\n\n"
+            )
+        return ""
+
+    if preset_action == "explain":
+        return (
+            "PRESET ACTION: EXPLAIN\n"
+            "Respond only with a clear, concise explanation of the current diagram. "
+            "Do not include code, code blocks, delimiters, diagram syntax, or modification suggestions. "
+            "Use natural language only.\n\n"
+        )
+    if preset_action == "improve_ui":
+        return (
+            "PRESET ACTION: IMPROVE UI\n"
+            "Improve the visual presentation of the current diagram: layout, readability, "
+            "styling, labels, and clarity. Return the complete modified diagram.\n\n"
+        )
+    if preset_action == "improve_process":
+        return (
+            "PRESET ACTION: IMPROVE PROCESS\n"
+            "Improve the workflow or process represented by the current diagram: steps, "
+            "sequences, validations, and decisions. Return the complete modified diagram.\n\n"
+        )
+    if preset_action == "fix":
+        return (
+            "PRESET ACTION: FIX\n"
+            "Fix syntax, structure, or rendering issues in the current diagram. Keep the "
+            "original intent and return the complete corrected diagram.\n\n"
+        )
+    return ""
 
 
 # ------------------------------------------------------------------ #

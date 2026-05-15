@@ -162,8 +162,9 @@ class OpenAIClient(BaseAIClient):
             cleaned = clean_code_response(response)
             if not cleaned:
                 raise ValueError(
-                    f"El modelo {self.model} no generó código. "
-                    "Intenta con un modelo más capaz (ej: gpt-5.4-mini o gpt-4.1)."
+                    f"El modelo {self.model} no devolvió código de diagrama. "
+                    "Si querías solo una explicación, usa la acción 'Explicar' del chat. "
+                    "Si querías mejorar el diagrama, prueba con un modelo más capaz."
                 )
             return cleaned
         except httpx.TimeoutException:

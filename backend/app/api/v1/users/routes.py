@@ -193,6 +193,9 @@ async def login(
     user_id = result.pop("_user_id", None)
     await log_event(EVENT_LOGIN_SUCCESS, login_data.email, user_id=user_id, ip_address=client_ip)
 
+    if user_id and not result.get("mfa_required"):
+        await UserRepository().update_last_login(user_id)
+
     # MFA flow: the service includes an internal `email_code` field when the
     # default method is email.  We need to send it via the email service and
     # then strip it from the response before returning to the client.

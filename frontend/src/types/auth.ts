@@ -145,7 +145,16 @@ export interface AdminUserMfaInfo {
   recovery_codes_remaining: number;
   created_at: string | null;
   plan_name: string | null;
+  project_count: number;
   diagram_count: number;
+  connected_ai_models: {
+    provider: string;
+    model: string;
+    is_default: boolean;
+    is_active: boolean;
+    display_name?: string | null;
+  }[];
+  last_login_at: string | null;
 }
 
 export interface PaginatedAdminUsers {
