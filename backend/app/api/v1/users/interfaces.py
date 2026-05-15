@@ -2,6 +2,7 @@
 User repository interface following Dependency Inversion Principle.
 """
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 
 from app.api.v1.users.schemas import UserCreate, UserInDB, UserUpdate
@@ -48,4 +49,9 @@ class IUserRepository(ABC):
     @abstractmethod
     async def clear_reset_token(self, email: str) -> bool:
         """Clear password reset token."""
+        pass
+
+    @abstractmethod
+    async def update_last_login(self, user_id: str, last_login_at: datetime) -> bool:
+        """Update the user's last successful login timestamp."""
         pass

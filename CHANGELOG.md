@@ -5,6 +5,24 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.4] - 2026-05-14
+
+### Added
+- Acciones rápidas predefinidas en el chat AI: Explicar, Mejorar UI, Mejorar Proceso y Reparar.
+- Panel de chat redimensionable con persistencia del ancho por diagrama (localStorage + user_preferences).
+- Panel admin: nuevas columnas "Uso de licencia", "Modelos IA conectados" y "Último login".
+- Tracking de `last_login_at` en usuarios (login normal y post-MFA).
+- Bloqueo de solicitudes de explicación en el modal de mejora con redirección al chat AI.
+- Exportación Excel del admin muestra "Uso de licencia" en formato legible.
+- Nuevas claves i18n para acciones rápidas del chat y columnas del panel admin.
+
+### Changed
+- Lógica de resize del panel de chat movida de `AIChatPanel` a `DiagramEditorPage`.
+- Detección de modo de respuesta (`text` vs `code`) refactorizada para soportar preset actions.
+- Parsing de respuesta AI condicionado al modo de respuesta.
+- Imagen Docker base del backend actualizada de `python:3.12-slim-bookworm` a `python:3.12-slim-trixie`.
+- Textos hardcodeados en ChatInput internacionalizados.
+
 ## [0.5.3] - 2026-05-12
 
 ### Added

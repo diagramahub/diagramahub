@@ -171,6 +171,7 @@ async def send_message(
         provider=body.provider,
         model=body.model,
         language=body.language,
+        preset_action=body.preset_action,
     )
 
 
@@ -198,11 +199,12 @@ async def stream_message(
             user_id=user_id,
             content=body.content,
             diagram_code=body.diagram_code,
-            diagram_type=body.diagram_type,
-            provider=body.provider,
-            model=body.model,
-            language=body.language,
-        ),
+        diagram_type=body.diagram_type,
+        provider=body.provider,
+        model=body.model,
+        language=body.language,
+        preset_action=body.preset_action,
+    ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

@@ -35,9 +35,26 @@ export default function ImproveDiagramWithAIModal({
   const [copied, setCopied] = useState(false);
   const [previewTab, setPreviewTab] = useState<'code' | 'diagram'>('diagram');
 
+  const isExplanationRequest = (value: string) => {
+    const normalized = value.toLowerCase();
+    return (
+      normalized.includes('explica') ||
+      normalized.includes('explain') ||
+      normalized.includes('describe') ||
+      normalized.includes('qué hace') ||
+      normalized.includes('que hace') ||
+      normalized.includes('analiza') ||
+      normalized.includes('analyze')
+    );
+  };
+
   const handleGenerate = async () => {
     if (!improvementRequest.trim() || improvementRequest.length < 5) {
       setError(t('ai.validation.apiKeyMinLength'));
+      return;
+    }
+    if (isExplanationRequest(improvementRequest)) {
+      setError(t('ai.improveDiagram.explainBlocked'));
       return;
     }
     setGenerating(true);

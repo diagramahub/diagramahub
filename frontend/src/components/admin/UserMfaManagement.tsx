@@ -29,6 +29,32 @@ const ChevronRightIcon = ({ className = 'w-4 h-4' }: { className?: string }) => 
   </svg>
 );
 
+const AIProviderLogo = ({ provider, className = 'w-3.5 h-3.5' }: { provider: string; className?: string }) => {
+  const [imageError, setImageError] = useState(false);
+  const providerName = provider;
+
+  if (imageError) {
+    return (
+      <span
+        className={`${className} inline-flex items-center justify-center rounded-full bg-gray-100 text-[9px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300`}
+        aria-hidden="true"
+      >
+        {providerName.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={`/images/ai-providers/${provider}.svg`}
+      alt={providerName}
+      className={`${className} object-contain`}
+      loading="lazy"
+      onError={() => { setImageError(true); }}
+    />
+  );
+};
+
 const PAGE_SIZE = 15;
 
 
@@ -206,7 +232,13 @@ export default function UserMfaManagement() {
                       {t('admin.users.columnPlan')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      {t('admin.users.columnDiagrams')}
+                      {t('admin.users.columnLicenseUsage')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnAiModels')}
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      {t('admin.users.columnLastLogin')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       {t('admin.users.columnMfaStatus')}
@@ -252,9 +284,40 @@ export default function UserMfaManagement() {
                         )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
-                        <span className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
-                          {u.diagram_count} {u.diagram_count === 1 ? t('admin.users.diagram') : t('admin.users.diagrams')}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full">
+                            {u.project_count} {u.project_count === 1 ? t('admin.users.project') : t('admin.users.projects')}
+                          </span>
+                          <span className="text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full">
+                            {u.diagram_count} {u.diagram_count === 1 ? t('admin.users.diagram') : t('admin.users.diagrams')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs">
+                        {u.connected_ai_models.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {u.connected_ai_models.map((model) => (
+                              <span
+                                key={`${u.id}-${model.provider}-${model.model}`}
+                                title={`${model.provider}: ${model.model}`}
+                                className={`inline-flex items-center justify-center rounded-full border px-1 py-1 leading-none ${
+                                  model.is_default
+                                    ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-300'
+                                    : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                }`}
+                              >
+                                <AIProviderLogo provider={model.provider} />
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{t('admin.users.noAiModels')}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {u.last_login_at
+                          ? new Date(u.last_login_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          : '—'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
                         {u.mfa_enabled ? (

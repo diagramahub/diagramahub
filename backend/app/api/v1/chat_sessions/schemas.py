@@ -23,6 +23,14 @@ class ImprovementStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class ChatPresetAction(str, Enum):
+    """Predefined AI chat actions."""
+    EXPLAIN = "explain"
+    IMPROVE_UI = "improve_ui"
+    IMPROVE_PROCESS = "improve_process"
+    FIX = "fix"
+
+
 class ChatSessionInDB(Document):
     """Chat session document stored in MongoDB."""
     user_id: str
@@ -78,6 +86,7 @@ class SendMessageRequest(BaseModel):
     provider: Optional[str] = None
     model: Optional[str] = None
     language: str = "es"
+    preset_action: Optional[ChatPresetAction] = None
 
 
 class UpdateMessageStatusRequest(BaseModel):
