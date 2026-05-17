@@ -52,9 +52,9 @@ docker-compose up -d
 
 **Environment variables required in `backend/.env`:**
 ```bash
-MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/
+MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/
 # OR for standard connection:
-# MONGO_URI=mongodb://user:password@host:27017/
+# MONGO_URI=mongodb://<db-user>:<db-password>@host:27017/
 DATABASE_NAME=diagramahub
 JWT_SECRET=<your-secret-here>
 ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -130,7 +130,7 @@ rm docker-compose.yml
 ln -sf deploy/external-mongodb/docker-compose.yml docker-compose.yml
 
 # Update backend/.env with external MongoDB URI
-# MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/
+# MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/
 
 # Start services
 docker-compose up -d

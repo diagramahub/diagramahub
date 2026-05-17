@@ -472,6 +472,7 @@ Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in Spanish
 - **Error handling**: FastAPI HTTPException for API errors
 - **Naming**: snake_case (Python), camelCase (TypeScript)
 - **Testing**: Write tests for all new endpoints
+- **Test credentials**: Never hardcode passwords or secret-looking credentials in tests/scripts. Reuse `backend/tests/utils/security.py` helpers such as `generate_test_password()` and the shell helpers in `scripts/test-helpers.sh`.
 - **Documentation**: Docstrings on all functions and classes
 - **One entity = one module folder** — never mix entities
 

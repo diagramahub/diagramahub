@@ -335,8 +335,8 @@ configure_mongodb() {
         print_info "Configuring External MongoDB"
         echo ""
         echo "Connection URI examples:"
-        echo -e "  ${CYAN}MongoDB Atlas:${NC}  mongodb+srv://username:password@cluster.mongodb.net/"
-        echo -e "  ${CYAN}Standard:${NC}       mongodb://username:password@hostname:27017/"
+        echo -e "  ${CYAN}MongoDB Atlas:${NC}  mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/"
+        echo -e "  ${CYAN}Standard:${NC}       mongodb://<db-user>:<db-password>@hostname:27017/"
         echo -e "  ${CYAN}Local custom:${NC}   mongodb://localhost:27017/"
         echo ""
 

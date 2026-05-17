@@ -96,7 +96,7 @@ Edit `backend/.env` and configure at least:
 ```env
 # MongoDB
 MONGO_URI=mongodb://mongodb:27017          # For local Docker MongoDB
-# MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/  # For external MongoDB
+# MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/  # For external MongoDB
 DATABASE_NAME=diagramahub
 
 # JWT (generate a secure secret)

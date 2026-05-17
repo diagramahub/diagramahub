@@ -1,12 +1,20 @@
 """
 Tests for password management endpoints (change password and reset password).
 """
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import AsyncClient
 
 from app.api.v1.users.schemas import UserInDB
+from tests.utils import (
+    generate_password_missing_digit,
+    generate_password_missing_lowercase,
+    generate_password_missing_uppercase,
+    generate_test_password,
+    generate_weak_password,
+)
 
 
 @pytest.mark.integration
@@ -18,11 +26,10 @@ class TestChangePassword:
         self, authenticated_client: AsyncClient, registered_user: dict
     ):
         """Test successful password change with only new_password."""
-        new_password = "NewTestPass456"
+        new_password = generate_test_password("ChangePassword")
 
         response = await authenticated_client.put(
-            "/api/v1/users/change-password",
-            json={"new_password": new_password}
+            "/api/v1/users/change-password", json={"new_password": new_password}
         )
 
         assert response.status_code == 200
@@ -31,21 +38,15 @@ class TestChangePassword:
         # Verify we can login with new password
         login_response = await authenticated_client.post(
             "/api/v1/users/login",
-            json={
-                "email": registered_user["email"],
-                "password": new_password
-            }
+            json={"email": registered_user["email"], "password": new_password},
         )
         assert login_response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_change_password_weak_new_password(
-        self, authenticated_client: AsyncClient
-    ):
+    async def test_change_password_weak_new_password(self, authenticated_client: AsyncClient):
         """Test password change fails with weak new password."""
         response = await authenticated_client.put(
-            "/api/v1/users/change-password",
-            json={"new_password": "weak"}
+            "/api/v1/users/change-password", json={"new_password": generate_weak_password()}
         )
 
         assert response.status_code == 422
@@ -55,7 +56,7 @@ class TestChangePassword:
         """Test password change fails without authentication."""
         response = await client.put(
             "/api/v1/users/change-password",
-            json={"new_password": "NewTestPass456"}
+            json={"new_password": generate_test_password("NoAuthChange")},
         )
 
         assert response.status_code == 401
@@ -66,8 +67,7 @@ class TestChangePassword:
     ):
         """Test password change with same password as current."""
         response = await authenticated_client.put(
-            "/api/v1/users/change-password",
-            json={"new_password": registered_user["password"]}
+            "/api/v1/users/change-password", json={"new_password": registered_user["password"]}
         )
 
         # This should succeed (no business rule against it)
@@ -76,10 +76,7 @@ class TestChangePassword:
     @pytest.mark.asyncio
     async def test_change_password_missing_new_password(self, authenticated_client: AsyncClient):
         """Test password change fails with missing new_password field."""
-        response = await authenticated_client.put(
-            "/api/v1/users/change-password",
-            json={}
-        )
+        response = await authenticated_client.put("/api/v1/users/change-password", json={})
         assert response.status_code == 422
 
     @pytest.mark.asyncio
@@ -87,7 +84,7 @@ class TestChangePassword:
         """Test password change fails when new password has no uppercase letter."""
         response = await authenticated_client.put(
             "/api/v1/users/change-password",
-            json={"new_password": "alllower1"}
+            json={"new_password": generate_password_missing_uppercase()},
         )
         assert response.status_code == 422
 
@@ -96,7 +93,7 @@ class TestChangePassword:
         """Test password change fails when new password has no digit."""
         response = await authenticated_client.put(
             "/api/v1/users/change-password",
-            json={"new_password": "NoDigitHere"}
+            json={"new_password": generate_password_missing_digit()},
         )
         assert response.status_code == 422
 
@@ -105,7 +102,7 @@ class TestChangePassword:
         """Test password change fails when new password has no lowercase letter."""
         response = await authenticated_client.put(
             "/api/v1/users/change-password",
-            json={"new_password": "ALLUPPER1"}
+            json={"new_password": generate_password_missing_lowercase()},
         )
         assert response.status_code == 422
 
@@ -126,14 +123,11 @@ class TestPasswordReset:
     """Test suite for password reset request and confirmation endpoints."""
 
     @pytest.mark.asyncio
-    async def test_password_reset_request_success(
-        self, client: AsyncClient, registered_user: dict
-    ):
+    async def test_password_reset_request_success(self, client: AsyncClient, registered_user: dict):
         """Test successful password reset request."""
         with _mock_email_service():
             response = await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": registered_user["email"]}
+                "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )
 
         assert response.status_code == 200
@@ -147,8 +141,7 @@ class TestPasswordReset:
         """Test password reset request with non-existent email."""
         with _mock_email_service():
             response = await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": "nonexistent@example.com"}
+                "/api/v1/users/reset-password-request", json={"email": "nonexistent@example.com"}
             )
 
         # Should return 200 for security (don't reveal if email exists)
@@ -158,8 +151,7 @@ class TestPasswordReset:
     async def test_password_reset_request_invalid_email(self, client: AsyncClient):
         """Test password reset request with invalid email format."""
         response = await client.post(
-            "/api/v1/users/reset-password-request",
-            json={"email": "not-an-email"}
+            "/api/v1/users/reset-password-request", json={"email": "not-an-email"}
         )
 
         assert response.status_code == 422
@@ -167,34 +159,29 @@ class TestPasswordReset:
     @pytest.mark.asyncio
     async def test_password_reset_request_missing_email(self, client: AsyncClient):
         """Test password reset request without email."""
-        response = await client.post(
-            "/api/v1/users/reset-password-request",
-            json={}
-        )
+        response = await client.post("/api/v1/users/reset-password-request", json={})
 
         assert response.status_code == 422
 
     @pytest.mark.asyncio
-    async def test_password_reset_request_no_email_vendor(self, client: AsyncClient, registered_user: dict):
+    async def test_password_reset_request_no_email_vendor(
+        self, client: AsyncClient, registered_user: dict
+    ):
         """Test password reset request returns 503 when no email vendor is configured."""
         # No mock — no vendor in test DB → should get 503
         response = await client.post(
-            "/api/v1/users/reset-password-request",
-            json={"email": registered_user["email"]}
+            "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
         )
 
         assert response.status_code == 503
 
     @pytest.mark.asyncio
-    async def test_password_reset_confirm_success(
-        self, client: AsyncClient, registered_user: dict
-    ):
+    async def test_password_reset_confirm_success(self, client: AsyncClient, registered_user: dict):
         """Test successful password reset confirmation."""
         # Request password reset (mocked email)
         with _mock_email_service():
             reset_request = await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": registered_user["email"]}
+                "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )
         assert reset_request.status_code == 200
 
@@ -204,14 +191,14 @@ class TestPasswordReset:
         assert reset_token is not None
 
         # Now confirm with the token
-        new_password = "NewResetPass789"
+        new_password = generate_test_password("ResetSuccess")
         response = await client.post(
             "/api/v1/users/reset-password-confirm",
             json={
                 "email": registered_user["email"],
                 "token": reset_token,
-                "new_password": new_password
-            }
+                "new_password": new_password,
+            },
         )
 
         assert response.status_code == 200
@@ -220,10 +207,7 @@ class TestPasswordReset:
         # Verify we can login with new password
         login_response = await client.post(
             "/api/v1/users/login",
-            json={
-                "email": registered_user["email"],
-                "password": new_password
-            }
+            json={"email": registered_user["email"], "password": new_password},
         )
         assert login_response.status_code == 200
 
@@ -237,8 +221,8 @@ class TestPasswordReset:
             json={
                 "email": registered_user["email"],
                 "token": "invalid-token-123",
-                "new_password": "NewResetPass789"
-            }
+                "new_password": generate_test_password("InvalidTokenReset"),
+            },
         )
 
         assert response.status_code == 400
@@ -262,8 +246,8 @@ class TestPasswordReset:
             json={
                 "email": registered_user["email"],
                 "token": "expired-token",
-                "new_password": "NewResetPass789"
-            }
+                "new_password": generate_test_password("ExpiredTokenReset"),
+            },
         )
 
         assert response.status_code == 400
@@ -277,8 +261,7 @@ class TestPasswordReset:
         # Request reset token (mocked email)
         with _mock_email_service():
             await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": registered_user["email"]}
+                "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )
 
         user = await UserInDB.find_one(UserInDB.email == registered_user["email"])
@@ -290,8 +273,8 @@ class TestPasswordReset:
             json={
                 "email": registered_user["email"],
                 "token": reset_token,
-                "new_password": "weak"
-            }
+                "new_password": generate_weak_password(),
+            },
         )
 
         assert response.status_code == 422
@@ -306,8 +289,8 @@ class TestPasswordReset:
             json={
                 "email": "nonexistent@example.com",
                 "token": reset_token,
-                "new_password": "NewResetPass789"
-            }
+                "new_password": generate_test_password("MissingUserReset"),
+            },
         )
 
         assert response.status_code == 400
@@ -320,28 +303,22 @@ class TestPasswordReset:
             "/api/v1/users/reset-password-confirm",
             json={
                 "email": "test@example.com",
-                "new_password": "NewResetPass789"
-            }
+                "new_password": generate_test_password("MissingToken"),
+            },
         )
         assert response.status_code == 422
 
         # Missing email
         response = await client.post(
             "/api/v1/users/reset-password-confirm",
-            json={
-                "token": "some-token",
-                "new_password": "NewResetPass789"
-            }
+            json={"token": "some-token", "new_password": generate_test_password("MissingEmail")},
         )
         assert response.status_code == 422
 
         # Missing new_password
         response = await client.post(
             "/api/v1/users/reset-password-confirm",
-            json={
-                "email": "test@example.com",
-                "token": "some-token"
-            }
+            json={"email": "test@example.com", "token": "some-token"},
         )
         assert response.status_code == 422
 
@@ -353,8 +330,7 @@ class TestPasswordReset:
         with _mock_email_service():
             # First request
             await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": registered_user["email"]}
+                "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )
 
         user = await UserInDB.find_one(UserInDB.email == registered_user["email"])
@@ -363,8 +339,7 @@ class TestPasswordReset:
         with _mock_email_service():
             # Second request — should invalidate the first token
             await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": registered_user["email"]}
+                "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )
 
         user = await UserInDB.find_one(UserInDB.email == registered_user["email"])
@@ -378,8 +353,8 @@ class TestPasswordReset:
             json={
                 "email": registered_user["email"],
                 "token": first_token,
-                "new_password": "NewResetPass789"
-            }
+                "new_password": generate_test_password("StaleTokenReset"),
+            },
         )
         assert response.status_code == 400
 
@@ -397,13 +372,14 @@ class TestPasswordReset:
         from fastapi import HTTPException
 
         mock_instance.send_password_recovery_email = AsyncMock(
-            side_effect=HTTPException(status_code=500, detail="Error al enviar correo de recuperación")
+            side_effect=HTTPException(
+                status_code=500, detail="Error al enviar correo de recuperación"
+            )
         )
 
         with patch("app.api.v1.users.services.EmailService", return_value=mock_instance):
             response = await client.post(
-                "/api/v1/users/reset-password-request",
-                json={"email": registered_user["email"]}
+                "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )
 
         assert response.status_code == 500
