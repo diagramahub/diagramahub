@@ -42,7 +42,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
 
       if (!containerRef.current) return;
 
-      if ('svg' in result) {
+      if ("svg" in result) {
         containerRef.current.innerHTML = result.svg;
       } else {
         setRenderError(result.error);

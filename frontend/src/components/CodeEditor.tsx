@@ -10,7 +10,7 @@ interface CodeEditorProps {
   height?: string;
   readOnly?: boolean;
   borderless?: boolean;
-  theme?: 'vs-light' | 'vs-dark';
+  theme?: "vs-light" | "vs-dark";
 }
 
 export default function CodeEditor({
