@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import SimpleMDE from 'react-simplemde-editor';
-import 'easymde/dist/easymde.min.css';
+import { useState, useMemo, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import SimpleMDE from "react-simplemde-editor";
+import "easymde/dist/easymde.min.css";
 
 interface MarkdownEditorProps {
   value: string;
@@ -12,36 +12,61 @@ interface MarkdownEditorProps {
   minHeight?: string;
   fontSize?: number;
   onFontSizeChange?: (size: number) => void;
+  maxLength?: number;
 }
 
 export default function MarkdownEditor({
   value,
   onChange,
-  placeholder = 'Escribe tu descripción en Markdown...',
-  className = '',
+  placeholder = "Escribe tu descripción en Markdown...",
+  className = "",
   fontSize,
+  maxLength,
 }: MarkdownEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
 
-  const handleChange = useCallback((val: string) => {
-    onChange(val);
-  }, [onChange]);
+  const handleChange = useCallback(
+    (val: string) => {
+      if (maxLength && val.length > maxLength) {
+        return;
+      }
+      onChange(val);
+    },
+    [onChange, maxLength],
+  );
 
-  const easymdeOptions = useMemo(() => ({
-    spellChecker: false,
-    placeholder,
-    status: false,
-    minHeight: '300px',
-    autofocus: true,
-    toolbar: [
-      'bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', '|',
-      'unordered-list', 'ordered-list', '|',
-      'code', 'quote', 'link', 'table', '|',
-      'horizontal-rule', '|',
-      'preview', 'side-by-side',
-    ] as const,
-  }), [placeholder]);
+  const easymdeOptions = useMemo(
+    () => ({
+      spellChecker: false,
+      placeholder,
+      status: false,
+      minHeight: "300px",
+      autofocus: true,
+      toolbar: [
+        "bold",
+        "italic",
+        "strikethrough",
+        "|",
+        "heading-1",
+        "heading-2",
+        "heading-3",
+        "|",
+        "unordered-list",
+        "ordered-list",
+        "|",
+        "code",
+        "quote",
+        "link",
+        "table",
+        "|",
+        "horizontal-rule",
+        "|",
+        "preview",
+        "side-by-side",
+      ] as const,
+    }),
+    [placeholder],
+  );
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
@@ -49,13 +74,25 @@ export default function MarkdownEditor({
         <>
           {/* Edit mode header */}
           <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Editando descripción · Markdown</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Editando descripción · Markdown
+            </span>
             <button
               onClick={() => setIsEditing(false)}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-md transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               Listo
             </button>
@@ -73,14 +110,26 @@ export default function MarkdownEditor({
         <>
           {/* Read-only mode header */}
           <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Descripción</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Descripción
+            </span>
             <button
               onClick={() => setIsEditing(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
               title="Editar descripción"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
               </svg>
               Editar
             </button>
@@ -97,8 +146,18 @@ export default function MarkdownEditor({
                 </ReactMarkdown>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
-                  <svg className="w-10 h-10 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-10 h-10 mb-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                   <p className="text-sm italic">Sin descripción</p>
                   <button

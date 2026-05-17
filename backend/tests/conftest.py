@@ -1,22 +1,25 @@
 """
 Shared pytest fixtures and configuration for all tests.
 """
+
 import asyncio
 from typing import AsyncGenerator, Generator
+
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
 from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
 from faker import Faker
+from httpx import ASGITransport, AsyncClient
+from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.main import app
-from app.core.config import settings
-from app.api.v1.users.schemas import UserInDB as User
 from app.api.v1.ai_providers.schemas import UserAISettingsInDB
 from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB
-from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.integrations.schemas import VendorConfigInDB
+from app.api.v1.projects.schemas import ProjectInDB
+from app.api.v1.users.schemas import UserInDB as User
+from app.core.config import settings
+from app.main import app
+from tests.utils import generate_test_password, generate_weak_password
 
 # Initialize Faker
 fake = Faker()
@@ -76,21 +79,13 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture
 def user_data() -> dict:
     """Generate random valid user data for registration."""
-    return {
-        "email": fake.email(),
-        "password": "TestPass123!Aa",
-        "full_name": fake.name()
-    }
+    return {"email": fake.email(), "password": generate_test_password(), "full_name": fake.name()}
 
 
 @pytest.fixture
 def invalid_user_data() -> dict:
     """Generate invalid user data (weak password)."""
-    return {
-        "email": fake.email(),
-        "password": "weak",
-        "full_name": fake.name()
-    }
+    return {"email": fake.email(), "password": generate_weak_password(), "full_name": fake.name()}
 
 
 @pytest_asyncio.fixture
@@ -102,11 +97,7 @@ async def registered_user(client: AsyncClient, user_data: dict) -> dict:
     response = await client.post("/api/v1/users/register", json=user_data)
     assert response.status_code == 201
 
-    return {
-        "email": user_data["email"],
-        "password": user_data["password"],
-        "user": response.json()
-    }
+    return {"email": user_data["email"], "password": user_data["password"], "user": response.json()}
 
 
 @pytest_asyncio.fixture
@@ -117,10 +108,7 @@ async def authenticated_client(client: AsyncClient, registered_user: dict) -> As
     # Login to get token
     login_response = await client.post(
         "/api/v1/users/login",
-        json={
-            "email": registered_user["email"],
-            "password": registered_user["password"]
-        }
+        json={"email": registered_user["email"], "password": registered_user["password"]},
     )
     assert login_response.status_code == 200
 

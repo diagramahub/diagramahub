@@ -110,7 +110,7 @@ curl -X POST http://localhost:5172/api/v1/users/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "password": "Password123",
+    "password": "<generated-strong-password>",
     "full_name": "John Doe"
   }'
 ```
@@ -127,10 +127,11 @@ curl -X POST http://localhost:5172/api/v1/users/register \
 ```
 
 **Validaciones de contraseña:**
-- Mínimo 8 caracteres
+- Mínimo 12 caracteres
 - Al menos 1 dígito
 - Al menos 1 mayúscula
 - Al menos 1 minúscula
+- Al menos 1 carácter especial
 
 #### 2. Login
 
@@ -139,7 +140,7 @@ curl -X POST http://localhost:5172/api/v1/users/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "password": "Password123"
+    "password": "<your-account-password>"
   }'
 ```
 
@@ -167,8 +168,8 @@ curl -X PUT http://localhost:5172/api/v1/users/change-password \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "current_password": "Password123",
-    "new_password": "NewPassword456"
+    "current_password": "<current-password>",
+    "new_password": "<generated-new-password>"
   }'
 ```
 
@@ -191,8 +192,8 @@ curl -X POST http://localhost:5172/api/v1/users/reset-password-confirm \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "token": "reset-token-from-email",
-    "new_password": "NewPassword789"
+    "token": "<reset-token-from-email>",
+    "new_password": "<generated-new-password>"
   }'
 ```
 

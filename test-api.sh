@@ -5,9 +5,14 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/scripts/test-helpers.sh"
+
 API_URL="http://localhost:5172"
 RANDOM_EMAIL="test$(date +%s)@example.com"
-PASSWORD="TestPassword123"
+PASSWORD="$(generate_runtime_password api)"
+WRONG_PASSWORD="$(generate_runtime_password wrong)"
 
 echo "🚀 Iniciando pruebas de API de Diagramahub..."
 echo ""
@@ -21,7 +26,7 @@ NC='\033[0m' # No Color
 # Test 1: Health Check
 echo -e "${BLUE}📊 Test 1: Health Check${NC}"
 HEALTH=$(curl -s $API_URL/health)
-if echo "$HEALTH" | grep -q "healthy"; then
+if echo "$HEALTH" | grep -q '"ok"'; then
     echo -e "${GREEN}✓ Health check passed${NC}"
 else
     echo -e "${RED}✗ Health check failed${NC}"
@@ -93,7 +98,7 @@ echo ""
 echo -e "${BLUE}📊 Test 6: Login with Wrong Password (Should Fail)${NC}"
 WRONG_LOGIN=$(curl -s -X POST $API_URL/api/v1/users/login \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"$RANDOM_EMAIL\",\"password\":\"WrongPassword123\"}")
+    -d "{\"email\":\"$RANDOM_EMAIL\",\"password\":\"$WRONG_PASSWORD\"}")
 
 if echo "$WRONG_LOGIN" | grep -q "Incorrect"; then
     echo -e "${GREEN}✓ Wrong password validation passed${NC}"
@@ -132,7 +137,7 @@ echo ""
 
 # Test 9: Change Password
 echo -e "${BLUE}📊 Test 9: Change Password${NC}"
-NEW_PASSWORD="NewPassword456"
+NEW_PASSWORD="$(generate_runtime_password changed)"
 CHANGE_PWD=$(curl -s -X PUT $API_URL/api/v1/users/change-password \
     -H "Authorization: Bearer $TOKEN" \
     -H "Content-Type: application/json" \
@@ -180,7 +185,7 @@ echo ""
 # Test 12: Password Reset Confirm
 if [ ! -z "$RESET_TOKEN" ] && [ "$RESET_TOKEN" != "null" ]; then
     echo -e "${BLUE}📊 Test 12: Password Reset Confirm${NC}"
-    FINAL_PASSWORD="FinalPassword789"
+    FINAL_PASSWORD="$(generate_runtime_password reset)"
     RESET_CONFIRM=$(curl -s -X POST $API_URL/api/v1/users/reset-password-confirm \
         -H "Content-Type: application/json" \
         -d "{\"email\":\"$RANDOM_EMAIL\",\"token\":\"$RESET_TOKEN\",\"new_password\":\"$FINAL_PASSWORD\"}")

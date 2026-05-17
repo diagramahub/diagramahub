@@ -10,7 +10,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.5.4
+- **Current version**: 0.5.5
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -452,7 +452,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.4**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.5**.
 
 | Bump | When |
 |------|------|
@@ -472,6 +472,7 @@ Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in Spanish
 - **Error handling**: FastAPI HTTPException for API errors
 - **Naming**: snake_case (Python), camelCase (TypeScript)
 - **Testing**: Write tests for all new endpoints
+- **Test credentials**: Never hardcode passwords or secret-looking credentials in tests/scripts. Reuse `backend/tests/utils/security.py` helpers such as `generate_test_password()` and the shell helpers in `scripts/test-helpers.sh`.
 - **Documentation**: Docstrings on all functions and classes
 - **One entity = one module folder** — never mix entities
 

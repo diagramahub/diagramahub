@@ -40,7 +40,7 @@ export function escapeHtml(text: string): string {
 export function sanitizeSvg(svg: string): string {
   return DOMPurify.sanitize(svg, {
     USE_PROFILES: { svg: true, svgFilters: true, html: true },
-    ADD_TAGS: ['use', 'foreignObject'],
+    ADD_TAGS: ["use", "foreignObject"],
     ADD_ATTR: ['href', 'xlink:href', 'xmlns', 'xmlns:xlink', 'requiredExtensions'],
   });
 }
