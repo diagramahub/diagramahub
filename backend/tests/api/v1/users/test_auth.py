@@ -1,8 +1,11 @@
 """
 Tests for user authentication endpoints (register and login).
 """
+
 import pytest
 from httpx import AsyncClient
+
+from tests.utils import generate_test_password
 
 
 @pytest.mark.integration
@@ -25,17 +28,15 @@ class TestUserRegistration:
         assert "password" not in data  # Password should never be returned
 
     @pytest.mark.asyncio
-    async def test_register_user_duplicate_email(
-        self, client: AsyncClient, registered_user: dict
-    ):
+    async def test_register_user_duplicate_email(self, client: AsyncClient, registered_user: dict):
         """Test registration fails when email already exists."""
         response = await client.post(
             "/api/v1/users/register",
             json={
                 "email": registered_user["email"],
-                "password": "AnotherPass123",
-                "full_name": "Another Name"
-            }
+                "password": generate_test_password("Duplicate"),
+                "full_name": "Another Name",
+            },
         )
 
         assert response.status_code == 400
@@ -48,17 +49,15 @@ class TestUserRegistration:
             "/api/v1/users/register",
             json={
                 "email": "not-an-email",
-                "password": "TestPass123",
-                "full_name": "Test User"
-            }
+                "password": generate_test_password("InvalidEmail"),
+                "full_name": "Test User",
+            },
         )
 
         assert response.status_code == 422  # Validation error
 
     @pytest.mark.asyncio
-    async def test_register_user_weak_password(
-        self, client: AsyncClient, invalid_user_data: dict
-    ):
+    async def test_register_user_weak_password(self, client: AsyncClient, invalid_user_data: dict):
         """Test registration fails with weak password."""
         response = await client.post("/api/v1/users/register", json=invalid_user_data)
 
@@ -70,8 +69,7 @@ class TestUserRegistration:
     async def test_register_user_missing_email(self, client: AsyncClient):
         """Test registration fails when email is missing."""
         response = await client.post(
-            "/api/v1/users/register",
-            json={"password": "TestPass123"}
+            "/api/v1/users/register", json={"password": generate_test_password("MissingEmail")}
         )
 
         assert response.status_code == 422
@@ -79,10 +77,7 @@ class TestUserRegistration:
     @pytest.mark.asyncio
     async def test_register_user_missing_password(self, client: AsyncClient):
         """Test registration fails when password is missing."""
-        response = await client.post(
-            "/api/v1/users/register",
-            json={"email": "test@example.com"}
-        )
+        response = await client.post("/api/v1/users/register", json={"email": "test@example.com"})
 
         assert response.status_code == 422
 
@@ -91,10 +86,7 @@ class TestUserRegistration:
         """Test registration succeeds without full_name (optional field)."""
         response = await client.post(
             "/api/v1/users/register",
-            json={
-                "email": "test@example.com",
-                "password": "TestPass123"
-            }
+            json={"email": "test@example.com", "password": generate_test_password("NoName")},
         )
 
         assert response.status_code == 201
@@ -112,10 +104,7 @@ class TestUserLogin:
         """Test successful login with valid credentials."""
         response = await client.post(
             "/api/v1/users/login",
-            json={
-                "email": registered_user["email"],
-                "password": registered_user["password"]
-            }
+            json={"email": registered_user["email"], "password": registered_user["password"]},
         )
 
         assert response.status_code == 200
@@ -131,10 +120,7 @@ class TestUserLogin:
         """Test login fails with incorrect password."""
         response = await client.post(
             "/api/v1/users/login",
-            json={
-                "email": registered_user["email"],
-                "password": "WrongPassword123"
-            }
+            json={"email": registered_user["email"], "password": generate_test_password("Wrong")},
         )
 
         assert response.status_code == 401
@@ -145,10 +131,7 @@ class TestUserLogin:
         """Test login fails with non-existent email."""
         response = await client.post(
             "/api/v1/users/login",
-            json={
-                "email": "nonexistent@example.com",
-                "password": "TestPass123"
-            }
+            json={"email": "nonexistent@example.com", "password": generate_test_password("Ghost")},
         )
 
         assert response.status_code == 401
@@ -159,10 +142,7 @@ class TestUserLogin:
         """Test login fails with invalid email format."""
         response = await client.post(
             "/api/v1/users/login",
-            json={
-                "email": "not-an-email",
-                "password": "TestPass123"
-            }
+            json={"email": "not-an-email", "password": generate_test_password("BadLoginEmail")},
         )
 
         assert response.status_code == 422
@@ -171,8 +151,7 @@ class TestUserLogin:
     async def test_login_missing_email(self, client: AsyncClient):
         """Test login fails when email is missing."""
         response = await client.post(
-            "/api/v1/users/login",
-            json={"password": "TestPass123"}
+            "/api/v1/users/login", json={"password": generate_test_password("MissingLoginEmail")}
         )
 
         assert response.status_code == 422
@@ -180,10 +159,7 @@ class TestUserLogin:
     @pytest.mark.asyncio
     async def test_login_missing_password(self, client: AsyncClient):
         """Test login fails when password is missing."""
-        response = await client.post(
-            "/api/v1/users/login",
-            json={"email": "test@example.com"}
-        )
+        response = await client.post("/api/v1/users/login", json={"email": "test@example.com"})
 
         assert response.status_code == 422
 
@@ -196,6 +172,7 @@ class TestUserLogin:
 
         # Deactivate the user directly in database
         from app.api.v1.users.schemas import UserInDB
+
         user = await UserInDB.find_one(UserInDB.email == user_data["email"])
         user.is_active = False
         await user.save()
@@ -203,10 +180,7 @@ class TestUserLogin:
         # Try to login with inactive user
         response = await client.post(
             "/api/v1/users/login",
-            json={
-                "email": user_data["email"],
-                "password": user_data["password"]
-            }
+            json={"email": user_data["email"], "password": user_data["password"]},
         )
 
         assert response.status_code == 400

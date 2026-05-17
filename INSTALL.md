@@ -63,7 +63,7 @@ Create `backend/.env` from the template:
 ```bash
 # MongoDB Configuration
 MONGO_URI=mongodb://mongodb:27017                    # For local Docker MongoDB
-# MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/  # For external MongoDB
+# MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/  # For external MongoDB
 DATABASE_NAME=diagramahub
 
 # JWT Configuration (generate with: python3 -c "import secrets; print(secrets.token_urlsafe(32))")

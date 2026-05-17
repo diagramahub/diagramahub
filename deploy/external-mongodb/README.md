@@ -22,28 +22,28 @@ Free tier available: https://www.mongodb.com/cloud/atlas/register
 
 Connection string format:
 ```
-mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/database?retryWrites=true&w=majority
 ```
 
 ### AWS DocumentDB
 
 Connection string format:
 ```
-mongodb://username:password@cluster.region.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=rds-combined-ca-bundle.pem
+mongodb://<db-user>:<db-password>@cluster.region.docdb.amazonaws.com:27017/?tls=true&tlsCAFile=rds-combined-ca-bundle.pem
 ```
 
 ### Azure Cosmos DB (MongoDB API)
 
 Connection string format:
 ```
-mongodb://username:password@account.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb
+mongodb://<db-user>:<db-password>@account.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb
 ```
 
 ### Custom MongoDB Server
 
 Standard connection format:
 ```
-mongodb://username:password@host:27017/database
+mongodb://<db-user>:<db-password>@host:27017/database
 ```
 
 ## Quick Start
@@ -60,7 +60,7 @@ mongodb://username:password@host:27017/database
 
    Create `backend/.env` in the project root:
    ```bash
-   MONGO_URI=mongodb+srv://user:password@cluster.mongodb.net/
+   MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/
    DATABASE_NAME=diagramahub
    JWT_SECRET=<generate-secure-secret>
    ACCESS_TOKEN_EXPIRE_MINUTES=30
@@ -76,7 +76,7 @@ mongodb://username:password@host:27017/database
 
    ```bash
    # Using mongosh
-   mongosh "mongodb+srv://user:password@cluster.mongodb.net/diagramahub"
+   mongosh "mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/diagramahub"
 
    # Test with Docker
    docker run --rm mongo:8 mongosh "your-connection-string" --eval "db.adminCommand('ping')"
@@ -137,7 +137,7 @@ mongodb://username:password@host:27017/database
 4. Replace `<username>` and `<password>` with your credentials
 5. Add database name before `?`:
    ```
-   mongodb+srv://user:pass@cluster.mongodb.net/diagramahub?retryWrites=true&w=majority
+   mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/diagramahub?retryWrites=true&w=majority
    ```
 
 ## Common Operations
@@ -331,7 +331,7 @@ If migrating from local-full deployment:
 3. **Update configuration:**
    ```bash
    # Update backend/.env
-   MONGO_URI=mongodb+srv://user:pass@cluster.mongodb.net/diagramahub
+   MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/diagramahub
 
    # Switch to external-mongodb deployment
    rm ../../docker-compose.yml

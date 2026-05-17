@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.5.5](0.5.5.md) | 2026-05-17 | Security, Python 3.13, Credential Cleanup |
 | [0.5.4](0.5.4.md) | 2026-05-14 | AI Quick Actions, Resizable Chat, Admin Improvements |
 | [0.5.3](0.5.3.md) | 2026-05-12 | AI Streaming, Python 3.12, Upgrades |
 | [0.5.2](0.5.2.md) | 2026-05-10 | Security: dependency updates |

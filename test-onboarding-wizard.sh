@@ -11,9 +11,13 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/scripts/test-helpers.sh"
+
 API_URL="http://localhost:5172"
 TEST_EMAIL="wizard-test-$(date +%s)@example.com"
-TEST_PASSWORD="TestPass123"
+TEST_PASSWORD="$(generate_runtime_password wizard)"
 TEST_NAME="Wizard Test User"
 PROJECT_NAME="Mi Proyecto de Prueba"
 PROJECT_DESC="Este es mi primer proyecto creado desde el wizard"

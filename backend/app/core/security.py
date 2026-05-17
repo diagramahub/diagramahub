@@ -1,17 +1,37 @@
 """
 Security utilities for authentication and password hashing.
 """
+
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from cryptography.fernet import Fernet
+from jose import JWTError, jwt
 
 from app.core.config import settings
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+class _BcryptContext:
+    """Minimal bcrypt wrapper that mimics passlib's CryptContext interface.
+
+    Exposes ``.hash()`` and ``.verify()`` so that code importing ``pwd_context``
+    from this module does not need to change after removing the passlib dependency.
+    """
+
+    @staticmethod
+    def hash(secret: str) -> str:
+        """Hash a secret using bcrypt (salt auto-generated)."""
+        return bcrypt.hashpw(secret.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    @staticmethod
+    def verify(secret: str, hash: str) -> bool:
+        """Verify a secret against a bcrypt hash."""
+        return bcrypt.checkpw(secret.encode("utf-8"), hash.encode("utf-8"))
+
+
+# Password hashing context — drop-in replacement for passlib's CryptContext
+pwd_context = _BcryptContext()
 
 
 def get_cipher() -> Fernet:
@@ -108,11 +128,7 @@ def create_access_token(
     to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject)}
     if password_changed_at is not None:
         to_encode["pca"] = password_changed_at
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.JWT_SECRET,
-        algorithm=settings.JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     return encoded_jwt
 
 
@@ -156,11 +172,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
     Raises:
         jose.JWTError: If token is invalid or expired
     """
-    return jwt.decode(
-        token,
-        settings.JWT_SECRET,
-        algorithms=[settings.JWT_ALGORITHM]
-    )
+    return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
 
 
 # --- MFA Security Functions ---

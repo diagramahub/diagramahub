@@ -1,6 +1,6 @@
 # Use official Python runtime as base image
 # Rebuild regularly to pick up latest Debian security patches
-FROM python:3.12-slim-trixie
+FROM python:3.13-slim-bookworm
 
 # Set working directory
 WORKDIR /app

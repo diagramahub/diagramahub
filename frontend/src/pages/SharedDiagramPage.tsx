@@ -1,13 +1,13 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import api from '../services/api';
-import { renderDiagram, isServerRenderedType } from '../utils/diagramRenderer';
-import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
-import { SharedLinkInfo, SharedDiagram } from '../types/sharing';
-import AccessCodeForm from '../components/AccessCodeForm';
-import CodeEditor from '../components/CodeEditor';
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import api from "../services/api";
+import { renderDiagram, isServerRenderedType } from "../utils/diagramRenderer";
+import { sanitizeSvg, escapeHtml } from "../utils/sanitize";
+import { SharedLinkInfo, SharedDiagram } from "../types/sharing";
+import AccessCodeForm from "../components/AccessCodeForm";
+import CodeEditor from "../components/CodeEditor";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 10;
