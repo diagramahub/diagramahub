@@ -16,7 +16,7 @@ y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
 ### Changed
 - Soporte para Python 3.13: constraint actualizado a `>=3.12,<3.14`.
-- Imagen Docker base actualizada a `python:3.13-slim-bookworm`.
+- Imagen Docker base actualizada a `python:3.13-slim-trixie`.
 - `bcrypt` actualizado de `4.0.1` a `^4.1`.
 - Script `test-api.sh`: health check corregido.
 - Script `test-onboarding.sh`: alineado con flujo wizard.
