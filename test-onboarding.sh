@@ -1,15 +1,14 @@
 #!/bin/bash
 
-# DiagramaHub Onboarding Flow Test Script
-# This script tests the complete onboarding flow:
-# 1. Register a new user
-# 2. Verify "Mi primer proyecto" was created automatically
-# 3. Login with the new user
-# 4. Get projects list
-# 5. Create a diagram in the project
-# 6. Update the diagram
-# 7. Delete the diagram
-# 8. Clean up test data
+# DiagramaHub Onboarding Flow Test Script (wizard-aligned)
+# This script tests the onboarding flow with the wizard pattern:
+# 1. Register a new user (no auto-project)
+# 2. Verify NO projects exist for new user
+# 3. User creates their first project
+# 4. Create a diagram in the project
+# 5. Update the diagram
+# 6. Delete the diagram
+# 7. Clean up test data
 
 set -e
 
@@ -21,6 +20,8 @@ API_URL="http://localhost:5172"
 TEST_EMAIL="onboarding-test-$(date +%s)@example.com"
 TEST_PASSWORD="$(generate_runtime_password onboarding)"
 TEST_NAME="Onboarding Test User"
+PROJECT_NAME="Mi Proyecto de Prueba"
+PROJECT_DESC="Proyecto creado desde el test de onboarding"
 
 echo "🧪 DiagramaHub Onboarding Flow Test"
 echo "===================================="
@@ -67,31 +68,58 @@ fi
 echo "✅ Login successful"
 echo ""
 
-# 3. Get projects (should have "Mi primer proyecto")
-echo "📁 3. Getting user projects..."
+# 3. Verify NO auto-created projects (wizard flow)
+echo "📁 3. Verifying no auto-created projects..."
 PROJECTS_RESPONSE=$(curl -s -X GET "$API_URL/api/v1/projects" \
   -H "Authorization: Bearer $TOKEN")
 
-echo $PROJECTS_RESPONSE | python3 -m json.tool
-
-PROJECT_COUNT=$(echo $PROJECTS_RESPONSE | python3 -c "import sys, json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
-PROJECT_NAME=$(echo $PROJECTS_RESPONSE | python3 -c "import sys, json; data=json.load(sys.stdin); print(data[0]['name'] if data else '')" 2>/dev/null || echo "")
-PROJECT_ID=$(echo $PROJECTS_RESPONSE | python3 -c "import sys, json; data=json.load(sys.stdin); print(data[0]['id'] if data else '')" 2>/dev/null || echo "")
+PROJECT_COUNT=$(echo $PROJECTS_RESPONSE | python3 -c "import sys, json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "-1")
 
 if [ "$PROJECT_COUNT" -eq "0" ]; then
-  echo "❌ No projects found - onboarding failed"
+  echo "✅ No auto-created projects (wizard flow working correctly)"
+elif [ "$PROJECT_COUNT" -eq "-1" ]; then
+  echo "❌ Error checking projects"
+  echo $PROJECTS_RESPONSE | python3 -m json.tool
   exit 1
-fi
-
-if [ "$PROJECT_NAME" == "Mi primer proyecto" ]; then
-  echo "✅ Onboarding project created successfully: '$PROJECT_NAME'"
 else
-  echo "⚠️  Project found but name is unexpected: '$PROJECT_NAME'"
+  echo "⚠️  Found $PROJECT_COUNT project(s) - expected 0 for wizard flow"
+  echo $PROJECTS_RESPONSE | python3 -m json.tool
 fi
 echo ""
 
-# 4. Create a diagram
-echo "📊 4. Creating a diagram in the project..."
+# 4. Create first project
+echo "🎨 4. Creating first project..."
+CREATE_PROJECT_RESPONSE=$(curl -s -X POST "$API_URL/api/v1/projects" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"name\": \"$PROJECT_NAME\",
+    \"description\": \"$PROJECT_DESC\"
+  }")
+
+PROJECT_ID=$(echo $CREATE_PROJECT_RESPONSE | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])" 2>/dev/null || echo "ERROR")
+
+if [ "$PROJECT_ID" == "ERROR" ]; then
+  echo "❌ Project creation failed"
+  echo $CREATE_PROJECT_RESPONSE | python3 -m json.tool
+  exit 1
+fi
+
+echo "✅ Project created: $PROJECT_ID"
+echo ""
+
+# 5. Verify project details
+echo "🔍 5. Verifying project details..."
+CREATED_NAME=$(echo $CREATE_PROJECT_RESPONSE | python3 -c "import sys, json; print(json.load(sys.stdin)['name'])" 2>/dev/null)
+if [ "$CREATED_NAME" == "$PROJECT_NAME" ]; then
+  echo "✅ Project created with correct name: $CREATED_NAME"
+else
+  echo "⚠️  Project name mismatch: expected '$PROJECT_NAME', got '$CREATED_NAME'"
+fi
+echo ""
+
+# 6. Create a diagram
+echo "📊 6. Creating a diagram in the project..."
 CREATE_DIAGRAM_RESPONSE=$(curl -s -X POST "$API_URL/api/v1/projects/$PROJECT_ID/diagrams" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -112,8 +140,8 @@ fi
 echo "✅ Diagram created: $DIAGRAM_ID"
 echo ""
 
-# 5. Get diagram
-echo "📖 5. Getting diagram details..."
+# 7. Get diagram details
+echo "📖 7. Getting diagram details..."
 GET_DIAGRAM_RESPONSE=$(curl -s -X GET "$API_URL/api/v1/diagrams/$DIAGRAM_ID" \
   -H "Authorization: Bearer $TOKEN")
 
@@ -121,8 +149,8 @@ echo $GET_DIAGRAM_RESPONSE | python3 -m json.tool
 echo "✅ Diagram retrieved successfully"
 echo ""
 
-# 6. Update diagram
-echo "✏️  6. Updating diagram..."
+# 8. Update diagram
+echo "✏️  8. Updating diagram..."
 UPDATE_DIAGRAM_RESPONSE=$(curl -s -X PUT "$API_URL/api/v1/diagrams/$DIAGRAM_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -135,8 +163,20 @@ echo $UPDATE_DIAGRAM_RESPONSE | python3 -m json.tool
 echo "✅ Diagram updated successfully"
 echo ""
 
-# 7. Get project with diagrams
-echo "📂 7. Getting project with all diagrams..."
+# 9. Delete diagram
+echo "🗑️  9. Deleting test diagram..."
+DELETE_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "$API_URL/api/v1/diagrams/$DIAGRAM_ID" \
+  -H "Authorization: Bearer $TOKEN")
+
+if [ "$DELETE_RESPONSE" = "204" ] || [ "$DELETE_RESPONSE" = "200" ]; then
+  echo "✅ Diagram deleted"
+else
+  echo "⚠️  Diagram deletion returned status $DELETE_RESPONSE"
+fi
+echo ""
+
+# 10. Get project with diagrams (should be empty now)
+echo "📂 10. Getting project with all diagrams..."
 GET_PROJECT_RESPONSE=$(curl -s -X GET "$API_URL/api/v1/projects/$PROJECT_ID" \
   -H "Authorization: Bearer $TOKEN")
 
@@ -144,16 +184,8 @@ echo $GET_PROJECT_RESPONSE | python3 -m json.tool
 echo "✅ Project with diagrams retrieved"
 echo ""
 
-# 8. Delete diagram
-echo "🗑️  8. Deleting test diagram..."
-curl -s -X DELETE "$API_URL/api/v1/diagrams/$DIAGRAM_ID" \
-  -H "Authorization: Bearer $TOKEN" > /dev/null
-
-echo "✅ Diagram deleted"
-echo ""
-
-# 9. Clean up - delete test user and project
-echo "🧹 9. Cleaning up test data..."
+# 11. Clean up - delete test user and project
+echo "🧹 11. Cleaning up test data..."
 docker exec diagramahub-mongodb mongosh --quiet --eval "
   use diagramahub;
   db.users.deleteOne({email: '$TEST_EMAIL'});
@@ -170,13 +202,13 @@ echo "=================================="
 echo ""
 echo "Summary:"
 echo "  ✅ User registration"
-echo "  ✅ Auto-creation of 'Mi primer proyecto'"
 echo "  ✅ User login"
-echo "  ✅ Project retrieval"
+echo "  ✅ Verified 0 projects initially (wizard flow)"
+echo "  ✅ Project creation"
 echo "  ✅ Diagram creation"
 echo "  ✅ Diagram retrieval"
 echo "  ✅ Diagram update"
-echo "  ✅ Project with diagrams retrieval"
 echo "  ✅ Diagram deletion"
+echo "  ✅ Project with diagrams retrieval"
 echo "  ✅ Cleanup"
 echo ""

@@ -113,7 +113,7 @@ def _mock_email_service():
     mock_instance.get_default_email_vendor = AsyncMock()
     mock_instance.send_password_recovery_email = AsyncMock()
     return patch(
-        "app.api.v1.users.services.EmailService",
+        "app.api.v1.integrations.email_service.EmailService",
         return_value=mock_instance,
     )
 
@@ -377,7 +377,9 @@ class TestPasswordReset:
             )
         )
 
-        with patch("app.api.v1.users.services.EmailService", return_value=mock_instance):
+        with patch(
+            "app.api.v1.integrations.email_service.EmailService", return_value=mock_instance
+        ):
             response = await client.post(
                 "/api/v1/users/reset-password-request", json={"email": registered_user["email"]}
             )

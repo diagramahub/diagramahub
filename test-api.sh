@@ -26,7 +26,7 @@ NC='\033[0m' # No Color
 # Test 1: Health Check
 echo -e "${BLUE}📊 Test 1: Health Check${NC}"
 HEALTH=$(curl -s $API_URL/health)
-if echo "$HEALTH" | grep -q "healthy"; then
+if echo "$HEALTH" | grep -q '"ok"'; then
     echo -e "${GREEN}✓ Health check passed${NC}"
 else
     echo -e "${RED}✗ Health check failed${NC}"

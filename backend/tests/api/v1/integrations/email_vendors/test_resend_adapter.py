@@ -73,7 +73,7 @@ class TestResendAdapter:
     @patch("app.api.v1.integrations.email_vendors.resend_adapter.resend")
     async def test_test_connection_success(self, mock_resend):
         """test_connection should return True when API key is valid."""
-        mock_resend.Domains.list_async = AsyncMock(return_value=MagicMock())
+        mock_resend.Emails.send_async = AsyncMock(return_value={"id": "test_email_123"})
         adapter = ResendAdapter(api_key="test-resend-valid-key", from_email="noreply@example.com")
 
         result = await adapter.test_connection()
@@ -83,7 +83,7 @@ class TestResendAdapter:
     @patch("app.api.v1.integrations.email_vendors.resend_adapter.resend")
     async def test_test_connection_failure(self, mock_resend):
         """test_connection should return False when API key is invalid."""
-        mock_resend.Domains.list_async = AsyncMock(side_effect=Exception("Invalid API key"))
+        mock_resend.Emails.send_async = AsyncMock(side_effect=Exception("API connection failed"))
         adapter = ResendAdapter(api_key="test-resend-invalid-key", from_email="noreply@example.com")
 
         result = await adapter.test_connection()
