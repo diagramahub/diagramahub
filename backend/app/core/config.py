@@ -2,7 +2,9 @@
 Core configuration module for Diagramahub backend.
 Manages environment variables and application settings.
 """
+
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +13,7 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.5.2"
+    VERSION: str = "0.5.5"
     API_V1_PREFIX: str = "/api/v1"
 
     # MongoDB
@@ -50,9 +52,7 @@ class Settings(BaseSettings):
     SENTRY_ENABLE_LOGS: bool = True
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=True
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=True
     )
 
 

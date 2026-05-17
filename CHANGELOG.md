@@ -5,6 +5,32 @@ Todos los cambios notables de este proyecto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
+## [0.5.5] - 2026-05-17
+
+### Security
+- Reemplazados passwords hardcodeados en tests por generación dinámica (`generate_test_password()`).
+- Eliminada dependencia `passlib` (usa `crypt`, eliminado en Python 3.13) en favor de `bcrypt` directo.
+- Sanitizados ejemplos con credenciales hardcodeadas en documentación.
+- Límite de caracteres en descripciones de diagramas (50,000).
+- API keys de prueba cambiadas a strings sin patrón de secreto real.
+
+### Changed
+- Soporte para Python 3.13: constraint actualizado a `>=3.12,<3.14`.
+- Imagen Docker base actualizada a `python:3.13-slim-bookworm`.
+- `bcrypt` actualizado de `4.0.1` a `^4.1`.
+- Script `test-api.sh`: health check corregido.
+- Script `test-onboarding.sh`: alineado con flujo wizard.
+- Tooling (black, ruff, mypy) configurado para `py313`.
+
+### Fixed
+- Ruta de mock `EmailService` en tests de password management.
+- Mocks del adaptador Resend (usaban método incorrecto).
+
+### Docs
+- Ejemplos con passwords reemplazados por placeholders.
+- Política de contraseña actualizada en `backend/README.md`.
+- Estándar de calidad en `CLAUDE.md`: no hardcodear credenciales.
+
 ## [0.5.4] - 2026-05-14
 
 ### Added
