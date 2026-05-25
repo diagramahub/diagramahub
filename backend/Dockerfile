@@ -1,17 +1,23 @@
-# Use official Python runtime as base image
-# Rebuild regularly to pick up latest Debian security patches
-FROM python:3.13-slim-trixie
+# Use official Python runtime as base image (Alpine for minimal CVE surface)
+# Rebuild regularly to pick up latest Alpine security patches
+FROM python:3.13-alpine3.22
 
 # Set working directory
 WORKDIR /app
 
-# Install system build dependencies with full security upgrade
-# dist-upgrade handles dependency changes that 'upgrade' misses,
-# ensuring packages like gnutls28, zlib, systemd get patched
-RUN apt-get update && apt-get dist-upgrade -y && apt-get install -y \
-    gcc \
+# Upgrade all apk packages to latest patches, then install build dependencies
+# required to compile native wheels (cryptography, bcrypt, pillow, uvloop, httptools).
+# Runtime libs (libffi, openssl) are kept; only compilers are removed later.
+RUN apk update && apk upgrade --no-cache && apk add --no-cache \
     curl \
-    && apt-get clean
+    libffi \
+    openssl \
+    && apk add --no-cache --virtual .build-deps \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    cargo
 
 # Install Poetry
 RUN pip install --no-cache-dir poetry==1.8.3
@@ -33,10 +39,8 @@ RUN if [ "$APP_ENV" = "development" ] || [ "$APP_ENV" = "dev" ]; then \
         poetry install --no-interaction --no-ansi --no-root --only main && \
         pip install --no-cache-dir gunicorn; \
     fi \
-    && apt-get remove -y gcc \
-    && apt-get autoremove -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apk del .build-deps \
+    && rm -rf /root/.cache /var/cache/apk/*
 
 # Copy application code
 COPY ./app ./app
@@ -57,5 +61,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Run the start script
-CMD ["sh", "./start.sh"]
+# Run the start script (Alpine ships /bin/sh as busybox ash)
+CMD ["/bin/sh", "./start.sh"]

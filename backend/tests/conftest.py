@@ -14,8 +14,20 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.api.v1.ai_providers.schemas import UserAISettingsInDB
 from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB
+from app.api.v1.diagrams.schemas import DiagramInDB
+from app.api.v1.folders.schemas import FolderInDB
 from app.api.v1.integrations.schemas import VendorConfigInDB
+from app.api.v1.oauth.schemas import OAuthStateToken
 from app.api.v1.projects.schemas import ProjectInDB
+from app.api.v1.prompt_history.schemas import PromptHistoryInDB
+from app.api.v1.shared_links.schemas import AccessLogInDB, SharedLinkInDB
+from app.api.v1.subscriptions.schemas import (
+    PlanInDB,
+    StripeConfigInDB,
+    SubscriptionInDB,
+    WebhookEventInDB,
+)
+from app.api.v1.users.audit_log import AuditLogEntry
 from app.api.v1.users.schemas import UserInDB as User
 from app.core.config import settings
 from app.main import app
@@ -36,6 +48,21 @@ def event_loop() -> Generator:
     loop.close()
 
 
+@pytest.fixture(autouse=True)
+def _reset_login_rate_state():
+    """Reset in-memory login rate limiter and account lockout state.
+
+    Both are module-level singletons that accumulate state across tests,
+    so without this reset enough login attempts in a session trigger 429
+    or 423 responses for unrelated tests.
+    """
+    from app.api.v1.users.rate_limiter import account_lockout, login_rate_limiter
+
+    login_rate_limiter._requests.clear()
+    account_lockout._accounts.clear()
+    yield
+
+
 @pytest_asyncio.fixture(scope="function")
 async def test_db() -> AsyncGenerator:
     """
@@ -50,11 +77,22 @@ async def test_db() -> AsyncGenerator:
         database=client[TEST_DATABASE_NAME],
         document_models=[
             User,
+            ProjectInDB,
+            DiagramInDB,
+            FolderInDB,
             UserAISettingsInDB,
+            PlanInDB,
+            SubscriptionInDB,
+            StripeConfigInDB,
+            WebhookEventInDB,
+            PromptHistoryInDB,
             ChatSessionInDB,
             ChatMessageInDB,
-            ProjectInDB,
+            SharedLinkInDB,
+            AccessLogInDB,
             VendorConfigInDB,
+            AuditLogEntry,
+            OAuthStateToken,
         ],
     )
 

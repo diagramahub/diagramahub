@@ -51,12 +51,17 @@ class UserRepository(IUserRepository):
         return user
 
     async def update_password(self, user_id: str, hashed_password: str) -> bool:
-        """Update user password."""
+        """Update user password and stamp password_changed_at atomically.
+
+        password_changed_at is set here (not by the caller on a stale in-memory
+        copy) so JWT session invalidation cannot race with the hash update.
+        """
         user = await self.get_by_id(user_id)
         if not user:
             return False
 
         user.hashed_password = hashed_password
+        user.password_changed_at = time.time()
         await user.save()
         return True
 

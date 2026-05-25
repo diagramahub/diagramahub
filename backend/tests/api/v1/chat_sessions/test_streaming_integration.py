@@ -22,7 +22,7 @@ class TestStreamingEndpoint:
 
     @pytest.mark.asyncio
     async def test_stream_endpoint_requires_auth(self, client: AsyncClient):
-        """The streaming endpoint returns 403 without authentication."""
+        """The streaming endpoint returns 401 without authentication."""
         response = await client.post(
             "/api/v1/chat-sessions/fake-session-id/messages/stream",
             json={
@@ -33,15 +33,13 @@ class TestStreamingEndpoint:
             },
         )
 
-        # HTTPBearer returns 403 when no credentials are provided
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     @pytest.mark.asyncio
     async def test_stream_endpoint_validates_request_body(
         self, client: AsyncClient
     ):
         """The streaming endpoint validates the request body schema (before auth)."""
-        # Missing required field 'content' — validation error before auth check
         response = await client.post(
             "/api/v1/chat-sessions/fake-session-id/messages/stream",
             json={
@@ -50,9 +48,7 @@ class TestStreamingEndpoint:
             },
         )
 
-        # FastAPI validates body before checking auth for HTTPBearer
-        # With missing credentials, it returns 403 first
-        assert response.status_code in (403, 422)
+        assert response.status_code in (401, 422)
 
     @pytest.mark.asyncio
     async def test_stream_endpoint_validates_content_min_length(
@@ -69,12 +65,11 @@ class TestStreamingEndpoint:
             },
         )
 
-        # With missing credentials, auth check happens first
-        assert response.status_code in (403, 422)
+        assert response.status_code in (401, 422)
 
     @pytest.mark.asyncio
     async def test_rest_endpoint_also_requires_auth(self, client: AsyncClient):
-        """The existing REST endpoint also returns 403 without auth (coexistence)."""
+        """The existing REST endpoint also returns 401 without auth (coexistence)."""
         response = await client.post(
             "/api/v1/chat-sessions/fake-session-id/messages",
             json={
@@ -85,7 +80,7 @@ class TestStreamingEndpoint:
             },
         )
 
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 @pytest.mark.integration
