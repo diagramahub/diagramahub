@@ -29,12 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Test API keys changed to non-secret-looking strings.
 
 ### Changed
-- Python 3.13 support: constraint updated to `>=3.12,<3.14`.
-- Backend Docker base image updated to `python:3.13-slim-trixie`.
-- `bcrypt` bumped from `4.0.1` to `^4.1`.
-- `test-api.sh` script: health check fixed.
-- `test-onboarding.sh` script: aligned with wizard flow.
-- Tooling (black, ruff, mypy) configured for `py313`.
+- Soporte para Python 3.13: constraint actualizado a `>=3.12,<3.14`.
+- Imagen Docker base actualizada a `python:3.13-slim-trixie`.
+- `bcrypt` actualizado de `4.0.1` a `^4.1`.
+- Script `test-api.sh`: health check corregido.
+- Script `test-onboarding.sh`: alineado con flujo wizard.
+- Tooling (black, ruff, mypy) configurado para `py313`.
 
 ### Fixed
 - `EmailService` mock path in password management tests.
