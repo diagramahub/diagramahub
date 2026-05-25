@@ -44,8 +44,12 @@ def print_result(label: str, success: bool, detail: str = "", elapsed: float = 0
             print(f"     {line}")
 
 
-async def test_model(api_key: str, model: str):
-    """Test a single OpenAI model with generate + improve flow."""
+async def run_model_check(api_key: str, model: str):
+    """Test a single OpenAI model with generate + improve flow.
+
+    Not picked up by pytest (prefix renamed); this module is a manual script run via
+    `docker exec diagramahub-backend python tests/test_openai_models.py`.
+    """
     import httpx
 
     base_url = "https://api.openai.com/v1"
@@ -214,7 +218,7 @@ async def main():
         if key in tested:
             continue
         tested.add(key)
-        await test_model(cfg["api_key"], cfg["model"])
+        await run_model_check(cfg["api_key"], cfg["model"])
 
     print(f"\n{'=' * 60}")
     print("✅ Test complete")

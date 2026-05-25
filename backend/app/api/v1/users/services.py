@@ -276,11 +276,8 @@ class UserService:
             )
 
         new_hashed_password = get_password_hash(password_data.new_password)
+        # update_password also stamps password_changed_at, invalidating existing JWTs.
         await self.repository.update_password(str(user.id), new_hashed_password)
-
-        # Invalidate all existing sessions by updating password_changed_at
-        user.password_changed_at = time.time()
-        await user.save()
 
         # Audit log
         from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_CHANGED
@@ -367,12 +364,9 @@ class UserService:
             )
 
         new_hashed_password = get_password_hash(reset_data.new_password)
+        # update_password also stamps password_changed_at, invalidating existing JWTs.
         await self.repository.update_password(str(user.id), new_hashed_password)
         await self.repository.clear_reset_token(reset_data.email)
-
-        # Invalidate all existing sessions
-        user.password_changed_at = time.time()
-        await user.save()
 
         # Audit log
         from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_RESET_CONFIRMED

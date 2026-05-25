@@ -1,283 +1,297 @@
 # Changelog
 
-Todos los cambios notables de este proyecto se documentan en este archivo.
+All notable changes to this project are documented in this file.
 
-El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
-y este proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](https://semver.org/).
+
+## [0.5.6] - 2026-05-25
+
+### Security
+- **Critical**: fixed bug in `change_password` and `confirm_password_reset` that reverted the new hash because a stale in-memory user copy was saved afterwards. Passwords were not actually changing. `update_password` now updates `hashed_password` and `password_changed_at` atomically.
+- Backend Docker base image migrated to `python:3.13-alpine3.22`, removing most Debian packages (`util-linux`, `systemd`, `perl`, `shadow`, `tar`) with CVEs reported by Snyk.
+
+### Changed
+- Alpine build uses `apk` with virtual `.build-deps` (gcc, musl-dev, libffi-dev, openssl-dev, cargo) to compile native wheels and purge them at the end.
+- `tests/conftest.py` registers all 17 Beanie documents (previously only 6) and resets the `login_rate_limiter` and `account_lockout` state between tests.
+
+### Fixed
+- `test_streaming_integration.py` tests: assertions updated from `403` to `401` (current `HTTPBearer` behavior in FastAPI 0.128+).
+- `tests/test_openai_models.py`: renamed function `test_model` to `run_model_check` to prevent erroneous pytest discovery.
 
 ## [0.5.5] - 2026-05-17
 
 ### Security
-- Reemplazados passwords hardcodeados en tests por generación dinámica (`generate_test_password()`).
-- Eliminada dependencia `passlib` (usa `crypt`, eliminado en Python 3.13) en favor de `bcrypt` directo.
-- Sanitizados ejemplos con credenciales hardcodeadas en documentación.
-- Límite de caracteres en descripciones de diagramas (50,000).
-- API keys de prueba cambiadas a strings sin patrón de secreto real.
+- Replaced hardcoded test passwords with dynamic generation (`generate_test_password()`).
+- Removed `passlib` dependency (uses `crypt`, removed in Python 3.13) in favor of direct `bcrypt`.
+- Sanitized examples with hardcoded credentials in documentation.
+- Character limit on diagram descriptions (50,000).
+- Test API keys changed to non-secret-looking strings.
 
 ### Changed
-- Soporte para Python 3.13: constraint actualizado a `>=3.12,<3.14`.
-- Imagen Docker base actualizada a `python:3.13-slim-trixie`.
-- `bcrypt` actualizado de `4.0.1` a `^4.1`.
-- Script `test-api.sh`: health check corregido.
-- Script `test-onboarding.sh`: alineado con flujo wizard.
-- Tooling (black, ruff, mypy) configurado para `py313`.
+- Python 3.13 support: constraint updated to `>=3.12,<3.14`.
+- Backend Docker base image updated to `python:3.13-slim-trixie`.
+- `bcrypt` bumped from `4.0.1` to `^4.1`.
+- `test-api.sh` script: health check fixed.
+- `test-onboarding.sh` script: aligned with wizard flow.
+- Tooling (black, ruff, mypy) configured for `py313`.
 
 ### Fixed
-- Ruta de mock `EmailService` en tests de password management.
-- Mocks del adaptador Resend (usaban método incorrecto).
+- `EmailService` mock path in password management tests.
+- Resend adapter mocks (were using the wrong method).
 
 ### Docs
-- Ejemplos con passwords reemplazados por placeholders.
-- Política de contraseña actualizada en `backend/README.md`.
-- Estándar de calidad en `CLAUDE.md`: no hardcodear credenciales.
+- Password examples replaced with placeholders.
+- Password policy updated in `backend/README.md`.
+- Quality standard in `CLAUDE.md`: never hardcode credentials.
 
 ## [0.5.4] - 2026-05-14
 
 ### Added
-- Acciones rápidas predefinidas en el chat AI: Explicar, Mejorar UI, Mejorar Proceso y Reparar.
-- Panel de chat redimensionable con persistencia del ancho por diagrama (localStorage + user_preferences).
-- Panel admin: nuevas columnas "Uso de licencia", "Modelos IA conectados" y "Último login".
-- Tracking de `last_login_at` en usuarios (login normal y post-MFA).
-- Bloqueo de solicitudes de explicación en el modal de mejora con redirección al chat AI.
-- Exportación Excel del admin muestra "Uso de licencia" en formato legible.
-- Nuevas claves i18n para acciones rápidas del chat y columnas del panel admin.
+- Predefined quick actions in the AI chat: Explain, Improve UI, Improve Process, and Repair.
+- Resizable chat panel with per-diagram width persistence (localStorage + user_preferences).
+- Admin panel: new columns "License usage", "Connected AI models", and "Last login".
+- `last_login_at` tracking on users (normal login and post-MFA).
+- Block explanation requests in the improve modal, redirecting to the AI chat.
+- Admin Excel export shows "License usage" in human-readable format.
+- New i18n keys for chat quick actions and admin panel columns.
 
 ### Changed
-- Lógica de resize del panel de chat movida de `AIChatPanel` a `DiagramEditorPage`.
-- Detección de modo de respuesta (`text` vs `code`) refactorizada para soportar preset actions.
-- Parsing de respuesta AI condicionado al modo de respuesta.
-- Imagen Docker base del backend actualizada de `python:3.12-slim-bookworm` a `python:3.12-slim-trixie`.
-- Textos hardcodeados en ChatInput internacionalizados.
+- Chat panel resize logic moved from `AIChatPanel` to `DiagramEditorPage`.
+- Response mode detection (`text` vs `code`) refactored to support preset actions.
+- AI response parsing now conditioned by response mode.
+- Backend Docker base image updated from `python:3.12-slim-bookworm` to `python:3.12-slim-trixie`.
+- Internationalized hardcoded ChatInput strings.
 
 ## [0.5.3] - 2026-05-12
 
 ### Added
-- Streaming de respuestas AI en tiempo real mediante Server-Sent Events (SSE).
-- Indicadores de fase progresivos: "Pensando…", "Analizando tu diagrama…", "Generando código…", "Validando sintaxis…".
-- Detección automática de modo de respuesta (texto vs código) para ocultar contenido interno durante generación de diagramas.
-- Filtrado en tiempo real de `<think>` tags de modelos de razonamiento durante streaming.
-- Cancelación automática del stream al cerrar panel o cambiar diagrama.
-- Botón de reintento (máx 3 intentos) en errores de streaming.
-- Fallback automático a flujo no-streaming si el proveedor no lo soporta.
-- Módulo `sanitize.ts` para sanitización XSS de SVG (DOMPurify).
-- 45 nuevos tests (unit, property-based con Hypothesis, integración).
+- Real-time AI response streaming via Server-Sent Events (SSE).
+- Progressive phase indicators: "Thinking…", "Analyzing your diagram…", "Generating code…", "Validating syntax…".
+- Automatic response-mode detection (text vs code) to hide internal content during diagram generation.
+- Real-time filtering of `<think>` tags from reasoning models during streaming.
+- Automatic stream cancellation when closing the panel or switching diagrams.
+- Retry button (max 3 attempts) on streaming errors.
+- Automatic fallback to non-streaming flow when the provider doesn't support it.
+- `sanitize.ts` module for SVG XSS sanitization (DOMPurify).
+- 45 new tests (unit, property-based with Hypothesis, integration).
 
 ### Changed
-- Python actualizado de 3.11 a 3.12 (Dockerfile, pyproject.toml, tooling).
-- FastAPI pin actualizado a `>=0.115.0,<0.129.0`.
-- `python-multipart` actualizado de `^0.0.12` a `^0.0.18`.
-- Imagen Docker base actualizada a `python:3.12-slim-bookworm` con `dist-upgrade`.
-- Ícono de estructura movido a la izquierda del nombre del diagrama.
-- Parámetro `language` del chat usa idioma activo del usuario (i18n).
-- Sanitización SVG aplicada solo a diagramas server-rendered, no a Mermaid local.
+- Python upgraded from 3.11 to 3.12 (Dockerfile, pyproject.toml, tooling).
+- FastAPI pin updated to `>=0.115.0,<0.129.0`.
+- `python-multipart` updated from `^0.0.12` to `^0.0.18`.
+- Backend Docker base image updated to `python:3.12-slim-bookworm` with `dist-upgrade`.
+- Structure icon moved to the left of the diagram name.
+- Chat `language` parameter uses the user's active language (i18n).
+- SVG sanitization applied only to server-rendered diagrams, not local Mermaid.
 
 ### Fixed
-- Textos de nodos Mermaid invisibles por sanitización incorrecta de `foreignObject`.
-- Test `test_change_password_without_auth` actualizado para HTTP 401.
+- Mermaid node text invisible due to incorrect `foreignObject` sanitization.
+- `test_change_password_without_auth` updated for HTTP 401.
 
 ## [0.5.2] - 2026-05-10
 
 ### Changed
-- axios actualizado de 1.12.2 a 1.16.0 (corrige 2 vulnerabilidades críticas, 5 altas y 5 medias reportadas por Snyk).
-- jspdf actualizado de 2.5.2 a 4.2.1 (corrige 1 vulnerabilidad crítica, 7 altas y 2 medias).
-- react-router-dom actualizado de 7.9.4 a 7.15.0 (corrige 2 vulnerabilidades altas y 2 medias).
-- mermaid actualizado de 11.4.1 a 11.14.0 (corrige vulnerabilidades en dependencias transitivas: dompurify, lodash-es, dagre-d3-es, uuid).
-- easymde actualizado de 2.18.0 a 2.21.0 (corrige vulnerabilidad ReDoS en codemirror transitivo).
-- Versión corregida en `backend/app/core/config.py` (1.0.0 → 0.5.2).
+- axios updated from 1.12.2 to 1.16.0 (fixes 2 critical, 5 high, and 5 medium vulnerabilities reported by Snyk).
+- jspdf updated from 2.5.2 to 4.2.1 (fixes 1 critical, 7 high, and 2 medium vulnerabilities).
+- react-router-dom updated from 7.9.4 to 7.15.0 (fixes 2 high and 2 medium vulnerabilities).
+- mermaid updated from 11.4.1 to 11.14.0 (fixes vulnerabilities in transitive dependencies: dompurify, lodash-es, dagre-d3-es, uuid).
+- easymde updated from 2.18.0 to 2.21.0 (fixes transitive codemirror ReDoS vulnerability).
+- Version corrected in `backend/app/core/config.py` (1.0.0 → 0.5.2).
 
 ### Added
-- Badge de Snyk en README.md mostrando estado de vulnerabilidades conocidas.
-- Integración con Snyk Secure Developer Program para Open Source.
+- Snyk badge in README.md showing known-vulnerability status.
+- Integration with the Snyk Secure Developer Program for Open Source.
 
 ### Security
-- Dependencias frontend actualizadas para resolver 4 vulnerabilidades críticas, 14 altas y 10+ medias reportadas por Snyk.
+- Frontend dependencies updated to resolve 4 critical, 14 high, and 10+ medium vulnerabilities reported by Snyk.
 
 ## [0.5.1] - 2026-05-09
 
 ### Added
-- Componente `Skeleton` reutilizable con variantes (`text`, `card`, `chart`, `table`) para estados de carga.
-- Estados de carga esqueleto en Dashboard, ProjectsPage, DiagramEditorPage y ProfilePage.
-- Componente `EmptyState` con icono, título, descripción y acción sugerida (CTA).
-- Estados vacíos guiados en Dashboard (sin proyectos), Editor (sin diagramas) y Chat (sin sesiones).
-- `MobileEditorLayout`: layout adaptativo para editor en dispositivos móviles (<768px).
-- Bottom sheets deslizables para paneles de código y descripción en móvil.
-- Barra de herramientas inferior fija en móvil con iconos contextuales.
-- Hook `useTouchZoomPan`: zoom con pellizco y pan con dos dedos en previsualización de diagramas.
-- Sidebar se oculta automáticamente al entrar en modo presentación y se restaura al salir.
+- Reusable `Skeleton` component with variants (`text`, `card`, `chart`, `table`) for loading states.
+- Skeleton loading states in Dashboard, ProjectsPage, DiagramEditorPage, and ProfilePage.
+- `EmptyState` component with icon, title, description, and suggested action (CTA).
+- Guided empty states in Dashboard (no projects), Editor (no diagrams), and Chat (no sessions).
+- `MobileEditorLayout`: adaptive layout for the editor on mobile devices (<768px).
+- Slide-up bottom sheets for code and description panels on mobile.
+- Fixed bottom toolbar on mobile with contextual icons.
+- `useTouchZoomPan` hook: pinch zoom and two-finger pan in diagram preview.
+- Sidebar auto-hides when entering presentation mode and is restored on exit.
 
 ### Changed
-- Diálogos de confirmación unificados bajo componente `ConfirmModal` (eliminar proyecto, cerrar sesión, eliminar mensaje de chat).
-- Layout desktop del editor no se modifica; la vista móvil es un wrapper separado.
+- Confirmation dialogs unified under the `ConfirmModal` component (delete project, logout, delete chat message).
+- Desktop editor layout untouched; mobile view is a separate wrapper.
 
 ### Fixed
-- Teclado virtual en móvil ya no oculta el input del chat (usa `visualViewport` API).
-- Tooltips no aparecen en dispositivos táctiles (previene activación accidental).
-- Modal de exportación es scrolleable en viewports pequeños.
+- Mobile virtual keyboard no longer hides the chat input (uses `visualViewport` API).
+- Tooltips no longer appear on touch devices (prevents accidental activation).
+- Export modal is scrollable in small viewports.
 
 ## [0.5.0] - 2026-05-05
 
 ### Added
-- Sidebar colapsable: responsive, con toggle de tema, selector de idioma y navegación.
-- Dark mode completo en toda la aplicación (todos los modales, páginas y componentes).
-- Soporte para diagramas DBML (Database Markup Language) vía Kroki/dbml-renderer.
-- Proveedor de IA Minimax (BYOL) con modelos MiniMax-M2.7 y MiniMax-M2.5.
-- Página independiente de Proyectos (`/projects-list`) con vista de tabla.
-- Dashboard rediseñado: gráfico de dona por tipo de diagrama, widget de uso de AI, diagramas recientes.
-- Chat de IA: rolling summary persistente por sesión, formato código-primero, fallbacks de extracción.
-- Editor: breadcrumb de proyecto con selector, panel de código redimensionable, tema Kiro Dark para Monaco.
-- Botón de "Corregir con IA" en panel de código (funciona con errores de renderizado).
-- Sección "Comunidad" en sidebar (próximamente).
-- Endpoint `/diagrams/recent` para diagramas recientes del usuario.
-- Endpoint `/chat-sessions/stats/provider-usage` para estadísticas de uso de AI.
-- `SENTRY_ENABLE_LOGS` configurable vía `.env`.
-- `getEffectiveModel()` para fallback automático de modelos retirados.
-- Contexto de renderizado Kroki en prompts de AI para PlantUML, D2 y DBML.
+- Collapsible sidebar: responsive, with theme toggle, language selector, and navigation.
+- Full dark mode across the application (all modals, pages, and components).
+- Support for DBML (Database Markup Language) diagrams via Kroki/dbml-renderer.
+- Minimax AI provider (BYOL) with MiniMax-M2.7 and MiniMax-M2.5 models.
+- Standalone Projects page (`/projects-list`) with table view.
+- Redesigned Dashboard: donut chart by diagram type, AI usage widget, recent diagrams.
+- AI chat: persistent rolling summary per session, code-first format, extraction fallbacks.
+- Editor: project breadcrumb with selector, resizable code panel, Kiro Dark theme for Monaco.
+- "Fix with AI" button in the code panel (works on render errors).
+- "Community" section in the sidebar (coming soon).
+- `/diagrams/recent` endpoint for the user's recent diagrams.
+- `/chat-sessions/stats/provider-usage` endpoint for AI usage statistics.
+- `SENTRY_ENABLE_LOGS` configurable via `.env`.
+- `getEffectiveModel()` for automatic fallback of retired models.
+- Kroki rendering context in AI prompts for PlantUML, D2, and DBML.
 
 ### Changed
-- Modelos actualizados: DeepSeek v4-flash/v4-pro, Gemini 3.1-pro-preview, MiniMax M2.7/M2.5.
-- `max_tokens` incrementado de 2048 a 4096 en todos los proveedores de AI.
-- Prompt del chat: código primero, explicación breve después.
-- Auto-retry desactivado para PlantUML y DBML (falsos positivos del validador).
-- Sidebar reducido a 160px expandido.
-- Logout movido del sidebar a la página de Perfil.
-- "IA" renombrado a "Ajustes" en el sidebar con ícono de engrane.
-- Selector de idioma: ancho completo, dropdown hacia arriba, chevron a la derecha.
-- Tooltip: usa `position: fixed` para evitar corte por overflow.
-- Mensajes de error de Kroki: parseados a formato amigable para el usuario.
+- Updated models: DeepSeek v4-flash/v4-pro, Gemini 3.1-pro-preview, MiniMax M2.7/M2.5.
+- `max_tokens` increased from 2048 to 4096 across all AI providers.
+- Chat prompt: code first, brief explanation after.
+- Auto-retry disabled for PlantUML and DBML (validator false positives).
+- Sidebar reduced to 160px when expanded.
+- Logout moved from the sidebar to the Profile page.
+- "AI" renamed to "Settings" in the sidebar with a gear icon.
+- Language selector: full width, dropdown opens upward, chevron on the right.
+- Tooltip: uses `position: fixed` to avoid overflow clipping.
+- Kroki error messages: parsed into a user-friendly format.
 
 ### Fixed
-- Monaco Editor no renderizaba código (ResizeObserver + layout forcing).
-- Toggle de código cerraba panel de descripción (click-outside independiente).
-- Zoom persistido se sobreescribía por fit-to-screen al cargar.
-- SVG de DBML con unidades `pt` no se mostraba (convertido a responsive).
-- Crear nuevo diagrama no reseteaba estado del editor anterior.
-- `last_provider`/`last_model` no se guardaban en la sesión de chat.
-- `<think>` tags de DeepSeek/MiniMax se mostraban en el chat.
-- `<<<DIAGRAMA>>>` (español) no se detectaba como marcador de código.
+- Monaco Editor didn't render code (ResizeObserver + layout forcing).
+- Code toggle closed the description panel (independent click-outside handlers).
+- Persisted zoom was overwritten by fit-to-screen on load.
+- DBML SVG with `pt` units wasn't displayed (converted to responsive).
+- Creating a new diagram didn't reset the previous editor state.
+- `last_provider`/`last_model` weren't being saved on the chat session.
+- DeepSeek/MiniMax `<think>` tags were leaking into the chat.
+- `<<<DIAGRAMA>>>` (Spanish) wasn't being detected as a code marker.
 
 ## [0.4.1] - 2026-04-30
 
 ### Fixed
-- Parser de respuestas JSON de IA para corrección de diagramas: reemplazado regex greedy por parser con balance de llaves (`extract_fix_json`), resolviendo fallos con código D2/PlantUML que contiene llaves anidadas.
-- OpenAI usa `response_format: json_object` para forzar respuestas JSON válidas en correcciones.
-- Contraste del botón "Corregir con IA" mejorado en editor oscuro.
+- AI JSON response parser for diagram fixes: replaced greedy regex with a brace-balancing parser (`extract_fix_json`), resolving failures on D2/PlantUML code that contains nested braces.
+- OpenAI uses `response_format: json_object` to force valid JSON responses in fixes.
+- "Fix with AI" button contrast improved in the dark editor.
 
 ### Added
-- Fondo animado con blobs flotantes rosa/púrpura en página de login (componente `AnimatedBackground`).
-- Card de login con efecto glassmorphism.
-- Email del usuario visible en pantalla de verificación MFA.
-- Modal de compartir diagrama completamente internacionalizado (38 claves i18n en `es.json` y `en.json`).
+- Animated background with floating pink/purple blobs on the login page (`AnimatedBackground` component).
+- Glassmorphism effect on the login card.
+- User email visible on the MFA verification screen.
+- Share-diagram modal fully internationalized (38 i18n keys in `es.json` and `en.json`).
 
 ## [0.4.0] - 2026-04-29
 
 ### Added
-- Integración de Kroki como motor de renderizado server-side auto-hospedado (Docker `yuzutech/kroki`).
-- Soporte para diagramas D2: renderizado, resaltado de sintaxis, 19 temas, validación, corrección IA, chat IA.
-- Endpoint público `POST /api/v1/diagrams/render` para renderizado de diagramas vía Kroki.
-- PlantUML migrado de renderizado client-side (plantuml.com) a server-side vía Kroki.
-- `KrokiClient` con interfaz `IKrokiClient` (SOLID), 26 tipos de diagrama soportados.
-- `KROKI_URL` configurable vía variable de entorno.
-- Utilidad centralizada `diagramRenderer.ts` para enrutamiento de renderizado.
-- `d2ConfigManager.ts` para gestión de temas D2.
-- Validador `validate_d2` con balance de llaves.
-- Prompts de IA con contexto D2 completo.
-- Dashboard con saludo personalizado y tarjetas de estadísticas.
-- Modal de nuevo diagrama rediseñado con layout horizontal.
-- Panel de descripción redimensionable con ancho persistente.
-- Selector de proyectos en el editor con búsqueda.
-- Panel de diagramas rediseñado con buscador y acciones rápidas.
-- Editor de código estilo IDE con tema oscuro y barra de estado.
-- Responsividad completa en todas las vistas.
-- Nuevas claves i18n para D2, dashboard, editor.
+- Kroki integration as a self-hosted server-side rendering engine (Docker `yuzutech/kroki`).
+- Support for D2 diagrams: rendering, syntax highlighting, 19 themes, validation, AI fixes, AI chat.
+- Public endpoint `POST /api/v1/diagrams/render` for diagram rendering via Kroki.
+- PlantUML migrated from client-side (plantuml.com) to server-side rendering via Kroki.
+- `KrokiClient` with `IKrokiClient` interface (SOLID), supporting 26 diagram types.
+- `KROKI_URL` configurable via environment variable.
+- Centralized `diagramRenderer.ts` utility for render routing.
+- `d2ConfigManager.ts` for D2 theme management.
+- `validate_d2` validator with brace balancing.
+- AI prompts with full D2 context.
+- Dashboard with personalized greeting and stats cards.
+- Redesigned new-diagram modal with horizontal layout.
+- Resizable description panel with persisted width.
+- Project selector in the editor with search.
+- Redesigned diagram panel with search box and quick actions.
+- IDE-style code editor with dark theme and status bar.
+- Full responsiveness across all views.
+- New i18n keys for D2, dashboard, and editor.
 
 ### Removed
-- Dependencia `plantuml-encoder` del frontend.
+- `plantuml-encoder` dependency removed from the frontend.
 
 ### Changed
-- Textos hardcoded reemplazados por claves `t()`.
-- Paneles flotantes a pantalla completa en móvil.
-- Componente `CodeEditor` extendido con soporte D2.
+- Hardcoded strings replaced with `t()` keys.
+- Floating panels become full-screen on mobile.
+- `CodeEditor` component extended with D2 support.
 
 ## [0.3.1] - 2026-04-23
 
 ### Fixed
-- Error de compilación TypeScript `TS2305`: tipo `ChatMode` no exportado desde `types/chat.ts`, causando fallo en build de producción (Digital Ocean).
+- TypeScript compilation error `TS2305`: `ChatMode` type wasn't exported from `types/chat.ts`, causing production build failure (Digital Ocean).
 
 ## [0.3.0] - 2026-04-23
 
 ### Added
-- OAuth / Login Social con Google: arquitectura provider-agnostic (IOAuthProvider + OAuthProviderFactory).
-- Vinculación automática de cuentas OAuth con cuentas existentes por email.
-- Creación automática de cuenta con suscripción FREE para nuevos usuarios OAuth.
-- Bypass de MFA para logins OAuth con JWT de 5 días.
-- Protección CSRF con tokens de estado server-side (TTL 10 min, auto-limpieza MongoDB).
-- Validación de ID token (firma, issuer, audience, expiración) para OpenID Connect.
-- Rate limiting en endpoint de callback OAuth.
-- Audit logging para eventos OAuth (login exitoso/fallido, vinculación de cuenta).
-- Página de perfil muestra proveedores OAuth vinculados con fecha.
-- Selector de idioma en páginas de login y registro.
-- Versión de la aplicación visible en página de login.
-- Banner MFA oculto para sesiones OAuth.
-- Generación libre de descripciones AI en Markdown estructurado con capacidad de refinamiento.
-- Chat unificado con detección automática de intención (conversar, generar, mejorar).
+- OAuth / Google social login: provider-agnostic architecture (IOAuthProvider + OAuthProviderFactory).
+- Automatic linking of OAuth accounts to existing accounts by email.
+- Automatic account creation with FREE subscription for new OAuth users.
+- MFA bypass for OAuth logins with 5-day JWT.
+- CSRF protection with server-side state tokens (10-min TTL, MongoDB auto-cleanup).
+- ID token validation (signature, issuer, audience, expiration) for OpenID Connect.
+- Rate limiting on the OAuth callback endpoint.
+- Audit logging for OAuth events (successful/failed login, account linking).
+- Profile page shows linked OAuth providers with date.
+- Language selector on the login and registration pages.
+- Application version visible on the login page.
+- MFA banner hidden for OAuth sessions.
+- Free AI description generation in structured Markdown with refinement capability.
+- Unified chat with automatic intent detection (talk, generate, improve).
 
 ### Fixed
-- Prompts de descripción mejorados para Markdown estructurado consistente.
-- Generación de descripciones respeta el proveedor preferido del diagrama.
-- Soporte DeepSeek agregado a _call_with_prompt para operaciones de refinamiento.
-- Proveedor de sesión de chat se propaga correctamente a preferencias del diagrama.
-- Bloque except faltante en send_message del servicio de chat.
+- Description prompts improved for consistent structured Markdown.
+- Description generation respects the diagram's preferred provider.
+- DeepSeek support added to `_call_with_prompt` for refinement operations.
+- Chat session provider correctly propagates to diagram preferences.
+- Missing `except` block in `send_message` of the chat service.
 
 ### Changed
-- Eliminado código muerto de modos legacy de conversación/mejora en chat.
-- Eliminado campo mode de mensajes de chat (simplificación del modelo de datos).
+- Removed dead code from legacy conversation/improvement chat modes.
+- Removed the `mode` field from chat messages (data-model simplification).
 
 ## [0.2.1] - 2026-04-18
 
 ### Added
-- Audit log de eventos de seguridad con retención automática de 90 días (TTL index MongoDB).
-- Invalidación de sesiones al cambiar contraseña (claim `pca` en JWT).
-- Conteo de diagramas por usuario en panel admin y export Excel.
+- Security event audit log with automatic 90-day retention (MongoDB TTL index).
+- Session invalidation on password change (`pca` claim in JWT).
+- Diagram count per user in the admin panel and Excel export.
 - Security headers middleware (X-Content-Type-Options, X-Frame-Options, HSTS, etc.).
-- Rate limiting en login (10 intentos/IP/minuto).
-- Account lockout (15 minutos tras 5 intentos fallidos).
-- Swagger/OpenAPI deshabilitado en producción.
-- Stack traces ocultos en producción.
+- Rate limiting on login (10 attempts/IP/minute).
+- Account lockout (15 minutes after 5 failed attempts).
+- Swagger/OpenAPI disabled in production.
+- Stack traces hidden in production.
 
 ### Fixed
-- Banner MFA aparecía después de activar MFA (estado no se recuperaba al recargar).
-- "Probar otro método" enviaba email automáticamente en lugar de mostrar selección.
-- Códigos de recuperación se regeneraban innecesariamente al activar segundo método MFA.
-- Errores de compilación TypeScript para deploy en Digital Ocean.
+- MFA banner appeared after enabling MFA (state wasn't restored on reload).
+- "Try another method" automatically sent the email instead of showing selection.
+- Recovery codes were regenerated unnecessarily when enabling a second MFA method.
+- TypeScript compilation errors for Digital Ocean deploy.
 
 ## [0.2.0] - 2026-04-16
 
 ### Added
-- Autenticación Multi-Factor (MFA) con email y TOTP (Google Authenticator, Authy).
-- Soporte para ambos métodos MFA simultáneos con método predeterminado configurable.
-- Códigos de recuperación de un solo uso (8 códigos formato XXXXX-XXXXX).
-- Pantalla de verificación MFA durante login con opción de cambiar método.
-- Gestión MFA completa desde perfil: activar, desactivar, regenerar códigos.
-- Banner recomendando activar MFA para usuarios sin MFA activo.
-- Duración de sesión diferenciada: 2 días sin MFA, 5 días con MFA.
-- Política de contraseña reforzada: mínimo 12 caracteres + carácter especial.
-- Indicador visual de fortaleza de contraseña en tiempo real.
-- Panel admin de gestión de usuarios con paginación, búsqueda, estado MFA y plan.
-- Desactivación de MFA por admin para recuperación de cuentas.
-- Exportación de usuarios a Excel (.xlsx).
-- Emails MFA multiidioma (español/inglés).
+- Multi-Factor Authentication (MFA) with email and TOTP (Google Authenticator, Authy).
+- Support for both MFA methods simultaneously with a configurable default method.
+- Single-use recovery codes (8 codes, XXXXX-XXXXX format).
+- MFA verification screen during login with the option to switch method.
+- Full MFA management from profile: enable, disable, regenerate codes.
+- Banner recommending MFA activation for users without active MFA.
+- Differentiated session duration: 2 days without MFA, 5 days with MFA.
+- Strengthened password policy: minimum 12 characters + special character.
+- Real-time password strength indicator.
+- Admin user-management panel with pagination, search, MFA status, and plan.
+- Admin MFA disable for account recovery.
+- User export to Excel (.xlsx).
+- Multi-language MFA emails (Spanish/English).
 - Security headers middleware (X-Content-Type-Options, X-Frame-Options, HSTS, etc.).
-- Rate limiting en login (10 intentos/IP/minuto).
-- Account lockout (15 minutos tras 5 intentos fallidos).
+- Rate limiting on login (10 attempts/IP/minute).
+- Account lockout (15 minutes after 5 failed attempts).
 
 ## [0.1.0] - 2026-04-16
 
 ### Added
-- Release inicial de DiagramaHub.
-- Creación y edición de diagramas Mermaid y PlantUML.
-- Gestión de proyectos y carpetas.
-- Integración AI multi-proveedor (Gemini, OpenAI, Claude, DeepSeek).
-- Chat AI para refinamiento iterativo de diagramas.
-- Compartir diagramas con enlaces públicos/protegidos.
-- Sistema de suscripciones con Stripe.
-- Internacionalización español/inglés.
+- Initial DiagramaHub release.
+- Mermaid and PlantUML diagram creation and editing.
+- Project and folder management.
+- Multi-provider AI integration (Gemini, OpenAI, Claude, DeepSeek).
+- AI chat for iterative diagram refinement.
+- Diagram sharing with public/protected links.
+- Stripe-based subscription system.
+- Spanish/English internationalization.

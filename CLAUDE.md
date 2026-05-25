@@ -10,7 +10,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.5.5
+- **Current version**: 0.5.6
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -452,7 +452,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.5**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.6**.
 
 | Bump | When |
 |------|------|
@@ -460,7 +460,7 @@ SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.5**.
 | MINOR | New backwards-compatible feature or capability |
 | MAJOR | Breaking changes to API, data structures, contracts |
 
-Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in Spanish (Keep a Changelog format). Git tags without `v` prefix (e.g., `0.5.0`).
+Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in English (Keep a Changelog format). Git tags without `v` prefix (e.g., `0.5.0`).
 
 ---
 
@@ -498,7 +498,7 @@ Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in Spanish
 - **README.md**: Public project overview
 - **INSTALL.md**: Installation + production deployment
 - **STRIPE_QUICKSTART.md**: Stripe setup
-- **CHANGELOG.md**: Version history (Spanish)
+- **CHANGELOG.md**: Version history (English)
 - **backend/README.md**, **frontend/README.md**: Layer-specific docs
 
 ---
