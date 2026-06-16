@@ -16,8 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Carga bajo demanda (lazy-load) de jsPDF para exportaciones más fluidas.
 
 ### Changed
-- Modelos AI actualizados: Gemini 2.5, GPT-4o, Claude Sonnet 4, DeepSeek V3, MiniMax-Text-01.
-- Valores por defecto de modelos en backend sincronizados con el registro frontend.
 - Lógica de exportación refactorizada de DiagramEditorPage.tsx a módulos utilitarios dedicados.
 
 ## [0.5.6] - 2026-05-25

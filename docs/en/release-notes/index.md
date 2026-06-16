@@ -6,7 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
-| [0.5.7](0.5.7.md) | 2026-06-16 | Export optimization, AI model updates |
+| [0.5.7](0.5.7.md) | 2026-06-16 | Export optimization (PDF/PNG/Markdown) |
 | [0.5.6](0.5.6.md) | 2026-05-25 | Security: Alpine image, critical password-change fix |
 | [0.5.5](0.5.5.md) | 2026-05-17 | Security, Python 3.13, Credential Cleanup |
 | [0.5.4](0.5.4.md) | 2026-05-14 | AI Quick Actions, Resizable Chat, Admin Improvements |

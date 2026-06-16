@@ -25,7 +25,7 @@ from ..prompts import (
 class OpenAIClient(BaseAIClient):
     """Client for OpenAI GPT."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o", parameters: Dict[str, Any] = None):
+    def __init__(self, api_key: str, model: str = "gpt-4.1-mini", parameters: Dict[str, Any] = None):
         super().__init__(api_key, model, parameters or {})
         self.base_url = "https://api.openai.com/v1"
         self.headers = {

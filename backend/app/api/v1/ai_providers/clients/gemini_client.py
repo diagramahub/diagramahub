@@ -22,7 +22,7 @@ from ..prompts import (
 class GeminiClient(BaseAIClient):
     """Client for Google Gemini AI."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash", parameters: Dict[str, Any] = None):
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-lite", parameters: Dict[str, Any] = None):
         super().__init__(api_key, model, parameters or {})
         self.client = genai.Client(api_key=self.api_key)
 

@@ -28,7 +28,7 @@ class MinimaxClient(BaseAIClient):
     BASE_URL = "https://api.minimax.io/v1"
 
     def __init__(
-        self, api_key: str, model: str = "MiniMax-Text-01", parameters: Dict[str, Any] = None
+        self, api_key: str, model: str = "minimax-01", parameters: Dict[str, Any] = None
     ):
         super().__init__(api_key, model, parameters or {})
         self.headers = {

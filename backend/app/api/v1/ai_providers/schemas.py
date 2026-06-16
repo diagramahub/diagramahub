@@ -21,7 +21,7 @@ class AIProviderConfig(BaseModel):
     """Generic configuration for any AI provider."""
     provider: AIProviderType
     api_key: Optional[str] = None  # Will be encrypted in DB, None means keep current when updating
-    model: str = Field(..., description="Model name (e.g., 'gemini-2.5-flash', 'gpt-4o')")
+    model: str = Field(..., description="Model name (e.g., 'gemini-2.5-flash', 'gpt-4.1-mini')")
     is_active: bool = True
     is_default: bool = False
 

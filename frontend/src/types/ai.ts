@@ -139,26 +139,34 @@ export interface ModelOption {
 
 export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
   [AIProviderType.GEMINI]: [
-    { id: 'gemini-2.5-flash', recommended: true },
+    { id: 'gemini-3.1-pro-preview', recommended: true },
+    { id: 'gemini-3-flash-preview' },
+    { id: 'gemini-3.1-flash-lite-preview' },
+    { id: 'gemini-2.5-flash' },
     { id: 'gemini-2.5-pro' },
-    { id: 'gemini-2.0-flash' },
   ],
   [AIProviderType.OPENAI]: [
-    { id: 'gpt-4o', recommended: true },
+    { id: 'gpt-4.1-mini', recommended: true },
+    { id: 'gpt-4.1-nano' },
+    { id: 'gpt-4.1' },
     { id: 'gpt-4o-mini' },
-    { id: 'o3-mini' },
+    { id: 'gpt-4o' },
+    { id: 'gpt-5.4-mini' },
+    { id: 'gpt-5.4-nano' },
+    { id: 'gpt-5.4' },
   ],
   [AIProviderType.CLAUDE]: [
-    { id: 'claude-sonnet-4-20250514', recommended: true },
-    { id: 'claude-3-5-haiku-20241022' },
+    { id: 'claude-haiku-4-5-20251001', recommended: true },
+    { id: 'claude-sonnet-4-6' },
   ],
   [AIProviderType.DEEPSEEK]: [
-    { id: 'deepseek-chat', recommended: true },
-    { id: 'deepseek-reasoner' },
+    { id: 'deepseek-v4-flash', recommended: true },
+    { id: 'deepseek-v4-pro' },
+    { id: 'deepseek-chat' },
   ],
   [AIProviderType.MINIMAX]: [
-    { id: 'MiniMax-Text-01', recommended: true },
-    { id: 'abab6.5s-chat' },
+    { id: 'MiniMax-M2.7', recommended: true },
+    { id: 'MiniMax-M2.5' },
   ],
 };
 
