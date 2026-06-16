@@ -44,6 +44,7 @@ MODEL_TOKEN_LIMITS = {
     "gpt-4.1-mini": 128000,
     "gpt-4.1-nano": 128000,
     "claude-sonnet-4-6": 1000000,
+    "claude-sonnet-4-20250514": 200000,
     "claude-haiku-4-5-20251001": 200000,
     "gemini-3.1-pro-preview": 1000000,
     "gemini-3-flash-preview": 1000000,
