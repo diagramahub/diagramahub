@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.7] - 2026-06-16
+
+### Added
+- Exportación PDF optimizada: tamaño reducido de 150–200 MB a ~1–5 MB con rasterización PNG 2x de alta calidad.
+- Exportación Markdown ahora incluye descripción del diagrama y metadatos del proyecto cuando se seleccionan.
+- Encabezado corporativo en exportaciones PDF/PNG: título del diagrama (siempre), proyecto/carpeta/autor (opcional), pie de página con fecha y branding.
+- Descripciones en PDF renderizan Markdown como HTML formateado en lugar de sintaxis cruda.
+- Spinners de carga individuales por formato de exportación.
+- Carga bajo demanda (lazy-load) de jsPDF para exportaciones más fluidas.
+
+### Changed
+- Lógica de exportación refactorizada de DiagramEditorPage.tsx a módulos utilitarios dedicados.
+
 ## [0.5.6] - 2026-05-25
 
 ### Security

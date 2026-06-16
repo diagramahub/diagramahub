@@ -995,6 +995,23 @@
     "generateError": "Error al generar el enlace",
     "revokeError": "Error al revocar el enlace"
   },
+  "export": {
+    "error": {
+      "pdfFailed": "La exportación a PDF ha fallado. Inténtalo de nuevo.",
+      "pngFailed": "La exportación a PNG ha fallado. Inténtalo de nuevo.",
+      "timeout": "La exportación ha excedido el tiempo máximo.",
+      "downloadFailed": "Error al descargar el archivo."
+    },
+    "metadata": {
+      "project": "Proyecto",
+      "folder": "Carpeta",
+      "diagram": "Diagrama",
+      "author": "Autor"
+    },
+    "description": {
+      "title": "Descripción"
+    }
+  },
   "sidebar": {
     "dashboard": "Inicio",
     "projects": "Proyectos",
