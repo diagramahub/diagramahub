@@ -10,8 +10,14 @@ import { escapeHtml } from "../utils/sanitize";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import api from "../services/api";
+import type {
+  DiagramExportData,
+  ExportOptions,
+  ExportMetadata,
+} from "../utils/exportService";
+import { EXPORT_ERROR_KEYS } from "../utils/exportService";
+import { MarkdownExporter } from "../utils/markdownExporter";
 import {
   Project,
   ProjectWithDiagrams,
@@ -201,7 +207,7 @@ export default function DiagramEditorPage() {
     includeDescription: true,
     includeProjectInfo: true,
   });
-  const [exporting, setExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | null>(null);
 
   // Folder state
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
@@ -1745,106 +1751,131 @@ export default function DiagramEditorPage() {
   };
 
   // Export functions
-  const createExportContent = async (): Promise<HTMLElement> => {
-    const exportContainer = document.createElement("div");
-    exportContainer.style.padding = "40px";
-    exportContainer.style.backgroundColor = "white";
-    exportContainer.style.fontFamily = "system-ui, -apple-system, sans-serif";
+  const buildExportData = (): DiagramExportData => {
+    const svgElement = mermaidRef.current?.querySelector("svg") as SVGElement | null;
+    const diagramType = (currentDiagram?.diagram_type || "mermaid") as
+      | "mermaid"
+      | "plantuml"
+      | "dbml";
 
-    // Add project info if enabled
-    if (exportOptions.includeProjectInfo && project) {
-      const projectHeader = document.createElement("div");
-      projectHeader.style.marginBottom = "30px";
-      projectHeader.style.borderBottom = "2px solid #e5e7eb";
-      projectHeader.style.paddingBottom = "20px";
-
-      const projectTitle = document.createElement("h1");
-      projectTitle.textContent = project.name;
-      projectTitle.style.fontSize = "28px";
-      projectTitle.style.fontWeight = "bold";
-      projectTitle.style.marginBottom = "10px";
-      projectTitle.style.color = "#111827";
-      projectHeader.appendChild(projectTitle);
-
-      if (project.description) {
-        const projectDesc = document.createElement("p");
-        projectDesc.textContent = project.description;
-        projectDesc.style.fontSize = "14px";
-        projectDesc.style.color = "#6b7280";
-        projectHeader.appendChild(projectDesc);
-      }
-
-      exportContainer.appendChild(projectHeader);
-    }
-
-    // Add diagram title
-    const diagramHeader = document.createElement("div");
-    diagramHeader.style.marginBottom = "20px";
-
-    const title = document.createElement("h2");
-    title.textContent = diagramTitle;
-    title.style.fontSize = "24px";
-    title.style.fontWeight = "600";
-    title.style.color = "#111827";
-    diagramHeader.appendChild(title);
-
-    exportContainer.appendChild(diagramHeader);
-
-    // Add diagram SVG
-    if (mermaidRef.current) {
-      const svgElement = mermaidRef.current.querySelector("svg");
-      if (svgElement) {
-        const clonedSvg = svgElement.cloneNode(true) as SVGElement;
-        clonedSvg.style.maxWidth = "100%";
-        clonedSvg.style.height = "auto";
-        clonedSvg.style.marginBottom = "30px";
-        exportContainer.appendChild(clonedSvg);
+    // Resolve folder name from project folders
+    let folderName: string | undefined;
+    if (selectedFolderId && project?.folders) {
+      const folder = project.folders.find((f) => f.id === selectedFolderId);
+      if (folder) {
+        folderName = folder.name;
       }
     }
 
-    // Add description if enabled
-    if (exportOptions.includeDescription && diagramDescription) {
-      const descSection = document.createElement("div");
-      descSection.style.marginTop = "30px";
-      descSection.style.borderTop = "1px solid #e5e7eb";
-      descSection.style.paddingTop = "20px";
+    const metadata: ExportMetadata | undefined =
+      project
+        ? {
+            projectName: project.name,
+            folderName,
+            diagramName: diagramTitle,
+            authorName: user?.full_name || user?.email || "",
+          }
+        : undefined;
 
-      const descTitle = document.createElement("h3");
-      descTitle.textContent = "Descripción";
-      descTitle.style.fontSize = "18px";
-      descTitle.style.fontWeight = "600";
-      descTitle.style.marginBottom = "10px";
-      descTitle.style.color = "#111827";
-      descSection.appendChild(descTitle);
-
-      const descContent = document.createElement("div");
-      descContent.innerHTML = escapeHtml(diagramDescription).replace(
-        /\n/g,
-        "<br>",
-      );
-      descContent.style.fontSize = "14px";
-      descContent.style.color = "#374151";
-      descContent.style.lineHeight = "1.6";
-      descSection.appendChild(descContent);
-
-      exportContainer.appendChild(descSection);
-    }
-
-    return exportContainer;
+    return {
+      svgElement,
+      diagramCode,
+      diagramType,
+      description: diagramDescription || undefined,
+      metadata,
+    };
   };
 
   const handleExportPNG = async () => {
     try {
-      setExporting(true);
-      const content = await createExportContent();
-      document.body.appendChild(content);
+      setExportingFormat('png');
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const canvas = await html2canvas(content, {
+      const data = buildExportData();
+      const options: ExportOptions = {
+        includeDescription: exportOptions.includeDescription,
+        includeProjectInfo: exportOptions.includeProjectInfo,
+      };
+
+      // Build content for html2canvas capture
+      const exportContainer = document.createElement("div");
+      exportContainer.style.position = "absolute";
+      exportContainer.style.left = "-9999px";
+      exportContainer.style.top = "0";
+      exportContainer.style.padding = "40px";
+      exportContainer.style.backgroundColor = "white";
+      exportContainer.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+      exportContainer.style.color = "#1f2937";
+
+      // Set width based on diagram
+      const svgWidth = data.svgElement?.getBoundingClientRect().width || 800;
+      exportContainer.style.width = `${Math.max(svgWidth + 80, 600)}px`;
+
+      const { MetadataHeader } = await import("../utils/metadataHeader");
+      const metadataHeader = new MetadataHeader();
+
+      // Section 1: Always show diagram title; full metadata header only if checkbox is on
+      if (options.includeProjectInfo && data.metadata) {
+        const headerElement = metadataHeader.createDOMElement(data.metadata);
+        headerElement.style.marginBottom = "20px";
+        exportContainer.appendChild(headerElement);
+      } else {
+        const titleElement = metadataHeader.createTitleElement(diagramTitle);
+        titleElement.style.marginBottom = "20px";
+        exportContainer.appendChild(titleElement);
+      }
+
+      // Section 2: Diagram SVG (clone with inline styles preserved)
+      if (data.svgElement) {
+        const diagramWrapper = document.createElement("div");
+        diagramWrapper.style.textAlign = "center";
+        diagramWrapper.style.marginBottom = "20px";
+
+        const clonedSvg = data.svgElement.cloneNode(true) as SVGElement;
+        clonedSvg.style.maxWidth = "100%";
+        clonedSvg.style.height = "auto";
+        clonedSvg.style.display = "block";
+        clonedSvg.style.margin = "0 auto";
+
+        // Copy <style> elements from original SVG to clone (critical for Mermaid)
+        const sourceStyles = data.svgElement.querySelectorAll("style");
+        const cloneStyles = clonedSvg.querySelectorAll("style");
+        if (sourceStyles.length > 0 && cloneStyles.length === 0) {
+          sourceStyles.forEach((styleEl) => {
+            clonedSvg.insertBefore(styleEl.cloneNode(true), clonedSvg.firstChild);
+          });
+        }
+
+        diagramWrapper.appendChild(clonedSvg);
+        exportContainer.appendChild(diagramWrapper);
+      }
+
+      // Section 3: Description (rendered Markdown) if requested
+      if (options.includeDescription && data.description?.trim()) {
+        const { DescriptionRenderer } = await import("../utils/descriptionRenderer");
+        const renderer = new DescriptionRenderer();
+        const descriptionElement = renderer.render(data.description);
+        descriptionElement.style.borderTop = "1px solid #e5e7eb";
+        descriptionElement.style.paddingTop = "16px";
+        descriptionElement.style.marginTop = "10px";
+        exportContainer.appendChild(descriptionElement);
+      }
+
+      // Section 4: Footer
+      const footerElement = metadataHeader.createFooterElement();
+      exportContainer.appendChild(footerElement);
+
+      document.body.appendChild(exportContainer);
+
+      const canvas = await html2canvas(exportContainer, {
         backgroundColor: "#ffffff",
         scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
 
-      document.body.removeChild(content);
+      document.body.removeChild(exportContainer);
 
       const link = document.createElement("a");
       link.download = `${diagramTitle.replace(/\s+/g, "_")}.png`;
@@ -1854,41 +1885,58 @@ export default function DiagramEditorPage() {
       setShowExportModal(false);
     } catch (err) {
       console.error("Error exporting PNG:", err);
-      setError("Error al exportar PNG");
+      setError(t(EXPORT_ERROR_KEYS.PNG_FAILED));
     } finally {
-      setExporting(false);
+      setExportingFormat(null);
     }
   };
 
   const handleExportPDF = async () => {
+    setExportingFormat('pdf');
+    // Double rAF ensures React paints the spinner before heavy work starts
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
-      setExporting(true);
-      const content = await createExportContent();
-      document.body.appendChild(content);
+      const data = buildExportData();
+      const options: ExportOptions = {
+        includeDescription: exportOptions.includeDescription,
+        includeProjectInfo: exportOptions.includeProjectInfo,
+      };
 
-      const canvas = await html2canvas(content, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-      });
-
-      document.body.removeChild(content);
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: canvas.width > canvas.height ? "landscape" : "portrait",
-        unit: "px",
-        format: [canvas.width, canvas.height],
-      });
-
-      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-      pdf.save(`${diagramTitle.replace(/\s+/g, "_")}.pdf`);
+      const { PDFGenerator: PDFGen } = await import("../utils/pdfGenerator");
+      const pdfGenerator = new PDFGen();
+      await pdfGenerator.generate(data, options);
 
       setShowExportModal(false);
     } catch (err) {
       console.error("Error exporting PDF:", err);
-      setError("Error al exportar PDF");
+      const errorKey =
+        err instanceof Error && err.message === EXPORT_ERROR_KEYS.TIMEOUT
+          ? EXPORT_ERROR_KEYS.TIMEOUT
+          : EXPORT_ERROR_KEYS.PDF_FAILED;
+      setError(t(errorKey));
     } finally {
-      setExporting(false);
+      setExportingFormat(null);
+    }
+  };
+
+  const handleExportMarkdown = () => {
+    try {
+      setExportingFormat('markdown');
+      const data = buildExportData();
+      const options: ExportOptions = {
+        includeDescription: exportOptions.includeDescription,
+        includeProjectInfo: exportOptions.includeProjectInfo,
+      };
+
+      const markdownExporter = new MarkdownExporter();
+      markdownExporter.export(data, options);
+
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Error exporting Markdown:", err);
+      setError(t(EXPORT_ERROR_KEYS.DOWNLOAD_FAILED));
+    } finally {
+      setExportingFormat(null);
     }
   };
 
@@ -3698,43 +3746,84 @@ export default function DiagramEditorPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={handleExportPNG}
-                    disabled={exporting}
+                    disabled={exportingFormat !== null}
                     className="flex-1 px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    {exporting ? t("editor.exporting") : "PNG"}
+                    {exportingFormat === 'png' ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    )}
+                    PNG
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    disabled={exporting}
+                    disabled={exportingFormat !== null}
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      />
-                    </svg>
-                    {exporting ? t("editor.exporting") : "PDF"}
+                    {exportingFormat === 'pdf' ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        />
+                      </svg>
+                    )}
+                    PDF
+                  </button>
+                  <button
+                    onClick={handleExportMarkdown}
+                    disabled={exportingFormat !== null}
+                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  >
+                    {exportingFormat === 'markdown' ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    )}
+                    Markdown
                   </button>
                 </div>
               </div>
@@ -3773,7 +3862,7 @@ export default function DiagramEditorPage() {
             <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
               <button
                 onClick={() => setShowExportModal(false)}
-                disabled={exporting}
+                disabled={exportingFormat !== null}
                 className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400 dark:disabled:text-gray-600"
               >
                 {t("common.cancel")}

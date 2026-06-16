@@ -876,6 +876,23 @@
     "generateError": "Error generating link",
     "revokeError": "Error revoking link"
   },
+  "export": {
+    "error": {
+      "pdfFailed": "PDF export failed. Please try again.",
+      "pngFailed": "PNG export failed. Please try again.",
+      "timeout": "Export timed out. Please try again.",
+      "downloadFailed": "Failed to download file."
+    },
+    "metadata": {
+      "project": "Project",
+      "folder": "Folder",
+      "diagram": "Diagram",
+      "author": "Author"
+    },
+    "description": {
+      "title": "Description"
+    }
+  },
   "sidebar": {
     "dashboard": "Home",
     "projects": "Projects",
