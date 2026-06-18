@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.5.8] - 2026-06-16
+## [0.5.8] - 2026-06-18
 
 ### Added
 - SVG export: download diagrams as clean, standalone scalable vectors (Mermaid, PlantUML, D2, DBML). Ideal for embedding in docs/READMEs or further editing.
