@@ -186,8 +186,8 @@ export default function SharedDiagramPage() {
             const safeSvg = sanitizeSvg(result.svg);
             diagramRef.current.innerHTML = `<div style="max-width:none;" draggable="false">${safeSvg}</div>`;
           } else {
-            // Mermaid renders locally — no sanitization needed
-            diagramRef.current.innerHTML = result.svg;
+            // Mermaid renders with securityLevel 'loose'; sanitize before injecting
+            diagramRef.current.innerHTML = sanitizeSvg(result.svg);
           }
         } else {
           diagramRef.current.innerHTML = `<div class="text-amber-600 p-4 text-center"><p class="font-medium">⚠️ ${escapeHtml(result.error)}</p></div>`;

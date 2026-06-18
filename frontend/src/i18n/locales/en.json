@@ -461,7 +461,13 @@
     "dots": "Dots",
     "grid": "Grid",
     "exporting": "Exporting...",
-    "downloadSource": "Download source code"
+    "downloadSource": "Download source code",
+    "exportContentOptions": "Additional content",
+    "formatHintPng": "Raster image",
+    "formatHintSvg": "Scalable vector",
+    "formatHintPdf": "Document",
+    "formatHintMarkdown": "Text + image",
+    "svgVectorNote": "SVG is exported as a clean vector (no header)."
   },
   "errors": {
     "genericError": "An error occurred",
@@ -880,6 +886,7 @@
     "error": {
       "pdfFailed": "PDF export failed. Please try again.",
       "pngFailed": "PNG export failed. Please try again.",
+      "svgFailed": "SVG export failed. Please try again.",
       "timeout": "Export timed out. Please try again.",
       "downloadFailed": "Failed to download file."
     },

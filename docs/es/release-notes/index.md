@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.5.8](0.5.8.md) | 2026-06-16 | Exportación SVG, rediseño de modal, seguridad (XSS/OpenSSL) |
 | [0.5.7](0.5.7.md) | 2026-06-16 | Optimización de exportación (PDF/PNG/Markdown) |
 | [0.5.6](0.5.6.md) | 2026-05-25 | Seguridad: imagen Alpine, fix crítico de cambio de contraseña |
 | [0.5.5](0.5.5.md) | 2026-05-17 | Seguridad, Python 3.13, Limpieza de credenciales |
