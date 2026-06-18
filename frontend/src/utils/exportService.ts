@@ -14,6 +14,7 @@ import { MetadataHeader } from './metadataHeader';
 export const EXPORT_ERROR_KEYS = {
   PDF_FAILED: 'export.error.pdfFailed',
   PNG_FAILED: 'export.error.pngFailed',
+  SVG_FAILED: 'export.error.svgFailed',
   TIMEOUT: 'export.error.timeout',
   DOWNLOAD_FAILED: 'export.error.downloadFailed',
 } as const;

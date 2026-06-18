@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { renderDiagram } from '../utils/diagramRenderer';
+import { sanitizeSvg } from '../utils/sanitize';
 
 interface DiagramPreviewProps {
   code: string;
@@ -43,7 +44,8 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
       if (!containerRef.current) return;
 
       if ("svg" in result) {
-        containerRef.current.innerHTML = result.svg;
+        // Sanitize before injecting: diagram source can be untrusted (shared/imported)
+        containerRef.current.innerHTML = sanitizeSvg(result.svg);
       } else {
         setRenderError(result.error);
       }

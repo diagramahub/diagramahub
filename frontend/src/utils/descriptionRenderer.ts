@@ -14,6 +14,7 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { sanitizeRichHtml } from './sanitize';
 
 /**
  * Inline styles applied to rendered Markdown elements for PDF capture compatibility.
@@ -269,8 +270,9 @@ export class DescriptionRenderer {
       );
     });
 
-    // Transfer rendered HTML to the styled container before unmounting
-    container.innerHTML = renderTarget.innerHTML;
+    // Transfer rendered HTML to the styled container before unmounting.
+    // Sanitize to strip any XSS vectors while keeping inline styles for PDF capture.
+    container.innerHTML = sanitizeRichHtml(renderTarget.innerHTML);
 
     // Clean up the React root
     root.unmount();

@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.8] - 2026-06-16
+
+### Added
+- SVG export: download diagrams as clean, standalone scalable vectors (Mermaid, PlantUML, D2, DBML). Ideal for embedding in docs/READMEs or further editing.
+
+### Changed
+- Redesigned the export modal: format options laid out as a 2×2 card grid (PNG, SVG, PDF, Markdown), content options grouped into a compact secondary section, and source-code download moved to a subtle footer button — reducing visual clutter.
+- Extracted the export modal into a dedicated `ExportDiagramModal` component.
+
+### Security
+- **DOM-based XSS (Snyk, Medium)**: sanitize rendered SVG with DOMPurify (`sanitizeSvg`) before injecting it via `innerHTML` in the diagram preview, editor, and shared diagram views. Mermaid output (rendered with `securityLevel: 'loose'`) is now sanitized like server-rendered SVG.
+- Sanitize rendered Markdown description HTML (`sanitizeRichHtml`) before `innerHTML` assignment in PDF/PNG description export.
+- Frontend Docker image now runs `apk upgrade` to pick up the latest Alpine OpenSSL security patches (CVE-2026-* reported by Snyk Container), matching the backend image.
+
 ## [0.5.7] - 2026-06-16
 
 ### Added
