@@ -6,7 +6,7 @@ import {
   renderDiagram as renderDiagramUtil,
   isServerRenderedType,
 } from "../utils/diagramRenderer";
-import { escapeHtml } from "../utils/sanitize";
+import { escapeHtml, sanitizeSvg } from "../utils/sanitize";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import html2canvas from "html2canvas";
@@ -18,6 +18,7 @@ import type {
 } from "../utils/exportService";
 import { EXPORT_ERROR_KEYS } from "../utils/exportService";
 import { MarkdownExporter } from "../utils/markdownExporter";
+import { SvgExporter } from "../utils/svgExporter";
 import {
   Project,
   ProjectWithDiagrams,
@@ -35,6 +36,7 @@ import UpgradePlanModal from "../components/UpgradePlanModal";
 import MarkdownEditor from "../components/MarkdownEditor";
 import { DiagramDiffView } from "../components/DiagramDiffView";
 import ShareDiagramModal from "../components/ShareDiagramModal";
+import ExportDiagramModal from "../components/ExportDiagramModal";
 import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
 import { EditorSkeleton } from "../components/Skeleton";
@@ -207,7 +209,7 @@ export default function DiagramEditorPage() {
     includeDescription: true,
     includeProjectInfo: true,
   });
-  const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | 'svg' | null>(null);
 
   // Folder state
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
@@ -930,7 +932,8 @@ export default function DiagramEditorPage() {
         if (!mermaidRef.current) return;
 
         if ("svg" in result) {
-          mermaidRef.current.innerHTML = result.svg;
+          // Sanitize before injecting: source may be untrusted/imported content
+          mermaidRef.current.innerHTML = sanitizeSvg(result.svg);
           setRenderError(null);
         } else {
           throw new Error(result.error);
@@ -1935,6 +1938,23 @@ export default function DiagramEditorPage() {
     } catch (err) {
       console.error("Error exporting Markdown:", err);
       setError(t(EXPORT_ERROR_KEYS.DOWNLOAD_FAILED));
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
+  const handleExportSVG = () => {
+    try {
+      setExportingFormat('svg');
+      const data = buildExportData();
+
+      const svgExporter = new SvgExporter();
+      svgExporter.export(data.svgElement, diagramTitle);
+
+      setShowExportModal(false);
+    } catch (err) {
+      console.error("Error exporting SVG:", err);
+      setError(t(EXPORT_ERROR_KEYS.SVG_FAILED));
     } finally {
       setExportingFormat(null);
     }
@@ -3691,186 +3711,19 @@ export default function DiagramEditorPage() {
       </div>
 
       {/* Export Modal */}
-      {showExportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-auto overflow-y-auto max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {t("editor.exportDiagram")}
-              </h3>
-            </div>
-
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={exportOptions.includeDescription}
-                    onChange={(e) =>
-                      setExportOptions({
-                        ...exportOptions,
-                        includeDescription: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {t("editor.includeDescription")}
-                  </span>
-                </label>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={exportOptions.includeProjectInfo}
-                    onChange={(e) =>
-                      setExportOptions({
-                        ...exportOptions,
-                        includeProjectInfo: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {t("editor.includeProjectInfo")}
-                  </span>
-                </label>
-              </div>
-
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  {t("editor.selectFormat")}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleExportPNG}
-                    disabled={exportingFormat !== null}
-                    className="flex-1 px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                  >
-                    {exportingFormat === 'png' ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    )}
-                    PNG
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={exportingFormat !== null}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                  >
-                    {exportingFormat === 'pdf' ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                        />
-                      </svg>
-                    )}
-                    PDF
-                  </button>
-                  <button
-                    onClick={handleExportMarkdown}
-                    disabled={exportingFormat !== null}
-                    className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                  >
-                    {exportingFormat === 'markdown' ? (
-                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                    )}
-                    Markdown
-                  </button>
-                </div>
-              </div>
-
-              {/* Download source file */}
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  {t("editor.downloadSource")}
-                </p>
-                <button
-                  onClick={handleDownloadSource}
-                  className="w-full px-4 py-2 bg-gray-800 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                    />
-                  </svg>
-                  {currentDiagram?.diagram_type === "plantuml"
-                    ? ".puml (PlantUML)"
-                    : currentDiagram?.diagram_type === "d2"
-                      ? ".d2 (D2)"
-                      : ".mmd (Mermaid)"}
-                </button>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-              <button
-                onClick={() => setShowExportModal(false)}
-                disabled={exportingFormat !== null}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400 dark:disabled:text-gray-600"
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExportDiagramModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        exportOptions={exportOptions}
+        setExportOptions={setExportOptions}
+        exportingFormat={exportingFormat}
+        onExportPng={handleExportPNG}
+        onExportSvg={handleExportSVG}
+        onExportPdf={handleExportPDF}
+        onExportMarkdown={handleExportMarkdown}
+        onDownloadSource={handleDownloadSource}
+        diagramType={currentDiagram?.diagram_type}
+      />
 
       {/* New Diagram Modal */}
       {showNewDiagramModal && (

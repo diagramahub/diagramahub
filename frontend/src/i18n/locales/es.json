@@ -461,7 +461,13 @@
     "dots": "Puntos",
     "grid": "Cuadrícula",
     "exporting": "Exportando...",
-    "downloadSource": "Descargar código fuente"
+    "downloadSource": "Descargar código fuente",
+    "exportContentOptions": "Contenido adicional",
+    "formatHintPng": "Imagen rasterizada",
+    "formatHintSvg": "Vector escalable",
+    "formatHintPdf": "Documento",
+    "formatHintMarkdown": "Texto + imagen",
+    "svgVectorNote": "El SVG se exporta como vector limpio (sin encabezado)."
   },
   "errors": {
     "genericError": "Ocurrió un error",
@@ -999,6 +1005,7 @@
     "error": {
       "pdfFailed": "La exportación a PDF ha fallado. Inténtalo de nuevo.",
       "pngFailed": "La exportación a PNG ha fallado. Inténtalo de nuevo.",
+      "svgFailed": "La exportación a SVG ha fallado. Inténtalo de nuevo.",
       "timeout": "La exportación ha excedido el tiempo máximo.",
       "downloadFailed": "Error al descargar el archivo."
     },
