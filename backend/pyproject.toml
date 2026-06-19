@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "diagramahub-backend"
-version = "0.5.8"
+version = "0.5.9"
 description = "Diagramahub backend API with FastAPI and MongoDB"
 authors = ["Diagramahub Team"]
 license = "Apache-2.0"

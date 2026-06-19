@@ -15,6 +15,7 @@ from app.api.v1.ai_providers.schemas import (
 )
 from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.users.schemas import UserInDB
+from tests.utils import generate_test_password
 
 
 @pytest.mark.integration
@@ -29,7 +30,7 @@ class TestAdminUsersListing:
     ):
         """Admin listing should expose login time and connected AI models."""
         email = "mfa-admin-list@example.com"
-        password = "StrongPass123!Aa"
+        password = generate_test_password()
 
         register_response = await client.post(
             "/api/v1/users/register",

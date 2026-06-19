@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.5.9](0.5.9.md) | 2026-06-19 | Dependency updates, Node 24, test cleanup, README |
 | [0.5.8](0.5.8.md) | 2026-06-18 | SVG export, modal redesign, security (XSS/OpenSSL) |
 | [0.5.7](0.5.7.md) | 2026-06-16 | Export optimization (PDF/PNG/Markdown) |
 | [0.5.6](0.5.6.md) | 2026-05-25 | Security: Alpine image, critical password-change fix |
