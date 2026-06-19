@@ -8,10 +8,18 @@ Tests cover:
 - Passthrough of non-sensitive data
 - Graceful handling of malformed events (returns None)
 - Events without request data pass through unchanged
+
+Sensitive sample values are generated dynamically (never hardcoded) — the
+sanitizer's behavior depends only on the field name, not the value.
 """
 import pytest
 
 from app.main import sanitize_sentry_event, _MASK
+from tests.utils import (
+    generate_test_password,
+    generate_test_secret,
+    generate_test_token,
+)
 
 
 @pytest.mark.unit
@@ -21,7 +29,7 @@ class TestSanitizeSentryEvent:
     def test_masks_authorization_header(self):
         event = {
             "request": {
-                "headers": {"Authorization": "Bearer secret-token-123"}
+                "headers": {"Authorization": f"Bearer {generate_test_token()}"}
             }
         }
         result = sanitize_sentry_event(event, {})
@@ -31,7 +39,7 @@ class TestSanitizeSentryEvent:
     def test_masks_cookie_header(self):
         event = {
             "request": {
-                "headers": {"Cookie": "session=abc123; token=xyz"}
+                "headers": {"Cookie": f"session={generate_test_token()}; token={generate_test_token()}"}
             }
         }
         result = sanitize_sentry_event(event, {})
@@ -42,7 +50,7 @@ class TestSanitizeSentryEvent:
         event = {
             "request": {
                 "headers": {
-                    "authorization": "Bearer key",
+                    "authorization": f"Bearer {generate_test_token()}",
                     "COOKIE": "val",
                 }
             }
@@ -70,11 +78,11 @@ class TestSanitizeSentryEvent:
         event = {
             "request": {
                 "data": {
-                    "api_key": "sk-12345",
-                    "password": "hunter2",
-                    "token": "jwt-token",
-                    "secret": "my-secret",
-                    "jwt": "eyJhbGciOi...",
+                    "api_key": generate_test_secret(),
+                    "password": generate_test_password(),
+                    "token": generate_test_token(),
+                    "secret": generate_test_secret(),
+                    "jwt": generate_test_token("jwt"),
                     "username": "john",
                 }
             }
@@ -93,8 +101,8 @@ class TestSanitizeSentryEvent:
         event = {
             "request": {
                 "data": {
-                    "Password": "hunter2",
-                    "API_KEY": "sk-12345",
+                    "Password": generate_test_password(),
+                    "API_KEY": generate_test_secret(),
                 }
             }
         }
@@ -106,7 +114,7 @@ class TestSanitizeSentryEvent:
     def test_masks_sensitive_query_string_params(self):
         event = {
             "request": {
-                "query_string": "token=abc123&page=1&api_key=sk-xyz"
+                "query_string": f"token={generate_test_token()}&page=1&api_key={generate_test_secret()}"
             }
         }
         result = sanitize_sentry_event(event, {})
@@ -132,7 +140,7 @@ class TestSanitizeSentryEvent:
         # Use a dict subclass for headers that raises when iterating keys
         class ExplodingDict(dict):
             def __init__(self):
-                super().__init__({"Authorization": "Bearer x"})
+                super().__init__({"Authorization": f"Bearer {generate_test_token()}"})
 
             def keys(self):
                 raise RuntimeError("boom")
@@ -145,11 +153,11 @@ class TestSanitizeSentryEvent:
         event = {
             "request": {
                 "headers": {
-                    "Authorization": "Bearer xyz",
+                    "Authorization": f"Bearer {generate_test_token()}",
                     "Content-Type": "application/json",
                 },
                 "data": {
-                    "password": "secret123",
+                    "password": generate_test_password(),
                     "email": "user@example.com",
                 },
             }
@@ -163,7 +171,7 @@ class TestSanitizeSentryEvent:
 
     def test_hint_parameter_is_accepted(self):
         """Ensure the hint parameter doesn't cause issues."""
-        event = {"request": {"headers": {"Authorization": "Bearer x"}}}
+        event = {"request": {"headers": {"Authorization": f"Bearer {generate_test_token()}"}}}
         hint = {"exc_info": (ValueError, ValueError("test"), None)}
         result = sanitize_sentry_event(event, hint)
         assert result is not None

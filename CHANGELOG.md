@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.9] - 2026-06-19
+
+### Security
+- **dompurify** `3.4.2 → 3.4.11` — fixes Snyk-reported Prototype Pollution, XSS, Trust Boundary Violation and Protection Mechanism Failure. Also pinned via `overrides` so the transitive copy bundled by `monaco-editor` (`3.1.7`) resolves to `3.4.11`.
+- **react-router-dom** `7.15.0 → 7.18.0` — fixes Snyk-reported CSRF.
+- **form-data** `4.0.5 → 4.0.6` (via `overrides`, transitive through axios) — fixes Snyk-reported CRLF Injection.
+- Removed hardcoded credentials from the Python test suite (Snyk CWE-798). Sensitive sample values (passwords, tokens, secrets, API keys) are now generated dynamically via `tests/utils/security.py` helpers (`generate_test_password`, `generate_test_token`, `generate_test_secret`, `generate_test_api_key`).
+
+### Changed
+- Frontend Docker base image `node:20-alpine → node:24-alpine` (Node 20 reached end-of-life; 24 is Active LTS and aligns with `@types/node` 24).
+- Dependency refresh (within current majors, no breaking changes): `axios 1.18.0`, `react`/`react-dom 19.2.7`, `vite 7.3.5`, `@vitejs/plugin-react 5.2.0`, `tailwindcss 3.4.19`, `@tailwindcss/typography 0.5.20`, `postcss 8.5.15`, `autoprefixer 10.5.0`, `i18next 25.10.10`, `react-i18next 16.6.6`, `react-markdown 9.1.0`, `@sentry/react 9.47.1`, `eslint 9.39.4`, `typescript-eslint 8.61.1`, `@types/*` and others.
+
+### Documentation
+- Slimmed down the README (~245 → ~130 lines): extracted the detailed architecture into [ARCHITECTURE.md](ARCHITECTURE.md) and the security controls into [SECURITY.md](SECURITY.md), condensed the feature list, and fixed broken header emojis.
+- Added a Star History chart to the README.
+
+### Notes
+- TailwindCSS intentionally kept on v3 (PostCSS compatibility).
+- `codemirror 5.65.21` (ReDoS, transitive via `easymde`) has no fix on the 5.x line; resolving it requires migrating the Markdown editor to CodeMirror 6 — tracked as a separate follow-up.
+- Major upgrades deferred for a dedicated effort: `@sentry/react 10`, `i18next 26`/`react-i18next 17`, `react-markdown 10`, `vite 8`, `typescript 6`, `eslint 10`.
+
 ## [0.5.8] - 2026-06-18
 
 ### Added
