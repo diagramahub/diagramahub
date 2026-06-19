@@ -26,6 +26,7 @@ from app.api.v1.subscriptions.schemas import (
     SubscriptionCreate,
 )
 from app.api.v1.subscriptions.constants import FREE_PLAN_NAME, STATUS_ACTIVE
+from tests.utils.security import generate_test_secret
 
 
 # ---------------------------------------------------------------------------
@@ -334,7 +335,7 @@ class TestWebhookValidationPreservation:
         stripe.Webhook.construct_event(payload, signature, webhook_secret)
         and return {"event_type": ..., "data": ...}.
         """
-        webhook_secret = "whsec_test_secret_123"
+        webhook_secret = generate_test_secret("whsec")
         provider = StripePaymentProvider(
             secret_key="sk_test_fake",
             webhook_secret=webhook_secret,

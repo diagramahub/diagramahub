@@ -1,5 +1,5 @@
 # Development stage
-FROM node:20-alpine
+FROM node:24-alpine
 
 # Upgrade all apk packages to latest patches (picks up OpenSSL and other
 # Alpine security fixes that lag behind the base image tag). Rebuild regularly.

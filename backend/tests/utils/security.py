@@ -39,3 +39,18 @@ def generate_password_missing_lowercase() -> str:
     """Generate a password missing lowercase characters."""
     letters = "".join(secrets.choice(string.ascii_uppercase) for _ in range(10))
     return f"UPPER-{letters}1{secrets.choice(_SPECIAL_CHARACTERS)}"
+
+
+def generate_test_token(prefix: str = "tok") -> str:
+    """Generate a random token-like value for tests (not a real credential)."""
+    return f"{prefix}-{secrets.token_hex(8)}"
+
+
+def generate_test_secret(prefix: str = "sk") -> str:
+    """Generate a random secret-like value for tests (not a real credential)."""
+    return f"{prefix}-{secrets.token_hex(12)}"
+
+
+def generate_test_api_key(prefix: str = "key") -> str:
+    """Generate a random API-key-like value for tests (not a real credential)."""
+    return f"{prefix}-{secrets.token_hex(16)}"
