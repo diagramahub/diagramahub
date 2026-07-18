@@ -23,6 +23,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import MfaVerifyPage from './pages/MfaVerifyPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AboutPage from './pages/AboutPage';
 import InstallationGuard from './components/InstallationGuard';
 import { PresentationProvider } from './contexts/PresentationContext';
 
@@ -143,6 +144,16 @@ function App() {
                       <PrivateRoute>
                         <SidebarLayout>
                           <IntegrationsPage />
+                        </SidebarLayout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/about"
+                    element={
+                      <PrivateRoute>
+                        <SidebarLayout>
+                          <AboutPage />
                         </SidebarLayout>
                       </PrivateRoute>
                     }

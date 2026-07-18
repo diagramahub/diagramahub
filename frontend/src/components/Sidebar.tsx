@@ -75,6 +75,14 @@ function CommunityIcon() {
   );
 }
 
+function AboutIcon() {
+  return (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9h.01M11 12h1v4h1m8-4a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
 function SunIcon() {
   return (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,6 +144,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { key: 'projects', labelKey: 'sidebar.projects', path: '/projects-list', icon: <FolderIcon /> },
   { key: 'aiSettings', labelKey: 'sidebar.aiSettings', path: '/settings', icon: <AISettingsIcon /> },
   { key: 'subscription', labelKey: 'sidebar.subscription', path: '/subscription', icon: <SubscriptionIcon /> },
+  { key: 'about', labelKey: 'sidebar.about', path: '/about', icon: <AboutIcon /> },
   { key: 'community', labelKey: 'sidebar.community', path: '#community', icon: <CommunityIcon /> },
 ];
 

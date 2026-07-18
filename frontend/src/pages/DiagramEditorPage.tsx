@@ -266,7 +266,9 @@ export default function DiagramEditorPage() {
   const isMobile = useIsMobile();
 
   // Floating panels state
-  const [showFloatingSidebar, setShowFloatingSidebar] = useState(false);
+  const [showFloatingSidebar, setShowFloatingSidebar] = useState(
+    () => window.innerWidth >= 1024,
+  );
   const [showCodeView, setShowCodeView] = useState(false);
   const [codePanelWidth, setCodePanelWidth] = useState(350);
   const isResizingCode = useRef(false);
@@ -1633,8 +1635,9 @@ export default function DiagramEditorPage() {
   const handleFitToScreen = () => {
     if (!mermaidRef.current || !containerRef.current) return;
 
-    const diagramElement = mermaidRef.current;
+    const diagramElement = mermaidRef.current.querySelector("svg");
     const containerElement = containerRef.current;
+    if (!diagramElement) return;
 
     // Obtener dimensiones del diagrama y contenedor
     const diagramRect = diagramElement.getBoundingClientRect();
@@ -1650,19 +1653,24 @@ export default function DiagramEditorPage() {
       return;
     }
 
-    // Calcular el zoom necesario para ajustar (con un poco de padding)
     const scaleX = (containerRect.width * 0.9) / diagramRect.width;
     const scaleY = (containerRect.height * 0.9) / diagramRect.height;
-    const newZoom = Math.min(scaleX, scaleY) * zoom; // Mantener el zoom actual como base
+    const newZoom = Math.max(0.1, Math.min(scaleX, scaleY) * zoom);
 
     // Guard against Infinity/NaN from edge cases
     if (!isFinite(newZoom) || newZoom <= 0) {
       return;
     }
 
-    // Centrar el diagrama
+    const diagramCenterX = diagramRect.left + diagramRect.width / 2;
+    const diagramCenterY = diagramRect.top + diagramRect.height / 2;
+    const containerCenterX = containerRect.left + containerRect.width / 2;
+    const containerCenterY = containerRect.top + containerRect.height / 2;
+    const baseOffsetX = (diagramCenterX - containerCenterX - pan.x) / zoom;
+    const baseOffsetY = (diagramCenterY - containerCenterY - pan.y) / zoom;
+
     setZoom(newZoom);
-    setPan({ x: 0, y: 0 });
+    setPan({ x: -baseOffsetX * newZoom, y: -baseOffsetY * newZoom });
   };
 
   // Track if initial load is complete (to avoid fit-to-screen overriding restored viewport)
@@ -1982,7 +1990,6 @@ export default function DiagramEditorPage() {
   };
 
   // Folder functions
-  const noop = () => {};
   const toggleFolder = (folderId: string) => {
     setExpandedFolders((prev) => {
       const newSet = new Set(prev);
@@ -2529,13 +2536,7 @@ export default function DiagramEditorPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    d="M4 8V4h4m8 0h4v4M4 16v4h4m12-4v4h-4M8 12h8M12 8v8"
                   />
                 </svg>
               </button>
@@ -2629,7 +2630,7 @@ export default function DiagramEditorPage() {
                 {/* Floating Modals */}
                 {/* Diagram Structure Modal */}
                 {showFloatingSidebar && !isMobile && (
-                  <div className="floating-sidebar absolute top-0 left-0 z-30 w-72 h-full sm:top-2 sm:left-2 sm:h-auto sm:max-h-[calc(100vh-200px)] sm:rounded-lg sm:shadow-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 overflow-hidden">
+                  <div className="floating-sidebar absolute inset-y-0 left-0 z-30 w-64 border-r border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
                     <DiagramFileBrowser
                       projectName={project?.name || ""}
                       projectEmoji={project?.emoji}
@@ -2659,6 +2660,7 @@ export default function DiagramEditorPage() {
                       onEditingFolderNameChange={setEditingFolderName}
                       onSaveFolderEdit={handleSaveFolderEdit}
                       onCancelFolderEdit={handleCancelFolderEdit}
+                      closeOnSelect={false}
                     />
                   </div>
                 )}
@@ -3170,7 +3172,7 @@ export default function DiagramEditorPage() {
 
                 <div
                   ref={containerRef}
-                  className="flex-1 p-2 overflow-hidden"
+                  className={`flex-1 overflow-hidden p-2 ${showFloatingSidebar && !isMobile ? "pl-64" : ""}`}
                   onMouseDown={
                     activeTab === "code" ? handleMouseDown : undefined
                   }
@@ -4516,9 +4518,9 @@ export default function DiagramEditorPage() {
               folders={project?.folders || []}
               currentDiagramId={diagramId}
               onClose={() => setShowFloatingSidebar(false)}
-              onNewDiagram={() => {
+              onNewDiagram={(folderId) => {
                 setShowFloatingSidebar(false);
-                setShowNewDiagramModal(true);
+                handleNewDiagram(folderId || null);
               }}
               onNewFolder={() => {
                 setShowFloatingSidebar(false);
@@ -4544,9 +4546,9 @@ export default function DiagramEditorPage() {
                 setEditingFolderName(name);
               }}
               onDragStart={(id) => setDraggedDiagramId(id)}
-              onDragOver={noop}
-              onDragLeave={noop}
-              onDrop={noop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               draggedDiagramId={draggedDiagramId}
               dropTargetFolderId={dropTargetFolderId}
               expandedFolders={expandedFolders}
@@ -4556,11 +4558,8 @@ export default function DiagramEditorPage() {
               editingFolderId={editingFolderId}
               editingFolderName={editingFolderName}
               onEditingFolderNameChange={setEditingFolderName}
-              onSaveFolderEdit={() => {
-                // TODO: implement folder rename
-                setEditingFolderId(null);
-              }}
-              onCancelFolderEdit={() => setEditingFolderId(null)}
+              onSaveFolderEdit={handleSaveFolderEdit}
+              onCancelFolderEdit={handleCancelFolderEdit}
             />
           </BottomSheet>
 

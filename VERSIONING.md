@@ -1,7 +1,7 @@
 # Política de Versionamiento
 
 Este proyecto adopta oficialmente **Semantic Versioning (SemVer)**.
-Versión actual: **0.5.7**.
+Versión actual: **0.5.10**.
 
 ## Formato
 
@@ -63,7 +63,7 @@ Cada release note se secciona por tipo de cambio. Solo se incluyen las secciones
 
 ### Formato de cada release note
 
-Cada release es un archivo `docs/{lang}/release-notes/v{VERSION}.md` con esta estructura:
+Cada release es un archivo `docs/{lang}/release-notes/{VERSION}.md` con esta estructura:
 
 ```markdown
 # {VERSION} ({YYYY-MM-DD})
@@ -95,12 +95,12 @@ Resumen breve del release.
 Al crear una nueva versión:
 
 1. Determinar el bump correcto (MAJOR, MINOR o PATCH).
-2. Crear el archivo de release notes en `docs/es/release-notes/v{VERSION}.md` y `docs/en/release-notes/v{VERSION}.md`, seccionado por tipo de cambio.
+2. Crear el archivo de release notes en `docs/es/release-notes/{VERSION}.md` y `docs/en/release-notes/{VERSION}.md`, seccionado por tipo de cambio.
 3. Agregar la nueva versión al índice en `docs/es/release-notes/index.md` y `docs/en/release-notes/index.md`.
 4. Agregar las nuevas páginas de release notes al `nav` en `mkdocs.yml` bajo las secciones "Notas de Versión" / "Release Notes".
 5. Actualizar `CHANGELOG.md`.
 6. Actualizar la "Versión actual" en este archivo (`VERSIONING.md`).
-7. Actualizar la "Current version" en `CLAUDE.md` (tanto en el encabezado como en la sección Versioning).
+7. Actualizar la versión actual en `AGENTS.md`.
 
 ## Referencia
 

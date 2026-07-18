@@ -918,9 +918,39 @@
     "darkMode": "Dark mode",
     "openMenu": "Open menu",
     "community": "Community",
+    "about": "About",
     "comingSoon": "Coming soon",
     "communityModalTitle": "DiagramaHub Community",
     "communityModalDescription": "We're building a space where you can share your diagrams, discover others' work, and collaborate with the community. Stay tuned!",
     "communityModalClose": "Got it"
+  },
+  "about": {
+    "title": "About DiagramaHub",
+    "intro": "An open-source, self-hostable platform for creating, organizing, and sharing diagrams from text.",
+    "whatIsTitle": "Diagrams as code",
+    "whatIsDescription": "Create diagrams with Mermaid, PlantUML, D2, and DBML, keep code as the source of truth, and export it whenever you need it.",
+    "openSourceTitle": "Open and self-hostable",
+    "openSourceDescription": "DiagramaHub is built for teams and developers looking for a modern, private experience without vendor lock-in.",
+    "exploreRepository": "Explore the repository",
+    "highlightsTitle": "Built for your workflow",
+    "highlights": {
+      "textToDiagram": {
+        "title": "Text to diagram",
+        "description": "Edit a simple source and see visual changes in real time."
+      },
+      "privacy": {
+        "title": "Control and privacy",
+        "description": "Self-host it and retain control of your diagrams, links, and data."
+      },
+      "ai": {
+        "title": "AI on your terms",
+        "description": "Connect your own provider to generate, improve, or fix diagrams."
+      }
+    },
+    "connectTitle": "Connect with the project",
+    "connectDescription": "Open source, community, and support.",
+    "repository": "GitHub repository",
+    "xAccount": "X account",
+    "contact": "Contact email"
   }
 }
