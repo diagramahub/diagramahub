@@ -7,7 +7,7 @@ import type { Monaco } from '@monaco-editor/react';
 export function registerD2Language(monaco: Monaco) {
   // Only register if not already registered
   const languages = monaco.languages.getLanguages();
-  if (languages.some((lang) => lang.id === 'd2')) {
+  if (languages.some((language: { id: string }) => language.id === 'd2')) {
     return;
   }
 

@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.10] - 2026-07-18
+
+### Added
+- Persistent, VS Code-inspired project explorer in the diagram editor. It supports creating diagrams directly in a folder, renaming folders, and moving diagrams between the project root and the single available folder level.
+- New **About** page with product information, GitHub repository, X account, and contact email.
+
+### Fixed
+- Explorer interactions no longer dismiss the panel as outside clicks.
+- The fit-to-screen action now calculates against the rendered SVG and correctly centers D2 diagrams.
+- Added the missing Monaco language item type in the D2 language registration, keeping the refreshed frontend toolchain type-safe.
+
+### Changed
+- Replaced the ambiguous map-pin fit-to-screen icon with a clear framing icon.
+- `CLAUDE.md` now delegates project guidance to `AGENTS.md`.
+
+### Security
+- Refreshed compatible frontend dependency patches, including `axios 1.18.1`, `dompurify 3.4.12`, `mermaid 11.16.0`, `react-router-dom 7.18.1`, `vite 7.3.6`, `eslint 9.39.5`, `postcss 8.5.19`, and `typescript-eslint 8.64.0`.
+- Updated the dependency lockfile to resolve vulnerable transitive packages; `npm audit` reports zero vulnerabilities for production and development dependencies.
+
 ## [0.5.9] - 2026-06-19
 
 ### Security

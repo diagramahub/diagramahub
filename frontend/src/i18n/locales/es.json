@@ -1037,9 +1037,39 @@
     "darkMode": "Modo oscuro",
     "openMenu": "Abrir menú",
     "community": "Comunidad",
+    "about": "Acerca de",
     "comingSoon": "Próximamente",
     "communityModalTitle": "Comunidad DiagramaHub",
     "communityModalDescription": "Estamos trabajando en un espacio donde podrás compartir tus diagramas, descubrir los de otros usuarios y colaborar con la comunidad. ¡Mantente atento!",
     "communityModalClose": "Entendido"
+  },
+  "about": {
+    "title": "Acerca de DiagramaHub",
+    "intro": "Una plataforma de código abierto y autoalojable para crear, organizar y compartir diagramas a partir de texto.",
+    "whatIsTitle": "Diagramas como código",
+    "whatIsDescription": "Crea diagramas con Mermaid, PlantUML, D2 y DBML, conserva el código como fuente de verdad y expórtalo cuando lo necesites.",
+    "openSourceTitle": "Abierto y autoalojable",
+    "openSourceDescription": "DiagramaHub está construido para equipos y desarrolladores que buscan una experiencia moderna, privada y sin dependencia de un proveedor.",
+    "exploreRepository": "Explorar el repositorio",
+    "highlightsTitle": "Hecho para tu flujo de trabajo",
+    "highlights": {
+      "textToDiagram": {
+        "title": "Texto a diagrama",
+        "description": "Edita una fuente simple y observa los cambios visuales en tiempo real."
+      },
+      "privacy": {
+        "title": "Control y privacidad",
+        "description": "Autoalójalo y conserva el control de tus diagramas, enlaces y datos."
+      },
+      "ai": {
+        "title": "IA bajo tus reglas",
+        "description": "Conecta tu propio proveedor para generar, mejorar o corregir diagramas."
+      }
+    },
+    "connectTitle": "Conecta con el proyecto",
+    "connectDescription": "Código abierto, comunidad y soporte.",
+    "repository": "Repositorio en GitHub",
+    "xAccount": "Cuenta en X",
+    "contact": "Correo de contacto"
   }
 }

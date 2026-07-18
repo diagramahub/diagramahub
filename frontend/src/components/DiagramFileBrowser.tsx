@@ -42,6 +42,7 @@ interface DiagramFileBrowserProps {
   onEditingFolderNameChange: (name: string) => void;
   onSaveFolderEdit: () => void;
   onCancelFolderEdit: () => void;
+  closeOnSelect?: boolean;
 }
 
 const DIAGRAM_ICONS: Record<string, string> = {
@@ -77,6 +78,7 @@ export default function DiagramFileBrowser({
   onEditingFolderNameChange,
   onSaveFolderEdit,
   onCancelFolderEdit,
+  closeOnSelect = true,
 }: DiagramFileBrowserProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -94,7 +96,7 @@ export default function DiagramFileBrowser({
 
   const handleSelectDiagram = (diagramId: string) => {
     navigate(`/projects/${projectId}/diagrams/${diagramId}`);
-    onClose();
+    if (closeOnSelect) onClose();
   };
 
   return (
