@@ -57,6 +57,13 @@ const AIProviderLogo = ({ provider, className = 'w-3.5 h-3.5' }: { provider: str
 
 const PAGE_SIZE = 15;
 
+const DIAGRAM_TYPE_LABELS: Record<string, string> = {
+  mermaid: 'Mermaid',
+  plantuml: 'PlantUML',
+  d2: 'D2',
+  dbml: 'DBML',
+};
+
 
 export default function UserMfaManagement() {
   const { t } = useTranslation();
@@ -291,6 +298,11 @@ export default function UserMfaManagement() {
                           <span className="text-xs bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full">
                             {u.diagram_count} {u.diagram_count === 1 ? t('admin.users.diagram') : t('admin.users.diagrams')}
                           </span>
+                          {Object.entries(u.diagram_type_counts || {}).map(([diagramType, count]) => (
+                            <span key={diagramType} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
+                              {count} {DIAGRAM_TYPE_LABELS[diagramType] || diagramType.toUpperCase()}
+                            </span>
+                          ))}
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs">

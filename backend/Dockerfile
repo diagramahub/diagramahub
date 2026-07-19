@@ -1,6 +1,6 @@
 # Use official Python runtime as base image (Alpine for minimal CVE surface)
 # Rebuild regularly to pick up latest Alpine security patches
-FROM python:3.13-alpine3.22
+FROM python:3.13-alpine3.23
 
 # Set working directory
 WORKDIR /app
@@ -22,8 +22,8 @@ RUN apk update && apk upgrade --no-cache && apk add --no-cache \
 # Install Poetry
 RUN pip install --no-cache-dir poetry==1.8.3
 
-# Copy poetry configuration files
-COPY pyproject.toml ./
+# Copy locked dependency manifests
+COPY pyproject.toml poetry.lock README.md ./
 
 # Configure poetry to not create virtual environment
 RUN poetry config virtualenvs.create false
@@ -32,10 +32,8 @@ RUN poetry config virtualenvs.create false
 # In production, skip dev dependencies
 ARG APP_ENV=production
 RUN if [ "$APP_ENV" = "development" ] || [ "$APP_ENV" = "dev" ]; then \
-        poetry lock --no-interaction --no-ansi && \
         poetry install --no-interaction --no-ansi --no-root; \
     else \
-        poetry lock --no-interaction --no-ansi && \
         poetry install --no-interaction --no-ansi --no-root --only main && \
         pip install --no-cache-dir gunicorn; \
     fi \

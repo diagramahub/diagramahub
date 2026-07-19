@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.11] - 2026-07-19
+
+### Added
+- Admin user management now shows each user's diagram totals grouped by diagram engine (Mermaid, PlantUML, D2, and DBML).
+- The About page now displays the running application version and links directly to the GitHub releases page.
+- Added the committed backend `poetry.lock` file for reproducible dependency installation and security scanning.
+
+### Changed
+- Backend container now uses Python 3.13 on Alpine 3.23 and installs locked dependencies during image builds.
+- Documentation dependencies are pinned to reproducible, updated versions.
+
+### Security
+- Updated backend runtime dependencies: `cryptography` to 46.0.7, `gunicorn` to 23.0.0, and `python-multipart` to 0.0.31.
+
 ## [0.5.10] - 2026-07-18
 
 ### Added

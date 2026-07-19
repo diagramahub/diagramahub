@@ -14,6 +14,7 @@ from app.api.v1.ai_providers.schemas import (
     UserAISettingsInDB,
 )
 from app.api.v1.projects.schemas import ProjectInDB
+from app.api.v1.diagrams.schemas import DiagramInDB
 from app.api.v1.users.schemas import UserInDB
 from tests.utils import generate_test_password
 
@@ -52,9 +53,22 @@ class TestAdminUsersListing:
         assert user is not None
         assert user.last_login_at is not None
 
-        await ProjectInDB(
+        project = await ProjectInDB(
             name="Admin project",
             user_id=str(user.id),
+        ).insert()
+
+        await DiagramInDB(
+            title="Mermaid diagram",
+            content="flowchart TD\nA --> B",
+            diagram_type="mermaid",
+            project_id=str(project.id),
+        ).insert()
+        await DiagramInDB(
+            title="PlantUML diagram",
+            content="@startuml\nAlice -> Bob\n@enduml",
+            diagram_type="plantuml",
+            project_id=str(project.id),
         ).insert()
 
         await UserAISettingsInDB(
@@ -86,7 +100,8 @@ class TestAdminUsersListing:
         item = data["items"][0]
         assert item["email"] == email
         assert item["project_count"] == 1
-        assert item["diagram_count"] == 0
+        assert item["diagram_count"] == 2
+        assert item["diagram_type_counts"] == {"mermaid": 1, "plantuml": 1}
         assert item["last_login_at"] is not None
         assert len(item["connected_ai_models"]) == 1
         assert item["connected_ai_models"][0]["provider"] == "gemini"
@@ -103,4 +118,4 @@ class TestAdminUsersListing:
         sheet = workbook.active
         headers = [cell.value for cell in sheet[1]]
         assert "License Usage" in headers
-        assert sheet.cell(row=2, column=headers.index("License Usage") + 1).value == "1 project / 0 diagrams"
+        assert sheet.cell(row=2, column=headers.index("License Usage") + 1).value == "1 project / 2 diagrams"

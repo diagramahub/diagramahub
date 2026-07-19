@@ -1051,6 +1051,8 @@
     "openSourceTitle": "Abierto y autoalojable",
     "openSourceDescription": "DiagramaHub está construido para equipos y desarrolladores que buscan una experiencia moderna, privada y sin dependencia de un proveedor.",
     "exploreRepository": "Explorar el repositorio",
+    "currentVersion": "Versión {{version}}",
+    "viewReleases": "Ver releases",
     "highlightsTitle": "Hecho para tu flujo de trabajo",
     "highlights": {
       "textToDiagram": {
