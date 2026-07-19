@@ -932,6 +932,8 @@
     "openSourceTitle": "Open and self-hostable",
     "openSourceDescription": "DiagramaHub is built for teams and developers looking for a modern, private experience without vendor lock-in.",
     "exploreRepository": "Explore the repository",
+    "currentVersion": "Version {{version}}",
+    "viewReleases": "View releases",
     "highlightsTitle": "Built for your workflow",
     "highlights": {
       "textToDiagram": {

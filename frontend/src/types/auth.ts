@@ -147,6 +147,7 @@ export interface AdminUserMfaInfo {
   plan_name: string | null;
   project_count: number;
   diagram_count: number;
+  diagram_type_counts: Record<string, number>;
   connected_ai_models: {
     provider: string;
     model: string;

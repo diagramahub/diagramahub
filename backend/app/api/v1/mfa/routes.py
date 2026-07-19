@@ -536,6 +536,43 @@ async def admin_list_users(
     skip = (page - 1) * page_size
     users = await query.skip(skip).limit(page_size).sort("-created_at").to_list()
 
+    project_counts_by_user: dict[str, int] = {}
+    diagram_counts_by_user: dict[str, int] = {}
+    diagram_type_counts_by_user: dict[str, dict[str, int]] = {}
+    try:
+        from app.api.v1.projects.schemas import ProjectInDB
+        from app.api.v1.diagrams.schemas import DiagramInDB
+
+        user_ids = [str(user.id) for user in users]
+        projects = await ProjectInDB.find({"user_id": {"$in": user_ids}}).to_list()
+        project_owner_by_id = {str(project.id): project.user_id for project in projects}
+
+        for project in projects:
+            project_counts_by_user[project.user_id] = project_counts_by_user.get(project.user_id, 0) + 1
+
+        if project_owner_by_id:
+            pipeline = [
+                {"$match": {"project_id": {"$in": list(project_owner_by_id)}}},
+                {
+                    "$group": {
+                        "_id": {"project_id": "$project_id", "diagram_type": "$diagram_type"},
+                        "count": {"$sum": 1},
+                    }
+                },
+            ]
+            grouped_diagrams = await DiagramInDB.get_motor_collection().aggregate(pipeline).to_list(None)
+
+            for group in grouped_diagrams:
+                project_id = group["_id"]["project_id"]
+                user_id = project_owner_by_id[project_id]
+                diagram_type = str(group["_id"].get("diagram_type") or "unknown").lower()
+                count = group["count"]
+                diagram_counts_by_user[user_id] = diagram_counts_by_user.get(user_id, 0) + count
+                type_counts = diagram_type_counts_by_user.setdefault(user_id, {})
+                type_counts[diagram_type] = type_counts.get(diagram_type, 0) + count
+    except Exception:
+        logger.exception("Failed to aggregate admin user diagram counts")
+
     items = []
     for u in users:
         unused_codes = sum(
@@ -584,23 +621,10 @@ async def admin_list_users(
         except Exception:
             pass
 
-        # Count projects and diagrams via projects
-        project_count = 0
-        diagram_count = 0
-        try:
-            from app.api.v1.projects.schemas import ProjectInDB
-            from app.api.v1.diagrams.schemas import DiagramInDB
-            user_projects = await ProjectInDB.find(
-                ProjectInDB.user_id == str(u.id)
-            ).to_list()
-            if user_projects:
-                project_count = len(user_projects)
-                project_ids = [str(p.id) for p in user_projects]
-                diagram_count = await DiagramInDB.find(
-                    {"project_id": {"$in": project_ids}}
-                ).count()
-        except Exception:
-            pass
+        user_id = str(u.id)
+        project_count = project_counts_by_user.get(user_id, 0)
+        diagram_count = diagram_counts_by_user.get(user_id, 0)
+        diagram_type_counts = diagram_type_counts_by_user.get(user_id, {})
 
         items.append({
             "id": str(u.id),
@@ -616,6 +640,7 @@ async def admin_list_users(
             "plan_name": plan_name,
             "project_count": project_count,
             "diagram_count": diagram_count,
+            "diagram_type_counts": diagram_type_counts,
             "connected_ai_models": connected_ai_models,
             "last_login_at": last_login_at,
         })

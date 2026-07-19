@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.5.11](0.5.11.md) | 2026-07-19 | Security hardening, admin diagram statistics, About version |
 | [0.5.10](0.5.10.md) | 2026-07-18 | Editor explorer, About page, dependency security refresh |
 | [0.5.9](0.5.9.md) | 2026-06-19 | Dependency updates, Node 24, test cleanup, README |
 | [0.5.8](0.5.8.md) | 2026-06-18 | SVG export, modal redesign, security (XSS/OpenSSL) |

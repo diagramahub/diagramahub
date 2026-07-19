@@ -148,6 +148,6 @@ The backend follows SOLID principles. Each entity lives in its own folder under 
 
 *To serve this documentation locally:*
 ```bash
-pip install mkdocs mkdocs-material
+pip install -r docs/requirements.txt
 mkdocs serve
 ```

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 const REPOSITORY_URL = 'https://github.com/diagramahub/diagramahub';
+const RELEASES_URL = 'https://github.com/diagramahub/diagramahub/releases';
 const X_URL = 'https://x.com/diagramahub';
 const CONTACT_EMAIL = 'hi@diagramahub.com';
 
@@ -61,6 +62,14 @@ export default function AboutPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-purple-100">DiagramaHub</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-5xl">{t('about.title')}</h1>
             <p className="mt-5 max-w-xl text-base leading-7 text-purple-50 sm:text-lg">{t('about.intro')}</p>
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
+              <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-semibold text-white backdrop-blur-sm">
+                {t('about.currentVersion', { version: __APP_VERSION__ })}
+              </span>
+              <a href={RELEASES_URL} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-semibold text-white transition-colors hover:text-purple-100">
+                {t('about.viewReleases')} <ArrowUpRightIcon />
+              </a>
+            </div>
           </div>
         </div>
 
