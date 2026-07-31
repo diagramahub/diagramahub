@@ -207,3 +207,38 @@ class FixDiagramResponse(BaseModel):
     validation_passed: bool = Field(
         ..., description="Si el código corregido pasó validación de sintaxis"
     )
+
+
+# Schemas para conversión de diagramas entre tipos
+
+
+class ConvertDiagramRequest(BaseModel):
+    """Solicitud para convertir un diagrama de un tipo a otro."""
+
+    diagram_code: str = Field(..., min_length=1, description="Código fuente del diagrama actual")
+    source_type: str = Field(
+        ..., description="Tipo de diagrama actual (mermaid, plantuml, d2, dbml)"
+    )
+    target_type: str = Field(
+        ..., description="Tipo de diagrama destino (mermaid, plantuml, d2, dbml)"
+    )
+    provider: Optional[str] = Field(
+        None, description="Proveedor de IA específico a usar (opcional, usa default si no se indica)"
+    )
+    language: str = Field(default="es", description="Idioma para mensajes (es, en)")
+
+
+class ConvertDiagramResponse(BaseModel):
+    """Respuesta de conversión de diagrama (preview)."""
+
+    original_code: str = Field(..., description="Código original del diagrama")
+    converted_code: str = Field(..., description="Código convertido al tipo destino")
+    source_type: str = Field(..., description="Tipo de diagrama original")
+    target_type: str = Field(..., description="Tipo de diagrama destino")
+    provider_used: str = Field(..., description="Proveedor de IA utilizado")
+    model_used: str = Field(..., description="Modelo específico utilizado")
+    generation_time: float = Field(..., description="Tiempo de generación en segundos")
+    warning: Optional[str] = Field(
+        None,
+        description="Advertencia sobre posibles incompatibilidades en la conversión",
+    )

@@ -8,6 +8,7 @@ import { sanitizeSvg, escapeHtml } from "../utils/sanitize";
 import { SharedLinkInfo, SharedDiagram } from "../types/sharing";
 import AccessCodeForm from "../components/AccessCodeForm";
 import CodeEditor from "../components/CodeEditor";
+import FreehandCanvas from "../components/FreehandCanvas";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 10;
@@ -168,6 +169,9 @@ export default function SharedDiagramPage() {
   // Render diagram via centralized renderDiagram utility
   useEffect(() => {
     if (!diagram || !diagramRef.current) return;
+
+    // Freehand diagrams are rendered by the FreehandCanvas component, not SVG
+    if (diagram.diagram_type === "freehand") return;
 
     const doRender = async () => {
       if (!diagramRef.current) return;
@@ -511,28 +515,39 @@ export default function SharedDiagramPage() {
       {/* Main content area: diagram + floating side panel */}
       <div className="flex-1 overflow-hidden relative">
         {/* Diagram viewport */}
-        <div
-          ref={viewportRef}
-          className={`w-full h-full overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-        >
-          <div
-            className="w-full h-full flex items-center justify-center"
-            style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: 'center center',
-              transition: dragging ? 'none' : 'transform 0.15s ease-out',
-            }}
-          >
-            <div ref={diagramRef} className="select-none" />
+        {diagram?.diagram_type === "freehand" ? (
+          <div ref={viewportRef} className="w-full h-full overflow-hidden">
+            <FreehandCanvas
+              initialState={diagram.rendered_content || diagram.content || ""}
+              readOnly
+              zoom={zoom}
+              onZoomChange={setZoom}
+            />
           </div>
-        </div>
+        ) : (
+          <div
+            ref={viewportRef}
+            className={`w-full h-full overflow-hidden ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+          >
+            <div
+              className="w-full h-full flex items-center justify-center"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: 'center center',
+                transition: dragging ? 'none' : 'transform 0.15s ease-out',
+              }}
+            >
+              <div ref={diagramRef} className="select-none" />
+            </div>
+          </div>
+        )}
 
         {/* Floating right side panel - Description (markdown) */}
         {showDescription && diagram?.description && (
@@ -663,7 +678,7 @@ export default function SharedDiagramPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
               </svg>
-              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : diagram?.diagram_type === 'd2' ? 'D2' : 'Mermaid'}</span>
+              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : diagram?.diagram_type === 'd2' ? 'D2' : diagram?.diagram_type === 'dbml' ? 'DBML' : diagram?.diagram_type === 'freehand' ? 'Mano Alzada' : 'Mermaid'}</span>
             </div>
 
             <div className="h-3 w-px bg-gray-300 hidden sm:block"></div>

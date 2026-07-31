@@ -45,7 +45,9 @@ import {
   ImproveDiagramResponse,
   AIProviderType,
   FixDiagramRequest,
-  FixDiagramResponse
+  FixDiagramResponse,
+  ConvertDiagramRequest,
+  ConvertDiagramResponse
 } from '../types/ai';
 import {
   Plan,
@@ -326,6 +328,11 @@ class ApiService {
 
   async fixDiagram(diagramId: string, data: FixDiagramRequest): Promise<FixDiagramResponse> {
     const response = await this.api.post<FixDiagramResponse>(`/api/v1/diagrams/${diagramId}/fix`, data);
+    return response.data;
+  }
+
+  async convertDiagram(data: ConvertDiagramRequest): Promise<ConvertDiagramResponse> {
+    const response = await this.api.post<ConvertDiagramResponse>('/api/v1/diagrams/convert', data);
     return response.data;
   }
 

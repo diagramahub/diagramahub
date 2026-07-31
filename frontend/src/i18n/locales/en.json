@@ -7,6 +7,8 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "edit": "Edit",
+    "copy": "Copy",
+    "cut": "Cut",
     "create": "Create",
     "back": "Back",
     "next": "Next",
@@ -259,7 +261,9 @@
       "d2": "D2",
       "d2Description": "Declarative diagramming language",
       "dbml": "DBML",
-      "dbmlDescription": "Database Markup Language for ER diagrams"
+      "dbmlDescription": "Database Markup Language for ER diagrams",
+      "freehand": "Freehand",
+      "freehandDescription": "Free whiteboard canvas to draw diagrams with basic shapes"
     },
     "folder": "Folder",
     "noFolder": "No folder",
@@ -954,5 +958,50 @@
     "repository": "GitHub repository",
     "xAccount": "X account",
     "contact": "Contact email"
+  },
+  "conversion": {
+    "convertType": "Convert diagram type",
+    "convertTo": "Convert to",
+    "converting": "Converting...",
+    "modal": {
+      "title": "Conversion preview",
+      "warningTitle": "Potential incompatibilities",
+      "generalNotice": "Converting between formats may produce differences in styles and certain elements that have no direct equivalent in the target format.",
+      "sideBySide": "Side by side",
+      "convertedOnly": "Converted only",
+      "original": "Original",
+      "converted": "Converted",
+      "convertedResult": "Converted result",
+      "lines": "lines",
+      "applyConversion": "Apply conversion",
+      "footerNote": "By applying, the diagram content and type will be updated to the target format."
+    }
+  },
+  "freehand": {
+    "enterText": "Enter text:",
+    "style": "Element style",
+    "stroke": "Stroke",
+    "fill": "Fill",
+    "noFill": "No fill",
+    "width": "Width",
+    "clearAll": "Clear all",
+    "elements": "elements",
+    "elementsSelected": "elements selected",
+    "duplicate": "Duplicate",
+    "bringToFront": "Bring to front",
+    "bringForward": "Bring forward",
+    "sendBackward": "Send backward",
+    "sendToBack": "Send to back",
+    "tools": {
+      "select": "Select",
+      "rectangle": "Rectangle",
+      "diamond": "Diamond",
+      "ellipse": "Ellipse",
+      "arrow": "Arrow",
+      "line": "Line",
+      "text": "Text",
+      "freehand": "Freehand",
+      "eraser": "Eraser"
+    }
   }
 }

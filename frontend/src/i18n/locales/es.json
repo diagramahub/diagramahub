@@ -7,6 +7,8 @@
     "cancel": "Cancelar",
     "delete": "Eliminar",
     "edit": "Editar",
+    "copy": "Copiar",
+    "cut": "Cortar",
     "create": "Crear",
     "back": "Atrás",
     "next": "Siguiente",
@@ -259,7 +261,9 @@
       "d2": "D2",
       "d2Description": "Lenguaje de diagramación declarativo",
       "dbml": "DBML",
-      "dbmlDescription": "Lenguaje de marcado para diagramas de bases de datos"
+      "dbmlDescription": "Lenguaje de marcado para diagramas de bases de datos",
+      "freehand": "Mano Alzada",
+      "freehandDescription": "Pizarrón libre para dibujar diagramas con formas básicas"
     },
     "folder": "Carpeta",
     "noFolder": "Sin carpeta",
@@ -1073,5 +1077,50 @@
     "repository": "Repositorio en GitHub",
     "xAccount": "Cuenta en X",
     "contact": "Correo de contacto"
+  },
+  "conversion": {
+    "convertType": "Convertir tipo de diagrama",
+    "convertTo": "Convertir a",
+    "converting": "Convirtiendo...",
+    "modal": {
+      "title": "Vista previa de conversión",
+      "warningTitle": "Posibles incompatibilidades",
+      "generalNotice": "La conversión entre formatos puede producir diferencias en estilos y ciertos elementos que no tienen equivalente directo en el formato destino.",
+      "sideBySide": "Lado a lado",
+      "convertedOnly": "Solo convertido",
+      "original": "Original",
+      "converted": "Convertido",
+      "convertedResult": "Resultado convertido",
+      "lines": "líneas",
+      "applyConversion": "Aplicar conversión",
+      "footerNote": "Al aplicar, el contenido y tipo del diagrama se actualizarán al formato destino."
+    }
+  },
+  "freehand": {
+    "enterText": "Ingresa el texto:",
+    "style": "Estilo del elemento",
+    "stroke": "Trazo",
+    "fill": "Relleno",
+    "noFill": "Sin relleno",
+    "width": "Grosor",
+    "clearAll": "Limpiar todo",
+    "elements": "elementos",
+    "elementsSelected": "elementos seleccionados",
+    "duplicate": "Duplicar",
+    "bringToFront": "Traer al frente",
+    "bringForward": "Traer adelante",
+    "sendBackward": "Enviar atrás",
+    "sendToBack": "Enviar al fondo",
+    "tools": {
+      "select": "Seleccionar",
+      "rectangle": "Rectángulo",
+      "diamond": "Rombo",
+      "ellipse": "Elipse",
+      "arrow": "Flecha",
+      "line": "Línea",
+      "text": "Texto",
+      "freehand": "Mano alzada",
+      "eraser": "Borrador"
+    }
   }
 }

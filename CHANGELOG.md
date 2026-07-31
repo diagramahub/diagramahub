@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-07-30
+
+### Added
+- AI-powered diagram type conversion between Mermaid, PlantUML, D2, and DBML formats with side-by-side preview modal and incompatibility warnings.
+- New "Freehand" diagram type with an Excalidraw-like whiteboard canvas supporting rectangles, diamonds, circles, arrows, lines, text, and freehand paths.
+- Full toolbar for the freehand canvas with color pickers, stroke width controls, eraser, and keyboard shortcuts (Delete, Escape).
+
+### Changed
+- Migrated frontend package manager from npm to pnpm for faster installs and better disk efficiency.
+- Updated frontend Dockerfile to use corepack with pnpm@9.
+- Updated all docker-compose files to mount `pnpm-lock.yaml` instead of `package-lock.json`.
+
 ## [0.5.11] - 2026-07-19
 
 ### Added

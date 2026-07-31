@@ -238,3 +238,24 @@ export interface DiagramError {
   errorLine?: number;
   errorContext: string;
 }
+
+// Types for diagram type conversion
+
+export interface ConvertDiagramRequest {
+  diagram_code: string;
+  source_type: string;
+  target_type: string;
+  provider?: AIProviderType;
+  language?: string;
+}
+
+export interface ConvertDiagramResponse {
+  original_code: string;
+  converted_code: string;
+  source_type: string;
+  target_type: string;
+  provider_used: AIProviderType;
+  model_used: string;
+  generation_time: number;
+  warning?: string;
+}

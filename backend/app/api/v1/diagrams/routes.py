@@ -31,7 +31,10 @@ from .schemas import (
     FixDiagramRequest,
     FixDiagramResponse,
     RenderDiagramRequest,
+    ConvertDiagramRequest,
+    ConvertDiagramResponse,
 )
+from .conversion_service import DiagramConversionService
 
 router = APIRouter()
 
@@ -49,6 +52,13 @@ def get_diagram_fix_service() -> DiagramFixService:
     """Get diagram fix service instance."""
     return DiagramFixService(
         diagram_repository=DiagramRepository(),
+        ai_provider_repository=AIProviderRepository()
+    )
+
+
+def get_diagram_conversion_service() -> DiagramConversionService:
+    """Get diagram conversion service instance."""
+    return DiagramConversionService(
         ai_provider_repository=AIProviderRepository()
     )
 
@@ -378,3 +388,34 @@ async def fix_diagram(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error interno del servidor: {str(e)}"
         )
+
+
+# ============ Diagram Conversion Endpoint (auth required) ============
+
+@router.post("/diagrams/convert", response_model=ConvertDiagramResponse)
+async def convert_diagram(
+    request: ConvertDiagramRequest,
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramConversionService = Depends(get_diagram_conversion_service),
+):
+    """
+    Convertir un diagrama de un tipo a otro usando IA.
+
+    Retorna un preview del diagrama convertido. El usuario puede aceptar
+    o rechazar la conversión antes de aplicar los cambios.
+
+    Args:
+        request: Datos de conversión (código fuente, tipo origen, tipo destino)
+        user_id: ID del usuario autenticado
+        service: Servicio de conversión inyectado
+
+    Returns:
+        ConvertDiagramResponse con código convertido para preview
+
+    Raises:
+        HTTPException 400: Tipos no válidos o iguales
+        HTTPException 401: Usuario no autenticado
+        HTTPException 404: Sin proveedor de IA configurado
+        HTTPException 500: Error en la conversión
+    """
+    return await service.convert_diagram(user_id=user_id, request=request)

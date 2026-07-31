@@ -35,6 +35,8 @@ import NoAIProviderModal from "../components/NoAIProviderModal";
 import UpgradePlanModal from "../components/UpgradePlanModal";
 import MarkdownEditor from "../components/MarkdownEditor";
 import { DiagramDiffView } from "../components/DiagramDiffView";
+import { DiagramConversionModal } from "../components/DiagramConversionModal";
+import FreehandCanvas from "../components/FreehandCanvas";
 import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal from "../components/ExportDiagramModal";
 import DiagramCodePanel from "../components/DiagramCodePanel";
@@ -46,7 +48,7 @@ import { useIsMobile } from "../hooks/useIsMobile";
 import MobileBottomToolbar from "../components/MobileBottomToolbar";
 import BottomSheet from "../components/BottomSheet";
 import { useDiagramErrorDetection } from "../hooks/useDiagramErrorDetection";
-import { FixDiagramResponse } from "../types/ai";
+import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
 import { configInitBlockManager } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
@@ -144,6 +146,9 @@ export default function DiagramEditorPage() {
     return `hace ${Math.floor(hours / 24)}d`;
   };
 
+  // Freehand diagrams manage their own canvas interactions (pan, zoom, selection)
+  const isFreehandDiagram = currentDiagram?.diagram_type === "freehand";
+
   // Generate full code with frontmatter for rendering
   const fullDiagramCode = useMemo(() => {
     if (currentDiagram?.diagram_type === "mermaid") {
@@ -234,7 +239,7 @@ export default function DiagramEditorPage() {
     null,
   );
   const [newDiagramType, setNewDiagramType] = useState<
-    "mermaid" | "plantuml" | "d2" | "dbml"
+    "mermaid" | "plantuml" | "d2" | "dbml" | "freehand"
   >("mermaid");
   const [creatingDiagram, setCreatingDiagram] = useState(false);
   const [isFirstDiagram, setIsFirstDiagram] = useState(false);
@@ -309,6 +314,12 @@ export default function DiagramEditorPage() {
   const [showFixDiffModal, setShowFixDiffModal] = useState(false);
   const [fixResult, setFixResult] = useState<FixDiagramResponse | null>(null);
   const [fixError, setFixError] = useState<string | null>(null);
+
+  // Conversion state
+  const [showConversionModal, setShowConversionModal] = useState(false);
+  const [conversionResult, setConversionResult] = useState<ConvertDiagramResponse | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [showConvertMenu, setShowConvertMenu] = useState(false);
 
   // Share diagram state
   const [showShareModal, setShowShareModal] = useState(false);
@@ -418,6 +429,20 @@ export default function DiagramEditorPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDescriptionPinned, isMobile]);
+
+  // Close convert menu when clicking outside
+  useEffect(() => {
+    if (!showConvertMenu) return;
+    const handleClickOutsideConvert = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-convert-menu]")) {
+        setShowConvertMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutsideConvert);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutsideConvert);
+  }, [showConvertMenu]);
 
   // Close project selector when clicking outside
   useEffect(() => {
@@ -919,6 +944,12 @@ export default function DiagramEditorPage() {
         // Detect diagram type
         const diagramType = currentDiagram?.diagram_type || "mermaid";
 
+        // Freehand diagrams are rendered by FreehandCanvas, not here
+        if (diagramType === "freehand") {
+          mermaidRef.current.innerHTML = "";
+          return;
+        }
+
         // Validate code is not empty
         if (!diagramCode.trim()) {
           const label = isServerRenderedType(diagramType)
@@ -1365,6 +1396,13 @@ export default function DiagramEditorPage() {
       } else if (newDiagramType === "dbml") {
         defaultContent =
           "Table users {\n  id integer [primary key]\n  username varchar\n  email varchar\n  created_at timestamp\n}\n\nTable posts {\n  id integer [primary key]\n  title varchar\n  body text\n  user_id integer\n  created_at timestamp\n}\n\nRef: posts.user_id > users.id";
+      } else if (newDiagramType === "freehand") {
+        defaultContent = JSON.stringify({
+          version: 1,
+          elements: [],
+          viewport: { zoom: 1, scrollX: 0, scrollY: 0 },
+          background: "#ffffff",
+        });
       } else {
         defaultContent =
           "@startuml\nAlice -> Bob: Hello\nBob -> Alice: Hi!\n@enduml";
@@ -1633,6 +1671,13 @@ export default function DiagramEditorPage() {
 
   // Ajustar diagrama a pantalla
   const handleFitToScreen = () => {
+    // Freehand diagrams have no SVG to measure — reset zoom and pan instead
+    if (currentDiagram?.diagram_type === "freehand") {
+      setZoom(1);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
+
     if (!mermaidRef.current || !containerRef.current) return;
 
     const diagramElement = mermaidRef.current.querySelector("svg");
@@ -1723,6 +1768,69 @@ export default function DiagramEditorPage() {
   const handleCancelFix = () => {
     setShowFixDiffModal(false);
     setFixResult(null);
+  };
+
+  // Conversion handlers
+  const handleConvertDiagram = async (targetType: string) => {
+    setShowConvertMenu(false);
+    if (!validateAIConfiguration()) return;
+
+    const sourceType = currentDiagram?.diagram_type || "mermaid";
+    if (sourceType === targetType) return;
+
+    setIsConverting(true);
+    try {
+      const language = localStorage.getItem("language") || "es";
+      const result = await api.convertDiagram({
+        diagram_code: diagramCode,
+        source_type: sourceType,
+        target_type: targetType,
+        language,
+      });
+      setConversionResult(result);
+      setShowConversionModal(true);
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.detail || err?.message || "Error converting diagram";
+      setFixError(errorMsg);
+      setTimeout(() => setFixError(null), 5000);
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  const handleApplyConversion = async () => {
+    if (!conversionResult || !currentDiagram || !projectId) return;
+
+    try {
+      // Update the diagram with new content and type
+      await api.updateDiagram(currentDiagram.id, {
+        content: conversionResult.converted_code,
+        diagram_type: conversionResult.target_type,
+      });
+
+      // Update local state
+      setDiagramCode(conversionResult.converted_code);
+      setCurrentDiagram({
+        ...currentDiagram,
+        content: conversionResult.converted_code,
+        diagram_type: conversionResult.target_type,
+      });
+
+      setShowConversionModal(false);
+      setConversionResult(null);
+    } catch (err: any) {
+      console.error("Error applying conversion:", err);
+      const errorMsg =
+        err?.response?.data?.detail || "Error applying conversion";
+      setFixError(errorMsg);
+      setTimeout(() => setFixError(null), 5000);
+    }
+  };
+
+  const handleCancelConversion = () => {
+    setShowConversionModal(false);
+    setConversionResult(null);
   };
 
   // Pan handlers
@@ -2325,7 +2433,8 @@ export default function DiagramEditorPage() {
           <div className="flex-1" />
           {/* Right: all toolbar buttons */}
           <div className="flex items-center gap-0.5">
-            {/* Code toggle */}
+            {/* Code toggle — hidden for freehand */}
+            {currentDiagram?.diagram_type !== "freehand" && (
             <Tooltip content={t("editor.code")} position="bottom">
               <button
                 onClick={() => setShowCodeView(!showCodeView)}
@@ -2347,6 +2456,7 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             </Tooltip>
+            )}
 
             {/* Description toggle */}
             <Tooltip content={t("editor.description")} position="bottom">
@@ -2371,7 +2481,8 @@ export default function DiagramEditorPage() {
               </button>
             </Tooltip>
 
-            {/* Appearance toggle */}
+            {/* Appearance toggle — hidden for freehand */}
+            {currentDiagram?.diagram_type !== "freehand" && (
             <Tooltip content={t("editor.appearance")} position="bottom">
               <button
                 onClick={() => setShowAppearanceEditor(!showAppearanceEditor)}
@@ -2393,6 +2504,7 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             </Tooltip>
+            )}
 
             {/* Separator */}
             <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
@@ -2421,7 +2533,8 @@ export default function DiagramEditorPage() {
             {/* Separator */}
             <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
 
-            {/* Export button */}
+            {/* Export button — hidden for freehand */}
+            {currentDiagram?.diagram_type !== "freehand" && (
             <Tooltip content={t("editor.exportDiagram")} position="bottom">
               <button
                 onClick={() => setShowExportModal(true)}
@@ -2443,6 +2556,7 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             </Tooltip>
+            )}
 
             {/* Share button */}
             <Tooltip
@@ -2474,6 +2588,85 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             </Tooltip>
+
+            {/* Convert diagram type button */}
+            <div className="relative" data-convert-menu>
+              <Tooltip
+                content={
+                  !currentDiagram
+                    ? t("editor.saveDiagramFirst")
+                    : isConverting
+                      ? t("conversion.converting")
+                      : t("conversion.convertType")
+                }
+                position="bottom"
+              >
+                <button
+                  onClick={() => setShowConvertMenu(!showConvertMenu)}
+                  disabled={!currentDiagram || isConverting || currentDiagram?.diagram_type === "freehand"}
+                  className={`p-1.5 rounded-md transition-colors ${!currentDiagram || isConverting || currentDiagram?.diagram_type === "freehand" ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                  aria-label={t("conversion.convertType")}
+                >
+                  {isConverting ? (
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </Tooltip>
+              {/* Convert dropdown menu */}
+              {showConvertMenu && currentDiagram && (
+                <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
+                  <p className="px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    {t("conversion.convertTo")}
+                  </p>
+                  {["mermaid", "plantuml", "d2", "dbml"]
+                    .filter((type) => type !== currentDiagram.diagram_type)
+                    .map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => handleConvertDiagram(type)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                      >
+                        {type === "mermaid" && "Mermaid"}
+                        {type === "plantuml" && "PlantUML"}
+                        {type === "d2" && "D2"}
+                        {type === "dbml" && "DBML"}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
 
             {/* Separator */}
             <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
@@ -3174,40 +3367,67 @@ export default function DiagramEditorPage() {
                   ref={containerRef}
                   className={`flex-1 overflow-hidden p-2 ${showFloatingSidebar && !isMobile ? "pl-64" : ""}`}
                   onMouseDown={
-                    activeTab === "code" ? handleMouseDown : undefined
+                    activeTab === "code" && !isFreehandDiagram
+                      ? handleMouseDown
+                      : undefined
                   }
                   onMouseMove={
-                    activeTab === "code" ? handleMouseMove : undefined
+                    activeTab === "code" && !isFreehandDiagram
+                      ? handleMouseMove
+                      : undefined
                   }
-                  onMouseUp={activeTab === "code" ? handleMouseUp : undefined}
+                  onMouseUp={
+                    activeTab === "code" && !isFreehandDiagram
+                      ? handleMouseUp
+                      : undefined
+                  }
                   onMouseLeave={
-                    activeTab === "code" ? handleMouseUp : undefined
+                    activeTab === "code" && !isFreehandDiagram
+                      ? handleMouseUp
+                      : undefined
                   }
-                  onWheel={activeTab === "code" ? handleWheel : undefined}
-                  {...touchHandlers}
+                  onWheel={
+                    activeTab === "code" && !isFreehandDiagram
+                      ? handleWheel
+                      : undefined
+                  }
+                  {...(isFreehandDiagram ? {} : touchHandlers)}
                   style={{
-                    cursor: isPanning
-                      ? "grabbing"
-                      : activeTab === "code"
-                        ? "grab"
-                        : "default",
+                    cursor: isFreehandDiagram
+                      ? "default"
+                      : isPanning
+                        ? "grabbing"
+                        : activeTab === "code"
+                          ? "grab"
+                          : "default",
                     ...getBackgroundStyle(),
                   }}
                 >
                   {activeTab === "code" ? (
                     <>
-                      <div
-                        className="flex items-center justify-center min-h-full"
-                        style={{
-                          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                          transformOrigin: "center",
-                          transition: isPanning
-                            ? "none"
-                            : "transform 0.1s ease-out",
-                        }}
-                      >
-                        <div ref={mermaidRef}></div>
-                      </div>
+                      {currentDiagram?.diagram_type === "freehand" ? (
+                        <div className="w-full h-full">
+                          <FreehandCanvas
+                            initialState={diagramCode}
+                            onChange={(state) => setDiagramCode(state)}
+                            zoom={zoom}
+                            onZoomChange={setZoom}
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-center justify-center min-h-full"
+                          style={{
+                            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                            transformOrigin: "center",
+                            transition: isPanning
+                              ? "none"
+                              : "transform 0.1s ease-out",
+                          }}
+                        >
+                          <div ref={mermaidRef}></div>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="prose prose-sm max-w-none overflow-auto h-full">
@@ -3350,7 +3570,11 @@ export default function DiagramEditorPage() {
                               ? "Mermaid"
                               : currentDiagram?.diagram_type === "d2"
                                 ? "D2"
-                                : "PlantUML"}
+                                : currentDiagram?.diagram_type === "dbml"
+                                  ? "DBML"
+                                  : currentDiagram?.diagram_type === "freehand"
+                                    ? t("diagram.type.freehand")
+                                    : "PlantUML"}
                             {currentDiagram?.diagram_type === "mermaid" && (
                               <span className="text-gray-400 ml-1 hidden sm:inline">
                                 • {diagramTheme} • {diagramLayout}
@@ -3420,9 +3644,9 @@ export default function DiagramEditorPage() {
                   className="flex-shrink-0 overflow-hidden"
                   style={{
                     width:
-                      showCodeView && !isMobile ? `${codePanelWidth}px` : "0px",
-                    minWidth: showCodeView && !isMobile ? "200px" : "0px",
-                    opacity: showCodeView && !isMobile ? 1 : 0,
+                      showCodeView && !isMobile && currentDiagram?.diagram_type !== "freehand" ? `${codePanelWidth}px` : "0px",
+                    minWidth: showCodeView && !isMobile && currentDiagram?.diagram_type !== "freehand" ? "200px" : "0px",
+                    opacity: showCodeView && !isMobile && currentDiagram?.diagram_type !== "freehand" ? 1 : 0,
                     transition: isResizingCode.current
                       ? "none"
                       : "width 200ms, opacity 200ms",
@@ -3822,6 +4046,12 @@ export default function DiagramEditorPage() {
                       name: "DBML",
                       desc: t("diagram.type.dbmlDescription"),
                     },
+                    {
+                      type: "freehand" as const,
+                      icon: "✏️",
+                      name: t("diagram.type.freehand"),
+                      desc: t("diagram.type.freehandDescription"),
+                    },
                   ].map(({ type, icon, name, desc }) => (
                     <button
                       key={type}
@@ -4179,6 +4409,15 @@ export default function DiagramEditorPage() {
           diagramType={currentDiagram?.diagram_type}
           onApply={handleApplyFix}
           onCancel={handleCancelFix}
+        />
+      )}
+
+      {/* Diagram Conversion Preview Modal */}
+      {showConversionModal && conversionResult && (
+        <DiagramConversionModal
+          conversionResult={conversionResult}
+          onApply={handleApplyConversion}
+          onCancel={handleCancelConversion}
         />
       )}
 

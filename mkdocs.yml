@@ -48,6 +48,7 @@ nav:
       - Guía de Instalación: es/instalacion.md
       - Notas de Versión:
           - es/release-notes/index.md
+          - 0.6.0: es/release-notes/0.6.0.md
           - 0.5.11: es/release-notes/0.5.11.md
           - 0.5.10: es/release-notes/0.5.10.md
           - 0.5.9: es/release-notes/0.5.9.md
@@ -72,6 +73,7 @@ nav:
       - Installation: en/installation.md
       - Release Notes:
           - en/release-notes/index.md
+          - 0.6.0: en/release-notes/0.6.0.md
           - 0.5.11: en/release-notes/0.5.11.md
           - 0.5.10: en/release-notes/0.5.10.md
           - 0.5.9: en/release-notes/0.5.9.md

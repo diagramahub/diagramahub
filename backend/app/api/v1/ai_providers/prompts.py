@@ -1342,6 +1342,73 @@ def build_summarize_prompt(
 
 
 # ------------------------------------------------------------------ #
+#  Prompt: Conversión de diagrama entre tipos
+# ------------------------------------------------------------------ #
+
+def build_convert_diagram_prompt(
+    diagram_code: str,
+    source_type: str,
+    target_type: str,
+    language: str = "es"
+) -> str:
+    """Prompt para convertir un diagrama de un tipo a otro manteniendo la estructura."""
+    target_context = get_diagram_context(target_type, language)
+    common_errors = get_common_errors_section(target_type, language)
+
+    if language == "es":
+        return (
+            f"Eres un experto en conversión de diagramas entre diferentes formatos de texto.\n\n"
+            f"TAREA: Convertir el siguiente diagrama de **{source_type}** a **{target_type}**, "
+            f"manteniendo la misma estructura, relaciones y semántica visual lo más fielmente posible.\n\n"
+            f"CODIGO FUENTE ({source_type}):\n```{source_type}\n{diagram_code}\n```\n\n"
+            f"REFERENCIA DE SINTAXIS DEL FORMATO DESTINO ({target_type}):\n{target_context}\n\n"
+            f"{common_errors}\n\n"
+            "INSTRUCCIONES:\n"
+            "1. PRESERVAR la estructura y relaciones del diagrama original\n"
+            "2. MANTENER los nombres de nodos/elementos traducidos al formato destino\n"
+            "3. RESPETAR la direccionalidad de las conexiones\n"
+            "4. ADAPTAR estilos visuales al equivalente más cercano en el formato destino\n"
+            "5. Si un elemento no tiene equivalente directo, usar la aproximación más cercana\n"
+            "6. Generar código 100% válido para el formato destino\n"
+            "7. NO incluir markdown code blocks (```)\n"
+            "8. NO incluir texto adicional, solo el código del diagrama convertido\n\n"
+            "NOTA IMPORTANTE: Algunos elementos pueden no tener equivalente exacto entre formatos. "
+            "En esos casos, usa la representación más cercana disponible en el formato destino.\n\n"
+            "GENERA EL CODIGO CONVERTIDO:"
+        )
+    else:
+        return (
+            f"You are an expert in converting diagrams between different text-based formats.\n\n"
+            f"TASK: Convert the following diagram from **{source_type}** to **{target_type}**, "
+            f"maintaining the same structure, relationships, and visual semantics as faithfully "
+            f"as possible.\n\n"
+            f"SOURCE CODE ({source_type}):\n```{source_type}\n{diagram_code}\n```\n\n"
+            f"TARGET FORMAT SYNTAX REFERENCE ({target_type}):\n{target_context}\n\n"
+            f"{common_errors}\n\n"
+            "INSTRUCTIONS:\n"
+            "1. PRESERVE the structure and relationships of the original diagram\n"
+            "2. MAINTAIN node/element names translated to the target format\n"
+            "3. RESPECT the directionality of connections\n"
+            "4. ADAPT visual styles to the closest equivalent in the target format\n"
+            "5. If an element has no direct equivalent, use the closest approximation\n"
+            "6. Generate 100% valid code for the target format\n"
+            "7. DO NOT include markdown code blocks (```)\n"
+            "8. DO NOT include additional text, only the converted diagram code\n\n"
+            "IMPORTANT NOTE: Some elements may not have an exact equivalent between formats. "
+            "In such cases, use the closest available representation in the target format.\n\n"
+            "GENERATE THE CONVERTED CODE:"
+        )
+
+
+CONVERSION_SYSTEM_PROMPT = (
+    "You are an expert in converting diagrams between text-based formats "
+    "(Mermaid, PlantUML, D2, DBML). You produce syntactically valid output "
+    "that preserves the original structure and semantics. Output only the "
+    "converted diagram code with no additional text or markdown fencing."
+)
+
+
+# ------------------------------------------------------------------ #
 #  Utilidades comunes
 # ------------------------------------------------------------------ #
 
