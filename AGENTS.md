@@ -2,6 +2,12 @@
 
 Diagramahub project guidance — single source of truth for AI coding assistants (Claude Code, DeepSeek TUI, Open Code, etc.).
 
+## Companion Documents (load into initial context)
+
+Always read these alongside this file at the start of every task:
+
+- **[DESIGN.md](./DESIGN.md)** — UI/UX design guide. Mandatory reference for any frontend work (components, pages, styling, TailwindCSS conventions, dark mode, i18n, accessibility, and the freehand canvas patterns). Follow it before writing or modifying any UI.
+
 ---
 
 ## Project Overview
@@ -206,6 +212,8 @@ When creating a new module, you MUST:
 - All API calls centralized in `ApiService` class
 
 ### Frontend Design System
+
+> Full reference: **[DESIGN.md](./DESIGN.md)**. The summary below is a quick reference — DESIGN.md is authoritative for all UI/UX decisions.
 
 **Brand**: Purple gradient primary identity. Glassmorphism buttons (`.btn-glass` in `index.css`).
 
