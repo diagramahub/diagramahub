@@ -225,6 +225,9 @@ class ConvertDiagramRequest(BaseModel):
     provider: Optional[str] = Field(
         None, description="Proveedor de IA específico a usar (opcional, usa default si no se indica)"
     )
+    model: Optional[str] = Field(
+        None, description="Modelo específico a usar con el proveedor seleccionado (opcional)"
+    )
     language: str = Field(default="es", description="Idioma para mensajes (es, en)")
 
 

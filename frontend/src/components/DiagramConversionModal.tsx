@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConvertDiagramResponse } from "../types/ai";
+import DiagramPreview from "./DiagramPreview";
 
 interface DiagramConversionModalProps {
   conversionResult: ConvertDiagramResponse;
@@ -19,12 +20,11 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
   onCancel,
 }) => {
   const { t } = useTranslation();
-  const [activePreviewTab, setActivePreviewTab] = useState<
-    "sideBySide" | "convertedOnly"
-  >("sideBySide");
+  const [activeView, setActiveView] = useState<"preview" | "code">("preview");
 
   const originalLines = conversionResult.original_code.split("\n");
   const convertedLines = conversionResult.converted_code.split("\n");
+  const canApply = conversionResult.converted_code.trim().length > 0;
 
   const getFileExtension = (type: string) => {
     const t = type.toLowerCase();
@@ -157,112 +157,92 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
           </div>
         </div>
 
-        {/* Tab switcher */}
-        <div className="px-6 pt-4 flex gap-2">
-          <button
-            onClick={() => setActivePreviewTab("sideBySide")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              activePreviewTab === "sideBySide"
-                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-            }`}
-          >
-            {t("conversion.modal.sideBySide")}
-          </button>
-          <button
-            onClick={() => setActivePreviewTab("convertedOnly")}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-              activePreviewTab === "convertedOnly"
-                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-            }`}
-          >
-            {t("conversion.modal.convertedOnly")}
-          </button>
+        {/* View selector */}
+        <div className="px-6 pt-4 flex gap-2" role="tablist">
+          {(["preview", "code"] as const).map((view) => (
+            <button
+              key={view}
+              role="tab"
+              aria-selected={activeView === view}
+              onClick={() => setActiveView(view)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                activeView === view
+                  ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+            >
+              {t(`conversion.modal.${view}`)}
+            </button>
+          ))}
         </div>
 
-        {/* Content */}
+        {/* Original and converted comparison */}
         <div className="flex-1 overflow-auto p-6 pt-4">
-          {activePreviewTab === "sideBySide" ? (
-            <div className="grid grid-cols-2 gap-4 h-full">
-              {/* Original */}
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {t("conversion.modal.original")} (
-                    {getTypeLabel(conversionResult.source_type)})
-                  </h3>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                    {originalLines.length}{" "}
-                    {t("conversion.modal.lines")}
-                  </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <section className="flex flex-col min-w-0">
+              <div className="flex items-center justify-between mb-2 gap-3">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {t("conversion.modal.original")} ({getTypeLabel(conversionResult.source_type)})
+                </h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-mono whitespace-nowrap">
+                  {originalLines.length} {t("conversion.modal.lines")}
+                </span>
+              </div>
+              {activeView === "preview" ? (
+                <div className="h-[40vh] min-h-[280px]">
+                  <DiagramPreview
+                    code={conversionResult.original_code}
+                    diagramType={conversionResult.source_type}
+                  />
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm flex-1">
+              ) : (
+                <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm h-[40vh] min-h-[280px]">
                   <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 border-b border-gray-300 dark:border-gray-600">
                     <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                       diagram.{sourceExt}
                     </span>
                   </div>
-                  <pre className="overflow-auto p-3 max-h-[50vh]">
+                  <pre className="overflow-auto p-3 h-[calc(40vh-34px)] min-h-[246px]">
                     <code className="block text-xs font-mono leading-relaxed text-gray-800 dark:text-gray-200">
                       {conversionResult.original_code}
                     </code>
                   </pre>
                 </div>
-              </div>
+              )}
+            </section>
 
-              {/* Converted */}
-              <div className="flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {t("conversion.modal.converted")} (
-                    {getTypeLabel(conversionResult.target_type)})
-                  </h3>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                    {convertedLines.length}{" "}
-                    {t("conversion.modal.lines")}
-                  </span>
+            <section className="flex flex-col min-w-0">
+              <div className="flex items-center justify-between mb-2 gap-3">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {t("conversion.modal.converted")} ({getTypeLabel(conversionResult.target_type)})
+                </h3>
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-mono whitespace-nowrap">
+                  {convertedLines.length} {t("conversion.modal.lines")}
+                </span>
+              </div>
+              {activeView === "preview" ? (
+                <div className="h-[40vh] min-h-[280px]">
+                  <DiagramPreview
+                    code={conversionResult.converted_code}
+                    diagramType={conversionResult.target_type}
+                  />
                 </div>
-                <div className="bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg overflow-hidden shadow-sm flex-1">
+              ) : (
+                <div className="bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg overflow-hidden shadow-sm h-[40vh] min-h-[280px]">
                   <div className="bg-green-50 dark:bg-green-900/30 px-3 py-1.5 border-b border-green-300 dark:border-green-700">
                     <span className="text-xs text-green-700 dark:text-green-400 font-mono">
                       diagram.{targetExt}
                     </span>
                   </div>
-                  <pre className="overflow-auto p-3 max-h-[50vh]">
+                  <pre className="overflow-auto p-3 h-[calc(40vh-34px)] min-h-[246px]">
                     <code className="block text-xs font-mono leading-relaxed text-green-900 dark:text-green-200">
                       {conversionResult.converted_code}
                     </code>
                   </pre>
                 </div>
-              </div>
-            </div>
-          ) : (
-            /* Converted only view */
-            <div className="flex flex-col h-full">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  {t("conversion.modal.convertedResult")} (
-                  {getTypeLabel(conversionResult.target_type)})
-                </h3>
-                <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                  {convertedLines.length} {t("conversion.modal.lines")}
-                </span>
-              </div>
-              <div className="bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg overflow-hidden shadow-sm flex-1">
-                <div className="bg-green-50 dark:bg-green-900/30 px-3 py-1.5 border-b border-green-300 dark:border-green-700">
-                  <span className="text-xs text-green-700 dark:text-green-400 font-mono">
-                    diagram.{targetExt}
-                  </span>
-                </div>
-                <pre className="overflow-auto p-3 max-h-[60vh]">
-                  <code className="block text-sm font-mono leading-relaxed text-green-900 dark:text-green-200">
-                    {conversionResult.converted_code}
-                  </code>
-                </pre>
-              </div>
-            </div>
-          )}
+              )}
+            </section>
+          </div>
         </div>
 
         {/* Footer */}
@@ -279,7 +259,8 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
             </button>
             <button
               onClick={onApply}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white btn-glass rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm"
+              disabled={!canApply}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white btn-glass rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("conversion.modal.applyConversion")}
             </button>

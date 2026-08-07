@@ -3,8 +3,6 @@ Módulo centralizado de prompts para todos los proveedores de IA.
 Contiene todas las plantillas de prompts y funciones de construcción
 utilizadas por los clientes de IA (OpenAI, Claude, Gemini, DeepSeek).
 """
-from typing import Optional
-
 
 # ------------------------------------------------------------------ #
 #  Contexto de tipos de diagrama
@@ -1354,6 +1352,17 @@ def build_convert_diagram_prompt(
     """Prompt para convertir un diagrama de un tipo a otro manteniendo la estructura."""
     target_context = get_diagram_context(target_type, language)
     common_errors = get_common_errors_section(target_type, language)
+    dbml_compatibility_instruction = ""
+    if target_type.lower() == "dbml":
+        dbml_compatibility_instruction = (
+            "\n9. DBML SOLO representa esquemas de bases de datos: tablas, campos, claves y relaciones. "
+            "No inventes tablas, campos ni relaciones. Si el diagrama origen no es un modelo de datos "
+            "que pueda preservarse fielmente, responde exactamente <<<INCOMPATIBLE>>>.\n"
+            if language == "es"
+            else "\n9. DBML ONLY represents database schemas: tables, fields, keys, and relationships. "
+            "Never invent tables, fields, or relationships. If the source is not a data model "
+            "that can be preserved faithfully, respond exactly <<<INCOMPATIBLE>>>.\n"
+        )
 
     if language == "es":
         return (
@@ -1371,7 +1380,8 @@ def build_convert_diagram_prompt(
             "5. Si un elemento no tiene equivalente directo, usar la aproximación más cercana\n"
             "6. Generar código 100% válido para el formato destino\n"
             "7. NO incluir markdown code blocks (```)\n"
-            "8. NO incluir texto adicional, solo el código del diagrama convertido\n\n"
+            "8. NO incluir texto adicional, solo el código del diagrama convertido\n"
+            f"{dbml_compatibility_instruction}\n"
             "NOTA IMPORTANTE: Algunos elementos pueden no tener equivalente exacto entre formatos. "
             "En esos casos, usa la representación más cercana disponible en el formato destino.\n\n"
             "GENERA EL CODIGO CONVERTIDO:"
@@ -1393,7 +1403,8 @@ def build_convert_diagram_prompt(
             "5. If an element has no direct equivalent, use the closest approximation\n"
             "6. Generate 100% valid code for the target format\n"
             "7. DO NOT include markdown code blocks (```)\n"
-            "8. DO NOT include additional text, only the converted diagram code\n\n"
+            "8. DO NOT include additional text, only the converted diagram code\n"
+            f"{dbml_compatibility_instruction}\n"
             "IMPORTANT NOTE: Some elements may not have an exact equivalent between formats. "
             "In such cases, use the closest available representation in the target format.\n\n"
             "GENERATE THE CONVERTED CODE:"

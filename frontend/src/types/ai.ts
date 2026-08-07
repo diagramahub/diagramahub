@@ -246,6 +246,7 @@ export interface ConvertDiagramRequest {
   source_type: string;
   target_type: string;
   provider?: AIProviderType;
+  model?: string;
   language?: string;
 }
 

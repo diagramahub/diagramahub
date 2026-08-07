@@ -19,11 +19,32 @@ from app.api.v1.ai_providers.prompts import (
 from app.api.v1.ai_providers.schemas import AIProviderType
 
 from .schemas import ConvertDiagramRequest, ConvertDiagramResponse
+from .syntax_validator import SyntaxValidator
 
 logger = logging.getLogger(__name__)
 
 # Supported diagram types for conversion (freehand is excluded — it's a visual canvas, not text-based)
 CONVERTIBLE_TYPES = {"mermaid", "plantuml", "d2", "dbml"}
+INCOMPATIBLE_CONVERSION_MARKER = "<<<INCOMPATIBLE>>>"
+
+
+def _is_dbml_compatible_source(source_type: str, diagram_code: str) -> bool:
+    """Determine whether the source describes a data model that DBML can represent."""
+    source = source_type.lower()
+    if source == "dbml":
+        return True
+    if source == "mermaid":
+        return bool(re.search(r"^\s*erDiagram\b", diagram_code, re.IGNORECASE | re.MULTILINE))
+    if source == "plantuml":
+        has_entity = bool(re.search(r"\bentity\s+[\"\w]", diagram_code, re.IGNORECASE))
+        has_data_class = bool(
+            re.search(r"\bclass\s+[\"\w]", diagram_code, re.IGNORECASE)
+            and re.search(r"<<\s*(?:PK|FK)\s*>>", diagram_code, re.IGNORECASE)
+        )
+        return has_entity or has_data_class
+    if source == "d2":
+        return bool(re.search(r"\bshape\s*:\s*sql_table\b", diagram_code, re.IGNORECASE))
+    return False
 
 
 def _strip_think_tags(text: str) -> str:
@@ -32,6 +53,23 @@ def _strip_think_tags(text: str) -> str:
     if "<think>" in text:
         text = text[: text.index("<think>")].strip()
     return text.strip()
+
+
+def _get_incompatible_conversion_message(
+    target_type: str, provider: str, model: str, language: str
+) -> str:
+    """Return a user-facing message when the generated target code is not usable."""
+    if language == "es":
+        return (
+            f"{provider} ({model}) no pudo convertir el diagrama a un formato "
+            f"{target_type.upper()} compatible. El diagrama original no se modificó. "
+            "Intenta de nuevo o elige otro formato de destino."
+        )
+    return (
+        f"{provider} ({model}) could not convert the diagram to a compatible "
+        f"{target_type.upper()} format. The original diagram was not changed. "
+        "Try again or choose another target format."
+    )
 
 
 def _get_conversion_warning(source_type: str, target_type: str, language: str) -> Optional[str]:
@@ -158,6 +196,19 @@ class DiagramConversionService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El tipo de diagrama origen y destino no pueden ser iguales.",
             )
+        if target == "dbml" and not _is_dbml_compatible_source(source, request.diagram_code):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "No se pudo convertir el diagrama a un formato DBML compatible. "
+                    "DBML solo representa esquemas de bases de datos con tablas y relaciones. "
+                    "El diagrama original no se modificó. Intenta de nuevo con otro formato de destino."
+                    if request.language == "es"
+                    else "The diagram could not be converted to a compatible DBML format. "
+                    "DBML only represents database schemas with tables and relationships. "
+                    "The original diagram was not changed. Try again with another target format."
+                ),
+            )
 
         # Resolve provider
         provider_type = (
@@ -172,12 +223,15 @@ class DiagramConversionService:
                 detail="No active AI provider configured. Please add an API key in settings.",
             )
 
+        # Prefer the model selected in the diagram's AI chat; fall back to the provider default.
+        model = request.model or provider_config.model
+
         # Create AI client
         try:
             client = AIClientFactory.create_client(
                 provider=provider_config.provider,
                 api_key=provider_config.api_key,
-                model=provider_config.model,
+                model=model,
                 parameters=provider_config.parameters,
             )
         except ValueError as e:
@@ -203,7 +257,27 @@ class DiagramConversionService:
             logger.error("Diagram conversion failed: %s", str(e))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error during diagram conversion: {str(e)}",
+                detail=(
+                    f"Error during diagram conversion with {provider_config.provider.value} "
+                    f"({model}): {str(e)}"
+                ),
+            )
+
+        if converted_code.strip() == INCOMPATIBLE_CONVERSION_MARKER:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=_get_incompatible_conversion_message(
+                    target, provider_config.provider.value, model, request.language
+                ),
+            )
+
+        validation = await SyntaxValidator.validate(converted_code, target)
+        if not validation.is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=_get_incompatible_conversion_message(
+                    target, provider_config.provider.value, model, request.language
+                ),
             )
 
         # Generate warning for known incompatibility pairs
@@ -215,7 +289,7 @@ class DiagramConversionService:
             source_type=source,
             target_type=target,
             provider_used=provider_config.provider,
-            model_used=provider_config.model,
+            model_used=model,
             generation_time=generation_time,
             warning=warning,
         )

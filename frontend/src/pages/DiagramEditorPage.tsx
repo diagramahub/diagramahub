@@ -26,7 +26,7 @@ import {
   CreateDiagramRequest,
   UpdateDiagramRequest,
 } from "../types/project";
-import { UserAISettings } from "../types/ai";
+import { AIProviderType, UserAISettings } from "../types/ai";
 import DeleteFolderModal from "../components/DeleteFolderModal";
 import ConfirmModal from "../components/ConfirmModal";
 import Tooltip from "../components/Tooltip";
@@ -321,6 +321,24 @@ export default function DiagramEditorPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [showConvertMenu, setShowConvertMenu] = useState(false);
 
+  useEffect(() => {
+    if (!isConverting) return;
+
+    const blockKeyboardInput = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const previousOverflow = document.body.style.overflow;
+
+    document.addEventListener("keydown", blockKeyboardInput, true);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", blockKeyboardInput, true);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isConverting]);
+
   // Share diagram state
   const [showShareModal, setShowShareModal] = useState(false);
   const [isShared, setIsShared] = useState(false);
@@ -363,6 +381,16 @@ export default function DiagramEditorPage() {
     }
     return true;
   };
+
+  const conversionProvider =
+    preferredProvider || aiSettings?.default_provider || null;
+  const conversionModel =
+    preferredModel ||
+    aiSettings?.providers.find(
+      (provider) =>
+        provider.provider === conversionProvider && provider.is_active,
+    )?.model ||
+    null;
 
   // Check shared status when diagram loads
   const checkSharedStatus = async (id: string) => {
@@ -1785,6 +1813,10 @@ export default function DiagramEditorPage() {
         diagram_code: diagramCode,
         source_type: sourceType,
         target_type: targetType,
+        ...(conversionProvider
+          ? { provider: conversionProvider as AIProviderType }
+          : {}),
+        ...(conversionModel ? { model: conversionModel } : {}),
         language,
       });
       setConversionResult(result);
@@ -1809,12 +1841,28 @@ export default function DiagramEditorPage() {
         diagram_type: conversionResult.target_type,
       });
 
-      // Update local state
-      setDiagramCode(conversionResult.converted_code);
-      setCurrentDiagram({
+      // Update local editor and explorer state so the new diagram type and icon are immediate.
+      const updatedDiagram = {
         ...currentDiagram,
         content: conversionResult.converted_code,
         diagram_type: conversionResult.target_type,
+      };
+      setDiagramCode(conversionResult.converted_code);
+      setCurrentDiagram(updatedDiagram);
+      setProject((previousProject) => {
+        if (!previousProject) return previousProject;
+
+        const updateDiagramType = (diagram: Diagram) =>
+          diagram.id === currentDiagram.id ? updatedDiagram : diagram;
+
+        return {
+          ...previousProject,
+          diagrams: previousProject.diagrams.map(updateDiagramType),
+          folders: previousProject.folders.map((folder) => ({
+            ...folder,
+            diagrams: folder.diagrams.map(updateDiagramType),
+          })),
+        };
       });
 
       setShowConversionModal(false);
@@ -2590,6 +2638,17 @@ export default function DiagramEditorPage() {
             </Tooltip>
 
             {/* Convert diagram type button */}
+            {isConverting && conversionProvider && conversionModel && (
+              <span
+                className="hidden lg:inline-flex items-center rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                aria-live="polite"
+              >
+                {t("conversion.usingModel", {
+                  provider: conversionProvider,
+                  model: conversionModel,
+                })}
+              </span>
+            )}
             <div className="relative" data-convert-menu>
               <Tooltip
                 content={
@@ -4412,6 +4471,56 @@ export default function DiagramEditorPage() {
         />
       )}
 
+      {/* Interaction lock while the AI conversion is in progress. */}
+      {isConverting && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="conversion-progress-title"
+        >
+          <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 text-center shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+            <svg
+              className="mx-auto h-9 w-9 animate-spin text-purple-600 dark:text-purple-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <h2
+              id="conversion-progress-title"
+              className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100"
+            >
+              {t("conversion.converting")}
+            </h2>
+            {conversionProvider && conversionModel && (
+              <p className="mt-2 text-sm font-medium text-purple-700 dark:text-purple-300">
+                {t("conversion.usingModel", {
+                  provider: conversionProvider,
+                  model: conversionModel,
+                })}
+              </p>
+            )}
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {t("conversion.interactionLocked")}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Diagram Conversion Preview Modal */}
       {showConversionModal && conversionResult && (
         <DiagramConversionModal
@@ -4439,9 +4548,7 @@ export default function DiagramEditorPage() {
               />
             </svg>
             <div>
-              <p className="font-semibold text-sm">
-                Error al corregir diagrama
-              </p>
+              <p className="font-semibold text-sm">{t("common.error")}</p>
               <p className="text-sm mt-1">{fixError}</p>
             </div>
           </div>
