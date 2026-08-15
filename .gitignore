@@ -45,6 +45,7 @@ venv.bak/
 *.sublime-project
 *.sublime-workspace
 .claude/
+.codewhale/
 
 # Testing
 .pytest_cache/

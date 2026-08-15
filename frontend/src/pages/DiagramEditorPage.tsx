@@ -271,9 +271,7 @@ export default function DiagramEditorPage() {
   const isMobile = useIsMobile();
 
   // Floating panels state
-  const [showFloatingSidebar, setShowFloatingSidebar] = useState(
-    () => window.innerWidth >= 1024,
-  );
+  const [showFloatingSidebar, setShowFloatingSidebar] = useState(false);
   const [showCodeView, setShowCodeView] = useState(false);
   const [codePanelWidth, setCodePanelWidth] = useState(350);
   const isResizingCode = useRef(false);
@@ -320,6 +318,8 @@ export default function DiagramEditorPage() {
   const [conversionResult, setConversionResult] = useState<ConvertDiagramResponse | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [showConvertMenu, setShowConvertMenu] = useState(false);
+  // When true, re-center the diagram (fit to screen) after the next successful render.
+  const fitAfterConversion = useRef(false);
 
   useEffect(() => {
     if (!isConverting) return;
@@ -996,6 +996,12 @@ export default function DiagramEditorPage() {
           // Sanitize before injecting: source may be untrusted/imported content
           mermaidRef.current.innerHTML = sanitizeSvg(result.svg);
           setRenderError(null);
+
+          // After a type conversion, re-center the newly rendered diagram.
+          if (fitAfterConversion.current) {
+            fitAfterConversion.current = false;
+            setTimeout(() => handleFitToScreen(), 100);
+          }
         } else {
           throw new Error(result.error);
         }
@@ -1849,6 +1855,8 @@ export default function DiagramEditorPage() {
       };
       setDiagramCode(conversionResult.converted_code);
       setCurrentDiagram(updatedDiagram);
+      // Re-center the diagram once the converted content has been rendered.
+      fitAfterConversion.current = true;
       setProject((previousProject) => {
         if (!previousProject) return previousProject;
 
