@@ -34,8 +34,10 @@ export interface FreehandElement {
   points?: FreehandPoint[]; // For arrows, lines, and freehand paths
   startArrowhead?: boolean;
   endArrowhead?: boolean;
+  dashed?: boolean;
   borderRadius?: number;
   rotation?: number;
+  groupId?: string;
   // Connection bindings (for arrows/lines)
   startBinding?: ConnectionBinding;
   endBinding?: ConnectionBinding;
@@ -60,6 +62,7 @@ export interface FreehandCanvasState {
 
 export type FreehandTool =
   | "select"
+  | "hand"
   | "rectangle"
   | "diamond"
   | "ellipse"
