@@ -5,17 +5,34 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.6.0] - 2026-07-30
+## [0.6.0] - 2026-08-15
 
 ### Added
 - AI-powered diagram type conversion between Mermaid, PlantUML, D2, and DBML formats with side-by-side preview modal and incompatibility warnings.
 - New "Freehand" diagram type with an Excalidraw-like whiteboard canvas supporting rectangles, diamonds, circles, arrows, lines, text, and freehand paths.
 - Full toolbar for the freehand canvas with color pickers, stroke width controls, eraser, and keyboard shortcuts (Delete, Escape).
+- Freehand canvas usability overhaul inspired by Miro and Excalidraw:
+  - Undo/redo (Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y) with toolbar buttons and a 100-step history.
+  - Inline text editing (no browser prompt) with multi-line support, auto-growing text elements, and shape text always centered.
+  - Complete tool shortcuts (V/H/R/D/O/A/L/T/P/E), duplicate (Ctrl+D), arrow-key nudging, and fit-to-content (F).
+  - Hand tool and Space+drag panning.
+  - Hover highlight and move cursor in select mode.
+  - Alignment and distribution tools for multi-selection.
+  - Grouping/ungrouping (Ctrl+G / Ctrl+Shift+G) with group-aware click selection.
+  - Shape and text rotation with Shift snapping to 15°; connected arrows follow rotated anchors.
+  - Miro-style red alignment guides with snapping while dragging or drawing.
+  - Contextual style panel positioned beside the selection.
+  - Drag-to-erase eraser, dashed lines, start/end arrowheads, rounded rectangle corners, and text font size controls.
 
 ### Changed
 - Migrated frontend package manager from npm to pnpm for faster installs and better disk efficiency.
 - Updated frontend Dockerfile to use corepack with pnpm@9.
 - Updated all docker-compose files to mount `pnpm-lock.yaml` instead of `package-lock.json`.
+
+### Fixed
+- Diagram editor now opens with the folders/files sidebar closed; it only appears when clicking the folder icon next to the diagram title.
+- Converted diagrams are automatically re-centered (fit to screen) after accepting an AI type conversion.
+- Freehand canvas no longer shows stale content when switching between freehand diagrams.
 
 ## [0.5.11] - 2026-07-19
 
