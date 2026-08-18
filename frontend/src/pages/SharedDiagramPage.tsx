@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import api from "../services/api";
@@ -15,6 +16,7 @@ const MAX_ZOOM = 10;
 const ZOOM_STEP = 0.2;
 
 export default function SharedDiagramPage() {
+  const { t } = useTranslation();
   const { token } = useParams<{ token: string }>();
 
   // State
@@ -678,7 +680,7 @@ export default function SharedDiagramPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
               </svg>
-              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : diagram?.diagram_type === 'd2' ? 'D2' : diagram?.diagram_type === 'dbml' ? 'DBML' : diagram?.diagram_type === 'freehand' ? 'Mano Alzada' : 'Mermaid'}</span>
+              <span>{diagram?.diagram_type === 'plantuml' ? 'PlantUML' : diagram?.diagram_type === 'd2' ? 'D2' : diagram?.diagram_type === 'dbml' ? 'DBML' : diagram?.diagram_type === 'freehand' ? t('diagram.type.freehand') : 'Mermaid'}</span>
             </div>
 
             <div className="h-3 w-px bg-gray-300 hidden sm:block"></div>
