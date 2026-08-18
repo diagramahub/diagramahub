@@ -2,6 +2,12 @@
 
 Diagramahub project guidance — single source of truth for AI coding assistants (Claude Code, DeepSeek TUI, Open Code, etc.).
 
+## Companion Documents (load into initial context)
+
+Always read these alongside this file at the start of every task:
+
+- **[DESIGN.md](./DESIGN.md)** — UI/UX design guide. Mandatory reference for any frontend work (components, pages, styling, TailwindCSS conventions, dark mode, i18n, accessibility, and the freehand canvas patterns). Follow it before writing or modifying any UI.
+
 ---
 
 ## Project Overview
@@ -10,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.5.11
+- **Current version**: 0.6.0
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -207,6 +213,8 @@ When creating a new module, you MUST:
 
 ### Frontend Design System
 
+> Full reference: **[DESIGN.md](./DESIGN.md)**. The summary below is a quick reference — DESIGN.md is authoritative for all UI/UX decisions.
+
 **Brand**: Purple gradient primary identity. Glassmorphism buttons (`.btn-glass` in `index.css`).
 
 | Purpose | Tailwind Class |
@@ -372,7 +380,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.5.11
+VITE_APP_VERSION=0.6.0
 ```
 
 ---
@@ -452,7 +460,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.5.11**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.0**.
 
 | Bump | When |
 |------|------|

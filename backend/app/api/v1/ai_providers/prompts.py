@@ -3,8 +3,6 @@ Módulo centralizado de prompts para todos los proveedores de IA.
 Contiene todas las plantillas de prompts y funciones de construcción
 utilizadas por los clientes de IA (OpenAI, Claude, Gemini, DeepSeek).
 """
-from typing import Optional
-
 
 # ------------------------------------------------------------------ #
 #  Contexto de tipos de diagrama
@@ -1342,6 +1340,86 @@ def build_summarize_prompt(
 
 
 # ------------------------------------------------------------------ #
+#  Prompt: Conversión de diagrama entre tipos
+# ------------------------------------------------------------------ #
+
+def build_convert_diagram_prompt(
+    diagram_code: str,
+    source_type: str,
+    target_type: str,
+    language: str = "es"
+) -> str:
+    """Prompt para convertir un diagrama de un tipo a otro manteniendo la estructura."""
+    target_context = get_diagram_context(target_type, language)
+    common_errors = get_common_errors_section(target_type, language)
+    dbml_compatibility_instruction = ""
+    if target_type.lower() == "dbml":
+        dbml_compatibility_instruction = (
+            "\n9. DBML SOLO representa esquemas de bases de datos: tablas, campos, claves y relaciones. "
+            "No inventes tablas, campos ni relaciones. Si el diagrama origen no es un modelo de datos "
+            "que pueda preservarse fielmente, responde exactamente <<<INCOMPATIBLE>>>.\n"
+            if language == "es"
+            else "\n9. DBML ONLY represents database schemas: tables, fields, keys, and relationships. "
+            "Never invent tables, fields, or relationships. If the source is not a data model "
+            "that can be preserved faithfully, respond exactly <<<INCOMPATIBLE>>>.\n"
+        )
+
+    if language == "es":
+        return (
+            f"Eres un experto en conversión de diagramas entre diferentes formatos de texto.\n\n"
+            f"TAREA: Convertir el siguiente diagrama de **{source_type}** a **{target_type}**, "
+            f"manteniendo la misma estructura, relaciones y semántica visual lo más fielmente posible.\n\n"
+            f"CODIGO FUENTE ({source_type}):\n```{source_type}\n{diagram_code}\n```\n\n"
+            f"REFERENCIA DE SINTAXIS DEL FORMATO DESTINO ({target_type}):\n{target_context}\n\n"
+            f"{common_errors}\n\n"
+            "INSTRUCCIONES:\n"
+            "1. PRESERVAR la estructura y relaciones del diagrama original\n"
+            "2. MANTENER los nombres de nodos/elementos traducidos al formato destino\n"
+            "3. RESPETAR la direccionalidad de las conexiones\n"
+            "4. ADAPTAR estilos visuales al equivalente más cercano en el formato destino\n"
+            "5. Si un elemento no tiene equivalente directo, usar la aproximación más cercana\n"
+            "6. Generar código 100% válido para el formato destino\n"
+            "7. NO incluir markdown code blocks (```)\n"
+            "8. NO incluir texto adicional, solo el código del diagrama convertido\n"
+            f"{dbml_compatibility_instruction}\n"
+            "NOTA IMPORTANTE: Algunos elementos pueden no tener equivalente exacto entre formatos. "
+            "En esos casos, usa la representación más cercana disponible en el formato destino.\n\n"
+            "GENERA EL CODIGO CONVERTIDO:"
+        )
+    else:
+        return (
+            f"You are an expert in converting diagrams between different text-based formats.\n\n"
+            f"TASK: Convert the following diagram from **{source_type}** to **{target_type}**, "
+            f"maintaining the same structure, relationships, and visual semantics as faithfully "
+            f"as possible.\n\n"
+            f"SOURCE CODE ({source_type}):\n```{source_type}\n{diagram_code}\n```\n\n"
+            f"TARGET FORMAT SYNTAX REFERENCE ({target_type}):\n{target_context}\n\n"
+            f"{common_errors}\n\n"
+            "INSTRUCTIONS:\n"
+            "1. PRESERVE the structure and relationships of the original diagram\n"
+            "2. MAINTAIN node/element names translated to the target format\n"
+            "3. RESPECT the directionality of connections\n"
+            "4. ADAPT visual styles to the closest equivalent in the target format\n"
+            "5. If an element has no direct equivalent, use the closest approximation\n"
+            "6. Generate 100% valid code for the target format\n"
+            "7. DO NOT include markdown code blocks (```)\n"
+            "8. DO NOT include additional text, only the converted diagram code\n"
+            f"{dbml_compatibility_instruction}\n"
+            "IMPORTANT NOTE: Some elements may not have an exact equivalent between formats. "
+            "In such cases, use the closest available representation in the target format.\n\n"
+            "GENERATE THE CONVERTED CODE:"
+        )
+
+
+CONVERSION_SYSTEM_PROMPT = (
+    "You are an expert in converting diagrams between text-based formats "
+    "(Mermaid, PlantUML, D2, DBML). You produce syntactically valid output "
+    "that preserves the original structure and semantics. Output only the "
+    "converted diagram code with no additional text or markdown fencing."
+)
+
+
+# ------------------------------------------------------------------ #
 #  Utilidades comunes
 # ------------------------------------------------------------------ #
 
@@ -1371,6 +1449,21 @@ def clean_code_response(text: str) -> str:
         text = text[:-3].strip()
 
     return text
+
+
+def clean_ai_code_response(text: str) -> str:
+    """Strip <think> chain-of-thought tags BEFORE removing markdown code fences.
+
+    clean_code_response only recognizes fences when the response starts with
+    them, so reasoning tags emitted first (DeepSeek/MiniMax) must be removed
+    up front; otherwise the fences survive cleaning and break rendering.
+    """
+    import re
+
+    text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
+    if "<think>" in text:
+        text = text[: text.index("<think>")]
+    return clean_code_response(text)
 
 
 def extract_fix_delimited(response_text: str, provider_name: str) -> dict:

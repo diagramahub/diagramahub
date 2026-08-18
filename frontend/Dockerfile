@@ -5,13 +5,16 @@ FROM node:24-alpine
 # Alpine security fixes that lag behind the base image tag). Rebuild regularly.
 RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9 --activate
+
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN npm install
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -20,4 +23,4 @@ COPY . .
 EXPOSE 5173
 
 # Start development server
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["pnpm", "exec", "vite", "--host"]

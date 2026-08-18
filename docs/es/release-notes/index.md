@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.6.0](0.6.0.md) | 2026-08-15 | Conversión de diagramas (IA), lienzo mano alzada mejorado, migración pnpm |
 | [0.5.11](0.5.11.md) | 2026-07-19 | Seguridad, estadísticas de diagramas y versión en Acerca de |
 | [0.5.10](0.5.10.md) | 2026-07-18 | Explorador del editor, Acerca de, actualización de seguridad |
 | [0.5.9](0.5.9.md) | 2026-06-19 | Updates de dependencias, Node 24, limpieza de tests, README |
