@@ -299,6 +299,11 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   // Eraser drag state
   const erasingElementsRef = useRef<FreehandElement[]>([]);
   const erasingDidEraseRef = useRef(false);
+  // Wheel-pan persistence: emit after the user stops scrolling
+  const wheelEmitTimeoutRef = useRef<number | null>(null);
+  // Alignment-guide drag origin: bbox captured on first move so snapping uses
+  // the accumulated pointer delta (per-event deltas stick the selection to a guide)
+  const dragBBoxRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
   // Clipboard & cursor tracking for copy/paste
   const clipboardRef = useRef<FreehandElement[]>([]);
@@ -327,11 +332,12 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
 
   // ─── Emit changes ───
   const emit = useCallback((els: FreehandElement[]) => {
-    const json = JSON.stringify({ version: 1, elements: els, viewport: { zoom: 1, scrollX: 0, scrollY: 0 }, background });
+    // Serialize the live viewport so pan position survives reloads and diagram switches.
+    const json = JSON.stringify({ version: 1, elements: els, viewport: { zoom, scrollX: panOffset.x, scrollY: panOffset.y }, background });
     lastEmittedRef.current = json;
     onChange?.(json);
     if (!skipHistoryRef.current) pushHistory(els);
-  }, [onChange, background, pushHistory]);
+  }, [onChange, background, pushHistory, zoom, panOffset]);
 
   const undo = useCallback(() => {
     if (historyIndexRef.current <= 0) return;
@@ -362,14 +368,17 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   useEffect(() => {
     if (initialState === lastEmittedRef.current) return;
     lastEmittedRef.current = initialState;
-    const els = parseCanvasState(initialState).elements;
-    setElements(els);
+    const state = parseCanvasState(initialState);
+    setElements(state.elements);
+    // Restore the persisted viewport instead of resetting it (and clear any
+    // stale pan left over from the previously open diagram).
+    setPanOffset({ x: state.viewport?.scrollX ?? 0, y: state.viewport?.scrollY ?? 0 });
     setSelectedIds(new Set());
     setEditingId(null);
     setEditingText("");
     setMode("idle");
     setHoveredId(null);
-    historyRef.current = [els];
+    historyRef.current = [state.elements];
     historyIndexRef.current = 0;
   }, [initialState]);
 
@@ -844,7 +853,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
             setSelectedIds(new Set([hit.id]));
           }
         }
-        setMode("dragging"); setDragOffset({ x: pos.x, y: pos.y });
+        setMode("dragging"); setDragOffset({ x: pos.x, y: pos.y }); dragBBoxRef.current = null;
       } else {
         // 3) Start marquee on empty space
         if (!e.shiftKey) setSelectedIds(new Set());
@@ -906,21 +915,24 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
     }
 
     if (mode === "dragging") {
-      // Incremental delta (robust against batched mousemove events — no teleporting)
-      const dx = pos.x - dragOffset.x, dy = pos.y - dragOffset.y;
-      let fx = dx, fy = dy;
-      // Alignment guides against other elements (Miro-style)
-      const selBBox = getSelectionBBox();
-      if (selBBox) {
-        const cand = { x: selBBox.x + dx, y: selBBox.y + dy, width: selBBox.width, height: selBBox.height };
-        const res = computeAlignGuides(cand, elements, selectedIds);
-        fx = dx + res.dx; fy = dy + res.dy;
-        // Only update state when the visible guides actually change (avoids extra re-renders per mousemove)
-        if (!guidesEqual(res.guides, guides)) setGuides(res.guides);
+      // Capture the selection bbox once on the first move (selection is committed by then).
+      if (!dragBBoxRef.current) {
+        const b = getSelectionBBox();
+        dragBBoxRef.current = b ?? { x: dragOffset.x, y: dragOffset.y, width: 0, height: 0 };
       }
-      const moved = moveElements(selectedIds, fx, fy);
-      setElements(moved);
-      setDragOffset({ x: pos.x, y: pos.y });
+      const origin = dragBBoxRef.current;
+      // Accumulated pointer delta from the drag start: snapping the accumulated
+      // candidate (instead of correcting the per-event delta) lets the element
+      // leave a guide once the pointer moves past the snap threshold.
+      const totalDx = pos.x - dragOffset.x, totalDy = pos.y - dragOffset.y;
+      const cand = { x: origin.x + totalDx, y: origin.y + totalDy, width: origin.width, height: origin.height };
+      const res = computeAlignGuides(cand, elements, selectedIds);
+      const selBBox = getSelectionBBox();
+      const fx = selBBox ? cand.x + res.dx - selBBox.x : totalDx;
+      const fy = selBBox ? cand.y + res.dy - selBBox.y : totalDy;
+      // Only update state when the visible guides actually change (avoids extra re-renders per mousemove)
+      if (!guidesEqual(res.guides, guides)) setGuides(res.guides);
+      setElements(moveElements(selectedIds, fx, fy));
       return;
     }
 
@@ -963,7 +975,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       if (resizeHandle.includes("w")) { nw = Math.max(10, resizeOrigin.elW - dx); nx = resizeOrigin.elX + resizeOrigin.elW - nw; }
       if (resizeHandle.includes("s")) nh = Math.max(10, resizeOrigin.elH + dy);
       if (resizeHandle.includes("n")) { nh = Math.max(10, resizeOrigin.elH - dy); ny = resizeOrigin.elY + resizeOrigin.elH - nh; }
-      setElements(elements.map((el) => {
+      const resized = elements.map((el) => {
         if (el.id !== elId) return el;
         const updated = { ...el, x: nx, y: ny, width: nw, height: nh };
         // Scale points proportionally for freehand/line/arrow elements
@@ -976,7 +988,9 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
           }));
         }
         return updated;
-      }));
+      });
+      // Keep arrows bound to the resized shape attached to its new anchors.
+      setElements(updateBoundArrows(resized, new Set([elId])));
       return;
     }
 
@@ -1011,7 +1025,16 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
 
   // ─── Pointer Up ───
   const handlePointerUp = (e: React.MouseEvent) => {
-    if (isPanning) { setIsPanning(false); return; }
+    if (isPanning) {
+      setIsPanning(false);
+      // Persist the panned viewport (hand tool / space-drag / middle-drag).
+      if (!readOnly) {
+        skipHistoryRef.current = true;
+        emit(elements);
+        skipHistoryRef.current = false;
+      }
+      return;
+    }
     const pos = getPos(e);
 
     if (mode === "erasing") {
@@ -1043,7 +1066,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       setMode("idle"); setDrawStart(null); setMarqueeRect(null); return;
     }
 
-    if (mode === "dragging") { setMode("idle"); setGuides([]); emit(elements); return; }
+    if (mode === "dragging") { setMode("idle"); setGuides([]); dragBBoxRef.current = null; emit(elements); return; }
     if (mode === "resizing") { setMode("idle"); setResizeHandle(null); setResizeOrigin(null); setGuides([]); emit(elements); return; }
     if (mode === "endpoint") {
       // Snap endpoint to anchor if hovering one
@@ -1052,7 +1075,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
         const targetEl = elements.find((el) => el.id === hoveredAnchor.elementId);
         if (targetEl) {
           const anchorPt = getRotatedAnchor(targetEl, hoveredAnchor.side);
-          setElements(elements.map((el) => {
+          const snapped = elements.map((el) => {
             if (el.id !== elId) return el;
             const pts = [...(el.points || [])];
             pts[draggingEndpointIdx] = anchorPt;
@@ -1064,7 +1087,12 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
             updated.x = Math.min(...xs); updated.y = Math.min(...ys);
             updated.width = Math.max(...xs) - updated.x || 1; updated.height = Math.max(...ys) - updated.y || 1;
             return updated;
-          }));
+          });
+          setElements(snapped);
+          setMode("idle"); setDraggingEndpointIdx(null); setHoveredAnchor(null); setGuides([]);
+          // Emit the snapped array — the closure's elements predate the snap.
+          emit(snapped);
+          return;
         }
       }
       setMode("idle"); setDraggingEndpointIdx(null); setHoveredAnchor(null); setGuides([]); emit(elements); return;
@@ -1516,14 +1544,26 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
     } else {
       // Pan
       setPanOffset((prev) => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
+      // Persist wheel pans shortly after the user stops scrolling (no history entry).
+      if (!readOnly) {
+        if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
+        wheelEmitTimeoutRef.current = window.setTimeout(() => {
+          skipHistoryRef.current = true;
+          emit(elements);
+          skipHistoryRef.current = false;
+        }, 400);
+      }
     }
-  }, [zoom, onZoomChange]);
+  }, [zoom, onZoomChange, readOnly, emit, elements]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => container.removeEventListener("wheel", handleWheel);
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+      if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
+    };
   }, [handleWheel]);
 
   const handleClear = () => { setElements([]); emit([]); setSelectedIds(new Set()); };
@@ -1756,7 +1796,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
           onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp}
           onDoubleClick={handleDoubleClick}
           onContextMenu={handleContextMenu}
-          onMouseLeave={() => { setHoveredId(null); setGuides([]); if (isPanning) setIsPanning(false); if (mode === "dragging") { setMode("idle"); emit(elements); } if (mode === "endpoint") { setMode("idle"); setDraggingEndpointIdx(null); emit(elements); } if (mode === "drawing") { setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); } if (mode === "marquee") { setMode("idle"); setMarqueeRect(null); } if (mode === "erasing") { setMode("idle"); if (erasingDidEraseRef.current) emit(erasingElementsRef.current); erasingElementsRef.current = []; erasingDidEraseRef.current = false; } if (mode === "rotating") { setMode("idle"); rotationStartRef.current = null; emit(elements); } }}
+          onMouseLeave={() => { setHoveredId(null); setGuides([]); if (isPanning) setIsPanning(false); if (mode === "dragging") { setMode("idle"); dragBBoxRef.current = null; emit(elements); } if (mode === "endpoint") { setMode("idle"); setDraggingEndpointIdx(null); emit(elements); } if (mode === "drawing") { setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); } if (mode === "marquee") { setMode("idle"); setMarqueeRect(null); } if (mode === "erasing") { setMode("idle"); if (erasingDidEraseRef.current) emit(erasingElementsRef.current); erasingElementsRef.current = []; erasingDidEraseRef.current = false; } if (mode === "rotating") { setMode("idle"); rotationStartRef.current = null; emit(elements); } }}
         />
         {/* Inline text editor overlay */}
         {editingId && (() => {
