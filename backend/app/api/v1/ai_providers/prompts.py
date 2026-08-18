@@ -1451,6 +1451,21 @@ def clean_code_response(text: str) -> str:
     return text
 
 
+def clean_ai_code_response(text: str) -> str:
+    """Strip <think> chain-of-thought tags BEFORE removing markdown code fences.
+
+    clean_code_response only recognizes fences when the response starts with
+    them, so reasoning tags emitted first (DeepSeek/MiniMax) must be removed
+    up front; otherwise the fences survive cleaning and break rendering.
+    """
+    import re
+
+    text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
+    if "<think>" in text:
+        text = text[: text.index("<think>")]
+    return clean_code_response(text)
+
+
 def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
     """
     Extraer respuesta de fix usando delimitadores <<<SECTION>>>.

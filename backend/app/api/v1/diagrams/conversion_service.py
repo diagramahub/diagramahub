@@ -14,7 +14,7 @@ from app.api.v1.ai_providers.interfaces import IAIProviderRepository
 from app.api.v1.ai_providers.prompts import (
     CONVERSION_SYSTEM_PROMPT,
     build_convert_diagram_prompt,
-    clean_code_response,
+    clean_ai_code_response,
 )
 from app.api.v1.ai_providers.schemas import AIProviderType
 
@@ -45,14 +45,6 @@ def _is_dbml_compatible_source(source_type: str, diagram_code: str) -> bool:
     if source == "d2":
         return bool(re.search(r"\bshape\s*:\s*sql_table\b", diagram_code, re.IGNORECASE))
     return False
-
-
-def _strip_think_tags(text: str) -> str:
-    """Remove <think>...</think> chain-of-thought tags from AI responses."""
-    text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
-    if "<think>" in text:
-        text = text[: text.index("<think>")].strip()
-    return text.strip()
 
 
 def _get_incompatible_conversion_message(
@@ -250,8 +242,7 @@ class DiagramConversionService:
         start_time = time.time()
         try:
             raw_response = await self._call_with_prompt(client, prompt)
-            converted_code = clean_code_response(raw_response)
-            converted_code = _strip_think_tags(converted_code)
+            converted_code = clean_ai_code_response(raw_response)
             generation_time = round(time.time() - start_time, 2)
         except Exception as e:
             logger.error("Diagram conversion failed: %s", str(e))

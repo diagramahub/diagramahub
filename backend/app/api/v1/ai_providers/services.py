@@ -368,13 +368,11 @@ class AIProviderService:
 
         start = time.time()
         try:
-            from .prompts import clean_code_response
+            from .prompts import clean_ai_code_response
 
-            description = clean_code_response(
+            description = clean_ai_code_response(
                 await self._call_with_prompt(client, prompt)
             )
-            # Strip <think>...</think> tags (chain-of-thought from DeepSeek/MiniMax)
-            description = _strip_think_tags(description)
             elapsed = time.time() - start
 
             return RefineDescriptionResponse(
