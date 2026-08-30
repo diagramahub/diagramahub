@@ -271,7 +271,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                   />
                   <button
                     onClick={handleCopyLink}
-                    className="px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors flex items-center gap-1 btn-glass"
+                    className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center gap-1"
                     aria-label={t('sharing.copyLink')}
                   >
                     {linkCopied ? (
@@ -542,7 +542,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
               <button
                 onClick={handleGenerateLink}
                 disabled={loading || (accessType === 'protected' && accessCode.length > 0 && accessCode.length < 4)}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 btn-glass"
+                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {loading && (
                   <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

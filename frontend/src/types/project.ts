@@ -80,6 +80,14 @@ export type CreateDiagramRequest = {
   config?: DiagramConfig;
 }
 
+export type MoveDiagramRequest = {
+  target_project_id: string;
+}
+
+export type DuplicateDiagramRequest = {
+  title: string;
+}
+
 export type UpdateDiagramRequest = {
   title?: string;
   content?: string;

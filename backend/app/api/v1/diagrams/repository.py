@@ -27,6 +27,30 @@ class DiagramRepository(IDiagramRepository):
         await diagram.insert()
         return diagram
 
+    async def duplicate(self, source: DiagramInDB, new_title: str) -> DiagramInDB:
+        """Duplicate a diagram into the same project and folder with a new title.
+
+        The copy keeps content, description, type, config and user preferences;
+        the viewport is reset so the clone opens with a fresh view.
+        """
+        diagram = DiagramInDB(
+            title=new_title,
+            content=source.content,
+            description=source.description,
+            diagram_type=source.diagram_type,
+            config=source.config,
+            user_preferences=source.user_preferences,
+            project_id=source.project_id,
+            folder_id=source.folder_id,
+            viewport_zoom=1.0,
+            viewport_x=0.0,
+            viewport_y=0.0,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        await diagram.insert()
+        return diagram
+
     async def get_by_id(self, diagram_id: str) -> Optional[DiagramInDB]:
         """Get diagram by ID."""
         try:
@@ -51,6 +75,21 @@ class DiagramRepository(IDiagramRepository):
             DiagramInDB.folder_id == None
         ).to_list()
         return diagrams
+
+    async def move(self, diagram_id: str, target_project_id: str) -> Optional[DiagramInDB]:
+        """Move a diagram to another project and remove its folder assignment."""
+        diagram = await self.get_by_id(diagram_id)
+        if not diagram:
+            return None
+
+        await diagram.set(
+            {
+                "project_id": target_project_id,
+                "folder_id": None,
+                "updated_at": datetime.utcnow(),
+            }
+        )
+        return diagram
 
     async def update(self, diagram_id: str, diagram_data: DiagramUpdate) -> Optional[DiagramInDB]:
         """Update diagram."""

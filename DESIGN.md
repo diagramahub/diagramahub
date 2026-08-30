@@ -58,13 +58,48 @@ Purple is the primary identity. Never hardcode hex in `style`; use Tailwind clas
 
 ### Primary "glass" button
 
-Primary actions use the `.btn-glass` class (defined in `index.css` under `@layer components`), which provides a glassmorphism effect with purple shadow:
+Primary actions use the `.btn-glass` class (defined in `index.css` under `@layer components`), which provides a glassmorphism effect with purple shadow.
+
+**Canonical primary button** — reference implementation: `CreateProjectModal.tsx`. All modals and primary CTAs must use exactly these classes (solid `bg-purple-600`, no gradient):
 
 ```tsx
-<button className="btn-glass bg-purple-600 text-white rounded-lg px-4 py-2">
-  {t('action.label')}
+<button
+  type="submit"
+  disabled={loading || !canSubmit}
+  className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+>
+  {loading ? (
+    <span className="flex items-center justify-center">
+      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      {t('action.processing')}
+    </span>
+  ) : (
+    t('action.label')
+  )}
 </button>
 ```
+
+**Canonical secondary button** (cancel / neutral actions — same height as primary):
+
+```tsx
+<button
+  type="button"
+  onClick={onClose}
+  disabled={loading}
+  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+>
+  {t('common.cancel')}
+</button>
+```
+
+Button rules:
+- Primary: solid `bg-purple-600` + `btn-glass` + `py-3 px-6 rounded-lg font-semibold`, `hover:bg-purple-700`, purple focus ring, disabled `bg-gray-400`. Never use the gradient on buttons.
+- Secondary: outlined `border-gray-300`, `py-3 px-6` so it matches the primary height.
+- Async actions: keep the button visible and swap its label for the spinner + a "Processing…" text.
+- Destructive actions: `bg-red-600 hover:bg-red-700` (no `btn-glass`).
 
 ---
 
@@ -255,7 +290,7 @@ Component conventions:
 <div className="p-6">
   <div className="flex justify-between items-center mb-6">
     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('page.title')}</h1>
-    <button className="btn-glass bg-purple-600 text-white rounded-lg px-4 py-2">
+    <button className="btn-glass bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
       {t('action.create')}
     </button>
   </div>
@@ -277,11 +312,11 @@ Fixed backdrop with semi-transparent overlay, centered panel, and an actions foo
       <div className="px-6 py-4">{/* body */}</div>
       <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
         <button onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+          className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {t('common.cancel')}
         </button>
         <button onClick={onConfirm}
-          className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 btn-glass rounded-lg">
+          className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
           {t('common.confirm')}
         </button>
       </div>

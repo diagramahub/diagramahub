@@ -99,6 +99,18 @@ class DiagramCreate(DiagramBase):
     folder_id: Optional[str] = None
 
 
+class DiagramMove(BaseModel):
+    """Model for moving a diagram to another project."""
+
+    target_project_id: str = Field(..., min_length=1)
+
+
+class DiagramDuplicate(BaseModel):
+    """Model for duplicating a diagram in the same project."""
+
+    title: str = Field(..., min_length=1, max_length=100)
+
+
 class DiagramUpdate(BaseModel):
     """Model for updating a diagram."""
 

@@ -5,7 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.6.0] - 2026-08-15
+## [0.6.1] - 2026-08-30
+
+### Added
+- Move a diagram to another project directly from the editor toolbar (`POST /api/v1/diagrams/{id}/move`), with ownership checks and folder clearing.
+- Duplicate (clone) a diagram from the editor toolbar; the confirmation modal suggests a localized name (`-copia` / `-copy`) that can be edited, and the clone opens automatically re-centered (fit to screen).
+- PNG export resolution selector (Screen 1x / Standard 2x / High 3x).
+- Two-step export modal: select format → format-specific options → single Export action (e.g. PNG resolution only appears when PNG is selected).
+- Canonical primary/secondary button pattern documented in DESIGN.md and applied to all buttons across the app.
+
+### Changed
+- PDF export now embeds JPEG (quality 0.98) instead of lossless PNG — 5-15x smaller files with visually identical output on diagrams.
+- PNG export capped at 8192px max dimension and downloaded via Blob URLs (no base64 +33% overhead).
+- Dependencies: FastAPI ^0.141.1, cryptography ^50.0.0, black ^26.5.1.
+- pytest.ini: `asyncio_mode = auto` and registered markers (unit / integration / slow / property).
+
+### Fixed
+- Export options no longer show irrelevant controls (e.g. PNG resolution while exporting PDF).
+- Cloned diagrams opened with a stale viewport; they now fit to screen on open.
 
 ### Added
 - AI-powered diagram type conversion between Mermaid, PlantUML, D2, and DBML formats with side-by-side preview modal and incompatibility warnings.

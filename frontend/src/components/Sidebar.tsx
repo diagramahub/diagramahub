@@ -489,7 +489,7 @@ export default function Sidebar() {
             <div className="px-6 pb-6 pt-2">
               <button
                 onClick={() => setShowCommunityModal(false)}
-                className="w-full px-4 py-2.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors btn-glass"
+                className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
               >
                 {t('sidebar.communityModalClose')}
               </button>

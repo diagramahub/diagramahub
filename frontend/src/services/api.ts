@@ -24,6 +24,8 @@ import {
   UpdateProjectRequest,
   CreateDiagramRequest,
   UpdateDiagramRequest,
+  MoveDiagramRequest,
+  DuplicateDiagramRequest,
   Folder,
   FolderWithDiagrams,
   CreateFolderRequest,
@@ -244,6 +246,16 @@ class ApiService {
 
   async updateDiagram(diagramId: string, data: UpdateDiagramRequest): Promise<Diagram> {
     const response = await this.api.put<Diagram>(`/api/v1/diagrams/${diagramId}`, data);
+    return response.data;
+  }
+
+  async moveDiagram(diagramId: string, data: MoveDiagramRequest): Promise<Diagram> {
+    const response = await this.api.post<Diagram>(`/api/v1/diagrams/${diagramId}/move`, data);
+    return response.data;
+  }
+
+  async duplicateDiagram(diagramId: string, data: DuplicateDiagramRequest): Promise<Diagram> {
+    const response = await this.api.post<Diagram>(`/api/v1/diagrams/${diagramId}/duplicate`, data);
     return response.data;
   }
 

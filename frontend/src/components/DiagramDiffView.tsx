@@ -210,7 +210,7 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
           </button>
           <button
             onClick={onApply}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white btn-glass rounded-lg transition-colors duration-200 font-medium text-sm shadow-sm"
+            className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
             Aplicar Corrección
           </button>

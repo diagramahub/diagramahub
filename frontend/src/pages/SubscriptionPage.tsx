@@ -76,7 +76,7 @@ export default function SubscriptionPage() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <button
                   onClick={() => setShowPlanSelector(true)}
-                  className="w-full px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                  className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
                 >
                   {t('subscription.changePlan')}
                 </button>

@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 from .interfaces import IDiagramRepository
-from .schemas import DiagramCreate, DiagramUpdate, DiagramResponse, MermaidConfig
+from .schemas import DiagramCreate, DiagramMove, DiagramUpdate, DiagramResponse, DiagramDuplicate
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
 from ..shared_links.interfaces import ISharedLinkRepository
 
@@ -181,6 +181,105 @@ class DiagramService:
             viewport_y=updated_diagram.viewport_y,
             created_at=updated_diagram.created_at,
             updated_at=updated_diagram.updated_at
+        )
+
+    async def move_diagram(
+        self, diagram_id: str, move_data: DiagramMove, user_id: str
+    ) -> DiagramResponse:
+        """Move a diagram to another project owned by the current user."""
+        diagram = await self.diagram_repository.get_by_id(diagram_id)
+        if not diagram:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diagram not found",
+            )
+
+        source_project = await self.project_repository.get_by_id(diagram.project_id)
+        if not source_project or source_project.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this diagram",
+            )
+
+        target_project = await self.project_repository.get_by_id(move_data.target_project_id)
+        if not target_project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Target project not found",
+            )
+
+        if target_project.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to the target project",
+            )
+
+        updated_diagram = await self.diagram_repository.move(
+            diagram_id, move_data.target_project_id
+        )
+        return DiagramResponse(
+            id=str(updated_diagram.id),
+            title=updated_diagram.title,
+            content=updated_diagram.content,
+            description=updated_diagram.description,
+            diagram_type=updated_diagram.diagram_type,
+            config=updated_diagram.config,
+            user_preferences=updated_diagram.user_preferences,
+            project_id=updated_diagram.project_id,
+            folder_id=updated_diagram.folder_id,
+            viewport_zoom=updated_diagram.viewport_zoom,
+            viewport_x=updated_diagram.viewport_x,
+            viewport_y=updated_diagram.viewport_y,
+            created_at=updated_diagram.created_at,
+            updated_at=updated_diagram.updated_at,
+        )
+
+    async def duplicate_diagram(
+        self, diagram_id: str, duplicate_data: DiagramDuplicate, user_id: str
+    ) -> DiagramResponse:
+        """Duplicate a diagram into the same project and folder with a new title.
+
+        Args:
+            diagram_id: ID of the source diagram
+            duplicate_data: New title for the copy
+            user_id: ID of the requesting user
+
+        Returns:
+            The duplicated diagram
+
+        Raises:
+            HTTPException: If diagram not found or user doesn't have access
+        """
+        diagram = await self.diagram_repository.get_by_id(diagram_id)
+        if not diagram:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Diagram not found",
+            )
+
+        project = await self.project_repository.get_by_id(diagram.project_id)
+        if not project or project.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this diagram",
+            )
+
+        duplicated = await self.diagram_repository.duplicate(diagram, duplicate_data.title)
+        return DiagramResponse(
+            id=str(duplicated.id),
+            title=duplicated.title,
+            content=duplicated.content,
+            description=duplicated.description,
+            diagram_type=duplicated.diagram_type,
+            config=duplicated.config,
+            user_preferences=duplicated.user_preferences,
+            project_id=duplicated.project_id,
+            folder_id=duplicated.folder_id,
+            viewport_zoom=duplicated.viewport_zoom,
+            viewport_x=duplicated.viewport_x,
+            viewport_y=duplicated.viewport_y,
+            created_at=duplicated.created_at,
+            updated_at=duplicated.updated_at,
         )
 
     async def delete_diagram(self, diagram_id: str, user_id: str) -> dict:
