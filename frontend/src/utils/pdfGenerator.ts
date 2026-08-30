@@ -1,7 +1,7 @@
 /**
  * PDF generator for diagram exports.
  *
- * Strategy: High-quality rasterization with PNG format.
+ * Strategy: High-quality rasterization with JPEG format.
  *
  * Why not pure SVG embedding?
  * jsPDF's addSvgAsImage has known limitations with complex SVGs (Mermaid/PlantUML):
@@ -11,15 +11,23 @@
  *
  * Our approach:
  * - Use html2canvas at 2x scale for crisp, readable output
- * - Use PNG format (lossless) to preserve text clarity
+ * - Embed the raster as JPEG (quality 0.98) — at 2x supersampling this is
+ *   practically identical to PNG on diagrams (flat colors + lines),
+ *   while staying 2-4x smaller than a PNG-embedded PDF. Started at 0.92
+ *   (visible ringing on text/emoji edges) → 0.95 (visually lossless) → 0.98
+ *   (indistinguishable from PNG).
  * - Fit page dimensions to content (no wasted whitespace)
- * - Result: ~1-5 MB PDFs (down from 150-200 MB) with full visual fidelity
+ * - Result: ~400 KB - 6 MB PDFs (down from 150-200 MB originally) with
+ *   full visual fidelity.
  *
- * The original 150-200 MB files were caused by html2canvas at device pixel ratio
- * (often 3-4x) with uncompressed raw bitmap data. Our optimization:
- * - Fixed 2x scale (not device pixel ratio)
- * - PNG compression (lossless but efficient for diagrams with flat colors)
- * - Page dimensions matched to content (no full-page captures)
+ * History:
+ * - The original 150-200 MB files were caused by html2canvas at device pixel
+ *   ratio (often 3-4x) with uncompressed raw bitmap data.
+ * - First optimization: fixed 2x scale + lossless PNG → ~1-5 MB.
+ * - v0.6.1: switched the embedded image to JPEG. Started at q0.92 (5-15x
+ *   smaller than PNG) but text/emoji edges showed artifacts; raised to q0.95
+ *   and then q0.98 for a result indistinguishable from PNG at ~2-4x smaller
+ *   than PNG-embedded PDFs.
  */
 
 import html2canvas from 'html2canvas';
@@ -90,8 +98,12 @@ export class PDFGenerator {
         import('jspdf'),
       ]);
 
-      // 3. Get PNG data (lossless — preserves text clarity)
-      const imgData = canvas.toDataURL('image/png');
+      // 3. Encode as JPEG (quality 0.98). At 2x scale this is practically
+      // indistinguishable from PNG while staying 2-4x smaller than the
+      // previous PNG-embedded PDFs. (0.92 showed visible ringing on text
+      // and emoji edges; 0.95 was visually lossless; 0.98 is the max
+      // quality we can extract from JPEG before PNG is the better choice.)
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
       // 4. Calculate PDF page dimensions from canvas
       const contentWidthPx = canvas.width / CANVAS_SCALE;
@@ -112,7 +124,7 @@ export class PDFGenerator {
       // 5. Add the captured image to fill the content area
       pdf.addImage(
         imgData,
-        'PNG',
+        'JPEG',
         PAGE_PADDING,
         PAGE_PADDING,
         contentWidthPx,

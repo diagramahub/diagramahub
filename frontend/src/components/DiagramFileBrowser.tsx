@@ -94,6 +94,7 @@ export default function DiagramFileBrowser({
     return { diagrams: fd, folders: ff };
   }, [diagrams, folders, searchQuery]);
 
+
   const handleSelectDiagram = (diagramId: string) => {
     navigate(`/projects/${projectId}/diagrams/${diagramId}`);
     if (closeOnSelect) onClose();
@@ -130,6 +131,7 @@ export default function DiagramFileBrowser({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
             </svg>
           </button>
+
           <button
             onClick={onClose}
             className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
@@ -191,6 +193,7 @@ export default function DiagramFileBrowser({
               <span className="flex-shrink-0">{DIAGRAM_ICONS[diagram.diagram_type] || '📄'}</span>
               <span className="truncate">{diagram.title}</span>
             </button>
+
             <button
               onClick={(e) => { e.stopPropagation(); onDeleteDiagram(diagram.id, diagram.title); }}
               className="p-1 text-gray-400 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity mr-0.5"
@@ -283,6 +286,7 @@ export default function DiagramFileBrowser({
                       <span className="flex-shrink-0">{DIAGRAM_ICONS[diagram.diagram_type] || '📄'}</span>
                       <span className="truncate">{diagram.title}</span>
                     </button>
+
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteDiagram(diagram.id, diagram.title); }}
                       className="p-1 text-gray-400 hover:text-red-500 rounded opacity-0 group-hover:opacity-100 transition-opacity mr-0.5"

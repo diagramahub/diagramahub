@@ -41,6 +41,8 @@ import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal from "../components/ExportDiagramModal";
 import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
+import MoveDiagramModal from "../components/MoveDiagramModal";
+import CloneDiagramModal from "../components/CloneDiagramModal";
 import { EditorSkeleton } from "../components/Skeleton";
 import { useSetPresentationMode } from "../contexts/PresentationContext";
 import { useTouchZoomPan } from "../hooks/useTouchZoomPan";
@@ -215,6 +217,8 @@ export default function DiagramEditorPage() {
     includeProjectInfo: true,
   });
   const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | 'svg' | null>(null);
+  // PNG export resolution: 1x = screen, 2x = standard (default), 3x = print/high
+  const [pngScale, setPngScale] = useState<1 | 2 | 3>(2);
 
   // Folder state
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
@@ -319,7 +323,9 @@ export default function DiagramEditorPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [showConvertMenu, setShowConvertMenu] = useState(false);
   // When true, re-center the diagram (fit to screen) after the next successful render.
-  const fitAfterConversion = useRef(false);
+  // When true, the next rendered diagram is re-centered (fit to screen).
+  // Used after a type conversion and after cloning a diagram.
+  const fitOnNextRender = useRef(false);
 
   useEffect(() => {
     if (!isConverting) return;
@@ -734,6 +740,24 @@ export default function DiagramEditorPage() {
     diagramId: null,
     diagramName: "",
   });
+  const [moveDiagramModal, setMoveDiagramModal] = useState<{
+    isOpen: boolean;
+    diagramId: string | null;
+    diagramName: string;
+  }>({
+    isOpen: false,
+    diagramId: null,
+    diagramName: "",
+  });
+  const [cloneDiagramModal, setCloneDiagramModal] = useState<{
+    isOpen: boolean;
+    diagramId: string | null;
+    diagramName: string;
+  }>({
+    isOpen: false,
+    diagramId: null,
+    diagramName: "",
+  });
 
   // Helper functions for localStorage
   const getLastViewedDiagram = (projectId: string): string | null => {
@@ -975,6 +999,11 @@ export default function DiagramEditorPage() {
         // Freehand diagrams are rendered by FreehandCanvas, not here
         if (diagramType === "freehand") {
           mermaidRef.current.innerHTML = "";
+          // Consume any pending fit request (e.g. after cloning a freehand diagram)
+          if (fitOnNextRender.current) {
+            fitOnNextRender.current = false;
+            handleFitToScreen();
+          }
           return;
         }
 
@@ -997,9 +1026,10 @@ export default function DiagramEditorPage() {
           mermaidRef.current.innerHTML = sanitizeSvg(result.svg);
           setRenderError(null);
 
-          // After a type conversion, re-center the newly rendered diagram.
-          if (fitAfterConversion.current) {
-            fitAfterConversion.current = false;
+          // Re-center the newly rendered diagram when requested
+          // (after a type conversion or after cloning).
+          if (fitOnNextRender.current) {
+            fitOnNextRender.current = false;
             setTimeout(() => handleFitToScreen(), 100);
           }
         } else {
@@ -1856,7 +1886,7 @@ export default function DiagramEditorPage() {
       setDiagramCode(conversionResult.converted_code);
       setCurrentDiagram(updatedDiagram);
       // Re-center the diagram once the converted content has been rendered.
-      fitAfterConversion.current = true;
+      fitOnNextRender.current = true;
       setProject((previousProject) => {
         if (!previousProject) return previousProject;
 
@@ -2044,7 +2074,7 @@ export default function DiagramEditorPage() {
 
       const canvas = await html2canvas(exportContainer, {
         backgroundColor: "#ffffff",
-        scale: 2,
+        scale: pngScale,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -2052,10 +2082,39 @@ export default function DiagramEditorPage() {
 
       document.body.removeChild(exportContainer);
 
-      const link = document.createElement("a");
-      link.download = `${diagramTitle.replace(/\s+/g, "_")}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      // Cap output dimensions so very large diagrams don't produce
+      // pathologically heavy PNGs (file size grows with pixel area).
+      const MAX_PNG_DIM = 8192;
+      let outputCanvas: HTMLCanvasElement = canvas;
+      if (canvas.width > MAX_PNG_DIM || canvas.height > MAX_PNG_DIM) {
+        const ratio = Math.min(MAX_PNG_DIM / canvas.width, MAX_PNG_DIM / canvas.height);
+        const resized = document.createElement("canvas");
+        resized.width = Math.max(1, Math.round(canvas.width * ratio));
+        resized.height = Math.max(1, Math.round(canvas.height * ratio));
+        const ctx = resized.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(canvas, 0, 0, resized.width, resized.height);
+          outputCanvas = resized;
+        }
+      }
+
+      // Download via Blob URL — avoids the base64 data-URL overhead (+33%)
+      // and the memory spike of encoding huge PNGs to data URLs.
+      const blob = await new Promise<Blob | null>((resolve) =>
+        outputCanvas.toBlob(resolve, "image/png"),
+      );
+      if (!blob) {
+        throw new Error("Canvas produced empty PNG blob");
+      }
+      const url = URL.createObjectURL(blob);
+      try {
+        const link = document.createElement("a");
+        link.download = `${diagramTitle.replace(/\s+/g, "_")}.png`;
+        link.href = url;
+        link.click();
+      } finally {
+        URL.revokeObjectURL(url);
+      }
 
       setShowExportModal(false);
     } catch (err) {
@@ -2238,6 +2297,59 @@ export default function DiagramEditorPage() {
     } catch (err) {
       console.error("Error deleting folder:", err);
       setError("Error al eliminar carpeta");
+    }
+  };
+
+  const handleMoveDiagram = async (diagramId: string, diagramName: string) => {
+    setMoveDiagramModal({ isOpen: true, diagramId, diagramName });
+
+    if (allProjects.length === 0) {
+      setLoadingProjects(true);
+      try {
+        setAllProjects(await api.getProjects());
+      } catch (err) {
+        console.error("Error loading projects for diagram move:", err);
+        setError(t("editor.moveDiagramError"));
+      } finally {
+        setLoadingProjects(false);
+      }
+    }
+  };
+
+  const confirmMoveDiagram = async (targetProjectId: string) => {
+    if (!moveDiagramModal.diagramId) return;
+
+    try {
+      const movedDiagram = await api.moveDiagram(moveDiagramModal.diagramId, {
+        target_project_id: targetProjectId,
+      });
+      setMoveDiagramModal({ isOpen: false, diagramId: null, diagramName: "" });
+      setShowFloatingSidebar(false);
+      navigate(`/projects/${movedDiagram.project_id}/diagrams/${movedDiagram.id}`);
+    } catch (err) {
+      console.error("Error moving diagram to another project:", err);
+      setError(t("editor.moveDiagramError"));
+      throw err;
+    }
+  };
+
+  const handleCloneDiagram = (diagramId: string, diagramName: string) => {
+    setCloneDiagramModal({ isOpen: true, diagramId, diagramName });
+  };
+
+  const confirmCloneDiagram = async (title: string) => {
+    if (!cloneDiagramModal.diagramId) return;
+
+    try {
+      const clonedDiagram = await api.duplicateDiagram(cloneDiagramModal.diagramId, { title });
+      setCloneDiagramModal({ isOpen: false, diagramId: null, diagramName: "" });
+      // The clone opens with a fresh viewport — re-center it to fit the screen.
+      fitOnNextRender.current = true;
+      navigate(`/projects/${clonedDiagram.project_id}/diagrams/${clonedDiagram.id}`);
+    } catch (err) {
+      console.error("Error cloning diagram:", err);
+      setError(t("editor.duplicateDiagramError"));
+      throw err;
     }
   };
 
@@ -2641,6 +2753,38 @@ export default function DiagramEditorPage() {
                     strokeWidth={2}
                     d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
                   />
+                </svg>
+              </button>
+            </Tooltip>
+
+            {/* Move diagram to another project */}
+            <Tooltip content={t("editor.moveDiagram")} position="bottom">
+              <button
+                onClick={() =>
+                  currentDiagram && handleMoveDiagram(currentDiagram.id, currentDiagram.title)
+                }
+                disabled={!currentDiagram}
+                className={`p-1.5 rounded-md transition-colors ${!currentDiagram ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                aria-label={t("editor.moveDiagram")}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </button>
+            </Tooltip>
+
+            {/* Duplicate diagram */}
+            <Tooltip content={t("editor.duplicateDiagram")} position="bottom">
+              <button
+                onClick={() =>
+                  currentDiagram && handleCloneDiagram(currentDiagram.id, currentDiagram.title)
+                }
+                disabled={!currentDiagram}
+                className={`p-1.5 rounded-md transition-colors ${!currentDiagram ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                aria-label={t("editor.duplicateDiagram")}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
             </Tooltip>
@@ -3912,7 +4056,7 @@ export default function DiagramEditorPage() {
                   <button
                     onClick={handleGenerateDescription}
                     disabled={generatingDescription || !diagramCode.trim()}
-                    className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                   >
                     {generatingDescription ? (
                       <>
@@ -4010,6 +4154,8 @@ export default function DiagramEditorPage() {
         exportOptions={exportOptions}
         setExportOptions={setExportOptions}
         exportingFormat={exportingFormat}
+        pngScale={pngScale}
+        setPngScale={setPngScale}
         onExportPng={handleExportPNG}
         onExportSvg={handleExportSVG}
         onExportPdf={handleExportPDF}
@@ -4390,7 +4536,7 @@ export default function DiagramEditorPage() {
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
-                className="px-4 py-2 text-sm bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 {creatingFolder ? "Creando..." : "Crear Carpeta"}
               </button>
@@ -4420,6 +4566,27 @@ export default function DiagramEditorPage() {
         onConfirm={confirmDeleteFolder}
         folderName={deleteFolderModal.folderName}
         diagramCount={deleteFolderModal.diagramCount}
+      />
+
+      <MoveDiagramModal
+        isOpen={moveDiagramModal.isOpen}
+        diagramName={moveDiagramModal.diagramName}
+        projects={allProjects}
+        currentProjectId={projectId || ""}
+        isLoadingProjects={loadingProjects}
+        onClose={() =>
+          setMoveDiagramModal({ isOpen: false, diagramId: null, diagramName: "" })
+        }
+        onConfirm={confirmMoveDiagram}
+      />
+
+      <CloneDiagramModal
+        isOpen={cloneDiagramModal.isOpen}
+        diagramName={cloneDiagramModal.diagramName}
+        onClose={() =>
+          setCloneDiagramModal({ isOpen: false, diagramId: null, diagramName: "" })
+        }
+        onConfirm={confirmCloneDiagram}
       />
 
       {/* Delete Diagram Confirmation Modal */}
@@ -4656,7 +4823,7 @@ export default function DiagramEditorPage() {
                 <button
                   onClick={handleRefineDescription}
                   disabled={refining || !refineInput.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                  className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   {refining ? (
                     <>
@@ -4814,7 +4981,7 @@ export default function DiagramEditorPage() {
                   <button
                     onClick={handleGenerateDescription}
                     disabled={generatingDescription || !diagramCode.trim()}
-                    className="w-full px-3 py-2 text-sm font-medium text-white btn-glass bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
                   >
                     {generatingDescription ? (
                       <>

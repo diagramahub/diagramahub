@@ -462,7 +462,7 @@ export default function IntegrationsSection() {
 
               <div className="flex items-center gap-3 pt-2">
                 <button type="submit" disabled={formSaving}
-                  className="flex-1 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  className="flex-1 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
                   {formSaving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
                   {editingVendor ? t('common.save') : t('integrations.connect')}
                 </button>

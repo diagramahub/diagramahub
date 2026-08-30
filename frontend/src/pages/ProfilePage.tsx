@@ -310,7 +310,7 @@ export default function ProfilePage() {
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.timezoneHint')}</p>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={loading} className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  <button type="submit" disabled={loading} className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
                     {loading ? t('profile.saving') : t('profile.saveChanges')}
                   </button>
                   <button type="button" onClick={() => { setIsEditingProfile(false); setFullName(user?.full_name || ''); setProfilePicture(user?.profile_picture); setImagePreview(user?.profile_picture); setTimezone(user?.timezone || 'UTC'); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
@@ -348,7 +348,7 @@ export default function ProfilePage() {
                   <input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={loading} className="px-4 py-2 bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                  <button type="submit" disabled={loading} className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
                     {loading ? t('profile.updating') : t('profile.updatePassword')}
                   </button>
                   <button type="button" onClick={() => { setIsChangingPassword(false); setNewPassword(''); setConfirmPassword(''); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">

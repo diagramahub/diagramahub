@@ -80,7 +80,7 @@ export default function AccountDeletedModal({ isOpen, onConfirm }: AccountDelete
           <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end">
             <button
               onClick={handleConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 transition-colors"
+              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {t('dangerZone.understoodButton')}
             </button>

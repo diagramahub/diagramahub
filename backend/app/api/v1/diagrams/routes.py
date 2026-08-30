@@ -26,8 +26,10 @@ from .fix_service import (
 from .kroki_client import IKrokiClient, KrokiClient, KrokiRenderError, KrokiTimeoutError
 from .schemas import (
     DiagramCreate,
+    DiagramMove,
     DiagramUpdate,
     DiagramResponse,
+    DiagramDuplicate,
     FixDiagramRequest,
     FixDiagramResponse,
     RenderDiagramRequest,
@@ -275,6 +277,28 @@ async def update_diagram(
 ):
     """Update a diagram."""
     return await service.update_diagram(diagram_id, diagram_data, user_id)
+
+
+@router.post("/diagrams/{diagram_id}/move", response_model=DiagramResponse)
+async def move_diagram(
+    diagram_id: str,
+    move_data: DiagramMove,
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+):
+    """Move a diagram to another project owned by the current user."""
+    return await service.move_diagram(diagram_id, move_data, user_id)
+
+
+@router.post("/diagrams/{diagram_id}/duplicate", response_model=DiagramResponse)
+async def duplicate_diagram(
+    diagram_id: str,
+    duplicate_data: DiagramDuplicate,
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+):
+    """Duplicate a diagram in the same project with a new title."""
+    return await service.duplicate_diagram(diagram_id, duplicate_data, user_id)
 
 
 @router.delete("/diagrams/{diagram_id}")

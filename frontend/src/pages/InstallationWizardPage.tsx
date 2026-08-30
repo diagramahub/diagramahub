@@ -357,7 +357,7 @@ export default function InstallationWizardPage() {
               <button
                 onClick={handleFinish}
                 disabled={loading}
-                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white btn-glass rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-lg"
+                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

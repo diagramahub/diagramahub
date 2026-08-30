@@ -41,7 +41,7 @@ export default function UpgradePlanModal({ isOpen, onClose, resourceType, curren
                 onClose();
                 navigate('/profile?tab=subscription');
               }}
-              className="w-full px-4 py-2.5 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 transition-colors"
+              className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
             >
               {t('subscription.upgradePlan.action')}
             </button>

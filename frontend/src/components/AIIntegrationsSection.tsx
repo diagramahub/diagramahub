@@ -95,7 +95,7 @@ export default function AIIntegrationsSection() {
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700 flex items-center space-x-2 self-start sm:self-auto flex-shrink-0"
+              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center space-x-2 self-start sm:self-auto flex-shrink-0"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -128,7 +128,7 @@ export default function AIIntegrationsSection() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">{t('ai.noProvidersDescription')}</p>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 btn-glass rounded-lg hover:bg-purple-700"
+                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
               >
                 {t('ai.addProvider')}
               </button>

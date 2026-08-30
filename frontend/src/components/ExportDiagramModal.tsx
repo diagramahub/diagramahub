@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 export type ExportFormat = 'png' | 'pdf' | 'svg' | 'markdown';
@@ -15,6 +15,9 @@ interface ExportDiagramModalProps {
   setExportOptions: (options: ExportContentOptions) => void;
   /** The format currently being exported, or null when idle. */
   exportingFormat: ExportFormat | null;
+  /** PNG export resolution scale (1x screen / 2x standard / 3x high). */
+  pngScale: 1 | 2 | 3;
+  setPngScale: (scale: 1 | 2 | 3) => void;
   onExportPng: () => void;
   onExportSvg: () => void;
   onExportPdf: () => void;
@@ -23,9 +26,9 @@ interface ExportDiagramModalProps {
   diagramType?: string;
 }
 
-/** Small spinner shown on a format card while its export runs. */
+/** Small spinner shown on the export button while an export runs. */
 const Spinner: React.FC = () => (
-  <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
     <path
       className="opacity-75"
@@ -41,6 +44,8 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
   exportOptions,
   setExportOptions,
   exportingFormat,
+  pngScale,
+  setPngScale,
   onExportPng,
   onExportSvg,
   onExportPdf,
@@ -49,6 +54,8 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
   diagramType,
 }) => {
   const { t } = useTranslation();
+  // Format selected for export; the options below adapt to it.
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
 
   if (!isOpen) return null;
 
@@ -59,7 +66,6 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
     label: string;
     hint: string;
     accent: string;
-    onClick: () => void;
     icon: React.ReactNode;
   }[] = [
     {
@@ -67,7 +73,6 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
       label: 'PNG',
       hint: t('editor.formatHintPng'),
       accent: 'text-purple-600 dark:text-purple-400',
-      onClick: onExportPng,
       icon: (
         <path
           strokeLinecap="round"
@@ -82,7 +87,6 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
       label: 'SVG',
       hint: t('editor.formatHintSvg'),
       accent: 'text-emerald-600 dark:text-emerald-400',
-      onClick: onExportSvg,
       icon: (
         <path
           strokeLinecap="round"
@@ -97,7 +101,6 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
       label: 'PDF',
       hint: t('editor.formatHintPdf'),
       accent: 'text-red-600 dark:text-red-400',
-      onClick: onExportPdf,
       icon: (
         <path
           strokeLinecap="round"
@@ -112,7 +115,6 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
       label: 'Markdown',
       hint: t('editor.formatHintMarkdown'),
       accent: 'text-gray-700 dark:text-gray-300',
-      onClick: onExportMarkdown,
       icon: (
         <path
           strokeLinecap="round"
@@ -154,67 +156,127 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
         <div className="px-6 py-5 space-y-5">
           {/* Format grid */}
           <div className="grid grid-cols-2 gap-3">
-            {formats.map((format) => (
-              <button
-                key={format.id}
-                onClick={format.onClick}
-                disabled={isBusy}
-                className="group flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 dark:disabled:hover:border-gray-700 disabled:hover:bg-transparent transition-all"
-              >
-                <span className={format.accent}>
-                  {exportingFormat === format.id ? (
-                    <Spinner />
-                  ) : (
+            {formats.map((format) => {
+              const isSelected = selectedFormat === format.id;
+              return (
+                <button
+                  key={format.id}
+                  onClick={() => setSelectedFormat(format.id)}
+                  disabled={isBusy}
+                  aria-pressed={isSelected}
+                  className={`group flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                  } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 dark:disabled:hover:border-gray-700 disabled:hover:bg-transparent`}
+                >
+                  <span className={format.accent}>
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {format.icon}
                     </svg>
-                  )}
-                </span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  {format.label}
-                </span>
-                <span className="text-[11px] leading-tight text-gray-400 dark:text-gray-500 text-center">
-                  {format.hint}
-                </span>
-              </button>
-            ))}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    {format.label}
+                  </span>
+                  <span className="text-[11px] leading-tight text-gray-400 dark:text-gray-500 text-center">
+                    {format.hint}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Content options (apply to PNG / PDF / Markdown) */}
-          <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 px-4 py-3 space-y-2.5">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-              {t('editor.exportContentOptions')}
-            </p>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={exportOptions.includeDescription}
-                onChange={(e) =>
-                  setExportOptions({ ...exportOptions, includeDescription: e.target.checked })
-                }
-                className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {t('editor.includeDescription')}
-              </span>
-            </label>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={exportOptions.includeProjectInfo}
-                onChange={(e) =>
-                  setExportOptions({ ...exportOptions, includeProjectInfo: e.target.checked })
-                }
-                className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                {t('editor.includeProjectInfo')}
-              </span>
-            </label>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500">
-              {t('editor.svgVectorNote')}
-            </p>
-          </div>
+          {/* Contextual options for the selected format */}
+          {selectedFormat === 'svg' ? (
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 px-4 py-3">
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                {t('editor.svgVectorNote')}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 px-4 py-3 space-y-2.5">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {t('editor.exportOptions')}
+              </p>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeDescription}
+                  onChange={(e) =>
+                    setExportOptions({ ...exportOptions, includeDescription: e.target.checked })
+                  }
+                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {t('editor.includeDescription')}
+                </span>
+              </label>
+              <label className="flex items-center space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exportOptions.includeProjectInfo}
+                  onChange={(e) =>
+                    setExportOptions({ ...exportOptions, includeProjectInfo: e.target.checked })
+                  }
+                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {t('editor.includeProjectInfo')}
+                </span>
+              </label>
+              {/* PNG resolution selector — only visible when PNG is selected */}
+              {selectedFormat === 'png' && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    {t('editor.pngResolution')}
+                  </p>
+                  <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                    {([1, 2, 3] as const).map((scale) => (
+                      <button
+                        key={scale}
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => setPngScale(scale)}
+                        className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors ${
+                          pngScale === scale
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {t(`editor.pngScale${scale}x`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Primary export action for the selected format */}
+          <button
+            onClick={() => {
+              if (selectedFormat === 'png') onExportPng();
+              else if (selectedFormat === 'pdf') onExportPdf();
+              else if (selectedFormat === 'svg') onExportSvg();
+              else onExportMarkdown();
+            }}
+            disabled={isBusy}
+                        className="w-full flex items-center justify-center bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            {isBusy ? (
+              <Spinner />
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+            )}
+            {t('editor.exportAction')}
+          </button>
 
           {/* Source download (secondary) */}
           <button
