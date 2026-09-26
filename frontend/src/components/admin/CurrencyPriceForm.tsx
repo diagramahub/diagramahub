@@ -48,13 +48,13 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Agregar precio en moneda
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -64,21 +64,21 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
 
           {/* Currency select */}
           <div>
-            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Moneda
             </label>
             <select
               id="currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               {availableCurrencies.map((c) => (
                 <option key={c} value={c}>
@@ -90,7 +90,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
 
           {/* Amount input */}
           <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Monto (por mes)
             </label>
             <input
@@ -100,7 +100,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
               min="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="0.00"
             />
           </div>
@@ -123,7 +123,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancelar
             </button>

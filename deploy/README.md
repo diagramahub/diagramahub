@@ -196,6 +196,27 @@ Two more things to keep in mind:
 - Terminate TLS in a reverse proxy (Nginx, Traefik, Caddy) instead of publishing ports
   5172 and 5173 directly. `INSTALL.md` includes an Nginx example with certbot.
 
+### Managed platforms (e.g. DigitalOcean App Platform)
+
+Docker Compose is not used on a managed platform: each service is an app and the
+variables are set in the platform's own settings, not in a file. The same three
+settings from above still apply, plus a few platform-specific details:
+
+- **Backend and frontend as separate apps** — set `BACKEND_CORS_ORIGINS` to the
+  frontend app's public URL and `VITE_API_URL` to the backend app's public URL.
+  `VITE_API_URL` is read when the frontend is **built**, so it belongs to the
+  frontend app's build settings.
+- **`PORT`** — the backend honours the `PORT` environment variable, which is what
+  platforms assign. No change needed.
+- **`KROKI_URL`** — defaults to `http://kroki:8000`, a Compose-internal hostname
+  that will not resolve outside Docker. Point it at a reachable Kroki (the public
+  `https://kroki.io`, or your own deployment) or server-side rendering fails.
+- **`APP_ENV`** — leave it at `production` for gunicorn and HSTS; note that this
+  also disables `/docs`, `/redoc` and stack traces.
+- **No bind mounts** — the Compose files mount `backend/app` and `frontend/src`
+  so code edits apply without rebuilding. A managed platform builds the image
+  from the repository, so every change needs a new build and deploy.
+
 ---
 
 ## Adding New Deployment Scenarios

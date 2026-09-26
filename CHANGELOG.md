@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 - `GET /users/me` returns `oauth_providers` and `can_change_password`. The profile page shows the current-password field for accounts that have one, and points OAuth-only accounts at the reset flow. This also fixes the "Linked Accounts" section, which read a field the response never included.
 - Coverage is enforced at 45% on the full test run; the `pyproject.toml` pytest options (coverage reports, `--strict-markers`) apply again after `pytest.ini` was removed.
-- Deployment documentation covers what to change before publishing on a domain (`BACKEND_CORS_ORIGINS`, `FRONTEND_URL`, `VITE_API_URL`), because the shipped defaults point at localhost.
+- Deployment documentation covers what to change before publishing on a domain (`BACKEND_CORS_ORIGINS`, `FRONTEND_URL`, `VITE_API_URL`), because the shipped defaults point at localhost, and what differs on a managed platform such as DigitalOcean App Platform (variables in the platform settings, separate apps, reachable `KROKI_URL`, no bind mounts).
 
 ### Fixed
 - The API reported version 0.6.0 while 0.6.1 was already released (`config.py` feeds `GET /`, Swagger and the Sentry release tag).
@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - A chat streaming property test failed on inputs containing a Spanish end marker: its assumptions only excluded the English markers, while the extractor normalizes both languages. The assumptions now cover all five marker variants.
 - The external-MongoDB compose forced `uvicorn --reload`, bypassing `start.sh`: the scenario meant for production ran the development server with a single worker and ignored `WORKERS`. It now starts gunicorn through the image's CMD.
 - The installer's summary advertised `/docs` on production-mode installations, where Swagger and ReDoc are disabled by design.
+- Dark mode in the admin plans view: the per-plan price table (currency and amount) and the create/edit plan modals used light colours with no dark variant, leaving them nearly invisible on the dark card.
 
 ## [0.6.1] - 2026-08-30
 
