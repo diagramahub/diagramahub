@@ -2,6 +2,7 @@
 Tests for password management endpoints (change password and reset password).
 """
 
+from datetime import timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -445,7 +446,7 @@ class TestChangePasswordOAuthOnly:
         user.oauth_providers = [
             OAuthProviderEntry(provider="google", provider_user_id="google-user-123")
         ]
-        user.password_set_by_user = False
+        user.has_usable_password = False
         user.password_changed_at = None
         await user.save()
         return user
@@ -477,7 +478,7 @@ class TestChangePasswordOAuthOnly:
 
         user = await self._make_oauth_only(registered_user["email"])
 
-        # Same path the reset flow uses — this also flips password_set_by_user.
+        # Same path the reset flow uses — this also flips has_usable_password.
         recovered = generate_test_password("Recovered")
         await UserRepository().update_password(str(user.id), get_password_hash(recovered))
 
@@ -525,7 +526,7 @@ class TestMePasswordSignals:
         user.oauth_providers = [
             OAuthProviderEntry(provider="google", provider_user_id="google-user-456")
         ]
-        user.password_set_by_user = False
+        user.has_usable_password = False
         user.password_changed_at = None
         await user.save()
 
@@ -535,3 +536,94 @@ class TestMePasswordSignals:
         data = response.json()
         assert data["can_change_password"] is False
         assert data["oauth_providers"][0]["provider"] == "google"
+
+
+@pytest.mark.integration
+class TestLegacyLinkedAccounts:
+    """Accounts created before 0.6.2 that linked a provider keep their password.
+
+    Regression: those documents have no ``has_usable_password`` (it loads as the
+    default True) and no ``password_changed_at``, so a predicate that inferred
+    "OAuth-only" from the linked provider alone used to hide the password form
+    and answer 403, forcing an unnecessary reset on a working password.
+    """
+
+    async def _make_legacy_linked(
+        self, email: str, *, linked_at_creation: bool
+    ) -> UserInDB:
+        """Rebuild an account as a legacy document with a provider linked."""
+        user = await UserInDB.find_one(UserInDB.email == email)
+        # Legacy documents simply lack the field, so it loads as the default.
+        assert user.has_usable_password is True
+
+        user.oauth_providers = [
+            OAuthProviderEntry(
+                provider="google",
+                provider_user_id="legacy-google-1",
+                linked_at=(
+                    user.created_at
+                    if linked_at_creation
+                    else user.created_at + timedelta(days=30)
+                ),
+            )
+        ]
+        user.password_changed_at = None
+        await user.save()
+        return user
+
+    @pytest.mark.asyncio
+    async def test_linked_password_account_keeps_the_form(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        """The profile must not hide the form from a linked account."""
+        await self._make_legacy_linked(registered_user["email"], linked_at_creation=False)
+
+        response = await authenticated_client.get("/api/v1/users/me")
+
+        assert response.status_code == 200
+        assert response.json()["can_change_password"] is True
+
+    @pytest.mark.asyncio
+    async def test_linked_password_account_can_still_change_password(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        """Its real password must be accepted, without a forced reset."""
+        await self._make_legacy_linked(registered_user["email"], linked_at_creation=False)
+
+        new_password = generate_test_password("LinkedLegacy")
+        response = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={
+                "current_password": registered_user["password"],
+                "new_password": new_password,
+            },
+        )
+
+        assert response.status_code == 200
+
+        login = await authenticated_client.post(
+            "/api/v1/users/login",
+            json={"email": registered_user["email"], "password": new_password},
+        )
+        assert login.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_provider_linked_at_creation_still_reads_as_oauth_only(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        """A legacy OAuth signup (provider linked at creation) stays OAuth-only."""
+        await self._make_legacy_linked(registered_user["email"], linked_at_creation=True)
+
+        me = await authenticated_client.get("/api/v1/users/me")
+        assert me.status_code == 200
+        assert me.json()["can_change_password"] is False
+
+        response = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={
+                "current_password": generate_test_password("UnknownToOauth"),
+                "new_password": generate_test_password("ShouldNotApply"),
+            },
+        )
+
+        assert response.status_code == 403

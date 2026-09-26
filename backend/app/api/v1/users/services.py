@@ -283,22 +283,35 @@ class UserService:
                 detail="User not found",
             )
 
-        if user.is_oauth_only:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=(
-                    "This account signs in with a linked provider and has no password to "
-                    "confirm. Use 'forgot password' to create one for email sign-in."
-                ),
-            )
+        # A valid current password authorises the change on its own. Accounts
+        # registered with a password and later linked to a provider (auto-link by
+        # email) keep that password, so the classification below must never be
+        # what stops them: it only decides which message someone gets when they
+        # cannot prove a password.
+        current_password_ok = False
+        if password_data.current_password:
+            try:
+                current_password_ok = verify_password(
+                    password_data.current_password, user.hashed_password
+                )
+            except Exception:
+                # A malformed hash in a legacy document means "no password".
+                current_password_ok = False
 
-        if not password_data.current_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Current password is required",
-            )
-
-        if not verify_password(password_data.current_password, user.hashed_password):
+        if not current_password_ok:
+            if user.is_oauth_only:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=(
+                        "This account signs in with a linked provider and has no password to "
+                        "confirm. Use 'forgot password' to create one for email sign-in."
+                    ),
+                )
+            if not password_data.current_password:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Current password is required",
+                )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Current password is incorrect",
