@@ -3,7 +3,7 @@ FastAPI routes for diagrams.
 """
 import logging
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, Request, status, HTTPException
 from fastapi.responses import Response
 from app.api.v1.users.routes import get_current_user_email
 from app.api.v1.users.repository import UserRepository
@@ -109,7 +109,6 @@ def _parse_kroki_error(raw_detail: str, status_code: int) -> str:
     core_message = re.sub(r'^Error\s+\d+:\s*', '', core_message).strip()
     # Remove error class prefix like "SyntaxError: " or "Error: "
     error_class_match = re.match(r'^(\w+Error):\s*(.*)', core_message, re.DOTALL)
-    error_class = error_class_match.group(1) if error_class_match else None
     if error_class_match:
         core_message = error_class_match.group(2).strip()
     
@@ -141,7 +140,7 @@ def _parse_kroki_error(raw_detail: str, status_code: int) -> str:
                     )
                 return f"⚠️ Error de sintaxis en línea {line_num}: carácter inesperado \"{found}\". Revisa la sintaxis en esa línea."
             return f"⚠️ Error de sintaxis en línea {line_num}. Revisa la sintaxis del diagrama."
-        return f"⚠️ Error de sintaxis en el diagrama. Revisa que la estructura sea correcta."
+        return "⚠️ Error de sintaxis en el diagrama. Revisa que la estructura sea correcta."
     
     if 'end of input' in core_message.lower():
         return "⚠️ El código del diagrama está incompleto. Verifica que todas las definiciones estén cerradas correctamente."
@@ -200,6 +199,7 @@ async def get_recent_diagrams(
 @router.post("/diagrams/render")
 async def render_diagram(
     request: RenderDiagramRequest,
+    http_request: Request,
     kroki_client: IKrokiClient = Depends(get_kroki_client),
 ) -> Response:
     """
@@ -208,6 +208,20 @@ async def render_diagram(
     Acepta código fuente y tipo de diagrama, delega al servicio Kroki,
     y retorna el SVG renderizado.
     """
+    from .rate_limiter import render_rate_limiter
+
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    allowed, retry_after = render_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Demasiadas solicitudes de renderizado desde esta dirección. "
+                f"Intente de nuevo en {retry_after} segundos."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
     # Validate diagram_type against supported types
     if request.diagram_type not in KrokiClient.SUPPORTED_DIAGRAM_TYPES:
         supported = ", ".join(sorted(KrokiClient.SUPPORTED_DIAGRAM_TYPES))

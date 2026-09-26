@@ -361,6 +361,14 @@ class UserService:
             to=reset_data.email, token=reset_token, email=reset_data.email
         )
 
+        # Audit log: only reached for an existing address and after the email
+        # was handed to the vendor, so the entry reflects a delivered request.
+        from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_RESET_REQUESTED
+
+        await log_event(
+            EVENT_PASSWORD_RESET_REQUESTED, user.email, user_id=str(user.id)
+        )
+
         return {"message": generic_message}
 
     async def confirm_password_reset(self, reset_data: ResetPasswordConfirm) -> dict:
