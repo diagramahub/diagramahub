@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 
-from app.api.v1.users.schemas import UserInDB
+from app.api.v1.users.schemas import OAuthProviderEntry, UserInDB
 from tests.utils import (
     generate_password_missing_digit,
     generate_password_missing_lowercase,
@@ -25,11 +25,15 @@ class TestChangePassword:
     async def test_change_password_success(
         self, authenticated_client: AsyncClient, registered_user: dict
     ):
-        """Test successful password change with only new_password."""
+        """Test successful password change with the current password."""
         new_password = generate_test_password("ChangePassword")
 
         response = await authenticated_client.put(
-            "/api/v1/users/change-password", json={"new_password": new_password}
+            "/api/v1/users/change-password",
+            json={
+                "current_password": registered_user["password"],
+                "new_password": new_password,
+            },
         )
 
         assert response.status_code == 200
@@ -67,7 +71,11 @@ class TestChangePassword:
     ):
         """Test password change with same password as current."""
         response = await authenticated_client.put(
-            "/api/v1/users/change-password", json={"new_password": registered_user["password"]}
+            "/api/v1/users/change-password",
+            json={
+                "current_password": registered_user["password"],
+                "new_password": registered_user["password"],
+            },
         )
 
         # This should succeed (no business rule against it)
@@ -385,3 +393,145 @@ class TestPasswordReset:
             )
 
         assert response.status_code == 500
+
+
+@pytest.mark.integration
+class TestChangePasswordConfirmation:
+    """A bearer token alone must never be enough to set a password (C1)."""
+
+    @pytest.mark.asyncio
+    async def test_change_password_requires_current_password(
+        self, authenticated_client: AsyncClient
+    ):
+        """Omitting current_password is rejected instead of silently succeeding."""
+        response = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={"new_password": generate_test_password("NoCurrent")},
+        )
+
+        assert response.status_code == 400
+        assert "current password" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_change_password_rejects_wrong_current_password(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        """A wrong current password is refused and the stored one is untouched."""
+        response = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={
+                "current_password": generate_test_password("WrongCurrent"),
+                "new_password": generate_test_password("ShouldNotApply"),
+            },
+        )
+
+        assert response.status_code == 400
+        assert "incorrect" in response.json()["detail"].lower()
+
+        login = await authenticated_client.post(
+            "/api/v1/users/login",
+            json={"email": registered_user["email"], "password": registered_user["password"]},
+        )
+        assert login.status_code == 200
+
+
+@pytest.mark.integration
+class TestChangePasswordOAuthOnly:
+    """OAuth-only accounts have no password to confirm, so the endpoint refuses them."""
+
+    async def _make_oauth_only(self, email: str) -> UserInDB:
+        """Turn a registered account into an OAuth-only one (placeholder hash)."""
+        user = await UserInDB.find_one(UserInDB.email == email)
+        user.oauth_providers = [
+            OAuthProviderEntry(provider="google", provider_user_id="google-user-123")
+        ]
+        user.password_set_by_user = False
+        user.password_changed_at = None
+        await user.save()
+        return user
+
+    @pytest.mark.asyncio
+    async def test_oauth_only_account_cannot_change_password(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        await self._make_oauth_only(registered_user["email"])
+
+        response = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={
+                "current_password": generate_test_password("UnknownToOauthUser"),
+                "new_password": generate_test_password("ShouldNotApply"),
+            },
+        )
+
+        assert response.status_code == 403
+        assert "linked provider" in response.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_oauth_only_account_recovers_after_setting_a_password(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        """After the reset flow stores a password, the account can change it again."""
+        from app.api.v1.users.repository import UserRepository
+        from app.core.security import get_password_hash
+
+        user = await self._make_oauth_only(registered_user["email"])
+
+        # Same path the reset flow uses — this also flips password_set_by_user.
+        recovered = generate_test_password("Recovered")
+        await UserRepository().update_password(str(user.id), get_password_hash(recovered))
+
+        # The password change invalidated the previous JWT, so log in again.
+        login = await authenticated_client.post(
+            "/api/v1/users/login",
+            json={"email": registered_user["email"], "password": recovered},
+        )
+        assert login.status_code == 200
+        authenticated_client.headers["Authorization"] = (
+            f"Bearer {login.json()['access_token']}"
+        )
+
+        response = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={
+                "current_password": recovered,
+                "new_password": generate_test_password("Rotated"),
+            },
+        )
+
+        assert response.status_code == 200
+
+
+@pytest.mark.integration
+class TestMePasswordSignals:
+    """GET /users/me tells the UI whether the change-password form applies."""
+
+    @pytest.mark.asyncio
+    async def test_me_reports_password_capable_account(
+        self, authenticated_client: AsyncClient
+    ):
+        response = await authenticated_client.get("/api/v1/users/me")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["can_change_password"] is True
+        assert data["oauth_providers"] == []
+
+    @pytest.mark.asyncio
+    async def test_me_reports_oauth_only_account(
+        self, authenticated_client: AsyncClient, registered_user: dict
+    ):
+        user = await UserInDB.find_one(UserInDB.email == registered_user["email"])
+        user.oauth_providers = [
+            OAuthProviderEntry(provider="google", provider_user_id="google-user-456")
+        ]
+        user.password_set_by_user = False
+        user.password_changed_at = None
+        await user.save()
+
+        response = await authenticated_client.get("/api/v1/users/me")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["can_change_password"] is False
+        assert data["oauth_providers"][0]["provider"] == "google"

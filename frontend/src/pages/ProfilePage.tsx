@@ -49,6 +49,7 @@ export default function ProfilePage() {
   const [timezone, setTimezone] = useState(user?.timezone || 'UTC');
 
   // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -128,6 +129,10 @@ export default function ProfilePage() {
     e.preventDefault();
     setError('');
     setSuccess('');
+    if (!currentPassword) {
+      setError(t('profile.currentPasswordRequired'));
+      return;
+    }
     if (!newPassword || !confirmPassword) {
       setError(t('profile.allFieldsRequired'));
       return;
@@ -146,11 +151,29 @@ export default function ProfilePage() {
     }
     setLoading(true);
     try {
-      await apiService.changePassword({ new_password: newPassword });
+      await apiService.changePassword({ current_password: currentPassword, new_password: newPassword });
       setSuccess(t('profile.passwordUpdated'));
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setIsChangingPassword(false);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || t('profile.passwordChangeError'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRequestPasswordSetup = async () => {
+    setError('');
+    setSuccess('');
+    if (!user?.email) return;
+    setLoading(true);
+    try {
+      // OAuth-only account: the reset flow proves control of the email address,
+      // which a bearer token alone cannot do.
+      await apiService.requestPasswordReset({ email: user.email });
+      setSuccess(t('profile.passwordSetupEmailSent'));
     } catch (err: any) {
       setError(err.response?.data?.detail || t('profile.passwordChangeError'));
     } finally {
@@ -326,17 +349,28 @@ export default function ProfilePage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.accountSecurity')}</h2>
-            {!isChangingPassword && (
+            {!isChangingPassword && user?.can_change_password !== false && (
               <button onClick={() => setIsChangingPassword(true)} className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium">
                 {t('profile.changePassword')}
               </button>
             )}
           </div>
           <div className="px-4 sm:px-6 py-4 sm:py-6">
-            {!isChangingPassword ? (
+            {user?.can_change_password === false ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('profile.oauthOnlyPasswordNotice')}</p>
+                <button type="button" onClick={handleRequestPasswordSetup} disabled={loading} className="text-sm font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 disabled:text-gray-400 disabled:cursor-not-allowed">
+                  {t('profile.sendPasswordSetupEmail')}
+                </button>
+              </div>
+            ) : !isChangingPassword ? (
               <p className="text-sm text-gray-600 dark:text-gray-400">{t('profile.securityMessage')}</p>
             ) : (
               <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.currentPassword')}</label>
+                  <input id="currentPassword" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
+                </div>
                 <div>
                   <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.newPassword')}</label>
                   <input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
@@ -351,7 +385,7 @@ export default function ProfilePage() {
                   <button type="submit" disabled={loading} className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
                     {loading ? t('profile.updating') : t('profile.updatePassword')}
                   </button>
-                  <button type="button" onClick={() => { setIsChangingPassword(false); setNewPassword(''); setConfirmPassword(''); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <button type="button" onClick={() => { setIsChangingPassword(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                     {t('profile.cancelEdit')}
                   </button>
                 </div>

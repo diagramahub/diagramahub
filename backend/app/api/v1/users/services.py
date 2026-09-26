@@ -258,21 +258,50 @@ class UserService:
         """
         Change user password (authenticated endpoint).
 
+        Accounts with a user-set password must confirm the current one. OAuth-only
+        accounts are rejected: their stored hash is a random placeholder nobody
+        knows, so a bearer token alone must never be enough to set a password --
+        that would turn a stolen token into a permanent account takeover. Those
+        accounts can create a password through the reset flow, which proves control
+        of the email address.
+
         Args:
             user_email: Email of authenticated user
-            password_data: New password
+            password_data: Current password (when applicable) and new password
 
         Returns:
             Success message
 
         Raises:
-            HTTPException: If user not found
+            HTTPException: If the user is not found, the account is OAuth-only, or
+                the current password is missing or incorrect.
         """
         user = await self.repository.get_by_email(user_email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
+            )
+
+        if user.is_oauth_only:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "This account signs in with a linked provider and has no password to "
+                    "confirm. Use 'forgot password' to create one for email sign-in."
+                ),
+            )
+
+        if not password_data.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required",
+            )
+
+        if not verify_password(password_data.current_password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect",
             )
 
         new_hashed_password = get_password_hash(password_data.new_password)

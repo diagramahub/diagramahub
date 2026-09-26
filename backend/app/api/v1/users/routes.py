@@ -15,12 +15,10 @@ from app.api.v1.users.schemas import (
     LoginRequest,
     ResetPasswordConfirm,
     ResetPasswordRequest,
-    Token,
     UserCreate,
     UserInDB,
     UserUpdate,
     UserResponse,
-    UserRole,
 )
 from app.api.v1.users.services import UserService
 from app.core.security import decode_access_token
@@ -414,6 +412,8 @@ async def get_current_user(
         is_active=user.is_active,
         created_at=user.created_at,
         subscription=subscription_data,
+        oauth_providers=user.oauth_providers,
+        can_change_password=not user.is_oauth_only,
     )
 
 
@@ -476,6 +476,8 @@ async def update_current_user(
         is_active=user.is_active,
         created_at=user.created_at,
         subscription=subscription_data,
+        oauth_providers=user.oauth_providers,
+        can_change_password=not user.is_oauth_only,
     )
 
 
@@ -562,10 +564,11 @@ async def delete_account(
             prompt_history_repository=PromptHistoryRepository(),
         )
         await deletion_service.delete_user_account(user_id)
-    except Exception as e:
+    except Exception:
+        logger.exception("Failed to delete account for user %s", user_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting account: {str(e)}",
+            detail="Could not delete the account. Please try again.",
         )
 
     return {"message": "Account deleted successfully"}

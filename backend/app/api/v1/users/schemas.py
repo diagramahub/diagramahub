@@ -113,6 +113,11 @@ class UserInDB(Document):
     # Session invalidation: updated on every password change
     password_changed_at: Optional[float] = None
 
+    # True when the user has set a password they can actually use to sign in.
+    # OAuth-only accounts are created with a random placeholder hash nobody
+    # knows, so they must never be asked to confirm a "current password".
+    password_set_by_user: bool = False
+
     # MFA fields (all with defaults for backward compatibility)
     mfa_enabled: bool = False
     mfa_methods: list[str] = []  # ["email", "totp"] — active methods
@@ -130,8 +135,28 @@ class UserInDB(Document):
     class Settings:
         name = "users"
         indexes = [
+            # NOTE: non-unique on purpose. Making this unique is a breaking upgrade:
+            # existing deployments already have an index named email_1 and Beanie
+            # cannot replace it (IndexKeySpecsConflict fails startup). It needs a
+            # migration that drops the old index -- tracked for 0.7.0.
             "email",
         ]
+
+    @property
+    def is_oauth_only(self) -> bool:
+        """True when the account signs in with OAuth and has no user-set password.
+
+        Documents created before ``password_set_by_user`` existed are detected
+        through the OAuth link plus the absence of a password change: their
+        stored hash is a placeholder nobody knows. The worst outcome of a wrong
+        answer is that an account is pointed at the reset flow instead of typing
+        its password -- verification is enforced server-side either way.
+        """
+        return (
+            not self.password_set_by_user
+            and bool(self.oauth_providers)
+            and self.password_changed_at is None
+        )
 
 
 class UserResponse(BaseModel):
@@ -145,6 +170,10 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     subscription: Optional[dict] = None  # Subscription info for premium badge
+    oauth_providers: list[OAuthProviderEntry] = []  # Linked OAuth identities
+    # False for OAuth-only accounts, which have no password to confirm. Drives
+    # the profile UI: show the change form only when this is True.
+    can_change_password: bool = True
 
 
 class Token(BaseModel):
@@ -165,7 +194,17 @@ class LoginRequest(BaseModel):
 
 
 class SimplifiedChangePasswordRequest(BaseModel):
-    """Schema for authenticated password change (no current password required)."""
+    """Schema for authenticated password change.
+
+    ``current_password`` is required for accounts that have a user-set password.
+    OAuth-only accounts have nothing to confirm against, so the service rejects
+    them and points at the password reset flow instead.
+    """
+    current_password: Optional[str] = Field(
+        default=None,
+        max_length=128,
+        description="Current password. Required unless the account signs in with OAuth.",
+    )
     new_password: str = Field(..., min_length=12, max_length=128)
 
     @field_validator("new_password")

@@ -9,7 +9,7 @@ Uses in-memory storage (resets on restart). For multi-instance deployments,
 replace with Redis-backed storage.
 """
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
