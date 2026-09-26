@@ -300,6 +300,17 @@ docker-compose up -d
 
 For production environments, it is recommended to use a reverse proxy like **Nginx** or **Traefik** to handle SSL (HTTPS) and serve the application on standard ports (80/443).
 
+### Before exposing it: point the app at your domain
+
+The default configuration targets `localhost`. Set these three values before going public, or the browser will block the API and Stripe will redirect users to localhost:
+
+- `BACKEND_CORS_ORIGINS` in `backend/.env` — comma-separated list of public frontend origins. When empty, it falls back to `FRONTEND_URL`.
+- `FRONTEND_URL` in `backend/.env` — public frontend URL used by Stripe redirects and email links.
+- `VITE_API_URL` — public API URL, set in the active compose file (not in `backend/.env`). The frontend reads it when Vite starts, so recreate the frontend container after changing it.
+
+> [!NOTE]
+> Interactive API docs (`/docs`, `/redoc`) are served only when `APP_ENV` is not `production`. The external-Mongo configuration runs in production mode.
+
 ### 1. Reverse Proxy with Nginx (Subdomain Approach)
 
 For a professional setup, we recommend using a subdomain for the API (e.g., `api.diagramahub.com`) and the main domain for the Frontend.

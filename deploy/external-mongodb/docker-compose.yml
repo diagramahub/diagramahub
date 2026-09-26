@@ -28,7 +28,10 @@ services:
       - kroki
     networks:
       - diagramahub-network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 5172 --reload
+    # No `command:` override on purpose. The image's CMD runs ./start.sh, which
+    # picks gunicorn with WORKERS (default 2) when APP_ENV is production. An
+    # override running `uvicorn --reload` here used to ship the development
+    # server in the scenario meant for production deployments.
 
   frontend:
     build:

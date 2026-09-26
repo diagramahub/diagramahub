@@ -167,8 +167,34 @@ Once services are running:
 
 - **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:5172
-- **API Documentation:** http://localhost:5172/docs
+- **API Documentation:** http://localhost:5172/docs (local-full only; disabled when `APP_ENV=production`)
 - **MongoDB (local-full only):** localhost:27017
+
+---
+
+## Publishing on a Domain
+
+The shipped configurations assume everything runs on `localhost`. Before exposing an
+installation on a public domain, three settings have to change — otherwise the browser
+blocks the API and Stripe sends users back to their own machine:
+
+- **`BACKEND_CORS_ORIGINS`** in `backend/.env` — comma-separated list of the origins
+  allowed to call the API, e.g. `https://diagramahub.example.com`. When left empty the
+  backend falls back to `FRONTEND_URL`.
+- **`FRONTEND_URL`** in `backend/.env` — the public frontend URL used by Stripe
+  checkout redirects and email links.
+- **`VITE_API_URL`** — the public API URL. It lives in the compose file rather than in
+  `backend/.env`, and the frontend reads it when Vite starts, so changing it means
+  recreating the frontend container.
+
+Two more things to keep in mind:
+
+- The backend serves `/docs` and `/redoc` only when `APP_ENV` is not `production`.
+  The external-Mongo configuration builds with `APP_ENV=production` and runs gunicorn
+  through `start.sh`; set `APP_ENV=development` in `backend/.env` (then recreate the
+  container) only if you want the interactive API docs on a private installation.
+- Terminate TLS in a reverse proxy (Nginx, Traefik, Caddy) instead of publishing ports
+  5172 and 5173 directly. `INSTALL.md` includes an Nginx example with certbot.
 
 ---
 

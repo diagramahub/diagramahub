@@ -2,6 +2,8 @@
 
 Complete DiagramHub installation with all services running locally in Docker.
 
+> Exposing this on a public domain? See [Publishing on a Domain](../README.md#publishing-on-a-domain) for the settings that must change first.
+
 ## Services Included
 
 - **MongoDB 8** - Database (Docker container, always latest 8.x)
