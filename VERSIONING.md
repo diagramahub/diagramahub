@@ -1,7 +1,7 @@
 # Política de Versionamiento
 
 Este proyecto adopta oficialmente **Semantic Versioning (SemVer)**.
-Versión actual: **0.6.0**.
+Versión actual: **0.6.2**.
 
 ## Formato
 
@@ -95,12 +95,21 @@ Resumen breve del release.
 Al crear una nueva versión:
 
 1. Determinar el bump correcto (MAJOR, MINOR o PATCH).
-2. Crear el archivo de release notes en `docs/es/release-notes/{VERSION}.md` y `docs/en/release-notes/{VERSION}.md`, seccionado por tipo de cambio.
-3. Agregar la nueva versión al índice en `docs/es/release-notes/index.md` y `docs/en/release-notes/index.md`.
-4. Agregar las nuevas páginas de release notes al `nav` en `mkdocs.yml` bajo las secciones "Notas de Versión" / "Release Notes".
-5. Actualizar `CHANGELOG.md`.
-6. Actualizar la "Versión actual" en este archivo (`VERSIONING.md`).
-7. Actualizar la versión actual en `AGENTS.md`.
+2. Aplicar el número de versión en **todos** los archivos que lo contienen (usar `<V>` como valor, p. ej. `0.6.2`):
+   - `frontend/package.json` → `"version": "<V>"`
+   - `backend/pyproject.toml` → `version = "<V>"`
+   - `frontend/.env.template` → `VITE_APP_VERSION=<V>`
+   - `backend/app/core/config.py` → `VERSION: str = "<V>"` (se reporta en `GET /`, Swagger y Sentry)
+   - `AGENTS.md` → `- **Current version**: <V>` (cabecera), `Current: **<V>**.` (sección Versioning) y `VITE_APP_VERSION=<V>` (ejemplo de entorno)
+   - `VERSIONING.md` → `Versión actual: **<V>**.`
+3. Crear las release notes en `docs/es/release-notes/<V>.md` y `docs/en/release-notes/<V>.md`, seccionadas por tipo de cambio.
+4. Agregar la versión al índice en `docs/es/release-notes/index.md` y `docs/en/release-notes/index.md` (fila `[<V>](<V>.md)`).
+5. Agregar las nuevas páginas de release notes al `nav` en `mkdocs.yml` bajo las secciones "Notas de Versión" / "Release Notes".
+6. Actualizar `CHANGELOG.md` con la sección `## [<V>] - <fecha>` (Keep a Changelog).
+7. Crear el tag de Git con el formato `<V>` (sin prefijo `v`).
+8. **Verificación obligatoria**: `bash scripts/check-version.sh <V>` debe terminar con `OK`. Si reporta `FAIL`, quedó un archivo sin actualizar; no hacer merge del release con el check en rojo.
+
+Los lockfiles (`backend/poetry.lock`, `frontend/pnpm-lock.yaml`) y los comentarios históricos (p. ej. la nota de cambios en `frontend/src/utils/pdfGenerator.ts`) **no** se editan a mano y el script los ignora. Si un archivo nuevo empieza a llevar el número de versión, agréguelo a este checklist y al script.
 
 ## Referencia
 

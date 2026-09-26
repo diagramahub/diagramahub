@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.6.0
+- **Current version**: 0.6.2
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -380,7 +380,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.6.0
+VITE_APP_VERSION=0.6.2
 ```
 
 ---
@@ -460,7 +460,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.0**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.2**.
 
 | Bump | When |
 |------|------|
@@ -469,6 +469,8 @@ SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.0**.
 | MAJOR | Breaking changes to API, data structures, contracts |
 
 Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in English (Keep a Changelog format). Git tags without `v` prefix (e.g., `0.5.0`).
+
+**Before merging any release, run `bash scripts/check-version.sh <VERSION>`.** It fails closed against every file that carries the version (code, config, docs, release notes, mkdocs nav, CHANGELOG). A `FAIL` means a version file was missed — fix it before the merge. The complete release checklist lives in `VERSIONING.md`; if a new file starts carrying the version, add it to both the checklist and the script.
 
 ---
 
