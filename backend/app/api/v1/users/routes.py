@@ -443,7 +443,7 @@ async def get_current_user(
         created_at=user.created_at,
         subscription=subscription_data,
         oauth_providers=user.oauth_providers,
-        can_change_password=not user.is_oauth_only,
+        can_change_password=user.can_change_password,
     )
 
 
@@ -507,7 +507,7 @@ async def update_current_user(
         created_at=user.created_at,
         subscription=subscription_data,
         oauth_providers=user.oauth_providers,
-        can_change_password=not user.is_oauth_only,
+        can_change_password=user.can_change_password,
     )
 
 

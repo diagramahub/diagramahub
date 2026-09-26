@@ -12,6 +12,13 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 # Set of allowed special characters for password policy
 _SPECIAL_CHARACTERS = set("!@#$%^&*()_+-=[]{}|;:',.<>?/~")
 
+# Tolerance used to recognise an OAuth *signup* in documents written before
+# ``has_usable_password`` existed: a signup links the provider and stamps
+# `created_at` inside the same request, so the two differ by milliseconds. Kept
+# tight on purpose: every second of slack is a window where an account that
+# registered with a password and linked minutes later looks like a signup.
+OAUTH_SIGNUP_TOLERANCE_SECONDS = 5
+
 
 def _validate_password_strength(password: str) -> str:
     """Validate password strength against the security policy.
@@ -113,10 +120,13 @@ class UserInDB(Document):
     # Session invalidation: updated on every password change
     password_changed_at: Optional[float] = None
 
-    # True when the user has set a password they can actually use to sign in.
-    # OAuth-only accounts are created with a random placeholder hash nobody
-    # knows, so they must never be asked to confirm a "current password".
-    password_set_by_user: bool = False
+    # Whether the account holds a password the user can actually type. OAuth
+    # signups get a random placeholder hash nobody knows, so they are marked
+    # False at creation. The default is True on purpose: a document written
+    # before this field existed belongs to an older release, where accounts were
+    # created from a real password -- assuming "no password" instead would hide
+    # the change-password form from a legitimate user.
+    has_usable_password: bool = True
 
     # MFA fields (all with defaults for backward compatibility)
     mfa_enabled: bool = False
@@ -144,19 +154,57 @@ class UserInDB(Document):
 
     @property
     def is_oauth_only(self) -> bool:
-        """True when the account signs in with OAuth and has no user-set password.
+        """True when the account certainly has no password the user can confirm.
 
-        Documents created before ``password_set_by_user`` existed are detected
-        through the OAuth link plus the absence of a password change: their
-        stored hash is a placeholder nobody knows. The worst outcome of a wrong
-        answer is that an account is pointed at the reset flow instead of typing
-        its password -- verification is enforced server-side either way.
+        Three shapes reach this property:
+
+        * An OAuth signup: ``has_usable_password`` is False and the stored hash
+          is a random placeholder, so there is nothing to confirm.
+        * An account registered with a password and later linked to a provider
+          (auto-link by email): it keeps that password, so it must not be
+          treated as OAuth-only.
+        * A document written before ``has_usable_password`` existed. There the
+          link timestamp separates the two: a signup links the provider as the
+          account is created, while a later link happens afterwards.
+
+        Anything that cannot be told apart is treated as "has a password":
+        hiding the form from someone who has one is worse than showing it to
+        someone who does not, and ``UserService.change_password`` verifies the
+        password itself before refusing anything.
         """
-        return (
-            not self.password_set_by_user
-            and bool(self.oauth_providers)
-            and self.password_changed_at is None
-        )
+        if not self.oauth_providers:
+            return False
+        if not self.has_usable_password:
+            return True
+        if self.password_changed_at is not None:
+            # They have set a password at least once since.
+            return False
+        return self._providers_linked_at_creation()
+
+    def _providers_linked_at_creation(self) -> bool:
+        """Heuristic for legacy documents: was the provider linked at signup?"""
+        try:
+            first_link = min(entry.linked_at for entry in self.oauth_providers)
+            return (
+                abs((first_link - self.created_at).total_seconds())
+                <= OAUTH_SIGNUP_TOLERANCE_SECONDS
+            )
+        except (TypeError, ValueError):
+            # Mixed tz-aware and tz-naive timestamps, or no entries: fail safe.
+            return False
+
+    @property
+    def can_change_password(self) -> bool:
+        """Whether the profile should offer the change-password form.
+
+        Driven only by the explicit marker, never by ``is_oauth_only``. That
+        predicate answers the right question for an *error message* ("can this
+        user confirm a password?"), but it falls back to a timestamp guess for
+        legacy documents, and a guess must not hide UI: a wrong "no" leaves a
+        user with a working password no way to change it. The server verifies
+        the password itself, so an unnecessary form costs nothing.
+        """
+        return self.has_usable_password
 
 
 class UserResponse(BaseModel):

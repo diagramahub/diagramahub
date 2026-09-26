@@ -303,6 +303,9 @@ class OAuthService:
                 hashed_password=hashed_password,
                 full_name=user_info.full_name,
                 oauth_providers=[provider_entry],
+                # The hash above is a random placeholder nobody knows, so the
+                # account must never be asked to confirm a current password.
+                has_usable_password=False,
             )
             await user.insert()
 

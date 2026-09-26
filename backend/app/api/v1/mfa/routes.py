@@ -224,16 +224,18 @@ async def enable_totp(
     result = await mfa_service.enable_totp(
         str(user.id), request.code, secret, set_as_default=request.set_as_default
     )
-    if result["recovery_codes"] is None:
-        return {"message": "TOTP MFA activado exitosamente", "codes": None}
 
-    # Recovery codes are only issued on first activation, so log the event once
-    # instead of on every re-enable.
+    # The service already activated the method; recovery codes are only a side
+    # effect of the first one. Log here, before the early return, so adding a
+    # second method (when unused codes already exist) is audited too.
     from app.api.v1.users.audit_log import log_event, EVENT_MFA_ENABLED
 
     await log_event(
         EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: totp"
     )
+
+    if result["recovery_codes"] is None:
+        return {"message": "TOTP MFA activado exitosamente", "codes": None}
 
     return {"codes": result["recovery_codes"]}
 
@@ -267,14 +269,17 @@ async def verify_email_activation(
     """
     user = await _get_user_by_email(current_user_email)
     result = await mfa_service.verify_email_activation(str(user.id), request.code)
-    if result["recovery_codes"] is None:
-        return {"message": "Email MFA activado exitosamente", "codes": None}
 
+    # Same ordering rule as TOTP: the method is active by now, whether or not new
+    # recovery codes were issued for it.
     from app.api.v1.users.audit_log import log_event, EVENT_MFA_ENABLED
 
     await log_event(
         EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: email"
     )
+
+    if result["recovery_codes"] is None:
+        return {"message": "Email MFA activado exitosamente", "codes": None}
 
     return {"codes": result["recovery_codes"]}
 
