@@ -13,9 +13,11 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 _SPECIAL_CHARACTERS = set("!@#$%^&*()_+-=[]{}|;:',.<>?/~")
 
 # Tolerance used to recognise an OAuth *signup* in documents written before
-# ``has_usable_password`` existed: a signup links the provider at the moment the
-# account is created, while auto-linking by email happens later.
-OAUTH_SIGNUP_TOLERANCE_SECONDS = 60
+# ``has_usable_password`` existed: a signup links the provider and stamps
+# `created_at` inside the same request, so the two differ by milliseconds. Kept
+# tight on purpose: every second of slack is a window where an account that
+# registered with a password and linked minutes later looks like a signup.
+OAUTH_SIGNUP_TOLERANCE_SECONDS = 5
 
 
 def _validate_password_strength(password: str) -> str:
@@ -190,6 +192,19 @@ class UserInDB(Document):
         except (TypeError, ValueError):
             # Mixed tz-aware and tz-naive timestamps, or no entries: fail safe.
             return False
+
+    @property
+    def can_change_password(self) -> bool:
+        """Whether the profile should offer the change-password form.
+
+        Driven only by the explicit marker, never by ``is_oauth_only``. That
+        predicate answers the right question for an *error message* ("can this
+        user confirm a password?"), but it falls back to a timestamp guess for
+        legacy documents, and a guess must not hide UI: a wrong "no" leaves a
+        user with a working password no way to change it. The server verifies
+        the password itself, so an unnecessary form costs nothing.
+        """
+        return self.has_usable_password
 
 
 class UserResponse(BaseModel):
