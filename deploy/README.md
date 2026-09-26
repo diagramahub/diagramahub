@@ -167,8 +167,55 @@ Once services are running:
 
 - **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:5172
-- **API Documentation:** http://localhost:5172/docs
+- **API Documentation:** http://localhost:5172/docs (local-full only; disabled when `APP_ENV=production`)
 - **MongoDB (local-full only):** localhost:27017
+
+---
+
+## Publishing on a Domain
+
+The shipped configurations assume everything runs on `localhost`. Before exposing an
+installation on a public domain, three settings have to change — otherwise the browser
+blocks the API and Stripe sends users back to their own machine:
+
+- **`BACKEND_CORS_ORIGINS`** in `backend/.env` — comma-separated list of the origins
+  allowed to call the API, e.g. `https://diagramahub.example.com`. When left empty the
+  backend falls back to `FRONTEND_URL`.
+- **`FRONTEND_URL`** in `backend/.env` — the public frontend URL used by Stripe
+  checkout redirects and email links.
+- **`VITE_API_URL`** — the public API URL. It lives in the compose file rather than in
+  `backend/.env`, and the frontend reads it when Vite starts, so changing it means
+  recreating the frontend container.
+
+Two more things to keep in mind:
+
+- The backend serves `/docs` and `/redoc` only when `APP_ENV` is not `production`.
+  The external-Mongo configuration builds with `APP_ENV=production` and runs gunicorn
+  through `start.sh`; set `APP_ENV=development` in `backend/.env` (then recreate the
+  container) only if you want the interactive API docs on a private installation.
+- Terminate TLS in a reverse proxy (Nginx, Traefik, Caddy) instead of publishing ports
+  5172 and 5173 directly. `INSTALL.md` includes an Nginx example with certbot.
+
+### Managed platforms (e.g. DigitalOcean App Platform)
+
+Docker Compose is not used on a managed platform: each service is an app and the
+variables are set in the platform's own settings, not in a file. The same three
+settings from above still apply, plus a few platform-specific details:
+
+- **Backend and frontend as separate apps** — set `BACKEND_CORS_ORIGINS` to the
+  frontend app's public URL and `VITE_API_URL` to the backend app's public URL.
+  `VITE_API_URL` is read when the frontend is **built**, so it belongs to the
+  frontend app's build settings.
+- **`PORT`** — the backend honours the `PORT` environment variable, which is what
+  platforms assign. No change needed.
+- **`KROKI_URL`** — defaults to `http://kroki:8000`, a Compose-internal hostname
+  that will not resolve outside Docker. Point it at a reachable Kroki (the public
+  `https://kroki.io`, or your own deployment) or server-side rendering fails.
+- **`APP_ENV`** — leave it at `production` for gunicorn and HSTS; note that this
+  also disables `/docs`, `/redoc` and stack traces.
+- **No bind mounts** — the Compose files mount `backend/app` and `frontend/src`
+  so code edits apply without rebuilding. A managed platform builds the image
+  from the repository, so every change needs a new build and deploy.
 
 ---
 

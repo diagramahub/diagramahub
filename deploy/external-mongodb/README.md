@@ -2,6 +2,8 @@
 
 DiagramHub deployment using an external MongoDB instance (MongoDB Atlas, AWS DocumentDB, custom server, etc.)
 
+> Exposing this on a public domain? See [Publishing on a Domain](../README.md#publishing-on-a-domain) for the settings that must change first.
+
 ## Services Included
 
 - **Backend** - FastAPI application

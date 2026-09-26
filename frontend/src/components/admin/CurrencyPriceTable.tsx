@@ -43,7 +43,7 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
 
   if (priceEntries.length === 0) {
     return (
-      <div className="text-sm text-gray-500 italic">
+      <div className="text-sm text-gray-500 dark:text-gray-400 italic">
         No hay precios configurados
       </div>
     );
@@ -53,7 +53,7 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
     <div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs text-gray-500 uppercase">
+          <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase">
             <th className="pb-1 pr-2 w-8"></th>
             <th className="pb-1 pr-3">Moneda</th>
             <th className="pb-1 pr-3">Monto/mes</th>
@@ -62,21 +62,21 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
         </thead>
         <tbody>
           {priceEntries.map(([currency, amount]) => (
-            <tr key={currency} className="border-t border-gray-100">
+            <tr key={currency} className="border-t border-gray-100 dark:border-gray-700">
               <td className="py-1.5 pr-2">
                 {CURRENCY_FLAGS[currency] ?? '🏳️'}
               </td>
-              <td className="py-1.5 pr-3 font-medium text-gray-900">
+              <td className="py-1.5 pr-3 font-medium text-gray-900 dark:text-gray-100">
                 {currency.toUpperCase()}
               </td>
-              <td className="py-1.5 pr-3 text-gray-700">
+              <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300">
                 {formatAmount(amount, currency)}
               </td>
               <td className="py-1.5">
                 {currency !== 'usd' && (
                   <button
                     onClick={() => setDeletingCurrency(currency)}
-                    className="text-red-500 hover:text-red-700 transition-colors p-1"
+                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1"
                     title={`Eliminar precio ${currency.toUpperCase()}`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
       <button
         onClick={() => setShowAddModal(true)}
         disabled={allCurrenciesConfigured}
-        className="mt-2 px-3 py-1 text-xs font-medium text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+        className="mt-2 px-3 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

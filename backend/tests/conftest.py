@@ -50,15 +50,26 @@ def event_loop() -> Generator:
 
 @pytest.fixture(autouse=True)
 def _reset_login_rate_state():
-    """Reset in-memory login rate limiter and account lockout state.
+    """Reset in-memory rate limiter and account lockout state.
 
-    Both are module-level singletons that accumulate state across tests,
-    so without this reset enough login attempts in a session trigger 429
-    or 423 responses for unrelated tests.
+    These are module-level singletons that accumulate state across tests, so
+    without this reset enough requests in one session trigger 429 responses
+    (or 423 lockouts) for unrelated tests.
     """
-    from app.api.v1.users.rate_limiter import account_lockout, login_rate_limiter
+    from app.api.v1.diagrams.rate_limiter import render_rate_limiter
+    from app.api.v1.mfa.rate_limiter import mfa_verify_rate_limiter
+    from app.api.v1.users.rate_limiter import (
+        account_lockout,
+        login_rate_limiter,
+        password_reset_rate_limiter,
+        register_rate_limiter,
+    )
 
-    login_rate_limiter._requests.clear()
+    login_rate_limiter.reset()
+    register_rate_limiter.reset()
+    password_reset_rate_limiter.reset()
+    mfa_verify_rate_limiter.reset()
+    render_rate_limiter.reset()
     account_lockout._accounts.clear()
     yield
 

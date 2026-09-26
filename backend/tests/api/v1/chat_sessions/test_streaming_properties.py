@@ -13,9 +13,7 @@ from hypothesis import strategies as st
 from app.api.v1.chat_sessions.sse_events import (
     format_sse_event,
     token_event,
-    phase_event,
     done_event,
-    error_event,
 )
 
 
@@ -261,6 +259,25 @@ def test_property_5_fallback_produces_valid_sse(response_text: str):
 # =============================================================================
 
 
+# The extractor normalizes the Spanish marker variants into the canonical
+# English markers before parsing, so a property that assumes "no start/end
+# marker" must exclude every variant. Guarding only the English ones let
+# Hypothesis feed a Spanish end marker past the assumption and fail the test
+# on an input the extraction logic is right to reject.
+_MARKER_VARIANTS = (
+    "<<<DIAGRAM>>>",
+    "<<<END_DIAGRAM>>>",
+    "<<<DIAGRAMA>>>",
+    "<<<FIN_DIAGRAMA>>>",
+    "<<<END_DIAGRAMA>>>",
+)
+
+
+def _has_marker(text: str) -> bool:
+    """True when any marker variant, in any language, appears in the text."""
+    return any(marker in text for marker in _MARKER_VARIANTS)
+
+
 def _extract_diagram_code_python(full_text: str) -> str | None:
     """Python implementation of diagram code extraction (mirrors frontend logic)."""
     import re
@@ -301,13 +318,9 @@ def test_property_6_accumulator_chunk_splits(
 ):
     """Feature: ai-chat-streaming, Property 6: Diagram Code Accumulator Handles Arbitrary Chunk Splits"""
     # Ensure diagram_code doesn't contain markers
-    assume("<<<DIAGRAM>>>" not in diagram_code)
-    assume("<<<END_DIAGRAM>>>" not in diagram_code)
-    assume("<<<DIAGRAMA>>>" not in diagram_code)
-    assume("<<<DIAGRAM>>>" not in before_text)
-    assume("<<<END_DIAGRAM>>>" not in before_text)
-    assume("<<<DIAGRAM>>>" not in after_text)
-    assume("<<<END_DIAGRAM>>>" not in after_text)
+    assume(not _has_marker(diagram_code))
+    assume(not _has_marker(before_text))
+    assume(not _has_marker(after_text))
 
     full_text = f"{before_text}<<<DIAGRAM>>>\n{diagram_code}\n<<<END_DIAGRAM>>>{after_text}"
 
@@ -351,10 +364,8 @@ def test_property_6_accumulator_chunk_splits(
 @settings(max_examples=200)
 def test_property_7_truncated_stream_extraction(before_text: str, diagram_code: str):
     """Feature: ai-chat-streaming, Property 7: Truncated Stream Extraction"""
-    assume("<<<DIAGRAM>>>" not in before_text)
-    assume("<<<END_DIAGRAM>>>" not in before_text)
-    assume("<<<DIAGRAM>>>" not in diagram_code)
-    assume("<<<END_DIAGRAM>>>" not in diagram_code)
+    assume(not _has_marker(before_text))
+    assume(not _has_marker(diagram_code))
 
     full_text = f"{before_text}<<<DIAGRAM>>>\n{diagram_code}"
 
@@ -397,10 +408,9 @@ def test_property_8_fallback_fenced_code_block(
     code_content: str, diagram_type: str, surrounding_text: str
 ):
     """Feature: ai-chat-streaming, Property 8: Fallback Fenced Code Block Detection"""
-    assume("<<<DIAGRAM>>>" not in code_content)
-    assume("<<<END_DIAGRAM>>>" not in code_content)
+    assume(not _has_marker(code_content))
     assume("```" not in code_content)
-    assume("<<<DIAGRAM>>>" not in surrounding_text)
+    assume(not _has_marker(surrounding_text))
     assume("```" not in surrounding_text)
     assume(len(code_content.strip()) > 20)
 

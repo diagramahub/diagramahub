@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.2] - 2026-09-26
+
+### Security
+- `PUT /users/change-password` now requires and verifies `current_password`: a bearer token alone could previously set a password and take over the account. Accounts that only sign in through OAuth return 403 and are pointed at the reset flow.
+- CORS restricted to explicit methods and headers (`Authorization`, `Content-Type`, `Accept`, `Accept-Language`, `sentry-trace`, `baggage`) instead of wildcards.
+- Deny-all `Content-Security-Policy` on API responses in production, so the payload can never be framed or loaded as a document.
+- Per-IP rate limiting on registration (20/hour), password reset requests (10/hour), MFA verification (10 per 5 minutes) and the public diagram render endpoint (60/minute); all answer 429 with `Retry-After`.
+- `POST /diagrams/render` source capped at 100,000 characters (the endpoint is public and drives server-side rendering).
+- Account deletion no longer echoes internal error details; the exception is logged server-side.
+- Completed the audit trail: `password_reset_requested`, `mfa_enabled`, `mfa_disabled` and `account_deleted` were defined but never emitted.
+
+### Added
+- `scripts/check-version.sh`: fail-closed verification of every file carrying the version (code, config, docs, release notes, mkdocs nav, CHANGELOG), wired into the release checklist and AGENTS.md.
+- 29 tests: shared sliding-window limiter, HTTP throttling for registration/reset/MFA/render, payload cap at and above the limit, and one test per audit event.
+
+### Changed
+- `GET /users/me` returns `oauth_providers` and `can_change_password`. The profile page shows the current-password field for accounts that have one, and points OAuth-only accounts at the reset flow. This also fixes the "Linked Accounts" section, which read a field the response never included.
+- Coverage is enforced at 45% on the full test run; the `pyproject.toml` pytest options (coverage reports, `--strict-markers`) apply again after `pytest.ini` was removed.
+- Deployment documentation covers what to change before publishing on a domain (`BACKEND_CORS_ORIGINS`, `FRONTEND_URL`, `VITE_API_URL`), because the shipped defaults point at localhost, and what differs on a managed platform such as DigitalOcean App Platform (variables in the platform settings, separate apps, reachable `KROKI_URL`, no bind mounts).
+
+### Fixed
+- The API reported version 0.6.0 while 0.6.1 was already released (`config.py` feeds `GET /`, Swagger and the Sentry release tag).
+- `CHANGELOG.md` was missing its `## [0.6.0]` section — its entries had been merged under 0.6.1 — and the 0.6.1 release notes were absent from the mkdocs navigation.
+- `backend/run-tests.sh` failed with `--unit`/`--integration` (the flag was passed twice, producing `pytest -m unit --unit`) and could not run inside the container because it started with `#!/bin/bash` while the image ships no bash.
+- A chat streaming property test failed on inputs containing a Spanish end marker: its assumptions only excluded the English markers, while the extractor normalizes both languages. The assumptions now cover all five marker variants.
+- The external-MongoDB compose forced `uvicorn --reload`, bypassing `start.sh`: the scenario meant for production ran the development server with a single worker and ignored `WORKERS`. It now starts gunicorn through the image's CMD.
+- The installer's summary advertised `/docs` on production-mode installations, where Swagger and ReDoc are disabled by design.
+- Dark mode in the admin plans view: the per-plan price table (currency and amount) and the create/edit plan modals used light colours with no dark variant, leaving them nearly invisible on the dark card.
+
 ## [0.6.1] - 2026-08-30
 
 ### Added
@@ -23,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - Export options no longer show irrelevant controls (e.g. PNG resolution while exporting PDF).
 - Cloned diagrams opened with a stale viewport; they now fit to screen on open.
+
+## [0.6.0] - 2026-08-15
 
 ### Added
 - AI-powered diagram type conversion between Mermaid, PlantUML, D2, and DBML formats with side-by-side preview modal and incompatibility warnings.

@@ -1,15 +1,17 @@
 """
-Login rate limiter and account lockout protection.
+Rate limiting and account lockout protection for the users module.
 
-- IP-based rate limiting: max N login attempts per IP per window.
+- IP-based rate limiting: login, registration and password reset requests.
 - Account lockout: after M consecutive failed attempts for a given email,
   the account is temporarily locked for a configurable duration.
 
-Uses in-memory storage (resets on restart). For multi-instance deployments,
-replace with Redis-backed storage.
+The sliding-window implementation lives in ``app/core/rate_limit.py`` and is
+in-memory (resets on restart). A multi-instance deployment needs Redis.
 """
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+
+from app.core.rate_limit import SlidingWindowRateLimiter
 
 
 @dataclass
@@ -18,42 +20,6 @@ class AccountLockoutEntry:
     failed_count: int = 0
     locked_until: float = 0.0
     last_attempt: float = 0.0
-
-
-class LoginRateLimiter:
-    """IP-based rate limiter with sliding window for login endpoints."""
-
-    def __init__(self, max_requests: int = 10, window_seconds: int = 60):
-        """
-        Args:
-            max_requests: Maximum login attempts per IP per window.
-            window_seconds: Sliding window duration in seconds.
-        """
-        self.max_requests = max_requests
-        self.window_seconds = window_seconds
-        self._requests: dict[str, list[float]] = {}
-
-    def is_allowed(self, ip: str) -> tuple[bool, int]:
-        """Check if the IP can make another login attempt.
-
-        Returns:
-            Tuple of (allowed, retry_after_seconds).
-        """
-        now = time.monotonic()
-        cutoff = now - self.window_seconds
-
-        if ip in self._requests:
-            self._requests[ip] = [t for t in self._requests[ip] if t > cutoff]
-        else:
-            self._requests[ip] = []
-
-        if len(self._requests[ip]) >= self.max_requests:
-            oldest = self._requests[ip][0]
-            retry_after = int(oldest + self.window_seconds - now) + 1
-            return False, max(retry_after, 1)
-
-        self._requests[ip].append(now)
-        return True, 0
 
 
 class AccountLockoutManager:
@@ -133,5 +99,13 @@ class AccountLockoutManager:
 
 
 # Singleton instances
-login_rate_limiter = LoginRateLimiter(max_requests=10, window_seconds=60)
+login_rate_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=60)
 account_lockout = AccountLockoutManager(max_failed_attempts=5, lockout_duration_seconds=900)
+
+# Registration is open on a fresh install, so bound bulk account creation per IP.
+# 20/hour leaves room for onboarding a team behind one address.
+register_rate_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=3600)
+
+# Password reset requests send email, so bound them per IP to prevent using the
+# endpoint as an email bomb.
+password_reset_rate_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=3600)

@@ -7,7 +7,7 @@ recovery codes, method switching, and status queries.
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jose import JWTError
 
 from app.api.v1.mfa.repository import MfaRepository
@@ -226,6 +226,15 @@ async def enable_totp(
     )
     if result["recovery_codes"] is None:
         return {"message": "TOTP MFA activado exitosamente", "codes": None}
+
+    # Recovery codes are only issued on first activation, so log the event once
+    # instead of on every re-enable.
+    from app.api.v1.users.audit_log import log_event, EVENT_MFA_ENABLED
+
+    await log_event(
+        EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: totp"
+    )
+
     return {"codes": result["recovery_codes"]}
 
 
@@ -260,6 +269,13 @@ async def verify_email_activation(
     result = await mfa_service.verify_email_activation(str(user.id), request.code)
     if result["recovery_codes"] is None:
         return {"message": "Email MFA activado exitosamente", "codes": None}
+
+    from app.api.v1.users.audit_log import log_event, EVENT_MFA_ENABLED
+
+    await log_event(
+        EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: email"
+    )
+
     return {"codes": result["recovery_codes"]}
 
 
@@ -272,6 +288,16 @@ async def disable_mfa(
     """Disable a specific MFA method. Requires password confirmation."""
     user = await _get_user_by_email(current_user_email)
     await mfa_service.disable_mfa(str(user.id), request.password, request.method)
+
+    from app.api.v1.users.audit_log import log_event, EVENT_MFA_DISABLED
+
+    await log_event(
+        EVENT_MFA_DISABLED,
+        user.email,
+        user_id=str(user.id),
+        details=f"method: {request.method}",
+    )
+
     return {"message": f"Método MFA '{request.method}' desactivado exitosamente"}
 
 
@@ -331,6 +357,7 @@ async def set_default_method(
 @router.post("/verify")
 async def verify_mfa(
     request: MfaVerifyRequest,
+    http_request: Request,
     mfa_service: Annotated[MfaService, Depends(_get_mfa_service)],
 ) -> dict:
     """Verify an MFA code during the login flow.
@@ -338,6 +365,20 @@ async def verify_mfa(
     Accepts TOTP codes, email codes, or recovery codes.
     Returns a full access token on success.
     """
+    from app.api.v1.mfa.rate_limiter import mfa_verify_rate_limiter
+
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    allowed, retry_after = mfa_verify_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Demasiados intentos de verificación desde esta dirección. "
+                f"Intente de nuevo en {retry_after} segundos."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
     # Decode the temporary MFA token
     try:
         payload = decode_mfa_temp_token(request.mfa_token)

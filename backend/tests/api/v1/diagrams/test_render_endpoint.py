@@ -21,6 +21,7 @@ from app.api.v1.diagrams.kroki_client import (
     KrokiTimeoutError,
 )
 from app.api.v1.diagrams.routes import get_kroki_client
+from app.api.v1.diagrams.rate_limiter import render_rate_limiter
 
 
 RENDER_URL = "/api/v1/diagrams/render"
@@ -174,3 +175,61 @@ class TestRenderDiagramEndpoint:
                 )
         finally:
             app.dependency_overrides.pop(get_kroki_client, None)
+
+
+@pytest.mark.integration
+class TestRenderAbuseProtection:
+    """The public endpoint is bounded in payload size and request rate."""
+
+    @pytest.mark.asyncio
+    async def test_oversized_source_is_rejected(self, client: AsyncClient):
+        """Sources above the cap are refused before any render is attempted."""
+        response = await client.post(
+            RENDER_URL,
+            json={"source": "A" * 100_001, "diagram_type": "plantuml"},
+        )
+
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_source_at_the_cap_is_accepted(self, client: AsyncClient):
+        """The cap itself is allowed: only excess is rejected."""
+        mock_client = AsyncMock()
+        mock_client.render.return_value = SAMPLE_SVG
+
+        app.dependency_overrides[get_kroki_client] = lambda: mock_client
+        try:
+            response = await client.post(
+                RENDER_URL,
+                json={"source": "A" * 100_000, "diagram_type": "plantuml"},
+            )
+            assert response.status_code == 200
+        finally:
+            app.dependency_overrides.pop(get_kroki_client, None)
+
+    @pytest.mark.asyncio
+    async def test_render_requests_are_throttled_per_ip(
+        self, client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Beyond the per-minute budget the endpoint answers 429."""
+        monkeypatch.setattr(render_rate_limiter, "max_requests", 1)
+
+        mock_client = AsyncMock()
+        mock_client.render.return_value = SAMPLE_SVG
+
+        app.dependency_overrides[get_kroki_client] = lambda: mock_client
+        try:
+            body = {"source": "A -> B", "diagram_type": "plantuml"}
+            first = await client.post(RENDER_URL, json=body)
+            second = await client.post(RENDER_URL, json=body)
+        finally:
+            app.dependency_overrides.pop(get_kroki_client, None)
+
+        assert first.status_code == 200
+        assert second.status_code == 429
+        assert int(second.headers["Retry-After"]) >= 1
+
+    def test_shipped_limit_is_pinned(self):
+        """The production budget must not drift silently."""
+        assert render_rate_limiter.max_requests == 60
+        assert render_rate_limiter.window_seconds == 60

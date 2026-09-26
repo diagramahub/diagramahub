@@ -186,7 +186,12 @@ class DiagramResponse(BaseModel):
 class RenderDiagramRequest(BaseModel):
     """Solicitud para renderizar un diagrama vía Kroki."""
 
-    source: str = Field(..., min_length=1, description="Código fuente del diagrama")
+    source: str = Field(
+        ...,
+        min_length=1,
+        max_length=100_000,
+        description="Código fuente del diagrama (máximo 100 000 caracteres)",
+    )
     diagram_type: str = Field(..., description="Tipo de diagrama (plantuml, d2, graphviz, etc.)")
 
 

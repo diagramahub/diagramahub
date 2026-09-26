@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.6.0
+- **Current version**: 0.6.2
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -66,7 +66,8 @@ docker exec -it diagramahub-mongodb mongosh
 ### Backend (inside container)
 
 ```bash
-docker exec diagramahub-backend poetry run pytest           # all tests + coverage
+docker exec diagramahub-backend poetry run pytest --cov-fail-under=45  # full suite + coverage gate (floor 45%)
+docker exec diagramahub-backend ./run-tests.sh              # same full-suite gate via the backend helper script
 docker exec diagramahub-backend poetry run pytest --no-cov  # fast, no coverage
 docker exec diagramahub-backend poetry run pytest -m unit
 docker exec diagramahub-backend poetry run pytest -m integration
@@ -380,7 +381,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.6.0
+VITE_APP_VERSION=0.6.2
 ```
 
 ---
@@ -407,7 +408,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 - **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
 - **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
 - **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
-- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **45% floor** (`--cov-fail-under=45`; measured baseline 46.65% on 2026-09-25). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
 - Tests mirror module structure under `tests/api/v1/`
 
 ### Frontend Tests
@@ -460,7 +461,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.0**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.2**.
 
 | Bump | When |
 |------|------|
@@ -469,6 +470,8 @@ SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.0**.
 | MAJOR | Breaking changes to API, data structures, contracts |
 
 Release notes in `docs/{es,en}/release-notes/{VERSION}.md`. CHANGELOG in English (Keep a Changelog format). Git tags without `v` prefix (e.g., `0.5.0`).
+
+**Before merging any release, run `bash scripts/check-version.sh <VERSION>`.** It fails closed against every file that carries the version (code, config, docs, release notes, mkdocs nav, CHANGELOG). A `FAIL` means a version file was missed — fix it before the merge. The complete release checklist lives in `VERSIONING.md`; if a new file starts carrying the version, add it to both the checklist and the script.
 
 ---
 

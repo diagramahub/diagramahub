@@ -609,9 +609,13 @@ main() {
     echo ""
     echo -e "  ${GREEN}🌐 Frontend:${NC}  http://localhost:5173"
     echo -e "  ${GREEN}🔧 Backend:${NC}   http://localhost:5172"
-    echo -e "  ${GREEN}📚 API Docs:${NC}  http://localhost:5172/docs"
     if [ "$USE_EXTERNAL_MONGO" = false ]; then
+        echo -e "  ${GREEN}📚 API Docs:${NC}  http://localhost:5172/docs"
         echo -e "  ${GREEN}🗄️  MongoDB:${NC}   localhost:27017"
+    else
+        # The external-Mongo scenario builds the backend with APP_ENV=production,
+        # where Swagger and ReDoc are disabled by design.
+        echo -e "  ${YELLOW}📚 API Docs:${NC}  disabled (APP_ENV=production)"
     fi
     echo ""
     echo "════════════════════════════════════════════════════════════════"
@@ -648,7 +652,11 @@ main() {
     echo -e "${GREEN}🎉 Happy diagramming!${NC}"
     echo ""
     echo -e "${CYAN}💡 Tip:${NC} Visit http://localhost:5173 to start creating diagrams"
-    echo -e "${CYAN}💡 Tip:${NC} Visit http://localhost:5172/docs to explore the API"
+    if [ "$USE_EXTERNAL_MONGO" = false ]; then
+        echo -e "${CYAN}💡 Tip:${NC} Visit http://localhost:5172/docs to explore the API"
+    else
+        echo -e "${CYAN}💡 Tip:${NC} API docs are off in production. Set APP_ENV=development in backend/.env to enable them."
+    fi
     echo ""
 }
 

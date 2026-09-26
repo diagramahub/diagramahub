@@ -21,6 +21,7 @@ class UserRepository(IUserRepository):
             full_name=user_data.full_name,
             is_active=user_data.is_active,
             role=user_data.role,
+            password_set_by_user=True,
         )
         await user.insert()
         return user
@@ -55,6 +56,8 @@ class UserRepository(IUserRepository):
 
         password_changed_at is set here (not by the caller on a stale in-memory
         copy) so JWT session invalidation cannot race with the hash update.
+        ``password_set_by_user`` flips to True: from now on the account has a
+        password it can actually confirm (relevant for OAuth-linked accounts).
         """
         user = await self.get_by_id(user_id)
         if not user:
@@ -62,6 +65,7 @@ class UserRepository(IUserRepository):
 
         user.hashed_password = hashed_password
         user.password_changed_at = time.time()
+        user.password_set_by_user = True
         await user.save()
         return True
 

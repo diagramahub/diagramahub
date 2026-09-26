@@ -193,6 +193,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["Strict-Transport-Security"] = (
                 "max-age=63072000; includeSubDomains; preload"
             )
+            # API responses are JSON and never rendered as documents, so deny-all
+            # is safe here and still stops the payload from being framed. The
+            # app's own HTML is served by the frontend, which needs its own CSP
+            # at the web server; in development this header is skipped because
+            # the Swagger UI at /docs is HTML and would break.
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+            )
         return response
 
 
@@ -220,8 +228,18 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    # Explicit list: the frontend sends Authorization and Accept-Language, and the
+    # Sentry browser SDK adds its tracing headers. Wildcards would let any
+    # custom header through a preflight.
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Accept-Language",
+        "sentry-trace",
+        "baggage",
+    ],
 )
 
 # Include routers

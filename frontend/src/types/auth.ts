@@ -17,6 +17,7 @@ export type User = {
   is_active: boolean;
   created_at: string;
   oauth_providers?: OAuthProviderEntry[];  // Linked OAuth provider identities
+  can_change_password?: boolean;  // False for OAuth-only accounts (no password to confirm)
   subscription?: {
     plan: {
       price_usd: number;
@@ -49,6 +50,7 @@ export type AuthResponse = {
 }
 
 export type ChangePasswordRequest = {
+  current_password?: string;  // Required unless the account is OAuth-only
   new_password: string;
 }
 

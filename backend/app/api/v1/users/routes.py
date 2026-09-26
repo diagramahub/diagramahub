@@ -15,12 +15,10 @@ from app.api.v1.users.schemas import (
     LoginRequest,
     ResetPasswordConfirm,
     ResetPasswordRequest,
-    Token,
     UserCreate,
     UserInDB,
     UserUpdate,
     UserResponse,
-    UserRole,
 )
 from app.api.v1.users.services import UserService
 from app.core.security import decode_access_token
@@ -99,6 +97,7 @@ async def check_installation_status(
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
+    request: Request,
     user_data: UserCreate,
     service: Annotated[UserService, Depends(get_user_service)],
 ) -> UserResponse:
@@ -114,6 +113,20 @@ async def register(
     Returns:
         Created user information
     """
+    from app.api.v1.users.rate_limiter import register_rate_limiter
+
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, retry_after = register_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Demasiados registros desde esta dirección. "
+                f"Intente de nuevo en {retry_after} segundos."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
     return await service.register_user(user_data)
 
 
@@ -323,6 +336,7 @@ async def change_password(
 
 @router.post("/reset-password-request")
 async def reset_password_request(
+    request: Request,
     reset_data: ResetPasswordRequest,
     service: Annotated[UserService, Depends(get_user_service)],
 ) -> dict:
@@ -336,6 +350,20 @@ async def reset_password_request(
     Returns:
         Generic success message (anti-enumeration)
     """
+    from app.api.v1.users.rate_limiter import password_reset_rate_limiter
+
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, retry_after = password_reset_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Demasiadas solicitudes de recuperación desde esta dirección. "
+                f"Intente de nuevo en {retry_after} segundos."
+            ),
+            headers={"Retry-After": str(retry_after)},
+        )
+
     return await service.request_password_reset(reset_data)
 
 
@@ -414,6 +442,8 @@ async def get_current_user(
         is_active=user.is_active,
         created_at=user.created_at,
         subscription=subscription_data,
+        oauth_providers=user.oauth_providers,
+        can_change_password=not user.is_oauth_only,
     )
 
 
@@ -476,6 +506,8 @@ async def update_current_user(
         is_active=user.is_active,
         created_at=user.created_at,
         subscription=subscription_data,
+        oauth_providers=user.oauth_providers,
+        can_change_password=not user.is_oauth_only,
     )
 
 
@@ -562,10 +594,16 @@ async def delete_account(
             prompt_history_repository=PromptHistoryRepository(),
         )
         await deletion_service.delete_user_account(user_id)
-    except Exception as e:
+    except Exception:
+        logger.exception("Failed to delete account for user %s", user_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting account: {str(e)}",
+            detail="Could not delete the account. Please try again.",
         )
+
+    # Audit log: the user document is gone, so record the snapshot captured above.
+    from app.api.v1.users.audit_log import log_event, EVENT_ACCOUNT_DELETED
+
+    await log_event(EVENT_ACCOUNT_DELETED, user.email, user_id=user_id)
 
     return {"message": "Account deleted successfully"}
