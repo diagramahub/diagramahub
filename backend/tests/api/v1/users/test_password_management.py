@@ -608,22 +608,37 @@ class TestLegacyLinkedAccounts:
         assert login.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_provider_linked_at_creation_still_reads_as_oauth_only(
+    async def test_ambiguous_link_keeps_the_form_and_the_service_still_hints(
         self, authenticated_client: AsyncClient, registered_user: dict
     ):
-        """A legacy OAuth signup (provider linked at creation) stays OAuth-only."""
+        """A document linked at creation is indistinguishable from a fast link.
+
+        Registering with a password and then linking the provider seconds later
+        produces the same shape as an OAuth signup (``repository.create`` never
+        stamps ``password_changed_at``), so the profile must keep the form -- a
+        wrong "no password" would strand a user who has one -- while the service
+        still answers the helpful 403 to anyone who cannot prove a password.
+        """
         await self._make_legacy_linked(registered_user["email"], linked_at_creation=True)
 
         me = await authenticated_client.get("/api/v1/users/me")
         assert me.status_code == 200
-        assert me.json()["can_change_password"] is False
+        assert me.json()["can_change_password"] is True
 
-        response = await authenticated_client.put(
+        wrong = await authenticated_client.put(
             "/api/v1/users/change-password",
             json={
                 "current_password": generate_test_password("UnknownToOauth"),
                 "new_password": generate_test_password("ShouldNotApply"),
             },
         )
+        assert wrong.status_code == 403
 
-        assert response.status_code == 403
+        right = await authenticated_client.put(
+            "/api/v1/users/change-password",
+            json={
+                "current_password": registered_user["password"],
+                "new_password": generate_test_password("LinkedAmbiguous"),
+            },
+        )
+        assert right.status_code == 200
