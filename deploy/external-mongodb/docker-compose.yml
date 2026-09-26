@@ -21,7 +21,6 @@ services:
     volumes:
       - ./backend/app:/app/app
       - ./backend/tests:/app/tests
-      - ./backend/pytest.ini:/app/pytest.ini
       - ./backend/run-tests.sh:/app/run-tests.sh
     env_file:
       - ./backend/.env

@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Export options no longer show irrelevant controls (e.g. PNG resolution while exporting PDF).
 - Cloned diagrams opened with a stale viewport; they now fit to screen on open.
 
+## [0.6.0] - 2026-08-15
+
 ### Added
 - AI-powered diagram type conversion between Mermaid, PlantUML, D2, and DBML formats with side-by-side preview modal and incompatibility warnings.
 - New "Freehand" diagram type with an Excalidraw-like whiteboard canvas supporting rectangles, diamonds, circles, arrows, lines, text, and freehand paths.

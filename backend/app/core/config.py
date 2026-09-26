@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.6.0"
+    VERSION: str = "0.6.2"
     API_V1_PREFIX: str = "/api/v1"
 
     # MongoDB
