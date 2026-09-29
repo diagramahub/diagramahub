@@ -184,8 +184,9 @@ blocks the API and Stripe sends users back to their own machine:
 - **`FRONTEND_URL`** in `backend/.env` — the public frontend URL used by Stripe
   checkout redirects and email links.
 - **`VITE_API_URL`** — the public API URL. It lives in the compose file rather than in
-  `backend/.env`, and the frontend reads it when Vite starts, so changing it means
-  recreating the frontend container.
+  `backend/.env`. The production image writes it to `/config.js` when the container
+  starts, so changing it means recreating the frontend container (no rebuild); in
+  development the Vite dev server reads it from `frontend/.env` at startup.
 
 Two more things to keep in mind:
 
@@ -204,8 +205,21 @@ settings from above still apply, plus a few platform-specific details:
 
 - **Backend and frontend as separate apps** — set `BACKEND_CORS_ORIGINS` to the
   frontend app's public URL and `VITE_API_URL` to the backend app's public URL.
-  `VITE_API_URL` is read when the frontend is **built**, so it belongs to the
-  frontend app's build settings.
+- **Frontend as a Static Site** (this is how the shipped install works) — the
+  platform runs `npm run build` and serves `dist/` directly from its CDN; no
+  Docker image or Nginx is involved. `VITE_API_URL` is therefore a **build-time**
+  value: set it (plus optional `VITE_APP_ENV=production` and `VITE_SENTRY_DSN`) as
+  an environment variable of the component or app, and redeploy when it changes.
+  The bundled app prefers `/config.js` at runtime, but a static host serves the
+  committed placeholder with empty values, so the build-time variable wins — which
+  is the correct behaviour for static hosting.
+- **Frontend as a Docker app** (alternative for self-hosters) — the multi-stage
+  `frontend/Dockerfile` ends in a `production` stage: a static bundle served by
+  Nginx as a non-root user, listening on port **5173**. In this variant the
+  `VITE_*` variables are read at container start (written to `/config.js` before
+  Nginx serves anything), so changing them only recreates the container — no
+  rebuild. The app spec's `http_port` stays `5173`, the same port the previous
+  dev-server image used.
 - **`PORT`** — the backend honours the `PORT` environment variable, which is what
   platforms assign. No change needed.
 - **`KROKI_URL`** — defaults to `http://kroki:8000`, a Compose-internal hostname

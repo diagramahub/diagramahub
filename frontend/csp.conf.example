@@ -1,0 +1,33 @@
+# Example Content-Security-Policy for the DiagramaHub frontend.
+#
+# Why this is not enabled by default: the editor relies on inline styles
+# (Mermaid injects them into rendered SVGs) and Monaco runs web workers
+# loaded from its CDN. A strict policy without validation breaks the app,
+# so each deployment should enable CSP after testing with its own stack.
+#
+# How to enable:
+#   1. Replace API_ORIGIN below with the real API origin
+#      (e.g. https://api.diagramahub.com or http://localhost:5172).
+#   2. Append the add_header line to frontend/headers.conf.
+#   3. Rebuild the frontend image and verify the editor, rendering and
+#      export flows in a browser console (CSP violations are logged there).
+#
+# Policy rationale:
+#   default-src 'self'      — only same-origin resources unless allowed below
+#   script-src              — app bundles + Monaco from jsDelivr (bundling
+#                             Monaco locally removes this allowance)
+#   style-src 'unsafe-inline' — Mermaid inline styles and dynamic <style> tags
+#   img-src data: blob:     — diagram exports and canvas previews
+#   connect-src             — the API (configurable origin) and Sentry
+#   worker-src              — Monaco editor workers (CDN or bundled)
+#   object-src 'none'       — no plugins
+#   frame-ancestors 'none'  — the app must never be framed
+#
+add_header Content-Security-Policy "default-src 'self'; \
+script-src 'self' https://cdn.jsdelivr.net; \
+style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; \
+img-src 'self' data: blob:; \
+font-src 'self' data: https://cdn.jsdelivr.net; \
+connect-src 'self' API_ORIGIN https://*.sentry.io; \
+worker-src 'self' blob: https://cdn.jsdelivr.net; \
+object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'" always;

@@ -52,6 +52,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      target: development
     container_name: diagramahub-frontend
     restart: unless-stopped
     ports:

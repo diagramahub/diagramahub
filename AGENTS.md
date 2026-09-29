@@ -101,7 +101,7 @@ bash verify-installation.sh
 
 | Service | Container | Port | Notes |
 |---------|-----------|------|-------|
-| Frontend | diagramahub-frontend | 5173 | Vite dev server + HMR |
+| Frontend | diagramahub-frontend | 5173 | Dev image: Vite dev server + HMR · Prod image: static Nginx build (multi-stage Dockerfile, non-root) |
 | Backend | diagramahub-backend | 5172 | FastAPI + hot reload |
 | Kroki | diagramahub-kroki | internal | Diagram rendering (PlantUML, DBML, D2) |
 | MongoDB | diagramahub-mongodb | 27017 | Persistent volume |
