@@ -6,8 +6,7 @@ from fastapi import APIRouter, Depends, Query, status, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.api.v1.users.routes import get_current_user_email
-from app.api.v1.users.repository import UserRepository
+from app.api.deps import get_current_user_id
 from app.api.v1.ai_providers.repository import AIProviderRepository
 from app.api.v1.ai_providers.services import AIProviderService
 from .repository import ChatSessionRepository, ChatMessageRepository
@@ -44,15 +43,6 @@ def get_chat_session_service() -> ChatSessionService:
         message_repo=ChatMessageRepository(),
         ai_service=AIProviderService(repository=AIProviderRepository()),
     )
-
-
-async def get_current_user_id(
-    current_user_email: str = Depends(get_current_user_email),
-) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
 
 
 # --- Stats endpoints ---

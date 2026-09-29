@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.v1.users.repository import UserRepository
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_email
 from app.api.v1.users.schemas import UserRole
 
 from .repository import IntegrationsRepository

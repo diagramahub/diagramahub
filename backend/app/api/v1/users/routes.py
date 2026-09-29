@@ -6,10 +6,10 @@ import logging
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
 
+from app.api.deps import get_current_user_email, get_user_service
 from app.api.v1.users.repository import UserRepository
+from app.api.v1.users.services import UserService
 from app.api.v1.users.schemas import (
     SimplifiedChangePasswordRequest,
     DeleteAccountRequest,
@@ -20,69 +20,11 @@ from app.api.v1.users.schemas import (
     UserUpdate,
     UserResponse,
 )
-from app.api.v1.users.services import UserService
 from app.api.v1.users.email_templates import build_mfa_email_html
-from app.core.security import decode_access_token
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
-security = HTTPBearer()
-
-
-def get_user_service() -> UserService:
-    """Dependency injection for user service."""
-    repository = UserRepository()
-    return UserService(repository)
-
-
-async def get_current_user_email(
-    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
-) -> str:
-    """
-    Dependency to extract and validate current user from JWT token.
-
-    Also validates that the token was not issued before the last password
-    change (session invalidation on password change).
-
-    Args:
-        credentials: HTTP Bearer token from Authorization header
-
-    Returns:
-        User email from token
-
-    Raises:
-        HTTPException: If token is invalid, missing, or invalidated by password change
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
-    try:
-        token = credentials.credentials
-        payload = decode_access_token(token)
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-
-    # Session invalidation: check if password was changed after token was issued.
-    # The data access lives in UserService (via the injected dependency) so the
-    # route layer only deals with the HTTP concern.
-    token_pca = payload.get("pca")
-    user = await get_user_service().get_current_user(email)
-    if user and user.password_changed_at is not None:
-        if token_pca is None or token_pca < user.password_changed_at:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Session invalidated. Please log in again.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-
-    return email
 
 
 @router.get("/installation-status")

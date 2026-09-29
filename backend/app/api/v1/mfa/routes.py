@@ -28,7 +28,7 @@ from app.api.v1.mfa.schemas import (
 )
 from app.api.v1.mfa.services import MfaService
 from app.api.v1.users.email_templates import build_mfa_email_html
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_email
 from app.api.v1.users.schemas import UserInDB
 from app.core.security import decode_mfa_temp_token
 

@@ -3,7 +3,7 @@ FastAPI routes for subscriptions and plans.
 """
 
 from fastapi import APIRouter, Depends, status, HTTPException
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_id, get_current_user
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserRole
 
@@ -33,20 +33,6 @@ router = APIRouter()
 # ============================================================================
 # Dependency Injection
 # ============================================================================
-
-
-async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
-
-
-async def get_current_user(current_user_email: str = Depends(get_current_user_email)):
-    """Get current user."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return user
 
 
 async def require_admin(current_user=Depends(get_current_user)):

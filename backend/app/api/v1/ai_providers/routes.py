@@ -3,8 +3,7 @@ FastAPI routes for AI providers.
 """
 
 from fastapi import APIRouter, Depends, status, Body
-from app.api.v1.users.routes import get_current_user_email
-from app.api.v1.users.repository import UserRepository
+from app.api.deps import get_current_user_id
 from .repository import AIProviderRepository
 from .services import AIProviderService
 from .schemas import (
@@ -32,13 +31,6 @@ router = APIRouter()
 def get_ai_provider_service() -> AIProviderService:
     """Get AI provider service instance."""
     return AIProviderService(repository=AIProviderRepository())
-
-
-async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
 
 
 # ==================== AI Provider Settings ====================

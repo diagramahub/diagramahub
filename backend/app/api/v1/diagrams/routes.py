@@ -7,7 +7,7 @@ from typing import NoReturn
 
 from fastapi import APIRouter, Depends, Request, status, HTTPException
 from fastapi.responses import Response
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_id
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.projects.repository import ProjectRepository
 from app.api.v1.ai_providers.repository import AIProviderRepository
@@ -76,13 +76,6 @@ def get_usage_limiter() -> UsageLimiter:
         diagram_repository=DiagramRepository(),
         user_repository=UserRepository(),
     )
-
-
-async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
 
 
 def get_kroki_client() -> KrokiClient:
