@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 from beanie import Document
 from ..diagrams.schemas import DiagramResponse
-from ..folders.schemas import FolderResponse, FolderWithDiagramsResponse
+from ..folders.schemas import FolderWithDiagramsResponse
 
 
 class ProjectBase(BaseModel):
