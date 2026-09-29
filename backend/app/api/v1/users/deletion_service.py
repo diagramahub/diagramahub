@@ -4,22 +4,16 @@ Account deletion service.
 Orchestrates the deletion of all user data across collections
 in the correct dependency order.
 """
+
 import logging
 
 from app.api.v1.users.interfaces import IUserRepository
-from app.api.v1.projects.repository import ProjectRepository
-from app.api.v1.diagrams.repository import DiagramRepository
-from app.api.v1.folders.repository import FolderRepository
-from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
-from app.api.v1.ai_providers.repository import AIProviderRepository
-from app.api.v1.prompt_history.repository import PromptHistoryRepository
-
-from app.api.v1.diagrams.schemas import DiagramInDB
-from app.api.v1.folders.schemas import FolderInDB
-from app.api.v1.projects.schemas import ProjectInDB
-from app.api.v1.subscriptions.schemas import SubscriptionInDB
-from app.api.v1.ai_providers.schemas import UserAISettingsInDB
-from app.api.v1.prompt_history.schemas import PromptHistoryInDB
+from app.api.v1.projects.interfaces import IProjectRepository
+from app.api.v1.diagrams.interfaces import IDiagramRepository
+from app.api.v1.folders.interfaces import IFolderRepository
+from app.api.v1.subscriptions.interfaces import ISubscriptionRepository
+from app.api.v1.ai_providers.interfaces import IAIProviderRepository
+from app.api.v1.prompt_history.interfaces import IPromptHistoryRepository
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +24,12 @@ class AccountDeletionService:
     def __init__(
         self,
         user_repository: IUserRepository,
-        project_repository: ProjectRepository,
-        diagram_repository: DiagramRepository,
-        folder_repository: FolderRepository,
-        subscription_repository: SubscriptionRepository,
-        ai_provider_repository: AIProviderRepository,
-        prompt_history_repository: PromptHistoryRepository,
+        project_repository: IProjectRepository,
+        diagram_repository: IDiagramRepository,
+        folder_repository: IFolderRepository,
+        subscription_repository: ISubscriptionRepository,
+        ai_provider_repository: IAIProviderRepository,
+        prompt_history_repository: IPromptHistoryRepository,
     ):
         self.user_repository = user_repository
         self.project_repository = project_repository
@@ -60,7 +54,9 @@ class AccountDeletionService:
         try:
             projects = await self.project_repository.get_by_user_id(user_id)
         except Exception as e:
-            logger.error("Failed to fetch projects for user_id=%s, collection=projects: %s", user_id, e)
+            logger.error(
+                "Failed to fetch projects for user_id=%s, collection=projects: %s", user_id, e
+            )
             raise
 
         # 2. For each project: delete diagrams, then folders
@@ -68,50 +64,70 @@ class AccountDeletionService:
             project_id = str(project.id)
 
             try:
-                await DiagramInDB.find(DiagramInDB.project_id == project_id).delete()
+                await self.diagram_repository.delete_by_project_id(project_id)
             except Exception as e:
-                logger.error("Failed to delete diagrams for user_id=%s, collection=diagrams, project_id=%s: %s", user_id, project_id, e)
+                logger.error(
+                    "Failed to delete diagrams for user_id=%s, collection=diagrams, "
+                    "project_id=%s: %s",
+                    user_id,
+                    project_id,
+                    e,
+                )
                 raise
 
             try:
-                await FolderInDB.find(FolderInDB.project_id == project_id).delete()
+                await self.folder_repository.delete_by_project_id(project_id)
             except Exception as e:
-                logger.error("Failed to delete folders for user_id=%s, collection=folders, project_id=%s: %s", user_id, project_id, e)
+                logger.error(
+                    "Failed to delete folders for user_id=%s, collection=folders, "
+                    "project_id=%s: %s",
+                    user_id,
+                    project_id,
+                    e,
+                )
                 raise
 
         # 3. Delete all projects
         try:
-            await ProjectInDB.find(ProjectInDB.user_id == user_id).delete()
+            await self.project_repository.delete_by_user_id(user_id)
         except Exception as e:
-            logger.error("Failed to delete data for user_id=%s, collection=projects: %s", user_id, e)
+            logger.error(
+                "Failed to delete data for user_id=%s, collection=projects: %s", user_id, e
+            )
             raise
 
         # 4. Delete subscriptions
         try:
-            await SubscriptionInDB.find(SubscriptionInDB.user_id == user_id).delete()
+            await self.subscription_repository.delete_by_user_id(user_id)
         except Exception as e:
-            logger.error("Failed to delete data for user_id=%s, collection=subscriptions: %s", user_id, e)
+            logger.error(
+                "Failed to delete data for user_id=%s, collection=subscriptions: %s", user_id, e
+            )
             raise
 
         # 5. Delete AI provider settings
         try:
-            await UserAISettingsInDB.find(UserAISettingsInDB.user_id == user_id).delete()
+            await self.ai_provider_repository.delete_by_user_id(user_id)
         except Exception as e:
-            logger.error("Failed to delete data for user_id=%s, collection=user_ai_settings: %s", user_id, e)
+            logger.error(
+                "Failed to delete data for user_id=%s, collection=user_ai_settings: %s",
+                user_id,
+                e,
+            )
             raise
 
         # 6. Delete prompt history
         try:
-            await PromptHistoryInDB.find(PromptHistoryInDB.user_id == user_id).delete()
+            await self.prompt_history_repository.delete_by_user_id(user_id)
         except Exception as e:
-            logger.error("Failed to delete data for user_id=%s, collection=prompt_history: %s", user_id, e)
+            logger.error(
+                "Failed to delete data for user_id=%s, collection=prompt_history: %s", user_id, e
+            )
             raise
 
         # 7. Delete the user document
         try:
-            user = await self.user_repository.get_by_id(user_id)
-            if user:
-                await user.delete()
+            await self.user_repository.delete_by_id(user_id)
         except Exception as e:
             logger.error("Failed to delete data for user_id=%s, collection=users: %s", user_id, e)
             raise

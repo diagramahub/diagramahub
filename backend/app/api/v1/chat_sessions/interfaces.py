@@ -2,6 +2,7 @@
 Abstract interfaces for chat session and message repositories.
 Follows the Dependency Inversion Principle (SOLID).
 """
+
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -12,38 +13,55 @@ class IChatSessionRepository(ABC):
     """Abstract interface for chat session data access."""
 
     @abstractmethod
-    async def create_session(
-        self, user_id: str, diagram_id: str, title: str
-    ) -> ChatSessionInDB:
+    async def create_session(self, user_id: str, diagram_id: str, title: str) -> ChatSessionInDB:
         """Create a new chat session."""
         pass
 
     @abstractmethod
-    async def get_sessions_by_diagram(
-        self, user_id: str, diagram_id: str
-    ) -> list[ChatSessionInDB]:
+    async def get_sessions_by_diagram(self, user_id: str, diagram_id: str) -> list[ChatSessionInDB]:
         """Get all sessions for a diagram, ordered by updated_at descending."""
         pass
 
     @abstractmethod
-    async def get_session_by_id(
-        self, session_id: str
-    ) -> Optional[ChatSessionInDB]:
+    async def get_sessions_by_user(self, user_id: str) -> list[ChatSessionInDB]:
+        """Get all sessions for a user, ordered by updated_at descending."""
+        pass
+
+    @abstractmethod
+    async def get_session_by_id(self, session_id: str) -> Optional[ChatSessionInDB]:
         """Get a chat session by its ID."""
         pass
 
     @abstractmethod
-    async def update_session_title(
-        self, session_id: str, title: str
-    ) -> ChatSessionInDB:
+    async def update_session_title(self, session_id: str, title: str) -> ChatSessionInDB:
         """Update the title of a chat session."""
         pass
 
     @abstractmethod
-    async def update_session_status(
-        self, session_id: str, status: str
-    ) -> ChatSessionInDB:
+    async def update_session_status(self, session_id: str, status: str) -> ChatSessionInDB:
         """Update the status of a chat session."""
+        pass
+
+    @abstractmethod
+    async def update_session_summary(self, session_id: str, summary: str) -> ChatSessionInDB:
+        """Update the rolling summary of a chat session."""
+        pass
+
+    @abstractmethod
+    async def update_session_model(self, session: ChatSessionInDB) -> ChatSessionInDB:
+        """Persist a session document with its updated model fields."""
+        pass
+
+    @abstractmethod
+    async def update_session_last_provider(
+        self, session_id: str, provider: str, model: str
+    ) -> ChatSessionInDB:
+        """Update the last provider and model used in a chat session."""
+        pass
+
+    @abstractmethod
+    async def create_child_session(self, session: ChatSessionInDB) -> ChatSessionInDB:
+        """Persist a child session created during context compaction."""
         pass
 
     @abstractmethod
@@ -78,9 +96,12 @@ class IChatMessageRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_recent_messages(
-        self, session_id: str, limit: int = 20
-    ) -> list[ChatMessageInDB]:
+    async def get_message_by_id(self, message_id: str) -> Optional[ChatMessageInDB]:
+        """Get a single message by its ID, or None when not found."""
+        pass
+
+    @abstractmethod
+    async def get_recent_messages(self, session_id: str, limit: int = 20) -> list[ChatMessageInDB]:
         """Get the most recent N messages for a session (for conversation context)."""
         pass
 
@@ -95,9 +116,7 @@ class IChatMessageRepository(ABC):
         pass
 
     @abstractmethod
-    async def update_message_status(
-        self, message_id: str, status: str
-    ) -> ChatMessageInDB:
+    async def update_message_status(self, message_id: str, status: str) -> ChatMessageInDB:
         """Update the improvement status of a message."""
         pass
 

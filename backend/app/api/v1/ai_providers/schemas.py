@@ -1,6 +1,7 @@
 """
 Pydantic schemas for AI providers module.
 """
+
 from datetime import datetime
 from enum import Enum
 from typing import Optional, Dict, Any, List
@@ -10,15 +11,17 @@ from beanie import Document
 
 class AIProviderType(str, Enum):
     """Types of AI providers supported."""
-    GEMINI = "gemini"          # ✅ Implemented
-    OPENAI = "openai"          # 🔜 Future
-    CLAUDE = "claude"          # 🔜 Future
-    DEEPSEEK = "deepseek"      # ✅ Implemented
-    MINIMAX = "minimax"        # ✅ Implemented
+
+    GEMINI = "gemini"  # ✅ Implemented
+    OPENAI = "openai"  # ✅ Implemented
+    CLAUDE = "claude"  # ✅ Implemented
+    DEEPSEEK = "deepseek"  # ✅ Implemented
+    MINIMAX = "minimax"  # ✅ Implemented
 
 
 class AIProviderConfig(BaseModel):
     """Generic configuration for any AI provider."""
+
     provider: AIProviderType
     api_key: Optional[str] = None  # Will be encrypted in DB, None means keep current when updating
     model: str = Field(..., description="Model name (e.g., 'gemini-2.5-flash', 'gpt-4.1-mini')")
@@ -28,7 +31,7 @@ class AIProviderConfig(BaseModel):
     # Extensible parameters per provider
     parameters: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Provider-specific parameters (temperature, max_tokens, etc.)"
+        description="Provider-specific parameters (temperature, max_tokens, etc.)",
     )
 
     # Optional metadata
@@ -39,6 +42,7 @@ class AIProviderConfig(BaseModel):
 
 class UserAISettingsInDB(Document):
     """User AI settings stored in MongoDB."""
+
     user_id: str
     providers: List[AIProviderConfig] = []
     auto_generate_on_save: bool = False
@@ -53,6 +57,7 @@ class UserAISettingsInDB(Document):
 
 class CreateProviderRequest(BaseModel):
     """Request to create a new AI provider configuration."""
+
     provider: AIProviderType
     api_key: str = Field(..., min_length=10, description="API key from the provider")
     model: str = Field(default="gemini-2.5-flash", description="Model to use")
@@ -63,6 +68,7 @@ class CreateProviderRequest(BaseModel):
 
 class UpdateProviderRequest(BaseModel):
     """Request to update an existing AI provider configuration."""
+
     api_key: Optional[str] = Field(None, min_length=10)
     model: Optional[str] = None
     display_name: Optional[str] = None
@@ -73,6 +79,7 @@ class UpdateProviderRequest(BaseModel):
 
 class ProviderResponse(BaseModel):
     """Response with provider information (API key masked)."""
+
     id: str
     provider: AIProviderType
     model: str
@@ -90,6 +97,7 @@ class ProviderResponse(BaseModel):
 
 class TestProviderRequest(BaseModel):
     """Request to test an API key before saving."""
+
     provider: AIProviderType
     api_key: str
     model: str = Field(default="gemini-2.5-flash")
@@ -97,6 +105,7 @@ class TestProviderRequest(BaseModel):
 
 class TestProviderResponse(BaseModel):
     """Response from testing a provider."""
+
     valid: bool
     message: str
     provider_name: Optional[str] = None
@@ -104,21 +113,21 @@ class TestProviderResponse(BaseModel):
 
 class GenerateDescriptionRequest(BaseModel):
     """Request to generate a diagram description."""
+
     diagram_code: str = Field(..., description="Diagram source code")
     diagram_type: str = Field(..., description="Type of diagram (flowchart, sequence, etc.)")
     provider: Optional[AIProviderType] = Field(
-        None,
-        description="Provider to use (uses default if not specified)"
+        None, description="Provider to use (uses default if not specified)"
     )
     language: str = Field(default="es", description="Language for description (es, en)")
     regenerate: bool = Field(
-        default=False,
-        description="Force regeneration even if description exists"
+        default=False, description="Force regeneration even if description exists"
     )
 
 
 class GenerateDescriptionResponse(BaseModel):
     """Response with generated description."""
+
     description: str
     provider_used: AIProviderType
     model_used: str
@@ -128,6 +137,7 @@ class GenerateDescriptionResponse(BaseModel):
 
 class AISettingsResponse(BaseModel):
     """Response with user's AI settings."""
+
     providers: List[ProviderResponse]
     auto_generate_on_save: bool
     default_provider: Optional[AIProviderType]
@@ -136,12 +146,14 @@ class AISettingsResponse(BaseModel):
 
 class UpdateAISettingsRequest(BaseModel):
     """Request to update global AI settings."""
+
     auto_generate_on_save: Optional[bool] = None
     default_provider: Optional[AIProviderType] = None
 
 
 class AIProviderResponse(BaseModel):
     """Response model for AI provider configuration (with masked API key)."""
+
     provider: AIProviderType
     api_key: str  # Masked
     model: str
@@ -158,6 +170,7 @@ class AIProviderResponse(BaseModel):
 
 class UserAISettingsResponse(BaseModel):
     """Response model for user AI settings."""
+
     user_id: str
     providers: List[AIProviderResponse]
     auto_generate_on_save: bool
@@ -171,17 +184,18 @@ class UserAISettingsResponse(BaseModel):
 
 class GenerateDiagramRequest(BaseModel):
     """Request to generate a diagram from a description."""
+
     description: str = Field(..., min_length=10, description="Description of what to diagram")
     diagram_type: str = Field(default="mermaid", description="Type of diagram (mermaid, plantuml)")
     provider: Optional[AIProviderType] = Field(
-        None,
-        description="Provider to use (uses default if not specified)"
+        None, description="Provider to use (uses default if not specified)"
     )
     language: str = Field(default="es", description="Language for the diagram (es, en)")
 
 
 class GenerateDiagramResponse(BaseModel):
     """Response with generated diagram code."""
+
     diagram_code: str
     provider_used: AIProviderType
     model_used: str
@@ -190,18 +204,19 @@ class GenerateDiagramResponse(BaseModel):
 
 class ImproveDiagramRequest(BaseModel):
     """Request to improve an existing diagram."""
+
     diagram_code: str = Field(..., description="Current diagram code")
     improvement_request: str = Field(..., min_length=5, description="What to improve")
     diagram_type: str = Field(..., description="Type of diagram (mermaid, plantuml)")
     provider: Optional[AIProviderType] = Field(
-        None,
-        description="Provider to use (uses default if not specified)"
+        None, description="Provider to use (uses default if not specified)"
     )
     language: str = Field(default="es", description="Language (es, en)")
 
 
 class ImproveDiagramResponse(BaseModel):
     """Response with improved diagram code."""
+
     diagram_code: str
     original_code: str
     improvement_applied: str
@@ -212,6 +227,7 @@ class ImproveDiagramResponse(BaseModel):
 
 class RefineDescriptionRequest(BaseModel):
     """Request to refine an existing diagram description."""
+
     diagram_code: str = Field(..., description="Diagram source code")
     diagram_type: str = Field(..., description="Type of diagram (mermaid, plantuml)")
     current_description: str = Field(..., description="Current description to refine")
@@ -219,14 +235,14 @@ class RefineDescriptionRequest(BaseModel):
         ..., min_length=3, description="What to change in the description"
     )
     provider: Optional[AIProviderType] = Field(
-        None,
-        description="Provider to use (uses default if not specified)"
+        None, description="Provider to use (uses default if not specified)"
     )
     language: str = Field(default="es", description="Language (es, en)")
 
 
 class RefineDescriptionResponse(BaseModel):
     """Response with refined description."""
+
     description: str
     provider_used: AIProviderType
     model_used: str

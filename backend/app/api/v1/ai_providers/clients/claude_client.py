@@ -1,6 +1,7 @@
 """
 Anthropic Claude client implementation.
 """
+
 import json
 import time
 
@@ -22,7 +23,12 @@ from ..prompts import (
 class ClaudeClient(BaseAIClient):
     """Client for Anthropic Claude."""
 
-    def __init__(self, api_key: str, model: str = "claude-haiku-4-5-20251001", parameters: Dict[str, Any] = None):
+    def __init__(
+        self,
+        api_key: str,
+        model: str = "claude-haiku-4-5-20251001",
+        parameters: Dict[str, Any] = None,
+    ):
         super().__init__(api_key, model, parameters or {})
         self.base_url = "https://api.anthropic.com/v1"
         self.headers = {
@@ -30,6 +36,18 @@ class ClaudeClient(BaseAIClient):
             "anthropic-version": "2023-06-01",
             "Content-Type": "application/json",
         }
+
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """
+        Complete a chat request.
+
+        Claude uses a top-level ``system`` field instead of a
+        ``role=system`` message.
+        """
+        return await self._messages_request(
+            [{"role": "user", "content": user_prompt}],
+            system=system_prompt,
+        )
 
     async def _messages_request(
         self,
@@ -39,7 +57,7 @@ class ClaudeClient(BaseAIClient):
         max_tokens: int | None = None,
     ) -> str:
         """Llamada genérica al endpoint /messages de Claude.
-        
+
         Claude usa un campo 'system' de nivel superior en lugar de un mensaje con role=system.
         """
         payload: dict[str, Any] = {
@@ -59,7 +77,9 @@ class ClaudeClient(BaseAIClient):
             )
 
             if response.status_code == 429:
-                raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
+                raise ValueError(
+                    "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
+                )
             if response.status_code != 200:
                 raise ValueError(f"Claude API error: {response.status_code} - {response.text}")
 
@@ -74,9 +94,7 @@ class ClaudeClient(BaseAIClient):
     ) -> str:
         prompt = build_description_prompt(diagram_code, diagram_type, language)
         try:
-            response = await self._messages_request(
-                [{"role": "user", "content": prompt}]
-            )
+            response = await self._messages_request([{"role": "user", "content": prompt}])
             return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("Claude API request timed out")
@@ -106,9 +124,7 @@ class ClaudeClient(BaseAIClient):
     ) -> str:
         prompt = build_generate_diagram_prompt(description, diagram_type, language)
         try:
-            response = await self._messages_request(
-                [{"role": "user", "content": prompt}]
-            )
+            response = await self._messages_request([{"role": "user", "content": prompt}])
             return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("Claude API request timed out")
@@ -122,18 +138,22 @@ class ClaudeClient(BaseAIClient):
         error_context: str | None = None,
         language: str = "es",
     ) -> Dict[str, str]:
-        from ...diagrams.fix_prompts import build_fix_prompt
+        from ..prompts import build_fix_prompt
         from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             is_dbml = diagram_type.lower() == "dbml"
             system_msg = (
-                "You are an expert in fixing syntax errors in DBML diagrams. "
-                "Respond using the exact delimiter format requested."
-            ) if is_dbml else (
-                "You are an expert in fixing syntax errors in technical diagrams. "
-                "Always respond with valid JSON only, no markdown fences or extra text."
+                (
+                    "You are an expert in fixing syntax errors in DBML diagrams. "
+                    "Respond using the exact delimiter format requested."
+                )
+                if is_dbml
+                else (
+                    "You are an expert in fixing syntax errors in technical diagrams. "
+                    "Always respond with valid JSON only, no markdown fences or extra text."
+                )
             )
 
             response_text = await self._messages_request(
@@ -161,11 +181,11 @@ class ClaudeClient(BaseAIClient):
         diagram_type: str,
         language: str = "es",
     ) -> str:
-        prompt = build_improve_diagram_prompt(diagram_code, improvement_request, diagram_type, language)
+        prompt = build_improve_diagram_prompt(
+            diagram_code, improvement_request, diagram_type, language
+        )
         try:
-            response = await self._messages_request(
-                [{"role": "user", "content": prompt}]
-            )
+            response = await self._messages_request([{"role": "user", "content": prompt}])
             return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("Claude API request timed out")
@@ -189,9 +209,7 @@ class ClaudeClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error in chat with Claude: {str(e)}")
 
-    async def summarize_conversation(
-        self, messages: list[dict], language: str = "es"
-    ) -> str:
+    async def summarize_conversation(self, messages: list[dict], language: str = "es") -> str:
         user_prompt = build_summarize_prompt(messages, language)
         try:
             return await self._messages_request(
@@ -244,9 +262,7 @@ class ClaudeClient(BaseAIClient):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(120.0, connect=10.0)
-            ) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
                     f"{self.base_url}/messages",
@@ -258,16 +274,13 @@ class ClaudeClient(BaseAIClient):
                             "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
                         )
                     if response.status_code != 200:
-                        raise ValueError(
-                            f"Claude API error: {response.status_code}"
-                        )
+                        raise ValueError(f"Claude API error: {response.status_code}")
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():
                         if time.time() - last_token_time > 60:
                             raise ValueError(
-                                f"{self.provider_name} stream timeout: "
-                                "no token received in 60s"
+                                f"{self.provider_name} stream timeout: " "no token received in 60s"
                             )
 
                         if not line.startswith("data: "):
@@ -291,18 +304,14 @@ class ClaudeClient(BaseAIClient):
                             error_msg = event_data.get("error", {}).get(
                                 "message", "Unknown Claude stream error"
                             )
-                            raise ValueError(
-                                f"Claude stream error: {error_msg}"
-                            )
+                            raise ValueError(f"Claude stream error: {error_msg}")
 
         except httpx.TimeoutException:
             raise ValueError(f"{self.provider_name} API streaming request timed out")
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Error in streaming chat with {self.provider_name}: {str(e)}"
-            )
+            raise ValueError(f"Error in streaming chat with {self.provider_name}: {str(e)}")
 
     @property
     def provider_name(self) -> str:

@@ -1,19 +1,23 @@
 """
 Concrete implementation of prompt history repository.
 """
+
 from datetime import datetime, timezone
 from typing import Optional
 
 from beanie import PydanticObjectId
 
 from .interfaces import IPromptHistoryRepository
-from .schemas import PromptHistoryInDB, compute_prompt_hash
+from .schemas import PromptHistoryInDB
+from .services import compute_prompt_hash
 
 
 class PromptHistoryRepository(IPromptHistoryRepository):
     """MongoDB implementation of prompt history repository using Beanie."""
 
-    async def upsert(self, user_id: str, prompt_text: str, operation_type: str, diagram_id: str | None = None) -> PromptHistoryInDB:
+    async def upsert(
+        self, user_id: str, prompt_text: str, operation_type: str, diagram_id: str | None = None
+    ) -> PromptHistoryInDB:
         """Insert or update a prompt history entry (deduplication by hash + diagram)."""
         prompt_hash = compute_prompt_hash(prompt_text)
         query = {
@@ -53,15 +57,13 @@ class PromptHistoryRepository(IPromptHistoryRepository):
             query["prompt_text"] = {"$regex": search, "$options": "i"}
 
         entries = (
-            await PromptHistoryInDB.find(query)
-            .sort("-used_at")
-            .skip(skip)
-            .limit(limit)
-            .to_list()
+            await PromptHistoryInDB.find(query).sort("-used_at").skip(skip).limit(limit).to_list()
         )
         return entries
 
-    async def count_by_user(self, user_id: str, search: str | None, diagram_id: str | None = None) -> int:
+    async def count_by_user(
+        self, user_id: str, search: str | None, diagram_id: str | None = None
+    ) -> int:
         """Count prompt history entries for a user with optional search and diagram filter."""
         query: dict = {"user_id": user_id}
         if diagram_id:
@@ -86,3 +88,8 @@ class PromptHistoryRepository(IPromptHistoryRepository):
 
         await entry.delete()
         return True
+
+    async def delete_by_user_id(self, user_id: str) -> int:
+        """Delete all prompt history entries for a user."""
+        result = await PromptHistoryInDB.find(PromptHistoryInDB.user_id == user_id).delete()
+        return result.deleted_count

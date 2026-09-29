@@ -2,6 +2,7 @@
 Abstract interfaces for shared link repository.
 Follows the Dependency Inversion Principle (SOLID).
 """
+
 from abc import ABC, abstractmethod
 from typing import Optional
 
@@ -25,6 +26,11 @@ class ISharedLinkRepository(ABC):
     @abstractmethod
     async def get_by_token(self, token: str) -> Optional[SharedLinkInDB]:
         """Get shared link by token."""
+        pass
+
+    @abstractmethod
+    async def get_by_id(self, link_id: str) -> Optional[SharedLinkInDB]:
+        """Get shared link by ID."""
         pass
 
     @abstractmethod

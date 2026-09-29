@@ -4,12 +4,14 @@ MFA API routes for multi-factor authentication management.
 Endpoints cover TOTP and email MFA setup, verification during login,
 recovery codes, method switching, and status queries.
 """
+
 import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from jose import JWTError
 
+from app.api.v1.mfa.admin_service import MfaAdminService
 from app.api.v1.mfa.repository import MfaRepository
 from app.api.v1.mfa.schemas import (
     MfaDisableRequest,
@@ -25,11 +27,10 @@ from app.api.v1.mfa.schemas import (
     RecoveryCodesResponse,
 )
 from app.api.v1.mfa.services import MfaService
-from app.api.v1.ai_providers.repository import AIProviderRepository
+from app.api.v1.users.email_templates import build_mfa_email_html
 from app.api.v1.users.routes import get_current_user_email
-from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserInDB
-from app.core.security import create_access_token, decode_mfa_temp_token
+from app.core.security import decode_mfa_temp_token
 
 logger = logging.getLogger(__name__)
 
@@ -41,85 +42,16 @@ def _get_mfa_service() -> MfaService:
     return MfaService(MfaRepository())
 
 
+def _get_mfa_admin_service() -> MfaAdminService:
+    """Dependency injection for the MFA admin service."""
+    return MfaAdminService(MfaRepository())
+
+
 def _extract_lang(accept_language: str = Header(default="es", alias="Accept-Language")) -> str:
     """Extract the preferred language from the Accept-Language header."""
     if "en" in accept_language.lower():
         return "en"
     return "es"
-
-
-# ---------------------------------------------------------------------------
-# Helper: build MFA email HTML (same template used in users/routes.py login)
-# ---------------------------------------------------------------------------
-
-def _build_mfa_email_html(code: str, lang: str = "es") -> str:
-    """Return an HTML email template for the MFA verification code."""
-    if lang == "en":
-        title = "Verification code"
-        body = (
-            "Use the following code to complete your sign in. "
-            "This code expires in <strong>10 minutes</strong>."
-        )
-        footer_note = "If you did not try to sign in, you can ignore this email."
-        copyright_text = "&copy; DiagramaHub. All rights reserved."
-    else:
-        title = "Código de verificación"
-        body = (
-            "Usa el siguiente código para completar tu inicio de sesión. "
-            "Este código expira en <strong>10 minutos</strong>."
-        )
-        footer_note = "Si no intentaste iniciar sesión, puedes ignorar este correo."
-        copyright_text = "&copy; DiagramaHub. Todos los derechos reservados."
-
-    return f"""\
-<!DOCTYPE html>
-<html lang="{lang}">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-          <tr>
-            <td style="background:linear-gradient(135deg,#7c3aed 0%,#a855f7 50%,#9333ea 100%);padding:28px 40px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">DiagramaHub</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:36px 40px 20px;">
-              <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;font-weight:600;">{title}</h2>
-              <p style="margin:0 0 24px;color:#51545e;font-size:15px;line-height:1.6;">
-                {body}
-              </p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center" style="padding:8px 0 28px;">
-                    <span style="display:inline-block;background-color:#faf5ff;color:#7c3aed;font-size:32px;font-weight:700;letter-spacing:8px;padding:16px 32px;border-radius:8px;border:1px solid #e9d5ff;">
-                      {code}
-                    </span>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:0;color:#9b9ba5;font-size:13px;line-height:1.5;">
-                {footer_note}
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 40px 28px;border-top:1px solid #eaeaec;text-align:center;">
-              <p style="margin:0;color:#9b9ba5;font-size:12px;">{copyright_text}</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>"""
 
 
 async def _send_mfa_email(email: str, code: str, lang: str = "es") -> None:
@@ -133,12 +65,15 @@ async def _send_mfa_email(email: str, code: str, lang: str = "es") -> None:
         else "Tu código de verificación MFA — DiagramaHub"
     )
     try:
+        # TODO(integration-pass): EmailService is constructed with a concrete
+        # IntegrationsRepository here. Move this into a dedicated email
+        # notification service that depends on interfaces only.
         from app.api.v1.integrations.email_service import EmailService
         from app.api.v1.integrations.repository import IntegrationsRepository
 
         email_service = EmailService(IntegrationsRepository())
         vendor = await email_service.get_default_email_vendor()
-        html_content = _build_mfa_email_html(code, lang)
+        html_content = build_mfa_email_html(code, lang)
         await vendor.send_email(to=email, subject=subject, html_content=html_content)
     except Exception:
         logger.warning("Failed to send MFA email code to %s", email)
@@ -230,9 +165,7 @@ async def enable_totp(
     # second method (when unused codes already exist) is audited too.
     from app.api.v1.users.audit_log import log_event, EVENT_MFA_ENABLED
 
-    await log_event(
-        EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: totp"
-    )
+    await log_event(EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: totp")
 
     if result["recovery_codes"] is None:
         return {"message": "TOTP MFA activado exitosamente", "codes": None}
@@ -274,9 +207,7 @@ async def verify_email_activation(
     # recovery codes were issued for it.
     from app.api.v1.users.audit_log import log_event, EVENT_MFA_ENABLED
 
-    await log_event(
-        EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: email"
-    )
+    await log_event(EVENT_MFA_ENABLED, user.email, user_id=str(user.id), details="method: email")
 
     if result["recovery_codes"] is None:
         return {"message": "Email MFA activado exitosamente", "codes": None}
@@ -384,84 +315,12 @@ async def verify_mfa(
             headers={"Retry-After": str(retry_after)},
         )
 
-    # Decode the temporary MFA token
-    try:
-        payload = decode_mfa_temp_token(request.mfa_token)
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token de verificación MFA inválido o expirado. Inicie sesión nuevamente",
-        )
-
-    email: str = payload.get("sub", "")
-    attempt_count: int = payload.get("attempt_count", 0)
-    available_methods: list[str] = payload.get("available_methods", [])
-
-    # Check attempt limit (max 5)
-    if attempt_count >= 5:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Máximo de intentos alcanzado. Inicie sesión nuevamente",
-        )
-
-    # Get user from DB
-    user = await _get_user_by_email(email)
-    user_id = str(user.id)
-
-    # Determine the method to use
-    method = request.method or payload.get("mfa_default_method")
-
-    is_valid = False
-    recovery_warning = None
-
-    if request.is_recovery_code:
-        is_valid = await mfa_service.verify_recovery_code(user_id, request.code)
-        if is_valid:
-            # Check remaining recovery codes
-            mfa_status = await mfa_service.get_mfa_status(user_id)
-            remaining = mfa_status.get("recovery_codes_remaining", 0)
-            if remaining == 0:
-                recovery_warning = (
-                    "Has utilizado tu último código de recuperación. "
-                    "Te recomendamos generar nuevos códigos desde la configuración de seguridad."
-                )
-    else:
-        if method not in available_methods:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El método MFA solicitado no está activo",
-            )
-        is_valid = await mfa_service.verify_mfa_code(user_id, request.code, method)
-
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Código MFA inválido",
-        )
-
-    # Issue full access token with 5-day expiry (MFA enabled)
-    from app.api.v1.users.audit_log import log_event, EVENT_LOGIN_MFA_VERIFIED, EVENT_MFA_RECOVERY_USED
-    if request.is_recovery_code:
-        await log_event(EVENT_MFA_RECOVERY_USED, email, user_id=user_id)
-    else:
-        await log_event(EVENT_LOGIN_MFA_VERIFIED, email, user_id=user_id, details=f"method={method}")
-
-    access_token = create_access_token(
-        email,
-        mfa_enabled=True,
-        password_changed_at=user.password_changed_at,
+    return await mfa_service.verify_login_mfa(
+        mfa_token=request.mfa_token,
+        code=request.code,
+        method=request.method,
+        is_recovery_code=request.is_recovery_code,
     )
-
-    await UserRepository().update_last_login(user_id)
-
-    response: dict = {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
-    if recovery_warning:
-        response["recovery_warning"] = recovery_warning
-
-    return response
 
 
 @router.post("/switch-method")
@@ -554,13 +413,16 @@ async def _require_admin(email: str) -> UserInDB:
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
     if user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acceso restringido a administradores")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Acceso restringido a administradores"
+        )
     return user
 
 
 @router.get("/admin/users")
 async def admin_list_users(
     current_user_email: Annotated[str, Depends(get_current_user_email)],
+    admin_service: Annotated[MfaAdminService, Depends(_get_mfa_admin_service)],
     page: int = 1,
     page_size: int = 20,
     search: str = "",
@@ -568,313 +430,35 @@ async def admin_list_users(
     """List users with MFA status. Admin only. Supports pagination and search."""
     await _require_admin(current_user_email)
 
-    # Build query
-    query = UserInDB.find()
-    if search:
-        import re
-        pattern = re.compile(re.escape(search), re.IGNORECASE)
-        query = UserInDB.find(
-            {"$or": [{"email": pattern}, {"full_name": pattern}]}
-        )
-
-    total = await query.count()
-
-    skip = (page - 1) * page_size
-    users = await query.skip(skip).limit(page_size).sort("-created_at").to_list()
-
-    project_counts_by_user: dict[str, int] = {}
-    diagram_counts_by_user: dict[str, int] = {}
-    diagram_type_counts_by_user: dict[str, dict[str, int]] = {}
-    try:
-        from app.api.v1.projects.schemas import ProjectInDB
-        from app.api.v1.diagrams.schemas import DiagramInDB
-
-        user_ids = [str(user.id) for user in users]
-        projects = await ProjectInDB.find({"user_id": {"$in": user_ids}}).to_list()
-        project_owner_by_id = {str(project.id): project.user_id for project in projects}
-
-        for project in projects:
-            project_counts_by_user[project.user_id] = project_counts_by_user.get(project.user_id, 0) + 1
-
-        if project_owner_by_id:
-            pipeline = [
-                {"$match": {"project_id": {"$in": list(project_owner_by_id)}}},
-                {
-                    "$group": {
-                        "_id": {"project_id": "$project_id", "diagram_type": "$diagram_type"},
-                        "count": {"$sum": 1},
-                    }
-                },
-            ]
-            grouped_diagrams = await DiagramInDB.get_motor_collection().aggregate(pipeline).to_list(None)
-
-            for group in grouped_diagrams:
-                project_id = group["_id"]["project_id"]
-                user_id = project_owner_by_id[project_id]
-                diagram_type = str(group["_id"].get("diagram_type") or "unknown").lower()
-                count = group["count"]
-                diagram_counts_by_user[user_id] = diagram_counts_by_user.get(user_id, 0) + count
-                type_counts = diagram_type_counts_by_user.setdefault(user_id, {})
-                type_counts[diagram_type] = type_counts.get(diagram_type, 0) + count
-    except Exception:
-        logger.exception("Failed to aggregate admin user diagram counts")
-
-    items = []
-    for u in users:
-        unused_codes = sum(
-            1 for c in u.recovery_codes
-            if not (c.used if hasattr(c, "used") else c.get("used", False))
-        )
-        last_login_at = u.last_login_at.isoformat() if u.last_login_at else None
-
-        # Fetch subscription & plan name
-        plan_name = None
-        try:
-            from app.api.v1.subscriptions.schemas import SubscriptionInDB, PlanInDB
-            sub = await SubscriptionInDB.find_one(
-                SubscriptionInDB.user_id == str(u.id),
-                SubscriptionInDB.status == "active",
-            )
-            if sub:
-                plan = await PlanInDB.get(sub.plan_id)
-                if plan:
-                    plan_name = plan.name
-        except Exception:
-            pass
-
-        connected_ai_models = []
-        try:
-            ai_repo = AIProviderRepository()
-            ai_settings = await ai_repo.get_user_settings(str(u.id))
-            if ai_settings and ai_settings.providers:
-                for provider in ai_settings.providers:
-                    if not provider.is_active:
-                        continue
-                    provider_name = (
-                        provider.provider.value
-                        if hasattr(provider.provider, "value")
-                        else provider.provider
-                    )
-                    connected_ai_models.append(
-                        {
-                            "provider": provider_name,
-                            "model": provider.model,
-                            "is_default": provider.is_default,
-                            "is_active": provider.is_active,
-                            "display_name": provider.display_name,
-                        }
-                    )
-        except Exception:
-            pass
-
-        user_id = str(u.id)
-        project_count = project_counts_by_user.get(user_id, 0)
-        diagram_count = diagram_counts_by_user.get(user_id, 0)
-        diagram_type_counts = diagram_type_counts_by_user.get(user_id, {})
-
-        items.append({
-            "id": str(u.id),
-            "email": u.email,
-            "full_name": u.full_name,
-            "role": u.role,
-            "is_active": u.is_active,
-            "mfa_enabled": u.mfa_enabled,
-            "mfa_methods": u.mfa_methods,
-            "mfa_default_method": u.mfa_default_method,
-            "recovery_codes_remaining": unused_codes,
-            "created_at": u.created_at.isoformat() if u.created_at else None,
-            "plan_name": plan_name,
-            "project_count": project_count,
-            "diagram_count": diagram_count,
-            "diagram_type_counts": diagram_type_counts,
-            "connected_ai_models": connected_ai_models,
-            "last_login_at": last_login_at,
-        })
-
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": (total + page_size - 1) // page_size,
-    }
+    return await admin_service.list_users(page=page, page_size=page_size, search=search)
 
 
 @router.post("/admin/users/{user_id}/reset-mfa")
 async def admin_reset_user_mfa(
     user_id: str,
     current_user_email: Annotated[str, Depends(get_current_user_email)],
-    mfa_service: Annotated[MfaService, Depends(_get_mfa_service)],
+    admin_service: Annotated[MfaAdminService, Depends(_get_mfa_admin_service)],
 ) -> dict:
     """Reset (disable) all MFA methods for a user. Admin only."""
     admin = await _require_admin(current_user_email)
 
-    from bson import ObjectId
-
-    target_user = await UserInDB.get(ObjectId(user_id))
-    if not target_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-
-    if not target_user.mfa_enabled:
-        return {"message": "El usuario no tiene MFA habilitado"}
-
-    # Disable all methods
-    for method in list(target_user.mfa_methods):
-        await mfa_service.repository.disable_mfa(user_id, method)
-
-    logger.info(
-        "Admin %s reset MFA for user %s (%s)",
-        admin.email,
-        target_user.email,
-        user_id,
-    )
-
-    # Audit log
-    from app.api.v1.users.audit_log import log_event, EVENT_ADMIN_MFA_RESET
-    await log_event(
-        EVENT_ADMIN_MFA_RESET,
-        target_user.email,
-        user_id=user_id,
-        details=f"reset_by={admin.email}",
-    )
-
-    return {"message": f"MFA desactivado para {target_user.email}"}
+    return await admin_service.reset_user_mfa(user_id=user_id, admin_email=admin.email)
 
 
 @router.get("/admin/users/export")
 async def admin_export_users_excel(
     current_user_email: Annotated[str, Depends(get_current_user_email)],
     lang: Annotated[str, Depends(_extract_lang)],
+    admin_service: Annotated[MfaAdminService, Depends(_get_mfa_admin_service)],
 ):
     """Export all users to an Excel file. Admin only."""
     await _require_admin(current_user_email)
 
-    import io
     from datetime import datetime
 
     from fastapi.responses import StreamingResponse
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
-    users = await UserInDB.find_all().sort("-created_at").to_list()
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Users" if lang == "en" else "Usuarios"
-
-    # Headers
-    if lang == "en":
-        headers = [
-            "Email", "Full Name", "Role", "Plan", "License Usage", "Active", "MFA Enabled",
-            "MFA Methods", "Default Method", "Recovery Codes Remaining",
-            "Created At",
-        ]
-    else:
-        headers = [
-            "Correo", "Nombre completo", "Rol", "Plan", "Uso de licencia", "Activo", "MFA Habilitado",
-            "Métodos MFA", "Método predeterminado", "Códigos de recuperación",
-            "Fecha de registro",
-        ]
-
-    # Style
-    header_font = Font(bold=True, color="FFFFFF", size=11)
-    header_fill = PatternFill(start_color="7C3AED", end_color="7C3AED", fill_type="solid")
-    header_alignment = Alignment(horizontal="center", vertical="center")
-    thin_border = Border(
-        bottom=Side(style="thin", color="E5E7EB"),
-    )
-
-    for col_idx, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = header_alignment
-
-    # Data rows
-    for row_idx, u in enumerate(users, 2):
-        unused_codes = sum(
-            1 for c in u.recovery_codes
-            if not (c.used if hasattr(c, "used") else c.get("used", False))
-        )
-        methods_str = ", ".join(
-            ("Email" if m == "email" else "TOTP") for m in u.mfa_methods
-        )
-        default_str = ""
-        if u.mfa_default_method:
-            default_str = "Email" if u.mfa_default_method == "email" else "TOTP"
-        created_str = u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else ""
-
-        # Fetch plan name
-        plan_name = ""
-        try:
-            from app.api.v1.subscriptions.schemas import SubscriptionInDB, PlanInDB
-            sub = await SubscriptionInDB.find_one(
-                SubscriptionInDB.user_id == str(u.id),
-                SubscriptionInDB.status == "active",
-            )
-            if sub:
-                plan = await PlanInDB.get(sub.plan_id)
-                if plan:
-                    plan_name = plan.name
-        except Exception:
-            pass
-
-        # Count projects and diagrams
-        project_count = 0
-        diagram_count = 0
-        try:
-            from app.api.v1.projects.schemas import ProjectInDB
-            from app.api.v1.diagrams.schemas import DiagramInDB
-            user_projects = await ProjectInDB.find(
-                ProjectInDB.user_id == str(u.id)
-            ).to_list()
-            if user_projects:
-                project_count = len(user_projects)
-                project_ids = [str(p.id) for p in user_projects]
-                diagram_count = await DiagramInDB.find(
-                    {"project_id": {"$in": project_ids}}
-                ).count()
-        except Exception:
-            pass
-
-        yes = "Yes" if lang == "en" else "Sí"
-        no = "No"
-        project_label = "project" if project_count == 1 else "projects"
-        diagram_label = "diagram" if diagram_count == 1 else "diagrams"
-        if lang != "en":
-            project_label = "proyecto" if project_count == 1 else "proyectos"
-            diagram_label = "diagrama" if diagram_count == 1 else "diagramas"
-
-        row_data = [
-            u.email,
-            u.full_name or "",
-            u.role,
-            plan_name,
-            f"{project_count} {project_label} / {diagram_count} {diagram_label}",
-            yes if u.is_active else no,
-            yes if u.mfa_enabled else no,
-            methods_str,
-            default_str,
-            unused_codes,
-            created_str,
-        ]
-        for col_idx, value in enumerate(row_data, 1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=value)
-            cell.border = thin_border
-
-    # Auto-width columns
-    for col in ws.columns:
-        max_length = 0
-        col_letter = col[0].column_letter
-        for cell in col:
-            if cell.value:
-                max_length = max(max_length, len(str(cell.value)))
-        ws.column_dimensions[col_letter].width = min(max_length + 4, 40)
-
-    # Write to buffer
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
+    buffer = await admin_service.export_users_excel(lang)
 
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
     filename = f"diagramahub_users_{timestamp}.xlsx"

@@ -176,6 +176,9 @@ class TestStreamingServiceDetection:
             async def chat_with_context(self, *a, **kw):
                 return "response"
 
+            async def complete(self, *a, **kw):
+                return "response"
+
             async def summarize_conversation(self, *a, **kw):
                 return "summary"
 

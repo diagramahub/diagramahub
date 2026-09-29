@@ -1,15 +1,10 @@
 """
 Abstract interfaces for AI providers repository.
 """
+
 from abc import ABC, abstractmethod
-from typing import Optional, List
-from .schemas import (
-    AIProviderConfig,
-    UserAISettingsInDB,
-    CreateProviderRequest,
-    UpdateProviderRequest,
-    AIProviderType
-)
+from typing import Optional
+from .schemas import AIProviderConfig, UserAISettingsInDB, AIProviderType
 
 
 class IAIProviderRepository(ABC):
@@ -42,10 +37,13 @@ class IAIProviderRepository(ABC):
         pass
 
     @abstractmethod
+    async def delete_by_user_id(self, user_id: str) -> int:
+        """Delete AI settings for a user. Returns the number deleted."""
+        pass
+
+    @abstractmethod
     async def add_provider(
-        self,
-        user_id: str,
-        provider_data: AIProviderConfig
+        self, user_id: str, provider_data: AIProviderConfig
     ) -> UserAISettingsInDB:
         """
         Add a new AI provider configuration.
@@ -61,10 +59,7 @@ class IAIProviderRepository(ABC):
 
     @abstractmethod
     async def update_provider(
-        self,
-        user_id: str,
-        provider_index: int,
-        provider_data: AIProviderConfig
+        self, user_id: str, provider_index: int, provider_data: AIProviderConfig
     ) -> UserAISettingsInDB:
         """
         Update existing provider configuration.
@@ -80,11 +75,7 @@ class IAIProviderRepository(ABC):
         pass
 
     @abstractmethod
-    async def remove_provider(
-        self,
-        user_id: str,
-        provider_index: int
-    ) -> UserAISettingsInDB:
+    async def remove_provider(self, user_id: str, provider_index: int) -> UserAISettingsInDB:
         """
         Remove a provider configuration.
 
@@ -99,9 +90,7 @@ class IAIProviderRepository(ABC):
 
     @abstractmethod
     async def set_default_provider(
-        self,
-        user_id: str,
-        provider: AIProviderType
+        self, user_id: str, provider: AIProviderType
     ) -> UserAISettingsInDB:
         """
         Set default provider for user.
@@ -117,9 +106,7 @@ class IAIProviderRepository(ABC):
 
     @abstractmethod
     async def get_active_provider(
-        self,
-        user_id: str,
-        provider_type: Optional[AIProviderType] = None
+        self, user_id: str, provider_type: Optional[AIProviderType] = None
     ) -> Optional[AIProviderConfig]:
         """
         Get active provider configuration.

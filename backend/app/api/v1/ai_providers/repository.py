@@ -1,15 +1,11 @@
 """
 MongoDB repository implementation for AI providers using Beanie.
 """
+
 from typing import Optional
 from datetime import datetime
-from beanie import PydanticObjectId
 from .interfaces import IAIProviderRepository
-from .schemas import (
-    AIProviderConfig,
-    UserAISettingsInDB,
-    AIProviderType
-)
+from .schemas import AIProviderConfig, UserAISettingsInDB, AIProviderType
 from app.core.security import encrypt_api_key, decrypt_api_key
 
 
@@ -18,9 +14,7 @@ class AIProviderRepository(IAIProviderRepository):
 
     async def get_user_settings(self, user_id: str) -> Optional[UserAISettingsInDB]:
         """Get user's AI settings."""
-        settings = await UserAISettingsInDB.find_one(
-            UserAISettingsInDB.user_id == user_id
-        )
+        settings = await UserAISettingsInDB.find_one(UserAISettingsInDB.user_id == user_id)
         return settings
 
     async def create_user_settings(self, user_id: str) -> UserAISettingsInDB:
@@ -31,15 +25,18 @@ class AIProviderRepository(IAIProviderRepository):
             auto_generate_on_save=False,
             default_provider=None,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
         await settings.insert()
         return settings
 
+    async def delete_by_user_id(self, user_id: str) -> int:
+        """Delete AI settings for a user."""
+        result = await UserAISettingsInDB.find(UserAISettingsInDB.user_id == user_id).delete()
+        return result.deleted_count
+
     async def add_provider(
-        self,
-        user_id: str,
-        provider_data: AIProviderConfig
+        self, user_id: str, provider_data: AIProviderConfig
     ) -> UserAISettingsInDB:
         """Add a new AI provider configuration."""
         # Get or create user settings
@@ -68,10 +65,7 @@ class AIProviderRepository(IAIProviderRepository):
         return settings
 
     async def update_provider(
-        self,
-        user_id: str,
-        provider_index: int,
-        provider_data: AIProviderConfig
+        self, user_id: str, provider_index: int, provider_data: AIProviderConfig
     ) -> UserAISettingsInDB:
         """Update existing provider configuration."""
         settings = await self.get_user_settings(user_id)
@@ -105,11 +99,7 @@ class AIProviderRepository(IAIProviderRepository):
 
         return settings
 
-    async def remove_provider(
-        self,
-        user_id: str,
-        provider_index: int
-    ) -> UserAISettingsInDB:
+    async def remove_provider(self, user_id: str, provider_index: int) -> UserAISettingsInDB:
         """Remove a provider configuration."""
         settings = await self.get_user_settings(user_id)
         if not settings or provider_index >= len(settings.providers):
@@ -130,9 +120,7 @@ class AIProviderRepository(IAIProviderRepository):
         return settings
 
     async def set_default_provider(
-        self,
-        user_id: str,
-        provider: AIProviderType
+        self, user_id: str, provider: AIProviderType
     ) -> UserAISettingsInDB:
         """Set default provider for user."""
         settings = await self.get_user_settings(user_id)
@@ -158,9 +146,7 @@ class AIProviderRepository(IAIProviderRepository):
         return settings
 
     async def get_active_provider(
-        self,
-        user_id: str,
-        provider_type: Optional[AIProviderType] = None
+        self, user_id: str, provider_type: Optional[AIProviderType] = None
     ) -> Optional[AIProviderConfig]:
         """
         Get active provider configuration.

@@ -4,12 +4,13 @@ Public OAuth routes for social login.
 All endpoints are public (no authentication required) since they handle
 the OAuth authorization flow before the user is authenticated.
 """
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.v1.integrations.repository import IntegrationsRepository
-from app.api.v1.shared_links.rate_limiter import InMemoryRateLimiter
+from app.core.rate_limit import SlidingWindowRateLimiter
 
 from .schemas import (
     ActiveProviderResponse,
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
 # Singleton rate limiter: 10 callback attempts per minute per IP
-_callback_rate_limiter = InMemoryRateLimiter(max_requests=10, window_seconds=60)
+_callback_rate_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=60)
 
 
 # ── Dependencies ─────────────────────────────────────────────────────
@@ -34,21 +35,20 @@ def get_oauth_service() -> OAuthService:
     return OAuthService(integrations_repo=IntegrationsRepository())
 
 
-def get_callback_rate_limiter() -> InMemoryRateLimiter:
+def get_callback_rate_limiter() -> SlidingWindowRateLimiter:
     """Get the callback rate limiter instance."""
     return _callback_rate_limiter
 
 
 async def _enforce_callback_rate_limit(
     request: Request,
-    limiter: InMemoryRateLimiter = Depends(get_callback_rate_limiter),
+    limiter: SlidingWindowRateLimiter = Depends(get_callback_rate_limiter),
 ) -> None:
     """Enforce rate limiting on the OAuth callback endpoint."""
     client_ip = request.client.host if request.client else "unknown"
-    if not limiter.is_allowed(client_ip):
-        logger.warning(
-            "Rate limit exceeded for OAuth callback from IP"
-        )
+    allowed, _ = limiter.is_allowed(client_ip)
+    if not allowed:
+        logger.warning("Rate limit exceeded for OAuth callback from IP %s", client_ip)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many authentication attempts",

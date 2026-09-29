@@ -2,6 +2,7 @@
 Google Gemini AI client implementation.
 Usa el nuevo SDK google-genai (reemplaza al deprecado google-generativeai).
 """
+
 import time
 
 from google import genai
@@ -22,11 +23,15 @@ from ..prompts import (
 class GeminiClient(BaseAIClient):
     """Client for Google Gemini AI."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-lite", parameters: Dict[str, Any] = None):
+    def __init__(
+        self, api_key: str, model: str = "gemini-2.0-flash-lite", parameters: Dict[str, Any] = None
+    ):
         super().__init__(api_key, model, parameters or {})
         self.client = genai.Client(api_key=self.api_key)
 
-    def _gen_config(self, temperature: float | None = None, max_tokens: int | None = None) -> types.GenerateContentConfig:
+    def _gen_config(
+        self, temperature: float | None = None, max_tokens: int | None = None
+    ) -> types.GenerateContentConfig:
         """Configuracion de generacion reutilizable."""
         return types.GenerateContentConfig(
             temperature=temperature or self.parameters.get("temperature", 0.7),
@@ -34,7 +39,18 @@ class GeminiClient(BaseAIClient):
             max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 4096),
         )
 
-    async def _generate(self, prompt: str, temperature: float | None = None, max_tokens: int | None = None) -> str:
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """
+        Complete a chat request.
+
+        Gemini receives a single combined prompt; the system prompt is not
+        sent separately to preserve the existing prompt format.
+        """
+        return await self._generate(user_prompt)
+
+    async def _generate(
+        self, prompt: str, temperature: float | None = None, max_tokens: int | None = None
+    ) -> str:
         """Llamada generica async a generate_content de Gemini."""
         response = await self.client.aio.models.generate_content(
             model=self.model,
@@ -78,7 +94,7 @@ class GeminiClient(BaseAIClient):
         error_context: str | None = None,
         language: str = "es",
     ) -> Dict[str, str]:
-        from ...diagrams.fix_prompts import build_fix_prompt
+        from ..prompts import build_fix_prompt
         from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
@@ -102,7 +118,9 @@ class GeminiClient(BaseAIClient):
         diagram_type: str,
         language: str = "es",
     ) -> str:
-        prompt = build_improve_diagram_prompt(diagram_code, improvement_request, diagram_type, language)
+        prompt = build_improve_diagram_prompt(
+            diagram_code, improvement_request, diagram_type, language
+        )
         try:
             return clean_code_response(await self._generate(prompt))
         except Exception as e:
@@ -137,9 +155,7 @@ class GeminiClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error in chat with Gemini: {str(e)}")
 
-    async def summarize_conversation(
-        self, messages: list[dict], language: str = "es"
-    ) -> str:
+    async def summarize_conversation(self, messages: list[dict], language: str = "es") -> str:
         prompt = build_summarize_prompt(messages, language)
         try:
             return await self._generate(prompt, temperature=0.5, max_tokens=1024)
@@ -204,9 +220,7 @@ class GeminiClient(BaseAIClient):
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Error in streaming chat with {self.provider_name}: {str(e)}"
-            )
+            raise ValueError(f"Error in streaming chat with {self.provider_name}: {str(e)}")
 
     @property
     def provider_name(self) -> str:

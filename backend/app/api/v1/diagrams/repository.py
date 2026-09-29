@@ -1,6 +1,7 @@
 """
 Concrete implementation of diagram repository.
 """
+
 from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
@@ -22,7 +23,7 @@ class DiagramRepository(IDiagramRepository):
             project_id=project_id,
             folder_id=diagram_data.folder_id,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
         await diagram.insert()
         return diagram
@@ -46,7 +47,7 @@ class DiagramRepository(IDiagramRepository):
             viewport_x=0.0,
             viewport_y=0.0,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
         await diagram.insert()
         return diagram
@@ -70,9 +71,11 @@ class DiagramRepository(IDiagramRepository):
 
     async def get_without_folder(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams without a folder for a project."""
+        # NOTE: ``== None`` is required here — beanie's query DSL overloads
+        # equality into a Mongo expression, while ``is None`` would evaluate to
+        # a Python bool at call time and break the query builder.
         diagrams = await DiagramInDB.find(
-            DiagramInDB.project_id == project_id,
-            DiagramInDB.folder_id == None
+            DiagramInDB.project_id == project_id, DiagramInDB.folder_id == None  # noqa: E711
         ).to_list()
         return diagrams
 
@@ -112,3 +115,20 @@ class DiagramRepository(IDiagramRepository):
 
         await diagram.delete()
         return True
+
+    async def delete_by_project_id(self, project_id: str) -> int:
+        """Delete all diagrams for a project."""
+        result = await DiagramInDB.find(DiagramInDB.project_id == project_id).delete()
+        return result.deleted_count if result else 0
+
+    async def delete_by_folder_id(self, folder_id: str) -> int:
+        """Delete all diagrams in a folder."""
+        result = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).delete()
+        return result.deleted_count if result else 0
+
+    async def clear_folder(self, folder_id: str) -> int:
+        """Remove folder assignment from all diagrams in a folder."""
+        result = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).update(
+            {"$set": {"folder_id": None, "updated_at": datetime.utcnow()}}
+        )
+        return result.modified_count if result else 0

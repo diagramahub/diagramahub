@@ -1,6 +1,7 @@
 """
 Email vendor interface definition.
 """
+
 from abc import ABC, abstractmethod
 
 
@@ -9,11 +10,7 @@ class IEmailVendor(ABC):
 
     @abstractmethod
     async def send_email(
-        self,
-        to: str,
-        subject: str,
-        html_content: str,
-        from_email: str | None = None
+        self, to: str, subject: str, html_content: str, from_email: str | None = None
     ) -> dict:
         """
         Envía un correo electrónico.

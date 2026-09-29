@@ -1,6 +1,7 @@
 """
 User service layer implementing business logic.
 """
+
 import logging
 import secrets
 import time
@@ -21,6 +22,15 @@ from app.api.v1.users.schemas import (
     UserInDB,
     UserResponse,
 )
+from app.api.v1.mfa.interfaces import IMfaRepository
+from app.api.v1.mfa.repository import MfaRepository
+from app.api.v1.subscriptions.interfaces import (
+    IPlanRepository,
+    ISubscriptionRepository,
+)
+from app.api.v1.subscriptions.payment_providers.interfaces import IPaymentProvider
+from app.api.v1.subscriptions.plan_repository import PlanRepository
+from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
 from app.core.security import (
     create_access_token,
     create_mfa_temp_token,
@@ -35,14 +45,42 @@ logger = logging.getLogger(__name__)
 class UserService:
     """Service class handling user business logic."""
 
-    def __init__(self, repository: IUserRepository):
+    def __init__(
+        self,
+        repository: IUserRepository,
+        mfa_repository: Optional[IMfaRepository] = None,
+        subscription_repository: Optional[ISubscriptionRepository] = None,
+        plan_repository: Optional[IPlanRepository] = None,
+        payment_provider: Optional[IPaymentProvider] = None,
+    ):
         """
-        Initialize user service with repository.
+        Initialize user service with its dependencies.
+
+        All collaborators are injected for testability. When a collaborator
+        is not provided, the production default is constructed so existing
+        call sites keep working unchanged.
 
         Args:
             repository: User repository implementation
+            mfa_repository: MFA repository (defaults to MfaRepository)
+            subscription_repository: Subscription repository
+                (defaults to SubscriptionRepository)
+            plan_repository: Plan repository (defaults to PlanRepository)
+            payment_provider: Payment provider used for FREE-plan
+                provisioning; when None the Stripe provider is resolved
+                lazily from DB/env at provisioning time
         """
         self.repository = repository
+        self.mfa_repository = mfa_repository if mfa_repository is not None else MfaRepository()
+        self.subscription_repository = (
+            subscription_repository
+            if subscription_repository is not None
+            else SubscriptionRepository()
+        )
+        self.plan_repository = plan_repository if plan_repository is not None else PlanRepository()
+        # None keeps the historical behavior: StripePaymentProvider is
+        # resolved lazily (from DB or environment) inside register_user.
+        self.payment_provider = payment_provider
 
     async def check_installation_status(self) -> dict:
         """
@@ -52,10 +90,16 @@ class UserService:
             Dictionary with 'needs_setup' boolean
         """
         user_count = await self.repository.count_users()
-        return {
-            "needs_setup": user_count == 0,
-            "user_count": user_count
-        }
+        return {"needs_setup": user_count == 0, "user_count": user_count}
+
+    async def count_admins(self) -> int:
+        """
+        Count the number of admin users in the system.
+
+        Returns:
+            Number of users with the admin role
+        """
+        return await self.repository.count_admins()
 
     async def register_user(self, user_data: UserCreate) -> UserResponse:
         """
@@ -85,6 +129,7 @@ class UserService:
         if user_count == 0:
             # First user is automatically admin
             from app.api.v1.users.schemas import UserRole
+
             user_data.role = UserRole.ADMIN
 
         user = await self.repository.create(user_data)
@@ -93,69 +138,81 @@ class UserService:
         if user.role != "admin":
             try:
                 from app.api.v1.subscriptions.subscription_service import SubscriptionService
-                from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
-                from app.api.v1.subscriptions.plan_repository import PlanRepository
-                from app.api.v1.subscriptions.payment_providers.stripe_provider import StripePaymentProvider
                 from app.api.v1.subscriptions.constants import (
-                    FREE_PLAN_NAME, FREE_PLAN_CODE, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
-                    FREE_PLAN_MAX_PROJECTS, FREE_PLAN_MAX_DIAGRAMS
+                    FREE_PLAN_NAME,
+                    FREE_PLAN_CODE,
+                    FREE_PLAN_DESCRIPTION,
+                    FREE_PLAN_PRICE,
+                    FREE_PLAN_MAX_PROJECTS,
+                    FREE_PLAN_MAX_DIAGRAMS,
                 )
-                
-                plan_repo = PlanRepository()
-                
+
+                plan_repo = self.plan_repository
+
                 # Ensure FREE plan exists (first regular user or first user after admin)
                 existing_free = await plan_repo.get_by_name(FREE_PLAN_NAME)
                 if not existing_free:
                     from app.api.v1.subscriptions.schemas import PlanCreate as PlanCreateSchema
-                    await plan_repo.create(PlanCreateSchema(
-                        name=FREE_PLAN_NAME,
-                        code=FREE_PLAN_CODE,
-                        description=FREE_PLAN_DESCRIPTION,
-                        price_usd=FREE_PLAN_PRICE,
-                        max_projects=FREE_PLAN_MAX_PROJECTS,
-                        max_diagrams=FREE_PLAN_MAX_DIAGRAMS
-                    ))
-                
-                try:
-                    payment_provider = await StripePaymentProvider.from_db_or_env()
-                except Exception:
-                    payment_provider = None
-                
+
+                    await plan_repo.create(
+                        PlanCreateSchema(
+                            name=FREE_PLAN_NAME,
+                            code=FREE_PLAN_CODE,
+                            description=FREE_PLAN_DESCRIPTION,
+                            price_usd=FREE_PLAN_PRICE,
+                            max_projects=FREE_PLAN_MAX_PROJECTS,
+                            max_diagrams=FREE_PLAN_MAX_DIAGRAMS,
+                        )
+                    )
+
+                payment_provider = self.payment_provider
+                if payment_provider is None:
+                    from app.api.v1.subscriptions.payment_providers.stripe_provider import (
+                        StripePaymentProvider,
+                    )
+
+                    try:
+                        payment_provider = await StripePaymentProvider.from_db_or_env()
+                    except Exception:
+                        payment_provider = None
+
                 subscription_service = SubscriptionService(
-                    repository=SubscriptionRepository(),
+                    repository=self.subscription_repository,
                     plan_repository=plan_repo,
-                    payment_provider=payment_provider
+                    payment_provider=payment_provider,
                 )
-                
+
                 await subscription_service.create_free_subscription(str(user.id))
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.error(f"Failed to create FREE subscription for user {user.email}: {str(e)}")
         else:
             # Admin: just ensure FREE plan exists for future users
             try:
-                from app.api.v1.subscriptions.plan_repository import PlanRepository
                 from app.api.v1.subscriptions.constants import (
-                    FREE_PLAN_NAME, FREE_PLAN_CODE, FREE_PLAN_DESCRIPTION, FREE_PLAN_PRICE,
-                    FREE_PLAN_MAX_PROJECTS, FREE_PLAN_MAX_DIAGRAMS
+                    FREE_PLAN_NAME,
+                    FREE_PLAN_CODE,
+                    FREE_PLAN_DESCRIPTION,
+                    FREE_PLAN_PRICE,
+                    FREE_PLAN_MAX_PROJECTS,
+                    FREE_PLAN_MAX_DIAGRAMS,
                 )
-                
-                plan_repo = PlanRepository()
+
+                plan_repo = self.plan_repository
                 existing_free = await plan_repo.get_by_name(FREE_PLAN_NAME)
                 if not existing_free:
                     from app.api.v1.subscriptions.schemas import PlanCreate as PlanCreateSchema
-                    await plan_repo.create(PlanCreateSchema(
-                        name=FREE_PLAN_NAME,
-                        code=FREE_PLAN_CODE,
-                        description=FREE_PLAN_DESCRIPTION,
-                        price_usd=FREE_PLAN_PRICE,
-                        max_projects=FREE_PLAN_MAX_PROJECTS,
-                        max_diagrams=FREE_PLAN_MAX_DIAGRAMS
-                    ))
+
+                    await plan_repo.create(
+                        PlanCreateSchema(
+                            name=FREE_PLAN_NAME,
+                            code=FREE_PLAN_CODE,
+                            description=FREE_PLAN_DESCRIPTION,
+                            price_usd=FREE_PLAN_PRICE,
+                            max_projects=FREE_PLAN_MAX_PROJECTS,
+                            max_diagrams=FREE_PLAN_MAX_DIAGRAMS,
+                        )
+                    )
             except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
                 logger.error(f"Failed to create FREE plan: {str(e)}")
 
         return UserResponse(
@@ -223,18 +280,11 @@ class UserService:
             # layer can send it.  We inline the generation here to avoid a
             # circular dependency on MfaService.
             if user.mfa_default_method == "email":
-                plain_code = "".join(
-                    secrets.choice("0123456789") for _ in range(6)
-                )
+                plain_code = "".join(secrets.choice("0123456789") for _ in range(6))
                 hashed_code = pwd_context.hash(plain_code)
                 expires_at = time.time() + 600  # 10 minutes
 
-                from app.api.v1.mfa.repository import MfaRepository
-
-                mfa_repo = MfaRepository()
-                await mfa_repo.save_email_code(
-                    str(user.id), hashed_code, expires_at
-                )
+                await self.mfa_repository.save_email_code(str(user.id), hashed_code, expires_at)
                 response["email_code"] = plain_code
 
             return response
@@ -323,6 +373,7 @@ class UserService:
 
         # Audit log
         from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_CHANGED
+
         await log_event(EVENT_PASSWORD_CHANGED, user.email, user_id=str(user.id))
 
         return {"message": "Password changed successfully"}
@@ -364,9 +415,7 @@ class UserService:
         reset_token = secrets.token_urlsafe(32)
         expires_at = time.time() + 3600  # 1 hour expiration
 
-        await self.repository.save_reset_token(
-            reset_data.email, reset_token, expires_at
-        )
+        await self.repository.save_reset_token(reset_data.email, reset_token, expires_at)
 
         # Send recovery email (may raise HTTP 500 on failure)
         logger.info("Sending password recovery email")
@@ -378,9 +427,7 @@ class UserService:
         # was handed to the vendor, so the entry reflects a delivered request.
         from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_RESET_REQUESTED
 
-        await log_event(
-            EVENT_PASSWORD_RESET_REQUESTED, user.email, user_id=str(user.id)
-        )
+        await log_event(EVENT_PASSWORD_RESET_REQUESTED, user.email, user_id=str(user.id))
 
         return {"message": generic_message}
 
@@ -397,9 +444,7 @@ class UserService:
         Raises:
             HTTPException: If token is invalid or expired
         """
-        is_valid = await self.repository.verify_reset_token(
-            reset_data.email, reset_data.token
-        )
+        is_valid = await self.repository.verify_reset_token(reset_data.email, reset_data.token)
         if not is_valid:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -420,6 +465,7 @@ class UserService:
 
         # Audit log
         from app.api.v1.users.audit_log import log_event, EVENT_PASSWORD_RESET_CONFIRMED
+
         await log_event(EVENT_PASSWORD_RESET_CONFIRMED, user.email, user_id=str(user.id))
 
         return {"message": "Password reset successfully"}
@@ -435,6 +481,62 @@ class UserService:
             User information or None
         """
         return await self.repository.get_by_email(email)
+
+    async def validate_account_deletion(
+        self, user_email: str, confirmation_phrase: str
+    ) -> UserInDB:
+        """
+        Validate that the current user is allowed to delete their account.
+
+        Performs, in order: the confirmation-phrase check, the user lookup,
+        the last-admin protection, and the active paid subscription check.
+
+        Args:
+            user_email: Email of the authenticated user
+            confirmation_phrase: Phrase typed by the user to confirm deletion
+
+        Returns:
+            The user document (used by the route for the audit log)
+
+        Raises:
+            HTTPException: 400 for an invalid phrase, 404 when the user does
+                not exist, and 403 when the user is the only administrator or
+                has an active paid subscription
+        """
+        valid_phrases = {"elimíname", "delete me"}
+        if confirmation_phrase not in valid_phrases:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid confirmation phrase",
+            )
+
+        user = await self.repository.get_by_email(user_email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        user_id = str(user.id)
+
+        if user.role == "admin":
+            admin_count = await self.repository.count_admins()
+            if admin_count <= 1:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot delete the only administrator account. To remove this account, uninstall DiagramHub from your infrastructure.",
+                )
+
+        subscription = await self.subscription_repository.get_active_by_user(user_id)
+        if subscription:
+            plan = await self.plan_repository.get_by_id(subscription.plan_id)
+            if plan and plan.price_usd > 0:  # computed from prices dict
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot delete account with active paid subscription. Please switch to the free plan first.",
+                )
+
+        return user
 
     async def update_user_profile(
         self, user_email: str, update_data: UserUpdate

@@ -3,6 +3,7 @@ SSE (Server-Sent Events) event formatters for AI chat streaming.
 
 All events are JSON-encoded and sent as `data:` lines following the SSE protocol.
 """
+
 import json
 from typing import Optional
 

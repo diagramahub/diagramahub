@@ -2,6 +2,7 @@
 Concrete implementations of chat session and message repositories.
 Follows the same Beanie patterns as prompt_history/repository.py.
 """
+
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -14,9 +15,7 @@ from .schemas import ChatSessionInDB, ChatMessageInDB
 class ChatSessionRepository(IChatSessionRepository):
     """MongoDB implementation of chat session repository using Beanie."""
 
-    async def create_session(
-        self, user_id: str, diagram_id: str, title: str
-    ) -> ChatSessionInDB:
+    async def create_session(self, user_id: str, diagram_id: str, title: str) -> ChatSessionInDB:
         """Create a new chat session with status='active' and timestamps."""
         now = datetime.now(timezone.utc)
         session = ChatSessionInDB(
@@ -30,40 +29,26 @@ class ChatSessionRepository(IChatSessionRepository):
         await session.insert()
         return session
 
-    async def get_sessions_by_diagram(
-        self, user_id: str, diagram_id: str
-    ) -> list[ChatSessionInDB]:
+    async def get_sessions_by_diagram(self, user_id: str, diagram_id: str) -> list[ChatSessionInDB]:
         """Get all sessions for a diagram, ordered by updated_at descending."""
         return (
-            await ChatSessionInDB.find(
-                {"user_id": user_id, "diagram_id": diagram_id}
-            )
+            await ChatSessionInDB.find({"user_id": user_id, "diagram_id": diagram_id})
             .sort("-updated_at")
             .to_list()
         )
 
-    async def get_sessions_by_user(
-        self, user_id: str
-    ) -> list[ChatSessionInDB]:
+    async def get_sessions_by_user(self, user_id: str) -> list[ChatSessionInDB]:
         """Get all sessions for a user."""
-        return (
-            await ChatSessionInDB.find({"user_id": user_id})
-            .sort("-updated_at")
-            .to_list()
-        )
+        return await ChatSessionInDB.find({"user_id": user_id}).sort("-updated_at").to_list()
 
-    async def get_session_by_id(
-        self, session_id: str
-    ) -> Optional[ChatSessionInDB]:
+    async def get_session_by_id(self, session_id: str) -> Optional[ChatSessionInDB]:
         """Get a chat session by its ID."""
         try:
             return await ChatSessionInDB.get(PydanticObjectId(session_id))
         except Exception:
             return None
 
-    async def update_session_title(
-        self, session_id: str, title: str
-    ) -> ChatSessionInDB:
+    async def update_session_title(self, session_id: str, title: str) -> ChatSessionInDB:
         """Update the title of a chat session."""
         session = await self.get_session_by_id(session_id)
         if not session:
@@ -73,9 +58,7 @@ class ChatSessionRepository(IChatSessionRepository):
         await session.save()
         return session
 
-    async def update_session_summary(
-        self, session_id: str, summary: str
-    ) -> ChatSessionInDB:
+    async def update_session_summary(self, session_id: str, summary: str) -> ChatSessionInDB:
         """Update the rolling summary of a chat session."""
         session = await self.get_session_by_id(session_id)
         if not session:
@@ -85,15 +68,37 @@ class ChatSessionRepository(IChatSessionRepository):
         await session.save()
         return session
 
-    async def update_session_status(
-        self, session_id: str, status: str
-    ) -> ChatSessionInDB:
+    async def update_session_status(self, session_id: str, status: str) -> ChatSessionInDB:
         """Update the status of a chat session."""
         session = await self.get_session_by_id(session_id)
         if not session:
             raise ValueError(f"Session {session_id} not found")
         session.status = status
         session.updated_at = datetime.now(timezone.utc)
+        await session.save()
+        return session
+
+    async def update_session_model(self, session: ChatSessionInDB) -> ChatSessionInDB:
+        """Persist a session document with its updated model fields."""
+        session.updated_at = datetime.now(timezone.utc)
+        await session.save()
+        return session
+
+    async def update_session_last_provider(
+        self, session_id: str, provider: str, model: str
+    ) -> ChatSessionInDB:
+        """Update the last provider and model used in a chat session."""
+        session = await self.get_session_by_id(session_id)
+        if not session:
+            raise ValueError(f"Session {session_id} not found")
+        session.last_provider = provider
+        session.last_model = model
+        session.updated_at = datetime.now(timezone.utc)
+        await session.save()
+        return session
+
+    async def create_child_session(self, session: ChatSessionInDB) -> ChatSessionInDB:
+        """Persist a child session created during context compaction."""
         await session.save()
         return session
 
@@ -147,9 +152,7 @@ class ChatMessageRepository(IChatMessageRepository):
             .to_list()
         )
 
-    async def get_recent_messages(
-        self, session_id: str, limit: int = 20
-    ) -> list[ChatMessageInDB]:
+    async def get_recent_messages(self, session_id: str, limit: int = 20) -> list[ChatMessageInDB]:
         """Get the most recent N messages for a session (for conversation context).
 
         Returns messages in chronological order (oldest first among the recent N).
@@ -164,6 +167,13 @@ class ChatMessageRepository(IChatMessageRepository):
         recent.reverse()
         return recent
 
+    async def get_message_by_id(self, message_id: str) -> Optional[ChatMessageInDB]:
+        """Get a single message by its ID, or None when not found."""
+        try:
+            return await ChatMessageInDB.get(PydanticObjectId(message_id))
+        except Exception:
+            return None
+
     async def delete_message(self, message_id: str) -> bool:
         """Delete a single message by its ID."""
         try:
@@ -177,14 +187,10 @@ class ChatMessageRepository(IChatMessageRepository):
 
     async def delete_messages_by_session(self, session_id: str) -> int:
         """Delete all messages belonging to a session. Returns count deleted."""
-        result = await ChatMessageInDB.find(
-            {"session_id": session_id}
-        ).delete()
+        result = await ChatMessageInDB.find({"session_id": session_id}).delete()
         return result.deleted_count if result else 0
 
-    async def update_message_status(
-        self, message_id: str, status: str
-    ) -> ChatMessageInDB:
+    async def update_message_status(self, message_id: str, status: str) -> ChatMessageInDB:
         """Update the improvement status of a message."""
         try:
             message = await ChatMessageInDB.get(PydanticObjectId(message_id))
@@ -198,6 +204,4 @@ class ChatMessageRepository(IChatMessageRepository):
 
     async def count_messages_by_session(self, session_id: str) -> int:
         """Count the number of messages in a session."""
-        return await ChatMessageInDB.find(
-            {"session_id": session_id}
-        ).count()
+        return await ChatMessageInDB.find({"session_id": session_id}).count()

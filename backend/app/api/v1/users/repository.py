@@ -1,6 +1,7 @@
 """
 User repository implementation using Beanie ODM.
 """
+
 from datetime import datetime, timezone
 import time
 from typing import Optional
@@ -29,6 +30,23 @@ class UserRepository(IUserRepository):
     async def count_users(self) -> int:
         """Count total number of users in database."""
         return await UserInDB.count()
+
+    async def count_admins(self) -> int:
+        """Count the number of admin users in the database."""
+        return await UserInDB.find(UserInDB.role == "admin").count()
+
+    async def delete_by_id(self, user_id: str) -> bool:
+        """Delete a user document by ID."""
+        user = await self.get_by_id(user_id)
+        if not user:
+            return False
+
+        await user.delete()
+        return True
+
+    async def list_all(self) -> list[UserInDB]:
+        """Return all users."""
+        return await UserInDB.find_all().to_list()
 
     async def get_by_email(self, email: str) -> Optional[UserInDB]:
         """Retrieve user by email address."""
@@ -124,7 +142,7 @@ class UserRepository(IUserRepository):
         update_data = user_data.model_dump(exclude_unset=True)
         if update_data:
             for field, value in update_data.items():
-                if field != 'email':  # Prevent email updates
+                if field != "email":  # Prevent email updates
                     setattr(user, field, value)
             await user.save()
 

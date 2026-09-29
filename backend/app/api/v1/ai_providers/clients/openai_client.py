@@ -1,6 +1,7 @@
 """
 OpenAI GPT client implementation.
 """
+
 import json
 import time
 
@@ -25,15 +26,28 @@ from ..prompts import (
 class OpenAIClient(BaseAIClient):
     """Client for OpenAI GPT."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4.1-mini", parameters: Dict[str, Any] = None):
+    def __init__(
+        self, api_key: str, model: str = "gpt-4.1-mini", parameters: Dict[str, Any] = None
+    ):
         super().__init__(api_key, model, parameters or {})
         self.base_url = "https://api.openai.com/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
-    async def _chat_completion(self, messages: list[dict], response_format: dict | None = None) -> str:
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """Complete a chat request with system and user messages."""
+        return await self._chat_completion(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+        )
+
+    async def _chat_completion(
+        self, messages: list[dict], response_format: dict | None = None
+    ) -> str:
         """Llamada genérica al endpoint chat/completions de OpenAI."""
         payload: dict = {
             "model": self.model,
@@ -51,7 +65,9 @@ class OpenAIClient(BaseAIClient):
             )
 
             if response.status_code == 429:
-                raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
+                raise ValueError(
+                    "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
+                )
             if response.status_code != 200:
                 raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
 
@@ -66,10 +82,12 @@ class OpenAIClient(BaseAIClient):
     ) -> str:
         prompt = build_description_prompt(diagram_code, diagram_type, language)
         try:
-            response = await self._chat_completion([
-                {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._chat_completion(
+                [
+                    {"role": "system", "content": DESCRIPTION_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
@@ -93,10 +111,12 @@ class OpenAIClient(BaseAIClient):
     ) -> str:
         prompt = build_generate_diagram_prompt(description, diagram_type, language)
         try:
-            response = await self._chat_completion([
-                {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._chat_completion(
+                [
+                    {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except httpx.TimeoutException:
             raise ValueError("OpenAI API request timed out")
@@ -110,20 +130,24 @@ class OpenAIClient(BaseAIClient):
         error_context: str | None = None,
         language: str = "es",
     ) -> Dict[str, str]:
-        from ...diagrams.fix_prompts import build_fix_prompt
+        from ..prompts import build_fix_prompt
         from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             is_dbml = diagram_type.lower() == "dbml"
             system_msg = (
-                "You are an expert in fixing syntax errors in DBML diagrams. "
-                "Respond using the exact delimiter format requested."
-            ) if is_dbml else (
-                "You are an expert in fixing syntax errors in technical diagrams. "
-                "Always respond with a single valid JSON object containing exactly "
-                "three keys: corrected_code, explanation, changes_summary. "
-                "No markdown fences, no extra text."
+                (
+                    "You are an expert in fixing syntax errors in DBML diagrams. "
+                    "Respond using the exact delimiter format requested."
+                )
+                if is_dbml
+                else (
+                    "You are an expert in fixing syntax errors in technical diagrams. "
+                    "Always respond with a single valid JSON object containing exactly "
+                    "three keys: corrected_code, explanation, changes_summary. "
+                    "No markdown fences, no extra text."
+                )
             )
 
             response_text = await self._chat_completion(
@@ -153,12 +177,16 @@ class OpenAIClient(BaseAIClient):
         diagram_type: str,
         language: str = "es",
     ) -> str:
-        prompt = build_improve_diagram_prompt(diagram_code, improvement_request, diagram_type, language)
+        prompt = build_improve_diagram_prompt(
+            diagram_code, improvement_request, diagram_type, language
+        )
         try:
-            response = await self._chat_completion([
-                {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._chat_completion(
+                [
+                    {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             cleaned = clean_code_response(response)
             if not cleaned:
                 raise ValueError(
@@ -191,9 +219,7 @@ class OpenAIClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error in chat with OpenAI: {str(e)}")
 
-    async def summarize_conversation(
-        self, messages: list[dict], language: str = "es"
-    ) -> str:
+    async def summarize_conversation(self, messages: list[dict], language: str = "es") -> str:
         user_prompt = build_summarize_prompt(messages, language)
         try:
             return await self._chat_completion(
@@ -241,9 +267,7 @@ class OpenAIClient(BaseAIClient):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(120.0, connect=10.0)
-            ) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
                     f"{self.base_url}/chat/completions",
@@ -255,9 +279,7 @@ class OpenAIClient(BaseAIClient):
                             "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
                         )
                     if response.status_code != 200:
-                        raise ValueError(
-                            f"OpenAI API error: {response.status_code}"
-                        )
+                        raise ValueError(f"OpenAI API error: {response.status_code}")
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():

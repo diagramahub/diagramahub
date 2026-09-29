@@ -1,6 +1,7 @@
 """
 Concrete implementation of shared link repository.
 """
+
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -40,16 +41,21 @@ class SharedLinkRepository(ISharedLinkRepository):
         """Get shared link by token."""
         return await SharedLinkInDB.find_one(SharedLinkInDB.token == token)
 
+    async def get_by_id(self, link_id: str) -> Optional[SharedLinkInDB]:
+        """Get shared link by ID."""
+        try:
+            return await SharedLinkInDB.get(PydanticObjectId(link_id))
+        except Exception:
+            return None
+
     async def get_active_by_diagram(self, diagram_id: str) -> Optional[SharedLinkInDB]:
         """Get the active shared link for a diagram."""
         return await SharedLinkInDB.find_one(
             SharedLinkInDB.diagram_id == diagram_id,
-            SharedLinkInDB.is_active == True,
+            SharedLinkInDB.is_active,
         )
 
-    async def update(
-        self, link_id: str, update_data: SharedLinkUpdate
-    ) -> Optional[SharedLinkInDB]:
+    async def update(self, link_id: str, update_data: SharedLinkUpdate) -> Optional[SharedLinkInDB]:
         """Update shared link configuration."""
         try:
             link = await SharedLinkInDB.get(PydanticObjectId(link_id))
@@ -76,9 +82,7 @@ class SharedLinkRepository(ISharedLinkRepository):
         if not link:
             return False
 
-        await link.set(
-            {"is_active": False, "updated_at": datetime.utcnow()}
-        )
+        await link.set({"is_active": False, "updated_at": datetime.utcnow()})
         return True
 
     async def log_access(self, log_data: AccessLogCreate) -> AccessLogInDB:
@@ -92,9 +96,7 @@ class SharedLinkRepository(ISharedLinkRepository):
         await log.insert()
         return log
 
-    async def count_failed_attempts(
-        self, ip_hash: str, token: str, minutes: int
-    ) -> int:
+    async def count_failed_attempts(self, ip_hash: str, token: str, minutes: int) -> int:
         """Count failed access attempts by IP hash and token within a time window."""
         cutoff = datetime.utcnow() - timedelta(minutes=minutes)
         return await AccessLogInDB.find(

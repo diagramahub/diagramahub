@@ -4,22 +4,34 @@ Business logic layer for the OAuth authentication flow.
 Orchestrates state management, token exchange, account creation/linking,
 and JWT issuance.
 """
+
 import logging
 import secrets
 from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import HTTPException, status
 
-from app.api.v1.integrations.repository import IntegrationsRepository
+from app.api.v1.integrations.interfaces import IIntegrationsRepository
 from app.api.v1.integrations.schemas import VendorCategory
+from app.api.v1.oauth.interfaces import IOAuthStateRepository
 from app.api.v1.oauth.providers.factory import OAuthProviderFactory
+from app.api.v1.oauth.repository import OAuthStateRepository
 from app.api.v1.oauth.schemas import (
     OAuthCallbackResponse,
-    OAuthStateToken,
     OAuthTokenExchangeError,
     OAuthUserInfoError,
     ProviderUserInfo,
 )
+from app.api.v1.subscriptions.interfaces import (
+    IPlanRepository,
+    ISubscriptionRepository,
+)
+from app.api.v1.subscriptions.payment_providers.interfaces import IPaymentProvider
+from app.api.v1.subscriptions.plan_repository import PlanRepository
+from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+from app.api.v1.users.interfaces import IUserRepository
+from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import OAuthProviderEntry, UserInDB
 from app.core.security import create_access_token, get_password_hash
 
@@ -30,8 +42,49 @@ class OAuthService:
     """Orchestrates the OAuth flow: state management, token exchange,
     account creation/linking, and JWT issuance."""
 
-    def __init__(self, integrations_repo: IntegrationsRepository):
+    def __init__(
+        self,
+        integrations_repo: IIntegrationsRepository,
+        state_repository: Optional[IOAuthStateRepository] = None,
+        user_repository: Optional[IUserRepository] = None,
+        subscription_repository: Optional[ISubscriptionRepository] = None,
+        plan_repository: Optional[IPlanRepository] = None,
+        payment_provider: Optional[IPaymentProvider] = None,
+    ):
+        """
+        Initialize the OAuth service with its dependencies.
+
+        All collaborators are injected for testability. When a collaborator
+        is not provided, the production default is constructed so existing
+        call sites keep working unchanged.
+
+        Args:
+            integrations_repo: Integrations repository implementation
+            state_repository: OAuth state token repository
+                (defaults to OAuthStateRepository)
+            user_repository: User repository implementation
+                (defaults to UserRepository)
+            subscription_repository: Subscription repository
+                (defaults to SubscriptionRepository)
+            plan_repository: Plan repository (defaults to PlanRepository)
+            payment_provider: Payment provider used for FREE-plan
+                provisioning; when None the Stripe provider is resolved
+                lazily from DB/env at provisioning time
+        """
         self.integrations_repo = integrations_repo
+        self.state_repository = (
+            state_repository if state_repository is not None else OAuthStateRepository()
+        )
+        self.user_repository = user_repository if user_repository is not None else UserRepository()
+        self.subscription_repository = (
+            subscription_repository
+            if subscription_repository is not None
+            else SubscriptionRepository()
+        )
+        self.plan_repository = plan_repository if plan_repository is not None else PlanRepository()
+        # None keeps the historical behavior: StripePaymentProvider is
+        # resolved lazily (from DB or environment) when provisioning.
+        self.payment_provider = payment_provider
 
     # ── Public API ───────────────────────────────────────────────────
 
@@ -40,20 +93,17 @@ class OAuthService:
 
         Only returns public-safe information — no secrets are exposed.
         """
-        vendors = await self.integrations_repo.list_by_category(
-            VendorCategory.OAUTH
-        )
+        vendors = await self.integrations_repo.list_by_category(VendorCategory.OAUTH)
         active = [v for v in vendors if v.is_active_oauth]
 
         results: list[dict] = []
         for vendor in active:
-            config = self.integrations_repo._decrypt_config(
-                vendor.encrypted_config
-            )
+            decrypted = await self.integrations_repo.get_by_id_decrypted(str(vendor.id))
+            if decrypted is None:
+                continue
+            _, config = decrypted
             try:
-                adapter = OAuthProviderFactory.create(
-                    vendor.vendor_type, config
-                )
+                adapter = OAuthProviderFactory.create(vendor.vendor_type, config)
             except ValueError:
                 logger.warning(
                     "Skipping unsupported OAuth vendor_type: %s",
@@ -64,19 +114,17 @@ class OAuthService:
             # Build a placeholder authorization URL for display purposes.
             # The real state token is generated during initiate_oauth.
             redirect_uri = config.get("redirect_uri", "")
-            auth_url = adapter.get_authorization_url(
-                state="placeholder", redirect_uri=redirect_uri
+            auth_url = adapter.get_authorization_url(state="placeholder", redirect_uri=redirect_uri)
+            results.append(
+                {
+                    "provider": vendor.vendor_type,
+                    "authorization_url": auth_url,
+                }
             )
-            results.append({
-                "provider": vendor.vendor_type,
-                "authorization_url": auth_url,
-            })
 
         return results
 
-    async def initiate_oauth(
-        self, provider: str
-    ) -> tuple[str, str]:
+    async def initiate_oauth(self, provider: str) -> tuple[str, str]:
         """Generate a cryptographic state token, store it, and build the
         authorization URL for the given provider.
 
@@ -93,13 +141,11 @@ class OAuthService:
 
         # Store state token with 10-minute TTL
         now = datetime.utcnow()
-        oauth_state = OAuthStateToken(
+        await self.state_repository.create(
             state=state_token,
             provider=provider,
-            created_at=now,
             expires_at=now + timedelta(minutes=10),
         )
-        await oauth_state.insert()
 
         # Build authorization URL
         adapter = OAuthProviderFactory.create(vendor.vendor_type, config)
@@ -110,9 +156,7 @@ class OAuthService:
 
         return authorization_url, state_token
 
-    async def handle_callback(
-        self, provider: str, code: str, state: str
-    ) -> OAuthCallbackResponse:
+    async def handle_callback(self, provider: str, code: str, state: str) -> OAuthCallbackResponse:
         """Validate state, exchange code, get user info, create/link
         account, and issue JWT.
 
@@ -130,9 +174,7 @@ class OAuthService:
             HTTPException 403: Unverified email.
         """
         # 1. Validate state token
-        state_doc = await OAuthStateToken.find_one(
-            OAuthStateToken.state == state
-        )
+        state_doc = await self.state_repository.get_by_token(state)
 
         if state_doc is None:
             raise HTTPException(
@@ -162,14 +204,13 @@ class OAuthService:
         try:
             token_response = await adapter.exchange_code(code, redirect_uri)
         except OAuthTokenExchangeError as exc:
-            logger.error(
-                "OAuth token exchange failed for %s: %s", provider, exc
-            )
+            logger.error("OAuth token exchange failed for %s: %s", provider, exc)
             # Log failed attempt
             from app.api.v1.users.audit_log import (
                 EVENT_OAUTH_LOGIN_FAILED,
                 log_event,
             )
+
             await log_event(
                 EVENT_OAUTH_LOGIN_FAILED,
                 user_email="unknown",
@@ -186,24 +227,22 @@ class OAuthService:
         except OAuthUserInfoError as exc:
             logger.error(
                 "OAuth user info retrieval failed for %s: %s",
-                provider, exc,
+                provider,
+                exc,
             )
             from app.api.v1.users.audit_log import (
                 EVENT_OAUTH_LOGIN_FAILED,
                 log_event,
             )
+
             await log_event(
                 EVENT_OAUTH_LOGIN_FAILED,
                 user_email="unknown",
-                details=(
-                    f"User info retrieval failed for provider: {provider}"
-                ),
+                details=(f"User info retrieval failed for provider: {provider}"),
             )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=(
-                    "Failed to retrieve user information from provider"
-                ),
+                detail=("Failed to retrieve user information from provider"),
             )
 
         # 5. Reject unverified emails
@@ -212,6 +251,7 @@ class OAuthService:
                 EVENT_OAUTH_LOGIN_FAILED,
                 log_event,
             )
+
             await log_event(
                 EVENT_OAUTH_LOGIN_FAILED,
                 user_email=user_info.email,
@@ -229,16 +269,13 @@ class OAuthService:
         access_token = await self._issue_jwt(user, provider)
 
         # 8. Mark state token as consumed
-        state_doc.consumed = True
-        await state_doc.save()
+        await self.state_repository.consume(state)
 
         return OAuthCallbackResponse(access_token=access_token)
 
     # ── Private helpers ──────────────────────────────────────────────
 
-    async def _get_active_vendor(
-        self, provider: str
-    ) -> tuple:
+    async def _get_active_vendor(self, provider: str) -> tuple:
         """Find the active OAuth vendor for the given provider type.
 
         Returns:
@@ -247,27 +284,20 @@ class OAuthService:
         Raises:
             HTTPException 404: If no active vendor is found.
         """
-        vendors = await self.integrations_repo.list_by_category(
-            VendorCategory.OAUTH
-        )
+        vendors = await self.integrations_repo.list_by_category(VendorCategory.OAUTH)
         for vendor in vendors:
-            if (
-                vendor.vendor_type == provider
-                and vendor.is_active_oauth
-            ):
-                config = self.integrations_repo._decrypt_config(
-                    vendor.encrypted_config
-                )
-                return vendor, config
+            if vendor.vendor_type == provider and vendor.is_active_oauth:
+                decrypted = await self.integrations_repo.get_by_id_decrypted(str(vendor.id))
+                if decrypted is None:
+                    continue
+                return decrypted
 
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="OAuth provider not configured or inactive",
         )
 
-    async def _find_or_create_user(
-        self, user_info: ProviderUserInfo, provider: str
-    ) -> UserInDB:
+    async def _find_or_create_user(self, user_info: ProviderUserInfo, provider: str) -> UserInDB:
         """Find an existing user by email or create a new one.
 
         - If no user exists: create with provider email, name, random
@@ -284,12 +314,14 @@ class OAuthService:
             log_event,
         )
 
-        existing_user = await UserInDB.find_one(
-            UserInDB.email == user_info.email
-        )
+        existing_user = await self.user_repository.get_by_email(user_info.email)
 
         if existing_user is None:
-            # Create new user with random secure password
+            # Create new user with random secure password.
+            # TODO(dip): IUserRepository.create() only supports UserCreate
+            # (password-based signup), so OAuth signup still inserts the
+            # document directly until the users interface grows an
+            # OAuth-aware create method.
             random_password = secrets.token_urlsafe(32)
             hashed_password = get_password_hash(random_password)
 
@@ -323,8 +355,7 @@ class OAuthService:
 
         # User exists — check if provider is already linked
         already_linked = any(
-            p.provider == provider
-            and p.provider_user_id == user_info.provider_user_id
+            p.provider == provider and p.provider_user_id == user_info.provider_user_id
             for p in existing_user.oauth_providers
         )
 
@@ -349,20 +380,15 @@ class OAuthService:
     async def _create_free_subscription(self, user: UserInDB) -> None:
         """Create a FREE subscription for a new OAuth-created user.
 
-        Mirrors the logic in UserService.register_user.
+        Mirrors the logic in UserService.register_user using the
+        constructor-injected subscription collaborators.
+
+        Args:
+            user: The newly created user document.
         """
         try:
             from app.api.v1.subscriptions.subscription_service import (
                 SubscriptionService,
-            )
-            from app.api.v1.subscriptions.subscription_repository import (
-                SubscriptionRepository,
-            )
-            from app.api.v1.subscriptions.plan_repository import (
-                PlanRepository,
-            )
-            from app.api.v1.subscriptions.payment_providers.stripe_provider import (
-                StripePaymentProvider,
             )
             from app.api.v1.subscriptions.constants import (
                 FREE_PLAN_NAME,
@@ -373,7 +399,7 @@ class OAuthService:
                 FREE_PLAN_MAX_DIAGRAMS,
             )
 
-            plan_repo = PlanRepository()
+            plan_repo = self.plan_repository
 
             # Ensure FREE plan exists
             existing_free = await plan_repo.get_by_name(FREE_PLAN_NAME)
@@ -381,31 +407,36 @@ class OAuthService:
                 from app.api.v1.subscriptions.schemas import (
                     PlanCreate as PlanCreateSchema,
                 )
-                await plan_repo.create(PlanCreateSchema(
-                    name=FREE_PLAN_NAME,
-                    code=FREE_PLAN_CODE,
-                    description=FREE_PLAN_DESCRIPTION,
-                    price_usd=FREE_PLAN_PRICE,
-                    max_projects=FREE_PLAN_MAX_PROJECTS,
-                    max_diagrams=FREE_PLAN_MAX_DIAGRAMS,
-                ))
 
-            try:
-                payment_provider = (
-                    await StripePaymentProvider.from_db_or_env()
+                await plan_repo.create(
+                    PlanCreateSchema(
+                        name=FREE_PLAN_NAME,
+                        code=FREE_PLAN_CODE,
+                        description=FREE_PLAN_DESCRIPTION,
+                        price_usd=FREE_PLAN_PRICE,
+                        max_projects=FREE_PLAN_MAX_PROJECTS,
+                        max_diagrams=FREE_PLAN_MAX_DIAGRAMS,
+                    )
                 )
-            except Exception:
-                payment_provider = None
+
+            payment_provider = self.payment_provider
+            if payment_provider is None:
+                from app.api.v1.subscriptions.payment_providers.stripe_provider import (
+                    StripePaymentProvider,
+                )
+
+                try:
+                    payment_provider = await StripePaymentProvider.from_db_or_env()
+                except Exception:
+                    payment_provider = None
 
             subscription_service = SubscriptionService(
-                repository=SubscriptionRepository(),
+                repository=self.subscription_repository,
                 plan_repository=plan_repo,
                 payment_provider=payment_provider,
             )
 
-            await subscription_service.create_free_subscription(
-                str(user.id)
-            )
+            await subscription_service.create_free_subscription(str(user.id))
         except Exception as exc:
             logger.error(
                 "Failed to create FREE subscription for OAuth user %s: %s",
@@ -433,6 +464,7 @@ class OAuthService:
             EVENT_OAUTH_LOGIN_SUCCESS,
             log_event,
         )
+
         await log_event(
             EVENT_OAUTH_LOGIN_SUCCESS,
             user_email=user.email,

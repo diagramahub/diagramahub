@@ -1,6 +1,7 @@
 """
 Factory for creating vendor instances (email and payment).
 """
+
 from .email_vendors.interfaces import IEmailVendor
 from .email_vendors.resend_adapter import ResendAdapter
 from ..subscriptions.payment_providers.interfaces import IPaymentProvider
@@ -38,8 +39,7 @@ class VendorFactory:
         if not vendor_class:
             supported = ", ".join(cls._email_vendors.keys())
             raise ValueError(
-                f"Unsupported email vendor: '{vendor_type}'. "
-                f"Supported vendors: {supported}"
+                f"Unsupported email vendor: '{vendor_type}'. " f"Supported vendors: {supported}"
             )
         return vendor_class(**config)
 
@@ -63,8 +63,7 @@ class VendorFactory:
         if not vendor_class:
             supported = ", ".join(cls._payment_vendors.keys())
             raise ValueError(
-                f"Unsupported payment vendor: '{vendor_type}'. "
-                f"Supported vendors: {supported}"
+                f"Unsupported payment vendor: '{vendor_type}'. " f"Supported vendors: {supported}"
             )
         return vendor_class(**config)
 

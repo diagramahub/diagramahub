@@ -1,6 +1,7 @@
 """
 Email service for sending transactional emails using the configured default email vendor.
 """
+
 import logging
 from urllib.parse import quote
 
@@ -9,8 +10,7 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 
 from .email_vendors.interfaces import IEmailVendor
-from .repository import IntegrationsRepository
-from .schemas import VendorCategory, VendorConfigInDB
+from .interfaces import IIntegrationsRepository
 from .vendor_factory import VendorFactory
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class EmailService:
     """Service that sends transactional emails through the default email vendor."""
 
-    def __init__(self, integrations_repository: IntegrationsRepository):
+    def __init__(self, integrations_repository: IIntegrationsRepository):
         self.repo = integrations_repository
 
     async def get_default_email_vendor(self) -> IEmailVendor:
@@ -31,24 +31,18 @@ class EmailService:
         Raises:
             HTTPException 503: When no default email vendor is configured.
         """
-        vendors = await VendorConfigInDB.find(
-            VendorConfigInDB.category == VendorCategory.EMAIL,
-            VendorConfigInDB.is_default == True,  # noqa: E712
-        ).to_list()
+        result = await self.repo.get_active_email_vendor_config()
 
-        if not vendors:
+        if result is None:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Servicio de correo no disponible",
             )
 
-        vendor = vendors[0]
-        config = self.repo._decrypt_config(vendor.encrypted_config)
+        vendor, config = result
         return VendorFactory.create_email_vendor(vendor.vendor_type, config)
 
-    async def send_password_recovery_email(
-        self, to: str, token: str, email: str
-    ) -> None:
+    async def send_password_recovery_email(self, to: str, token: str, email: str) -> None:
         """Send a password-recovery email with a reset link.
 
         Args:

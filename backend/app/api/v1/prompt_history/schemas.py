@@ -1,7 +1,7 @@
 """
 Pydantic models for prompt history module.
 """
-import hashlib
+
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -9,14 +9,9 @@ from pydantic import BaseModel, Field
 from beanie import Document
 
 
-def compute_prompt_hash(text: str) -> str:
-    """Compute SHA-256 hash of normalized prompt text (lowercase, stripped)."""
-    normalized = text.strip().lower()
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
-
-
 class PromptHistoryInDB(Document):
     """Prompt history document stored in MongoDB."""
+
     user_id: str
     diagram_id: Optional[str] = None
     prompt_text: str
@@ -36,6 +31,7 @@ class PromptHistoryInDB(Document):
 
 class PromptHistoryCreate(BaseModel):
     """Model for creating a new prompt history entry."""
+
     prompt_text: str = Field(..., min_length=1, max_length=5000)
     operation_type: str = Field(..., pattern=r"^(creation|improvement)$")
     diagram_id: Optional[str] = None
@@ -43,6 +39,7 @@ class PromptHistoryCreate(BaseModel):
 
 class PromptHistoryResponse(BaseModel):
     """Model for prompt history API responses."""
+
     id: str
     diagram_id: Optional[str] = None
     prompt_text: str
@@ -56,6 +53,7 @@ class PromptHistoryResponse(BaseModel):
 
 class PaginatedPromptHistoryResponse(BaseModel):
     """Model for paginated prompt history API responses."""
+
     items: list[PromptHistoryResponse]
     total: int
     page: int

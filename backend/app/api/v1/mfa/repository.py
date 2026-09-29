@@ -1,12 +1,14 @@
 """
 MFA repository implementation using Beanie ODM.
 """
+
 from typing import Optional
 
 from bson import ObjectId
 
 from app.api.v1.mfa.interfaces import IMfaRepository
 from app.api.v1.users.schemas import RecoveryCodeEntry, UserInDB
+from app.core.security import verify_password
 
 
 class MfaRepository(IMfaRepository):
@@ -24,6 +26,24 @@ class MfaRepository(IMfaRepository):
         user.mfa_enabled = True
         await user.save()
         return True
+
+    async def save_pending_totp_secret(self, user_id: str, encrypted_secret: str) -> bool:
+        """Guardar el secreto TOTP cifrado sin activar TOTP todavía."""
+        user = await UserInDB.get(ObjectId(user_id))
+        if not user:
+            return False
+
+        user.totp_secret_encrypted = encrypted_secret
+        await user.save()
+        return True
+
+    async def verify_password(self, user_id: str, password: str) -> Optional[bool]:
+        """Verificar la contraseña del usuario. Retorna None si no existe."""
+        user = await UserInDB.get(ObjectId(user_id))
+        if not user:
+            return None
+
+        return verify_password(password, user.hashed_password)
 
     async def enable_email_mfa(self, user_id: str) -> bool:
         """Habilitar MFA por email para un usuario."""
@@ -107,9 +127,7 @@ class MfaRepository(IMfaRepository):
             "mfa_temp_last_resend": user.mfa_temp_last_resend,
         }
 
-    async def save_email_code(
-        self, user_id: str, hashed_code: str, expires_at: float
-    ) -> bool:
+    async def save_email_code(self, user_id: str, hashed_code: str, expires_at: float) -> bool:
         """Guardar código email MFA hasheado con expiración."""
         user = await UserInDB.get(ObjectId(user_id))
         if not user:
@@ -132,10 +150,6 @@ class MfaRepository(IMfaRepository):
         user.recovery_codes[code_index].used = True
         await user.save()
         return True
-
-    async def increment_mfa_attempts(self, user_id: str) -> int:
-        """Incrementar contador de intentos MFA (tracked in JWT token, not DB)."""
-        return 0
 
     async def save_mfa_temp_data(
         self, user_id: str, resend_count: int, last_resend_at: float
