@@ -180,6 +180,30 @@ class DiagramResponse(BaseModel):
         from_attributes = True
 
 
+def diagram_to_response(diagram: DiagramInDB) -> dict:
+    """Convert a diagram document into the ``DiagramResponse`` payload.
+
+    Shared by every endpoint that nests diagrams (project tree, folder detail)
+    so they always carry the same fields ``DiagramResponse`` requires.
+    """
+    return {
+        "id": str(diagram.id),
+        "title": diagram.title,
+        "content": diagram.content,
+        "description": diagram.description,
+        "diagram_type": diagram.diagram_type,
+        "config": diagram.config,
+        "user_preferences": diagram.user_preferences,
+        "project_id": diagram.project_id,
+        "folder_id": diagram.folder_id,
+        "viewport_zoom": diagram.viewport_zoom,
+        "viewport_x": diagram.viewport_x,
+        "viewport_y": diagram.viewport_y,
+        "created_at": diagram.created_at,
+        "updated_at": diagram.updated_at,
+    }
+
+
 # Schema para renderizado de diagramas vía Kroki
 
 

@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from .interfaces import IFolderRepository
 from ..projects.interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
+from ..diagrams.schemas import diagram_to_response
 from .schemas import FolderCreate, FolderUpdate, FolderResponse, FolderWithDiagramsResponse
 
 
@@ -95,23 +96,7 @@ class FolderService:
 
         # Get diagrams in folder
         diagrams = await self.diagram_repository.get_by_folder_id(folder_id)
-        diagram_responses = [
-            {
-                "id": str(d.id),
-                "title": d.title,
-                "content": d.content,
-                "description": d.description,
-                "diagram_type": d.diagram_type,
-                "project_id": d.project_id,
-                "folder_id": d.folder_id,
-                "viewport_zoom": d.viewport_zoom,
-                "viewport_x": d.viewport_x,
-                "viewport_y": d.viewport_y,
-                "created_at": d.created_at,
-                "updated_at": d.updated_at,
-            }
-            for d in diagrams
-        ]
+        diagram_responses = [diagram_to_response(d) for d in diagrams]
 
         return FolderWithDiagramsResponse(
             id=str(folder.id),

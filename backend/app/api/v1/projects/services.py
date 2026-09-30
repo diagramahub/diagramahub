@@ -5,29 +5,9 @@ Business logic layer for projects.
 from fastapi import HTTPException, status
 from .interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
-from ..diagrams.schemas import DiagramInDB
+from ..diagrams.schemas import diagram_to_response
 from ..folders.interfaces import IFolderRepository
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithDiagramsResponse
-
-
-def _diagram_to_response(diagram: DiagramInDB) -> dict:
-    """Convert a diagram document into its response dict."""
-    return {
-        "id": str(diagram.id),
-        "title": diagram.title,
-        "content": diagram.content,
-        "description": diagram.description,
-        "diagram_type": diagram.diagram_type,
-        "config": diagram.config,
-        "user_preferences": diagram.user_preferences,
-        "project_id": diagram.project_id,
-        "folder_id": diagram.folder_id,
-        "viewport_zoom": diagram.viewport_zoom,
-        "viewport_x": diagram.viewport_x,
-        "viewport_y": diagram.viewport_y,
-        "created_at": diagram.created_at,
-        "updated_at": diagram.updated_at,
-    }
 
 
 class ProjectService:
@@ -141,14 +121,14 @@ class ProjectService:
 
         # Get diagrams without folder
         diagrams_without_folder = await self.diagram_repository.get_without_folder(project_id)
-        diagram_responses = [_diagram_to_response(d) for d in diagrams_without_folder]
+        diagram_responses = [diagram_to_response(d) for d in diagrams_without_folder]
 
         # Get folders with their diagrams
         folders = await self.folder_repository.get_by_project_id(project_id)
         folder_responses = []
         for folder in folders:
             folder_diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
-            folder_diagram_responses = [_diagram_to_response(d) for d in folder_diagrams]
+            folder_diagram_responses = [diagram_to_response(d) for d in folder_diagrams]
             folder_responses.append(
                 {
                     "id": str(folder.id),
