@@ -9,7 +9,6 @@ import {
 import { escapeHtml, sanitizeSvg } from "../utils/sanitize";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import html2canvas from "html2canvas";
 import api from "../services/api";
 import type {
   DiagramExportData,
@@ -2311,6 +2310,8 @@ export default function DiagramEditorPage() {
 
       document.body.appendChild(exportContainer);
 
+      // Loaded on demand: html2canvas is only needed when exporting.
+      const { default: html2canvas } = await import("html2canvas");
       const canvas = await html2canvas(exportContainer, {
         backgroundColor: "#ffffff",
         scale: pngScale,

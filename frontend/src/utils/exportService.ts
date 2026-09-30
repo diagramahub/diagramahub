@@ -5,7 +5,6 @@
  * Replaces inline export logic previously in DiagramEditorPage.tsx.
  */
 
-import html2canvas from 'html2canvas';
 import { PDFGenerator } from './pdfGenerator';
 import { MarkdownExporter } from './markdownExporter';
 import { MetadataHeader } from './metadataHeader';
@@ -127,7 +126,8 @@ export class ExportService {
         captureTarget = diagramContainer;
       }
 
-      // Capture with html2canvas
+      // Capture with html2canvas (loaded on demand: only needed when exporting)
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(captureTarget, {
         useCORS: true,
         allowTaint: true,

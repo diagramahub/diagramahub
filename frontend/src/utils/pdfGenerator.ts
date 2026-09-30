@@ -30,7 +30,6 @@
  *   than PNG-embedded PDFs.
  */
 
-import html2canvas from 'html2canvas';
 import type { DiagramExportData, ExportOptions } from './exportService';
 import { EXPORT_ERROR_KEYS } from './exportService';
 import { MetadataHeader } from './metadataHeader';
@@ -86,15 +85,16 @@ export class PDFGenerator {
     document.body.appendChild(exportContainer);
 
     try {
-      // 2. Start html2canvas and jsPDF import in parallel
+      // 2. Load html2canvas (on demand, it's only needed when exporting) and
+      //    jsPDF in parallel, capturing as soon as html2canvas is ready
       const [canvas, { jsPDF }] = await Promise.all([
-        html2canvas(exportContainer, {
+        import('html2canvas').then(({ default: html2canvas }) => html2canvas(exportContainer, {
           scale: CANVAS_SCALE,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
           logging: false,
-        }),
+        })),
         import('jspdf'),
       ]);
 
