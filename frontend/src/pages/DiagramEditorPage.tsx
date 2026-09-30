@@ -42,6 +42,7 @@ import ExportDiagramModal from "../components/ExportDiagramModal";
 import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
 import { LiveClock } from "../components/LiveClock";
+import { PinIcon } from "../components/PinIcon";
 import MoveDiagramModal from "../components/MoveDiagramModal";
 import CloneDiagramModal from "../components/CloneDiagramModal";
 import { EditorSkeleton } from "../components/Skeleton";
@@ -55,6 +56,13 @@ import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
 import { configInitBlockManager } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
+
+/** File explorer column width bounds (px). */
+const FILE_BROWSER_MIN_WIDTH = 200;
+const FILE_BROWSER_MAX_WIDTH = 480;
+const FILE_BROWSER_DEFAULT_WIDTH = 256;
+const clampFileBrowserWidth = (width: number) =>
+  Math.min(Math.max(width, FILE_BROWSER_MIN_WIDTH), FILE_BROWSER_MAX_WIDTH);
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -284,6 +292,14 @@ export default function DiagramEditorPage() {
   const [showFloatingSidebar, setShowFloatingSidebar] = useState(
     () => isFileBrowserPinned && !isMobile,
   );
+  const [fileBrowserWidth, setFileBrowserWidth] = useState<number>(() => {
+    try {
+      const saved = Number(localStorage.getItem("fileBrowserWidth"));
+      return saved ? clampFileBrowserWidth(saved) : FILE_BROWSER_DEFAULT_WIDTH;
+    } catch {
+      return FILE_BROWSER_DEFAULT_WIDTH;
+    }
+  });
   const [showCodeView, setShowCodeView] = useState(false);
   const [codePanelWidth, setCodePanelWidth] = useState(350);
   const isResizingCode = useRef(false);
@@ -472,6 +488,56 @@ export default function DiagramEditorPage() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isDescriptionPinned, isFileBrowserPinned, isMobile]);
+
+  // Persist the file browser width
+  useEffect(() => {
+    try {
+      localStorage.setItem("fileBrowserWidth", String(fileBrowserWidth));
+    } catch {
+      // Storage unavailable — the width just won't persist.
+    }
+  }, [fileBrowserWidth]);
+
+  const handleFileBrowserResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = fileBrowserWidth;
+
+      const handleMouseMove = (event: MouseEvent) => {
+        setFileBrowserWidth(
+          clampFileBrowserWidth(startWidth + event.clientX - startX),
+        );
+      };
+
+      const handleMouseUp = () => {
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [fileBrowserWidth],
+  );
+
+  const handleFileBrowserResizeKeyDown = (e: React.KeyboardEvent) => {
+    const step = e.shiftKey ? 64 : 16;
+    const next: Record<string, number> = {
+      ArrowLeft: fileBrowserWidth - step,
+      ArrowRight: fileBrowserWidth + step,
+      Home: FILE_BROWSER_MIN_WIDTH,
+      End: FILE_BROWSER_MAX_WIDTH,
+    };
+    if (e.key in next) {
+      e.preventDefault();
+      setFileBrowserWidth(clampFileBrowserWidth(next[e.key]));
+    }
+  };
 
   // Persist the file browser pin preference
   useEffect(() => {
@@ -3195,6 +3261,73 @@ export default function DiagramEditorPage() {
       <div
         className={`flex-1 flex overflow-hidden transition-all ${showNewDiagramModal && isFirstDiagram ? "blur-sm" : ""}`}
       >
+        {/* File explorer — a real column (like the description panel) so it pushes
+            the code panel, preview and status footer instead of covering them. */}
+        {showFloatingSidebar && !isMobile && (
+          <div className="floating-sidebar flex flex-shrink-0 h-full">
+            <div
+              className="h-full overflow-hidden"
+              style={{ width: fileBrowserWidth }}
+            >
+              <DiagramFileBrowser
+                  projectName={project?.name || ""}
+                  projectEmoji={project?.emoji}
+                  projectId={projectId || ""}
+                  diagrams={filteredSidebarData.diagrams}
+                  folders={filteredSidebarData.folders}
+                  currentDiagramId={currentDiagram?.id}
+                  onClose={() => {
+                    setShowFloatingSidebar(false);
+                    setDiagramSearchQuery("");
+                  }}
+                  onNewDiagram={(folderId) => handleNewDiagram(folderId)}
+                  onNewFolder={() => setShowNewFolderModal(true)}
+                  onDeleteDiagram={handleDeleteDiagram}
+                  onRenameDiagram={renameDiagram}
+                  onDuplicateDiagram={handleCloneDiagram}
+                  onMoveDiagramToFolder={moveDiagramToFolder}
+                  onMoveDiagramToProject={handleMoveDiagram}
+                  onDeleteFolder={handleDeleteFolder}
+                  onEditFolder={handleEditFolder}
+                  onDragStart={handleDragStart}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDragEnd={handleDragEnd}
+                  onDrop={handleDrop}
+                  draggedDiagramId={draggedDiagramId}
+                  dropTargetFolderId={dropTargetFolderId}
+                  expandedFolders={expandedFolders}
+                  onToggleFolder={toggleFolder}
+                  editingFolderId={editingFolderId}
+                  editingFolderName={editingFolderName}
+                  onEditingFolderNameChange={setEditingFolderName}
+                  onSaveFolderEdit={handleSaveFolderEdit}
+                  onCancelFolderEdit={handleCancelFolderEdit}
+                  closeOnSelect={false}
+                  isPinned={isFileBrowserPinned}
+                  onTogglePin={() => setIsFileBrowserPinned((prev) => !prev)}
+                />
+            </div>
+            {/* Resize handle (mouse drag or arrow keys) */}
+            <div
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("fileBrowser.resize")}
+              aria-valuenow={fileBrowserWidth}
+              aria-valuemin={FILE_BROWSER_MIN_WIDTH}
+              aria-valuemax={FILE_BROWSER_MAX_WIDTH}
+              tabIndex={0}
+              onMouseDown={handleFileBrowserResizeMouseDown}
+              onKeyDown={handleFileBrowserResizeKeyDown}
+              onDoubleClick={() => setFileBrowserWidth(FILE_BROWSER_DEFAULT_WIDTH)}
+              title={t("fileBrowser.resize")}
+              className="flex items-center justify-center w-1.5 cursor-col-resize flex-shrink-0 bg-gray-100 dark:bg-gray-700 hover:bg-purple-200 dark:hover:bg-purple-800 active:bg-purple-300 focus:outline-none focus:bg-purple-300 dark:focus:bg-purple-700 transition-colors"
+            >
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+            </div>
+          </div>
+        )}
+
         {/* Editor and Preview */}
         <main className="flex-1 flex overflow-hidden">
           {(() => {
@@ -3220,49 +3353,6 @@ export default function DiagramEditorPage() {
             const previewPanel = (
               <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-800 relative h-full">
                 {/* Floating Modals */}
-                {/* Diagram Structure Modal */}
-                {showFloatingSidebar && !isMobile && (
-                  <div className="floating-sidebar absolute inset-y-0 left-0 z-30 w-64 border-r border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
-                    <DiagramFileBrowser
-                      projectName={project?.name || ""}
-                      projectEmoji={project?.emoji}
-                      projectId={projectId || ""}
-                      diagrams={filteredSidebarData.diagrams}
-                      folders={filteredSidebarData.folders}
-                      currentDiagramId={currentDiagram?.id}
-                      onClose={() => {
-                        setShowFloatingSidebar(false);
-                        setDiagramSearchQuery("");
-                      }}
-                      onNewDiagram={(folderId) => handleNewDiagram(folderId)}
-                      onNewFolder={() => setShowNewFolderModal(true)}
-                      onDeleteDiagram={handleDeleteDiagram}
-                      onRenameDiagram={renameDiagram}
-                      onDuplicateDiagram={handleCloneDiagram}
-                      onMoveDiagramToFolder={moveDiagramToFolder}
-                      onMoveDiagramToProject={handleMoveDiagram}
-                      onDeleteFolder={handleDeleteFolder}
-                      onEditFolder={handleEditFolder}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDragEnd={handleDragEnd}
-                      onDrop={handleDrop}
-                      draggedDiagramId={draggedDiagramId}
-                      dropTargetFolderId={dropTargetFolderId}
-                      expandedFolders={expandedFolders}
-                      onToggleFolder={toggleFolder}
-                      editingFolderId={editingFolderId}
-                      editingFolderName={editingFolderName}
-                      onEditingFolderNameChange={setEditingFolderName}
-                      onSaveFolderEdit={handleSaveFolderEdit}
-                      onCancelFolderEdit={handleCancelFolderEdit}
-                      closeOnSelect={false}
-                      isPinned={isFileBrowserPinned}
-                      onTogglePin={() => setIsFileBrowserPinned((prev) => !prev)}
-                    />
-                  </div>
-                )}
 
                 {/* Appearance Editor Modal */}
                 {showAppearanceEditor &&
@@ -3771,7 +3861,7 @@ export default function DiagramEditorPage() {
 
                 <div
                   ref={containerRef}
-                  className={`flex-1 overflow-hidden p-2 ${showFloatingSidebar && !isMobile ? "pl-64" : ""}`}
+                  className="flex-1 overflow-hidden p-2"
                   onMouseDown={
                     activeTab === "code" && !isFreehandDiagram
                       ? handleMouseDown
@@ -3851,9 +3941,11 @@ export default function DiagramEditorPage() {
                 {/* Barra de Estado Inferior */}
                 {!isFullscreen && (
                   <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-2 sm:px-4 py-1.5 sm:py-2">
-                    <div className="flex items-center justify-between text-xs">
+                    {/* nowrap: when side panels narrow the preview, the left info scrolls
+                        horizontally instead of wrapping, and the clock never shrinks. */}
+                    <div className="flex items-center justify-between gap-3 text-xs whitespace-nowrap">
                       {/* Información del lado izquierdo */}
-                      <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto scrollbar-hide">
+                      <div className="flex items-center gap-2 sm:gap-4 min-w-0 overflow-x-auto scrollbar-hide">
                         {/* Estado de guardado con timestamp */}
                         <div className="flex items-center gap-1.5">
                           {saveStatus === "saving" && (
@@ -4006,7 +4098,7 @@ export default function DiagramEditorPage() {
                       </div>
 
                       {/* Fecha y hora actual con timezone del usuario */}
-                      <div className="hidden sm:flex items-center gap-2">
+                      <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                         <svg
                           className="w-3.5 h-3.5 text-gray-500"
                           fill="none"
@@ -4172,19 +4264,14 @@ export default function DiagramEditorPage() {
                           ? t("editor.unpinPanel")
                           : t("editor.pinPanel")
                       }
+                      aria-label={
+                        isDescriptionPinned
+                          ? t("editor.unpinPanel")
+                          : t("editor.pinPanel")
+                      }
+                      aria-pressed={isDescriptionPinned}
                     >
-                      <svg
-                        className="w-4 h-4"
-                        viewBox="0 0 24 24"
-                        fill={isDescriptionPinned ? "currentColor" : "none"}
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="12" y1="17" x2="12" y2="22" />
-                        <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
-                      </svg>
+                      <PinIcon pinned={isDescriptionPinned} />
                     </button>
                     <button
                       onClick={() => {

@@ -52,7 +52,7 @@ Análisis de funcionalidades pequeñas con alto valor para usuarios. **Ya existe
 | Q3 | **Modo embed** (`?embed=1` + botón "copiar código embed") | Diagramas vivos en READMEs/Notion/wikis — feature estrella del nicho | M | ⬜ |
 | Q4 | **Galería de templates al crear diagrama** (flowchart, sequence, ER, gantt, state, class, use case + puml/d2/dbml) | Mata la página en blanco; onboarding | S/M | ⬜ |
 | Q6 | **Pulido de guardado**: indicador "guardado hace Xs" + confirmación al salir con cambios sin guardar | Confianza en el editor | S | ⬜ |
-| Q7 | **Explorador 2.0** (panel de archivos del editor) — ver detalle abajo | Organización diaria; era la parte más floja del editor | S/M | 🔨 bloques 1-2 ✅ · bloque 3 ⬜ |
+| Q7 | **Explorador 2.0** (panel de archivos del editor) — ver detalle abajo | Organización diaria; era la parte más floja del editor | S/M | ✅ (modal nuevo diagrama → Q4) |
 
 #### Q7 — Explorador 2.0 (2026-09-29)
 
@@ -62,7 +62,9 @@ Análisis de funcionalidades pequeñas con alto valor para usuarios. **Ya existe
 - ✅ **Panel**: fijar (persistido), `Ctrl/Cmd+B` (excepto dentro de EasyMDE), carpetas expandidas persistidas por proyecto, carpetas primero, badges por tipo (MMD/PUML/D2/DBML/DRAW), tooltip de título, contador filtrado, `Esc` limpia búsqueda.
 - ✅ **i18n/a11y**: modal de nueva carpeta, "Guardado hace…", fijar/desfijar, errores; acciones visibles con foco; `aria-label` en todos los controles; toast con cerrar, dark y auto-dismiss.
 - ✅ **Verificado**: e2e Playwright contra el stack dev (17/17: DnD carpeta/raíz, búsqueda, menú, renombrar, fijar+recarga, persistencia, EN), tsc + build OK, lint sin cambios vs baseline (120).
-- ⬜ **Bloque 3**: ancho redimensionable (`SplitPane`), `role=tree` + flechas, textos del modal de nuevo diagrama (se rehace con Q4).
+- ✅ **Bloque 3**: el explorador es una columna real (como la descripción) que empuja código, preview y footer en vez de taparlos; ancho redimensionable 200–480px (arrastre, flechas ±16/±64, Home/End, doble clic restablece; persistido); `role=tree`/`treeitem`/`group` con flechas, Home/End, un solo Tab stop y `Shift+F10`/tecla menú para el menú de fila.
+- ✅ **Homologación y fixes de layout**: chincheta compartida (`PinIcon`) en descripción y explorador; footer `nowrap` con reloj fijo (con ambos paneles abiertos ya no se parte en dos líneas); `Tooltip` renderizado vía portal en `<body>` (con el menú lateral colapsado y el explorador fijado, los tooltips quedaban debajo del panel por el contexto de apilamiento `z-30` del sidebar). Verificado con e2e 22/22.
+- ⬜ Textos del modal de nuevo diagrama: se rehace con Q4.
 
 **Regresiones de `06ddf3f` detectadas durante la verificación (corregidas + tests)**: el "fix" de ruff E712 convirtió `X.is_active == True` en `X.is_active` en queries Beanie → `TypeError` en `SharedLinkRepository.get_active_by_diagram` (fallaba al abrir cada diagrama) y `PlanRepository.get_all_active` (lista de planes). Además `get_current_user_id` devolvía 500 con token de usuario eliminado → ahora 401. Suite: **255 passed**, cobertura 51.39%.
 

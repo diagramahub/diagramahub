@@ -1,4 +1,5 @@
 import { ReactNode, useState, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TooltipProps {
   content: string;
@@ -81,7 +82,9 @@ export default function Tooltip({ content, children, position = 'top', delay = 2
     >
       {children}
 
-      {isVisible && (
+      {/* Portaled to <body>: an ancestor with its own z-index (e.g. the fixed nav
+          sidebar) would otherwise trap the tooltip under later editor panels. */}
+      {isVisible && createPortal(
         <div
           className={`fixed z-[9999] pointer-events-none ${getTransformClass()}`}
           style={{ top: coords.top, left: coords.left }}
@@ -89,7 +92,8 @@ export default function Tooltip({ content, children, position = 'top', delay = 2
           <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
             {content}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

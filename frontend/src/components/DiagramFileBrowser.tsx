@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PinIcon } from './PinIcon';
 
 interface DiagramItem {
   id: string;
@@ -97,7 +98,6 @@ const ICONS = {
   close: 'M6 18L18 6M6 6l12 12',
   newFile: 'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   newFolder: 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',
-  pin: 'M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
 };
 
@@ -175,6 +175,79 @@ export default function DiagramFileBrowser({
 
   // While searching, every folder with results is shown expanded so matches are never hidden.
   const isFolderOpen = (folderId: string) => isSearching || expandedFolders.has(folderId);
+
+  // --- Keyboard tree navigation (WAI-ARIA tree pattern, roving tabindex) ---
+  // Keys: `f:<folderId>` for folders, `d:<diagramId>` for diagrams.
+  const treeRef = useRef<HTMLDivElement>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+
+  /** Visible tree items in DOM order, with the parent folder for diagrams inside one. */
+  const visibleItems = useMemo(() => {
+    const items: { key: string; parent: string | null }[] = [];
+    for (const f of filteredData.folders) {
+      items.push({ key: `f:${f.id}`, parent: null });
+      if (isSearching || expandedFolders.has(f.id)) {
+        for (const d of f.diagrams) items.push({ key: `d:${d.id}`, parent: `f:${f.id}` });
+      }
+    }
+    for (const d of filteredData.diagrams) items.push({ key: `d:${d.id}`, parent: null });
+    return items;
+  }, [filteredData, isSearching, expandedFolders]);
+
+  const visibleKeys = visibleItems.map(i => i.key);
+  // The single Tab stop: last focused item, else the open diagram, else the first item.
+  const tabStopKey =
+    (activeKey && visibleKeys.includes(activeKey) && activeKey) ||
+    (currentDiagramId && visibleKeys.includes(`d:${currentDiagramId}`) && `d:${currentDiagramId}`) ||
+    visibleKeys[0];
+
+  const focusTreeItem = (key: string | undefined) => {
+    if (!key) return;
+    treeRef.current?.querySelector<HTMLElement>(`[data-tree-key="${key}"]`)?.focus();
+  };
+
+  const handleTreeKeyDown = (e: React.KeyboardEvent) => {
+    const key = (e.target as HTMLElement).dataset.treeKey;
+    if (!key) return; // e.g. typing in an inline rename input
+    const index = visibleKeys.indexOf(key);
+    const item = visibleItems[index];
+    const isFolder = key.startsWith('f:');
+    const folderId = key.slice(2);
+
+    const handled = (() => {
+      switch (e.key) {
+        case 'ArrowDown': focusTreeItem(visibleKeys[index + 1]); return true;
+        case 'ArrowUp': focusTreeItem(visibleKeys[index - 1]); return true;
+        case 'Home': focusTreeItem(visibleKeys[0]); return true;
+        case 'End': focusTreeItem(visibleKeys[visibleKeys.length - 1]); return true;
+        case 'ArrowRight':
+          if (!isFolder) return false;
+          if (!isFolderOpen(folderId)) onToggleFolder(folderId);
+          else if (visibleItems[index + 1]?.parent === key) focusTreeItem(visibleKeys[index + 1]);
+          return true;
+        case 'ArrowLeft':
+          if (isFolder && isFolderOpen(folderId) && !isSearching) onToggleFolder(folderId);
+          else if (item?.parent) focusTreeItem(item.parent);
+          return true;
+        default:
+          // Context-menu key or Shift+F10 opens the row menu from the keyboard.
+          if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+            const rect = (e.target as HTMLElement).getBoundingClientRect();
+            const target: MenuTarget = isFolder
+              ? { kind: 'folder', id: folderId }
+              : { kind: 'diagram', id: key.slice(2), view: 'main' };
+            setMenu({
+              ...target,
+              x: Math.min(rect.left + 24, window.innerWidth - MENU_WIDTH - 8),
+              y: Math.min(rect.bottom + 4, window.innerHeight - 260),
+            });
+            return true;
+          }
+          return false;
+      }
+    })();
+    if (handled) e.preventDefault();
+  };
 
   const findDiagram = (id: string): DiagramItem | undefined =>
     diagrams.find(d => d.id === id) ?? folders.flatMap(f => f.diagrams).find(d => d.id === id);
@@ -259,7 +332,7 @@ export default function DiagramFileBrowser({
     onDrop(e, folderId);
   };
 
-  const renderDiagramRow = (diagram: DiagramItem) => {
+  const renderDiagramRow = (diagram: DiagramItem, level: 1 | 2) => {
     const isCurrent = diagram.id === currentDiagramId;
     const badge = DIAGRAM_BADGES[diagram.diagram_type] || FALLBACK_BADGE;
     const menuOpen = menu?.kind === 'diagram' && menu.id === diagram.id;
@@ -308,7 +381,13 @@ export default function DiagramFileBrowser({
           onDoubleClick={() => startRename(diagram)}
           onKeyDown={(e) => { if (e.key === 'F2') { e.preventDefault(); startRename(diagram); } }}
           title={diagram.title}
+          role="treeitem"
+          aria-level={level}
+          aria-selected={isCurrent}
           aria-current={isCurrent ? 'page' : undefined}
+          data-tree-key={`d:${diagram.id}`}
+          tabIndex={tabStopKey === `d:${diagram.id}` ? 0 : -1}
+          onFocus={() => setActiveKey(`d:${diagram.id}`)}
           className={`flex-1 text-left px-2 py-1.5 flex items-center gap-2 min-w-0 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
             isCurrent
               ? 'text-purple-700 dark:text-purple-300 font-medium'
@@ -330,6 +409,7 @@ export default function DiagramFileBrowser({
             menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
           }`}
           aria-label={t('fileBrowser.actionsFor', { name: diagram.title })}
+          tabIndex={-1}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
         >
@@ -483,14 +563,16 @@ export default function DiagramFileBrowser({
           {onTogglePin && (
             <button
               onClick={onTogglePin}
-              className={`${rowActionClass} ${isPinned ? 'text-purple-600 dark:text-purple-400' : ''}`}
+              className={`p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                isPinned
+                  ? 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
               aria-label={isPinned ? t('editor.unpinPanel') : t('editor.pinPanel')}
               aria-pressed={!!isPinned}
               title={isPinned ? t('editor.unpinPanel') : t('editor.pinPanel')}
             >
-              <svg className="w-4 h-4" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={ICONS.pin} />
-              </svg>
+              <PinIcon pinned={!!isPinned} />
             </button>
           )}
           <button onClick={onClose} className={rowActionClass} aria-label={t('common.close')} title={t('common.close')}>
@@ -528,6 +610,10 @@ export default function DiagramFileBrowser({
 
       {/* File tree — the whole area is the project-root drop zone */}
       <div
+        ref={treeRef}
+        role="tree"
+        aria-label={projectName}
+        onKeyDown={handleTreeKeyDown}
         className="flex-1 overflow-y-auto py-1 text-xs"
         onDragOver={(e) => onDragOver(e, null)}
         onDragLeave={folderDragLeave}
@@ -586,6 +672,12 @@ export default function DiagramFileBrowser({
                     onKeyDown={(e) => { if (e.key === 'F2') { e.preventDefault(); onEditFolder(folder.id, folder.name); } }}
                     aria-expanded={open}
                     title={folder.name}
+                    role="treeitem"
+                    aria-level={1}
+                    aria-selected={false}
+                    data-tree-key={`f:${folder.id}`}
+                    tabIndex={tabStopKey === `f:${folder.id}` ? 0 : -1}
+                    onFocus={() => setActiveKey(`f:${folder.id}`)}
                     className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5 text-gray-700 dark:text-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <Icon d={ICONS.chevron} className={`w-3 h-3 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />
@@ -600,6 +692,7 @@ export default function DiagramFileBrowser({
                     <button
                       onClick={() => onNewDiagram(folder.id)}
                       className={rowActionClass}
+                      tabIndex={-1}
                       aria-label={t('editor.newDiagramInFolder')}
                       title={t('editor.newDiagramInFolder')}
                     >
@@ -609,6 +702,7 @@ export default function DiagramFileBrowser({
                       onClick={(e) => openMenuFromButton(e, { kind: 'folder', id: folder.id })}
                       className={rowActionClass}
                       aria-label={t('fileBrowser.actionsFor', { name: folder.name })}
+                      tabIndex={-1}
                       aria-haspopup="menu"
                       aria-expanded={menuOpen}
                     >
@@ -620,8 +714,8 @@ export default function DiagramFileBrowser({
 
               {/* Folder children */}
               {open && (
-                <div className="ml-3 border-l border-gray-200 dark:border-gray-700">
-                  {folder.diagrams.map(renderDiagramRow)}
+                <div role="group" className="ml-3 border-l border-gray-200 dark:border-gray-700">
+                  {folder.diagrams.map(d => renderDiagramRow(d, 2))}
                   {folder.diagrams.length === 0 && (
                     <button
                       onClick={() => onNewDiagram(folder.id)}
@@ -638,7 +732,7 @@ export default function DiagramFileBrowser({
         })}
 
         {/* Root diagrams */}
-        {filteredData.diagrams.map(renderDiagramRow)}
+        {filteredData.diagrams.map(d => renderDiagramRow(d, 1))}
 
         {/* Empty state */}
         {!hasContent && (
