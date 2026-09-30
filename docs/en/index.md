@@ -70,7 +70,7 @@ diagramahub/
 | Payments | Stripe SDK 11+ |
 | AI Clients | google-genai, httpx (OpenAI, Claude, DeepSeek) |
 | Email | Resend (async) |
-| Dependencies | Poetry 1.8+ |
+| Dependencies | Poetry 2.x |
 | Linting | Ruff (line-length 100, target py311) |
 | Formatting | Black (line-length 100, target py311) |
 | Type checking | mypy |

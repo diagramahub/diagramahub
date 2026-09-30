@@ -19,14 +19,17 @@ RUN apk update && apk upgrade --no-cache && apk add --no-cache \
     openssl-dev \
     cargo
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry==1.8.3
+# Install Poetry (2.x: 1.8.3 and its dulwich dependency carried advisories)
+RUN pip install --no-cache-dir poetry==2.5.1
+
+# Install into the system interpreter (no virtualenv). Set as env vars rather
+# than `poetry config`, which would be stored in root's home and be invisible
+# to the non-root runtime user (`poetry run pytest` would then try to create a venv).
+ENV POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1
 
 # Copy locked dependency manifests
 COPY pyproject.toml poetry.lock README.md ./
-
-# Configure poetry to not create virtual environment
-RUN poetry config virtualenvs.create false
 
 # Generate lock file and install dependencies
 # In production, skip dev dependencies
@@ -47,6 +50,14 @@ COPY ./start.sh ./start.sh
 
 # Make start script executable
 RUN chmod +x ./start.sh
+
+# Run as an unprivileged user. /app is owned by it because the test tooling
+# writes there (.pytest_cache, .hypothesis, htmlcov/, coverage.xml).
+# UID 1000 matches the usual first host user, so bind-mounted source stays
+# writable in development on Linux too.
+RUN addgroup -S -g 1000 app && adduser -S -D -u 1000 -G app -h /home/app app \
+    && chown -R app:app /app
+USER app
 
 # Default environment variables
 ENV APP_ENV=${APP_ENV}
