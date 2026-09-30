@@ -10,6 +10,10 @@ from .interfaces import IDiagramRepository
 from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
 
 
+# Fields that only describe how a diagram is being viewed, not its content.
+PRESENTATION_FIELDS = frozenset({"viewport_zoom", "viewport_x", "viewport_y", "user_preferences"})
+
+
 class DiagramRepository(IDiagramRepository):
     """MongoDB implementation of diagram repository using Beanie."""
 
@@ -123,9 +127,22 @@ class DiagramRepository(IDiagramRepository):
             return None
 
         update_data = diagram_data.model_dump(exclude_unset=True)
-        if update_data:
+        if not update_data:
+            return diagram
+
+        # updated_at tracks edits, not viewing: the editor saves viewport and
+        # panel preferences on its own and always sends the full payload, so
+        # only a real change to a non-presentation field moves the timestamp
+        # (it orders the dashboard's Recent list).
+        current = diagram.model_dump(include=set(update_data))
+        edited = any(
+            current.get(field) != value
+            for field, value in update_data.items()
+            if field not in PRESENTATION_FIELDS
+        )
+        if edited:
             update_data["updated_at"] = datetime.utcnow()
-            await diagram.set(update_data)
+        await diagram.set(update_data)
 
         return diagram
 
