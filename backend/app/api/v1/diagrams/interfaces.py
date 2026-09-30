@@ -5,7 +5,7 @@ Follows the Dependency Inversion Principle (SOLID).
 
 from abc import ABC, abstractmethod
 from typing import Optional
-from .schemas import DiagramInDB, DiagramCreate, DiagramUpdate
+from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
 
 
 class IDiagramRepository(ABC):
@@ -29,6 +29,13 @@ class IDiagramRepository(ABC):
     @abstractmethod
     async def get_by_project_id(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams for a project."""
+        pass
+
+    @abstractmethod
+    async def get_recent_by_project_ids(
+        self, project_ids: list[str], limit: int
+    ) -> list[DiagramSummary]:
+        """Most recently updated diagrams across projects, newest first (summary fields only)."""
         pass
 
     @abstractmethod

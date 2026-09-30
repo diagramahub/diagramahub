@@ -5,8 +5,9 @@ Concrete implementation of diagram repository.
 from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
+from beanie.operators import In
 from .interfaces import IDiagramRepository
-from .schemas import DiagramInDB, DiagramCreate, DiagramUpdate
+from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
 
 
 class DiagramRepository(IDiagramRepository):
@@ -63,6 +64,27 @@ class DiagramRepository(IDiagramRepository):
         """Get all diagrams for a project."""
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()
         return diagrams
+
+    async def get_recent_by_project_ids(
+        self, project_ids: list[str], limit: int
+    ) -> list[DiagramSummary]:
+        """Most recently updated diagrams across projects in one indexed query.
+
+        Sorting, limiting and projecting happen in MongoDB, so only ``limit``
+        small documents come back instead of every diagram with its content.
+        """
+        if not project_ids or limit <= 0:
+            return []
+        return (
+            await DiagramInDB.find(In(DiagramInDB.project_id, project_ids))
+            # Sort on updated_at alone (always set) so MongoDB can SORT_MERGE the
+            # per-project ranges of the (project_id, updated_at) index: it examines
+            # only `limit` documents instead of sorting every match in memory.
+            .sort(-DiagramInDB.updated_at)
+            .limit(limit)
+            .project(DiagramSummary)
+            .to_list()
+        )
 
     async def get_by_folder_id(self, folder_id: str) -> list[DiagramInDB]:
         """Get all diagrams for a folder."""
