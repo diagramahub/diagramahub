@@ -61,6 +61,8 @@ import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
 const FILE_BROWSER_MIN_WIDTH = 200;
 const FILE_BROWSER_MAX_WIDTH = 480;
 const FILE_BROWSER_DEFAULT_WIDTH = 256;
+/** Width of the explorer resize handle (`w-1.5`). */
+const FILE_BROWSER_HANDLE_WIDTH = 6;
 const clampFileBrowserWidth = (width: number) =>
   Math.min(Math.max(width, FILE_BROWSER_MIN_WIDTH), FILE_BROWSER_MAX_WIDTH);
 
@@ -201,6 +203,11 @@ export default function DiagramEditorPage() {
     currentDiagram,
   ]);
   const [loading, setLoading] = useState(true);
+  // Switching diagrams inside the same project keeps the editor mounted and only
+  // fades the preview while the next diagram loads and renders (no skeleton flash).
+  const [isSwitchingDiagram, setIsSwitchingDiagram] = useState(false);
+  // Guards against a slow earlier load overwriting a newer one (fast clicking).
+  const loadSeq = useRef(0);
   const [error, setError] = useState<string | null>(null);
   const mermaidRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -913,11 +920,18 @@ export default function DiagramEditorPage() {
 
   const loadProject = async () => {
     if (!projectId) return;
+    const seq = ++loadSeq.current;
+    const isDiagramSwitch = !!project && project.id === projectId && !!diagramId;
 
     try {
-      setLoading(true);
+      if (isDiagramSwitch) {
+        setIsSwitchingDiagram(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const projectData = await api.getProject(projectId);
+      if (seq !== loadSeq.current) return; // a newer navigation took over
       setProject(projectData);
 
       if (diagramId) {
@@ -1046,6 +1060,7 @@ export default function DiagramEditorPage() {
           }
         } else {
           setError("Diagram not found");
+          setIsSwitchingDiagram(false);
         }
       } else {
         // No diagramId in URL - try to load last viewed diagram or first available
@@ -1098,20 +1113,44 @@ export default function DiagramEditorPage() {
         }
       }
     } catch (err) {
+      if (seq !== loadSeq.current) return;
       setError("Error loading project");
+      setIsSwitchingDiagram(false);
       console.error(err);
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   };
 
-  // Render diagram (Mermaid or PlantUML)
+  /**
+   * Reveal the workspace once the new diagram is on screen: two animation frames
+   * let the browser lay out and paint the injected SVG (plus the restored
+   * zoom/pan) before the cover fades out, so nothing pops in afterwards.
+   */
+  const finishDiagramSwitch = () => {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => setIsSwitchingDiagram(false)),
+    );
+  };
+
+  // Safety net: never leave the workspace covered if a render path doesn't report
+  // back (generous, since server-rendered types wait on Kroki).
   useEffect(() => {
+    if (!isSwitchingDiagram) return;
+    const timeout = setTimeout(() => setIsSwitchingDiagram(false), 10000);
+    return () => clearTimeout(timeout);
+  }, [isSwitchingDiagram]);
+
+  // Render diagram (Mermaid or PlantUML)
+  const renderSeq = useRef(0);
+  useEffect(() => {
+    const renderId = ++renderSeq.current;
     const doRender = async () => {
       if (!mermaidRef.current) return;
 
       try {
-        mermaidRef.current.innerHTML = "";
+        // The previous SVG stays on screen until the new one is ready, so there
+        // is no blank frame while rendering (on diagram switch or while typing).
 
         // Detect diagram type
         const diagramType = currentDiagram?.diagram_type || "mermaid";
@@ -1119,6 +1158,7 @@ export default function DiagramEditorPage() {
         // Freehand diagrams are rendered by FreehandCanvas, not here
         if (diagramType === "freehand") {
           mermaidRef.current.innerHTML = "";
+          finishDiagramSwitch();
           // Consume any pending fit request (e.g. after cloning a freehand diagram)
           if (fitOnNextRender.current) {
             fitOnNextRender.current = false;
@@ -1133,18 +1173,21 @@ export default function DiagramEditorPage() {
             ? diagramType.toUpperCase()
             : "Mermaid";
           mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código ${label} para ver el diagrama...</div>`;
+          finishDiagramSwitch();
           return;
         }
 
         // Use centralized rendering utility
         const result = await renderDiagramUtil(fullDiagramCode, diagramType);
 
-        if (!mermaidRef.current) return;
+        // A newer render started meanwhile — don't paint stale output over it.
+        if (!mermaidRef.current || renderId !== renderSeq.current) return;
 
         if ("svg" in result) {
           // Sanitize before injecting: source may be untrusted/imported content
           mermaidRef.current.innerHTML = sanitizeSvg(result.svg);
           setRenderError(null);
+          finishDiagramSwitch();
 
           // Re-center the newly rendered diagram when requested
           // (after a type conversion or after cloning).
@@ -1156,7 +1199,8 @@ export default function DiagramEditorPage() {
           throw new Error(result.error);
         }
       } catch (err) {
-        if (!mermaidRef.current) return;
+        if (!mermaidRef.current || renderId !== renderSeq.current) return;
+        finishDiagramSwitch();
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
         setRenderError(errorMessage);
@@ -3259,8 +3303,38 @@ export default function DiagramEditorPage() {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex overflow-hidden transition-all ${showNewDiagramModal && isFirstDiagram ? "blur-sm" : ""}`}
+        className={`relative flex-1 flex overflow-hidden transition-all ${showNewDiagramModal && isFirstDiagram ? "blur-sm" : ""}`}
       >
+        {/* Diagram switch cover: hides code, preview, footer, description and chat
+            until the next diagram is fully loaded and painted, then reveals it all
+            at once. The explorer stays uncovered so navigation keeps working. */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-hidden={!isSwitchingDiagram}
+          className={`absolute inset-y-0 right-0 z-30 flex items-center justify-center bg-gray-50 dark:bg-gray-800 transition-opacity ease-out ${
+            isSwitchingDiagram
+              ? "opacity-100 duration-150"
+              : "opacity-0 duration-300 pointer-events-none"
+          }`}
+          style={{
+            left:
+              showFloatingSidebar && !isMobile
+                ? fileBrowserWidth + FILE_BROWSER_HANDLE_WIDTH
+                : 0,
+          }}
+        >
+          {isSwitchingDiagram && (
+            <div className="flex flex-col items-center gap-3 text-gray-500 dark:text-gray-400">
+              <svg className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span className="text-sm font-medium">{t("editor.loadingDiagram")}</span>
+            </div>
+          )}
+        </div>
+
         {/* File explorer — a real column (like the description panel) so it pushes
             the code panel, preview and status footer instead of covering them. */}
         {showFloatingSidebar && !isMobile && (
@@ -3275,7 +3349,7 @@ export default function DiagramEditorPage() {
                   projectId={projectId || ""}
                   diagrams={filteredSidebarData.diagrams}
                   folders={filteredSidebarData.folders}
-                  currentDiagramId={currentDiagram?.id}
+                  currentDiagramId={diagramId}
                   onClose={() => {
                     setShowFloatingSidebar(false);
                     setDiagramSearchQuery("");
@@ -3333,6 +3407,7 @@ export default function DiagramEditorPage() {
           {(() => {
             const codeEditorPanel = (
               <DiagramCodePanel
+                key={currentDiagram?.id}
                 value={diagramCode}
                 onChange={setDiagramCode}
                 diagramType={currentDiagram?.diagram_type || "mermaid"}
@@ -3904,6 +3979,7 @@ export default function DiagramEditorPage() {
                       {currentDiagram?.diagram_type === "freehand" ? (
                         <div className="w-full h-full">
                           <FreehandCanvas
+                            key={currentDiagram?.id}
                             initialState={diagramCode}
                             onChange={(state) => setDiagramCode(state)}
                             zoom={zoom}
@@ -4371,6 +4447,7 @@ export default function DiagramEditorPage() {
 
               <div className="flex-1 overflow-hidden">
                 <MarkdownEditor
+                  key={currentDiagram?.id}
                   value={diagramDescription}
                   onChange={setDiagramDescription}
                   placeholder={t("editor.descriptionPlaceholder")}
@@ -4397,6 +4474,7 @@ export default function DiagramEditorPage() {
               </div>
             )}
             <AIChatPanel
+              key={currentDiagram?.id}
               isOpen={showChatPanel}
               onClose={() => setShowChatPanel(false)}
               diagramCode={diagramCode}
@@ -5209,6 +5287,7 @@ export default function DiagramEditorPage() {
             height="h-[65vh]"
           >
             <DiagramCodePanel
+              key={currentDiagram?.id}
               value={diagramCode}
               onChange={setDiagramCode}
               diagramType={currentDiagram?.diagram_type || "mermaid"}
@@ -5237,6 +5316,7 @@ export default function DiagramEditorPage() {
             <div className="p-4 h-full flex flex-col">
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <MarkdownEditor
+                  key={currentDiagram?.id}
                   value={diagramDescription}
                   onChange={setDiagramDescription}
                   fontSize={descriptionFontSize}

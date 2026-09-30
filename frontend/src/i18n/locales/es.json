@@ -497,6 +497,7 @@
     "formatHintPdf": "Documento",
     "formatHintMarkdown": "Texto + imagen",
     "svgVectorNote": "El SVG se exporta como vector limpio (sin encabezado).",
+    "loadingDiagram": "Cargando diagrama…",
     "savedAgo": "Guardado {{time}}",
     "timeAgoJustNow": "justo ahora",
     "timeAgoSeconds": "hace {{count}}s",
