@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../utils/locale';
 import apiService from '../../services/api';
 import { Invoice } from '../../types/subscription';
 
 export default function BillingHistory() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,7 +39,7 @@ export default function BillingHistory() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+    return new Date(dateString).toLocaleDateString(dateLocale(i18n.language), {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

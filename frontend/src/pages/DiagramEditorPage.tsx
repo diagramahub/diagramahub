@@ -43,6 +43,8 @@ import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
 import { LiveClock } from "../components/LiveClock";
 import { PinIcon } from "../components/PinIcon";
+import { ErrorToast } from "../components/ErrorToast";
+import { dateLocale } from "../utils/locale";
 import MoveDiagramModal from "../components/MoveDiagramModal";
 import CloneDiagramModal from "../components/CloneDiagramModal";
 import { EditorSkeleton } from "../components/Skeleton";
@@ -70,7 +72,7 @@ export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [project, setProject] = useState<ProjectWithDiagrams | null>(null);
   const [currentDiagram, setCurrentDiagram] = useState<Diagram | null>(null);
   const [diagramCode, setDiagramCode] = useState(
@@ -571,12 +573,7 @@ export default function DiagramEditorPage() {
     setExpandedFolders(new Set(saved));
   }, [projectId]);
 
-  // Action errors (with a loaded project) auto-dismiss; a fatal load error stays on screen.
-  useEffect(() => {
-    if (!error || !project) return;
-    const timeout = setTimeout(() => setError(null), 6000);
-    return () => clearTimeout(timeout);
-  }, [error, project]);
+  const clearError = useCallback(() => setError(null), []);
 
   // Ctrl/Cmd+B toggles the file browser (desktop)
   useEffect(() => {
@@ -680,6 +677,17 @@ export default function DiagramEditorPage() {
 
   // Diagram search state for floating sidebar
   const [diagramSearchQuery, setDiagramSearchQuery] = useState("");
+
+  // Toolbar title: while switching, show the target diagram's name from the tree
+  // right away. Display only — diagramTitle itself must not change mid-switch,
+  // or the autosave would read it as a rename of the previous diagram.
+  const toolbarTitle = useMemo(() => {
+    if (!isSwitchingDiagram || !project || !diagramId) return diagramTitle;
+    const target =
+      project.diagrams.find((d) => d.id === diagramId) ??
+      project.folders.flatMap((f) => f.diagrams).find((d) => d.id === diagramId);
+    return target?.title ?? diagramTitle;
+  }, [isSwitchingDiagram, project, diagramId, diagramTitle]);
 
   // Filter diagrams and folders based on search query for floating sidebar
   const filteredSidebarData = useMemo(() => {
@@ -1059,7 +1067,7 @@ export default function DiagramEditorPage() {
             });
           }
         } else {
-          setError("Diagram not found");
+          setError(t("editor.diagramNotFound"));
           setIsSwitchingDiagram(false);
         }
       } else {
@@ -1114,7 +1122,7 @@ export default function DiagramEditorPage() {
       }
     } catch (err) {
       if (seq !== loadSeq.current) return;
-      setError("Error loading project");
+      setError(t("editor.loadProjectError"));
       setIsSwitchingDiagram(false);
       console.error(err);
     } finally {
@@ -1172,7 +1180,7 @@ export default function DiagramEditorPage() {
           const label = isServerRenderedType(diagramType)
             ? diagramType.toUpperCase()
             : "Mermaid";
-          mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">Escribe código ${label} para ver el diagrama...</div>`;
+          mermaidRef.current.innerHTML = `<div class="text-gray-400 p-4 text-center">${escapeHtml(t("editor.preview.empty", { label }))}</div>`;
           finishDiagramSwitch();
           return;
         }
@@ -1208,18 +1216,18 @@ export default function DiagramEditorPage() {
         // Only show error if it's not just "Syntax error in text" (which is too generic)
         if (errorMessage.includes("Syntax error in text")) {
           mermaidRef.current.innerHTML = `<div class="text-amber-600 dark:text-amber-400 p-4 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-            <p class="font-semibold mb-2">⚠️ Error de sintaxis en el diagrama</p>
-            <p class="text-sm">Verifica que:</p>
+            <p class="font-semibold mb-2">⚠️ ${escapeHtml(t("editor.preview.syntaxErrorTitle"))}</p>
+            <p class="text-sm">${escapeHtml(t("editor.preview.syntaxErrorCheck"))}</p>
             <ul class="text-sm list-disc ml-5 mt-2">
-              <li>El tipo de diagrama sea válido (graph, flowchart, sequenceDiagram, etc.)</li>
-              <li>La sintaxis de las flechas y nodos sea correcta</li>
-              <li>No haya caracteres especiales sin escapar</li>
-              <li>Las comillas estén balanceadas</li>
+              <li>${escapeHtml(t("editor.preview.syntaxErrorType"))}</li>
+              <li>${escapeHtml(t("editor.preview.syntaxErrorArrows"))}</li>
+              <li>${escapeHtml(t("editor.preview.syntaxErrorEscape"))}</li>
+              <li>${escapeHtml(t("editor.preview.syntaxErrorQuotes"))}</li>
             </ul>
           </div>`;
         } else {
           mermaidRef.current.innerHTML = `<div class="text-red-500 dark:text-red-400 p-4 border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <p class="font-semibold mb-2">❌ Error al renderizar diagrama</p>
+            <p class="font-semibold mb-2">❌ ${escapeHtml(t("editor.preview.renderError"))}</p>
             <p class="text-sm">${escapeHtml(errorMessage)}</p>
           </div>`;
         }
@@ -1237,148 +1245,169 @@ export default function DiagramEditorPage() {
     }
   }, [fullDiagramCode, currentDiagram, diagramCode]);
 
-  // Autosave effect for diagram content
+  // Autosave
+  // ---------------------------------------------------------------------------
+  // * Baseline: the first payload computed for each loaded diagram is taken as
+  //   "already saved", so merely opening a diagram never writes (it used to,
+  //   bumping updated_at and reshuffling the dashboard's Recent list).
+  // * A save is only scheduled when the payload differs from the last saved one.
+  // * The pending save lives in a ref, so switching diagrams, leaving the editor
+  //   or hiding/closing the tab flushes it instead of dropping the last 1.5 s
+  //   of edits (the debounce cleanup used to cancel it silently).
+  type PendingSave = { id: string; payload: UpdateDiagramRequest; key: string };
+  const autosaveBaseline = useRef<{ id: string; key: string } | null>(null);
+  const pendingSave = useRef<PendingSave | null>(null);
+
+  const persistDiagram = useCallback(async (save: PendingSave) => {
+    if (pendingSave.current === save) pendingSave.current = null;
+    try {
+      setSaveStatus("saving");
+      await api.updateDiagram(save.id, save.payload);
+      if (autosaveBaseline.current?.id === save.id) {
+        autosaveBaseline.current = { id: save.id, key: save.key };
+      }
+      setSaveStatus("saved");
+      setLastSavedTime(new Date());
+
+      // Reflect title/content/description/folder in the explorer tree
+      const { title, content, description, folder_id } = save.payload;
+      setProject((prev) => {
+        if (!prev) return prev;
+        const patch = (list: Diagram[]) =>
+          list.map((d) =>
+            d.id === save.id
+              ? {
+                  ...d,
+                  title: title ?? d.title,
+                  content: content ?? d.content,
+                  description: description ?? d.description,
+                  folder_id: folder_id ?? null,
+                }
+              : d,
+          );
+        return {
+          ...prev,
+          diagrams: patch(prev.diagrams),
+          folders: prev.folders.map((f) => ({ ...f, diagrams: patch(f.diagrams) })),
+        };
+      });
+
+      // Hide "Guardado" after 2 seconds
+      setTimeout(() => {
+        setSaveStatus("idle");
+      }, 2000);
+    } catch (err) {
+      console.error("Error autosaving:", err);
+      setSaveStatus("idle");
+      // Keep it pending so the next flush (or edit) retries it
+      if (!pendingSave.current) pendingSave.current = save;
+    }
+  }, []);
+
   useEffect(() => {
     if (!currentDiagram || !projectId) return;
+    // Mid-switch: the URL already points to the next diagram while the previous
+    // one's state is being replaced — nothing here is a user edit.
+    if (currentDiagram.id !== diagramId) return;
 
-    const autoSave = async () => {
-      try {
-        setSaveStatus("saving");
+    // Prepare content with embedded config
+    let contentToSave = diagramCode;
 
-        // Prepare content with embedded config
-        let contentToSave = diagramCode;
+    if (currentDiagram?.diagram_type === "mermaid") {
+      // Check if code already has an init block
+      const parseResult = configInitBlockManager.parseConfig(diagramCode);
 
-        if (currentDiagram?.diagram_type === "mermaid") {
-          // Check if code already has an init block
-          const parseResult = configInitBlockManager.parseConfig(diagramCode);
-
-          // If there's already an init block, keep the code as-is
-          // Otherwise, embed the config from UI controls
-          if (!parseResult.config) {
-            // No init block found, embed config from UI controls
-            const codeWithoutInit = parseResult.contentWithoutInit;
-            contentToSave = configInitBlockManager.embedConfig(
-              codeWithoutInit,
-              {
-                theme: diagramTheme,
-                layout: diagramLayout,
-                look: diagramLook,
-                handDrawnSeed:
-                  diagramLook === "handDrawn"
-                    ? Math.floor(Math.random() * 1000)
-                    : undefined,
-                fontFamily: diagramFontFamily || undefined,
-                fontSize: diagramFontSize
-                  ? parseInt(diagramFontSize)
-                  : undefined,
-                curve: diagramCurve || undefined,
-              },
-            );
-          }
-          // If init block exists, use the code as-is (user may have edited it manually)
-        } else if (currentDiagram?.diagram_type === "plantuml") {
-          // Check if code already has a theme directive
-          const parseResult = plantUMLConfigManager.parseTheme(diagramCode);
-
-          // If there's already a theme directive, keep the code as-is
-          // Otherwise, embed the theme from UI controls
-          if (!parseResult.config) {
-            // No theme directive found, embed theme from UI controls
-            const codeWithoutTheme = parseResult.contentWithoutTheme;
-            contentToSave = plantUMLConfigManager.embedTheme(codeWithoutTheme, {
-              theme: plantUMLTheme || undefined,
-            });
-          }
-          // If theme directive exists, use the code as-is (user may have edited it manually)
-        } else if (currentDiagram?.diagram_type === "d2") {
-          // For D2, embed theme via vars block
-          const parseResult = d2ConfigManager.parseTheme(diagramCode);
-          if (!parseResult.config) {
-            // No theme block found, embed theme from UI controls
-            const codeWithoutTheme = parseResult.contentWithoutTheme;
-            contentToSave = d2ConfigManager.embedTheme(codeWithoutTheme, {
-              themeId: d2ThemeId || undefined,
-            });
-          }
-          // If vars block exists, use the code as-is (user may have edited it manually)
-        }
-
-        const updateData: UpdateDiagramRequest = {
-          title: diagramTitle,
-          content: contentToSave,
-          description: diagramDescription,
-          config: {
-            background_color: backgroundColor,
-            background_pattern: backgroundPattern,
+      // If there's already an init block, keep the code as-is
+      // Otherwise, embed the config from UI controls
+      if (!parseResult.config) {
+        // No init block found, embed config from UI controls
+        const codeWithoutInit = parseResult.contentWithoutInit;
+        contentToSave = configInitBlockManager.embedConfig(
+          codeWithoutInit,
+          {
+            theme: diagramTheme,
+            layout: diagramLayout,
+            look: diagramLook,
+            handDrawnSeed:
+              diagramLook === "handDrawn"
+                ? Math.floor(Math.random() * 1000)
+                : undefined,
+            fontFamily: diagramFontFamily || undefined,
+            fontSize: diagramFontSize
+              ? parseInt(diagramFontSize)
+              : undefined,
+            curve: diagramCurve || undefined,
           },
-          user_preferences: {
-            description_pinned: isDescriptionPinned,
-            description_font_size: descriptionFontSize,
-            description_panel_width: descriptionPanelWidth,
-            chat_panel_width: chatPanelWidth,
-            preferred_provider: preferredProvider,
-            preferred_model: preferredModel,
-          },
-          folder_id: selectedFolderId,
-          viewport_zoom: zoom,
-          viewport_x: pan.x,
-          viewport_y: pan.y,
-        };
-        await api.updateDiagram(currentDiagram.id, updateData);
-        setSaveStatus("saved");
-        setLastSavedTime(new Date());
-
-        // Update the project state to reflect the new title in the sidebar
-        if (project) {
-          const updatedProject = { ...project };
-
-          // Update in root diagrams
-          const rootDiagramIndex = updatedProject.diagrams.findIndex(
-            (d) => d.id === currentDiagram.id,
-          );
-          if (rootDiagramIndex !== -1) {
-            updatedProject.diagrams[rootDiagramIndex] = {
-              ...updatedProject.diagrams[rootDiagramIndex],
-              title: diagramTitle,
-              content: contentToSave,
-              description: diagramDescription,
-              folder_id: selectedFolderId,
-            };
-          } else {
-            // Update in folder diagrams
-            for (const folder of updatedProject.folders) {
-              const folderDiagramIndex = folder.diagrams.findIndex(
-                (d) => d.id === currentDiagram.id,
-              );
-              if (folderDiagramIndex !== -1) {
-                folder.diagrams[folderDiagramIndex] = {
-                  ...folder.diagrams[folderDiagramIndex],
-                  title: diagramTitle,
-                  content: contentToSave,
-                  description: diagramDescription,
-                  folder_id: selectedFolderId,
-                };
-                break;
-              }
-            }
-          }
-
-          setProject(updatedProject);
-        }
-
-        // Hide "Guardado" after 2 seconds
-        setTimeout(() => {
-          setSaveStatus("idle");
-        }, 2000);
-      } catch (err) {
-        console.error("Error autosaving:", err);
-        setSaveStatus("idle");
+        );
       }
-    };
+      // If init block exists, use the code as-is (user may have edited it manually)
+    } else if (currentDiagram?.diagram_type === "plantuml") {
+      // Check if code already has a theme directive
+      const parseResult = plantUMLConfigManager.parseTheme(diagramCode);
 
-    const debounce = setTimeout(autoSave, 1500);
+      // If there's already a theme directive, keep the code as-is
+      // Otherwise, embed the theme from UI controls
+      if (!parseResult.config) {
+        // No theme directive found, embed theme from UI controls
+        const codeWithoutTheme = parseResult.contentWithoutTheme;
+        contentToSave = plantUMLConfigManager.embedTheme(codeWithoutTheme, {
+          theme: plantUMLTheme || undefined,
+        });
+      }
+      // If theme directive exists, use the code as-is (user may have edited it manually)
+    } else if (currentDiagram?.diagram_type === "d2") {
+      // For D2, embed theme via vars block
+      const parseResult = d2ConfigManager.parseTheme(diagramCode);
+      if (!parseResult.config) {
+        // No theme block found, embed theme from UI controls
+        const codeWithoutTheme = parseResult.contentWithoutTheme;
+        contentToSave = d2ConfigManager.embedTheme(codeWithoutTheme, {
+          themeId: d2ThemeId || undefined,
+        });
+      }
+      // If vars block exists, use the code as-is (user may have edited it manually)
+    }
+
+    const updateData: UpdateDiagramRequest = {
+      title: diagramTitle,
+      content: contentToSave,
+      description: diagramDescription,
+      config: {
+        background_color: backgroundColor,
+        background_pattern: backgroundPattern,
+      },
+      user_preferences: {
+        description_pinned: isDescriptionPinned,
+        description_font_size: descriptionFontSize,
+        description_panel_width: descriptionPanelWidth,
+        chat_panel_width: chatPanelWidth,
+        preferred_provider: preferredProvider,
+        preferred_model: preferredModel,
+      },
+      folder_id: selectedFolderId,
+      viewport_zoom: zoom,
+      viewport_x: pan.x,
+      viewport_y: pan.y,
+    };
+    const key = JSON.stringify(updateData);
+
+    if (autosaveBaseline.current?.id !== currentDiagram.id) {
+      autosaveBaseline.current = { id: currentDiagram.id, key };
+      return;
+    }
+    if (key === autosaveBaseline.current.key) {
+      // Back to the saved state (e.g. an edit was undone): nothing to save.
+      pendingSave.current = null;
+      return;
+    }
+
+    const save: PendingSave = { id: currentDiagram.id, payload: updateData, key };
+    pendingSave.current = save;
+    const debounce = setTimeout(() => void persistDiagram(save), 1500);
     return () => clearTimeout(debounce);
   }, [
+    currentDiagram?.id,
+    diagramId,
     diagramCode,
     diagramDescription,
     diagramTitle,
@@ -1400,6 +1429,43 @@ export default function DiagramEditorPage() {
     preferredProvider,
     preferredModel,
   ]);
+
+  // Flush a pending save when the URL moves to another diagram or the editor
+  // unmounts (navigating away inside the app).
+  useEffect(() => {
+    return () => {
+      const save = pendingSave.current;
+      if (save) void persistDiagram(save);
+    };
+  }, [diagramId, persistDiagram]);
+
+  // Tab hidden / closing: flush now; warn before unload if something is pending.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden" && pendingSave.current) {
+        void persistDiagram(pendingSave.current);
+      }
+    };
+    const handlePageHide = () => {
+      const save = pendingSave.current;
+      if (save && api.updateDiagramOnUnload(save.id, save.payload)) {
+        pendingSave.current = null;
+      }
+    };
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!pendingSave.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [persistDiagram]);
 
   // Parse config from content when user manually edits Mermaid code with init block
   useEffect(() => {
@@ -1576,31 +1642,40 @@ export default function DiagramEditorPage() {
     }
   }, [d2ThemeId, currentDiagram]);
 
-  // Separate effect for viewport changes (zoom/pan) - saves less frequently
+  // Separate effect for viewport changes (zoom/pan) - saves less frequently.
+  // Same baseline rule as the content autosave: restoring a diagram's saved
+  // viewport on load creates a new `pan` object but is not a change, so the
+  // first values seen for each diagram are the baseline and are never written.
+  const viewportBaseline = useRef<{ id: string; key: string } | null>(null);
   useEffect(() => {
     if (!currentDiagram || !projectId) return;
+    if (currentDiagram.id !== diagramId) return; // mid-switch
 
+    const viewport = { viewport_zoom: zoom, viewport_x: pan.x, viewport_y: pan.y };
+    const key = JSON.stringify(viewport);
+    if (viewportBaseline.current?.id !== currentDiagram.id) {
+      viewportBaseline.current = { id: currentDiagram.id, key };
+      return;
+    }
+    if (key === viewportBaseline.current.key) return;
+
+    const diagramToSave = currentDiagram.id;
     const saveViewport = async () => {
       try {
-        setSaveStatus("saving");
-        await api.updateDiagram(currentDiagram.id, {
-          viewport_zoom: zoom,
-          viewport_x: pan.x,
-          viewport_y: pan.y,
-        });
-        setSaveStatus("saved");
-        setLastSavedTime(new Date());
-        setTimeout(() => setSaveStatus("idle"), 2000);
+        await api.updateDiagram(diagramToSave, viewport);
+        if (viewportBaseline.current?.id === diagramToSave) {
+          viewportBaseline.current = { id: diagramToSave, key };
+        }
       } catch (err) {
         console.error("Error saving viewport:", err);
-        setSaveStatus("idle");
       }
     };
 
-    // Longer debounce for viewport changes (only save after user stops moving for 1 second)
+    // Longer debounce for viewport changes (only save after user stops moving for 1 second).
+    // Silent on purpose: panning/zooming is not an edit, so no "Saved" badge.
     const debounce = setTimeout(saveViewport, 1000);
     return () => clearTimeout(debounce);
-  }, [zoom, pan]);
+  }, [zoom, pan, currentDiagram?.id, diagramId]);
 
   const handleNewDiagram = (folderId: string | null = null) => {
     setNewDiagramName("");
@@ -1704,7 +1779,7 @@ export default function DiagramEditorPage() {
           limit: detail.limit,
         });
       } else {
-        setError("Error al crear diagrama");
+        setError(t("editor.createDiagramError"));
       }
     } finally {
       setCreatingDiagram(false);
@@ -1791,7 +1866,7 @@ export default function DiagramEditorPage() {
     if (!validateAIConfiguration()) return;
 
     if (!diagramCode.trim()) {
-      alert(t("ai.generate.error"));
+      setError(t("ai.generate.error"));
       return;
     }
 
@@ -1809,9 +1884,9 @@ export default function DiagramEditorPage() {
       setShowDescriptionConfirmModal(true);
     } catch (error: any) {
       if (error.response?.status === 404) {
-        alert(t("ai.messages.noProvidersError"));
+        setError(t("ai.messages.noProvidersError"));
       } else {
-        alert(error.response?.data?.detail || t("ai.generate.error"));
+        setError(error.response?.data?.detail || t("ai.generate.error"));
       }
     } finally {
       setGeneratingDescription(false);
@@ -1860,7 +1935,7 @@ export default function DiagramEditorPage() {
       setGeneratedDescription(response.description);
       setRefineInput("");
     } catch (error: any) {
-      alert(error.response?.data?.detail || t("ai.generate.error"));
+      setError(error.response?.data?.detail || t("ai.generate.error"));
     } finally {
       setRefining(false);
     }
@@ -2855,7 +2930,7 @@ export default function DiagramEditorPage() {
                 className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors truncate max-w-[200px] flex items-center gap-1"
                 title={t("editor.clickToEditTitle")}
               >
-                <span className="truncate">{diagramTitle}</span>
+                <span className="truncate">{toolbarTitle}</span>
                 <svg
                   className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0"
                   fill="none"
@@ -4164,7 +4239,7 @@ export default function DiagramEditorPage() {
                             <span className="text-gray-500 dark:text-gray-400">
                               {new Date(
                                 currentDiagram.created_at,
-                              ).toLocaleDateString("es-ES", {
+                              ).toLocaleDateString(dateLocale(i18n.language), {
                                 day: "2-digit",
                                 month: "short",
                               })}
@@ -4238,7 +4313,7 @@ export default function DiagramEditorPage() {
             <div
               onMouseDown={handleDescriptionResizeMouseDown}
               className="floating-description-resize-handle hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
-              title="Arrastrar para redimensionar"
+              title={t("editor.dragToResize")}
             >
               <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
             </div>
@@ -4468,7 +4543,7 @@ export default function DiagramEditorPage() {
               <div
                 onMouseDown={handleChatResizeMouseDown}
                 className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
-                title="Arrastrar para redimensionar"
+                title={t("editor.dragToResize")}
               >
                 <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
               </div>
@@ -4535,7 +4610,7 @@ export default function DiagramEditorPage() {
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  ¡Crea tu primer diagrama! 🎨
+                  {t("editor.newDiagramModal.firstTitle")}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
                   {t("editor.startVisualizing")}
@@ -4663,7 +4738,7 @@ export default function DiagramEditorPage() {
                 project.folders.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Carpeta (opcional)
+                      {t("editor.newDiagramModal.folderOptional")}
                     </label>
                     <select
                       value={newDiagramFolderId || ""}
@@ -4672,7 +4747,7 @@ export default function DiagramEditorPage() {
                       }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
-                      <option value="">Sin carpeta (raíz)</option>
+                      <option value="">{t("editor.newDiagramModal.noFolder")}</option>
                       {project.folders.map((folder) => (
                         <option key={folder.id} value={folder.id}>
                           {folder.name}
@@ -4698,10 +4773,8 @@ export default function DiagramEditorPage() {
                     </svg>
                     <div className="flex-1">
                       <p className="text-sm text-purple-800 dark:text-purple-300">
-                        <strong>¿Qué sigue?</strong> Después de crear tu
-                        diagrama, podrás escribir código Mermaid en el editor y
-                        ver la visualización en tiempo real. ¡Es fácil y
-                        poderoso!
+                        <strong>{t("project.whatNext")}</strong>{" "}
+                        {t("editor.newDiagramModal.whatNextBody")}
                       </p>
                     </div>
                   </div>
@@ -4741,10 +4814,10 @@ export default function DiagramEditorPage() {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           ></path>
                         </svg>
-                        Creando diagrama...
+                        {t("editor.newDiagramModal.creating")}
                       </span>
                     ) : (
-                      "Crear diagrama y empezar →"
+                      t("editor.newDiagramModal.createAndStart")
                     )}
                   </button>
                   <button
@@ -4752,7 +4825,7 @@ export default function DiagramEditorPage() {
                     disabled={creatingDiagram}
                     className="w-full px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400 transition-colors"
                   >
-                    Volver al dashboard
+                    {t("editor.newDiagramModal.backToDashboard")}
                   </button>
                 </div>
               ) : (
@@ -4765,9 +4838,9 @@ export default function DiagramEditorPage() {
                       setIsFirstDiagram(false);
                     }}
                     disabled={creatingDiagram}
-                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400"
+                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    Cancelar
+                    {t("common.cancel")}
                   </button>
                   <button
                     onClick={handleCreateDiagram}
@@ -4796,10 +4869,10 @@ export default function DiagramEditorPage() {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                           ></path>
                         </svg>
-                        Creando diagrama...
+                        {t("editor.newDiagramModal.creating")}
                       </span>
                     ) : (
-                      "Crear Diagrama"
+                      t("editor.newDiagramModal.create")
                     )}
                   </button>
                 </>
@@ -4905,23 +4978,7 @@ export default function DiagramEditorPage() {
       )}
 
       {/* Error message */}
-      {error && (
-        <div
-          role="alert"
-          className="fixed bottom-4 right-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md shadow-lg max-w-md z-50"
-        >
-          <span className="text-sm">{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="p-0.5 text-red-500 hover:text-red-700 dark:hover:text-red-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
-            aria-label={t("common.close")}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
+      <ErrorToast message={project ? error : null} onClose={clearError} />
 
       {/* Delete Folder Confirmation Modal */}
       <DeleteFolderModal

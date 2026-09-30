@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../utils/locale';
 
 interface LiveClockProps {
   /** IANA timezone used to format the time (defaults to UTC). */
@@ -21,7 +22,7 @@ export function LiveClock({ timeZone = 'UTC' }: LiveClockProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
+  const locale = dateLocale(i18n.language);
 
   return (
     <>

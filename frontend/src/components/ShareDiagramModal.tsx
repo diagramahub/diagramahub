@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../utils/locale';
 import api from '../services/api';
 import { SharedLink, CreateSharedLinkRequest } from '../types/sharing';
 
@@ -37,7 +38,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
   ];
 
   function formatDate(dateStr: string): string {
-    const locale = i18n.language === 'en' ? 'en-US' : 'es-ES';
+    const locale = dateLocale(i18n.language);
     return new Date(dateStr).toLocaleDateString(locale, {
       day: '2-digit',
       month: '2-digit',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../utils/locale';
 
 interface CancelSubscriptionModalProps {
   isOpen: boolean;
@@ -14,13 +15,13 @@ export default function CancelSubscriptionModal({
   onConfirm,
   periodEndDate
 }: CancelSubscriptionModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [cancellationType, setCancellationType] = useState<'end_of_period' | 'immediate'>('end_of_period');
   const [cancelling, setCancelling] = useState(false);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('es-ES', {
+    return new Date(dateString).toLocaleDateString(dateLocale(i18n.language), {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

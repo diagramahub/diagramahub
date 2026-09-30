@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../utils/locale';
 import apiService from '../../services/api';
 import { AdminUserMfaInfo } from '../../types/auth';
 
@@ -66,7 +67,7 @@ const DIAGRAM_TYPE_LABELS: Record<string, string> = {
 
 
 export default function UserMfaManagement() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [users, setUsers] = useState<AdminUserMfaInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -328,7 +329,7 @@ export default function UserMfaManagement() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {u.last_login_at
-                          ? new Date(u.last_login_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          ? new Date(u.last_login_at).toLocaleDateString(dateLocale(i18n.language), { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : '—'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
@@ -359,7 +360,7 @@ export default function UserMfaManagement() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {u.created_at
-                          ? new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          ? new Date(u.created_at).toLocaleDateString(dateLocale(i18n.language), { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : '—'}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">

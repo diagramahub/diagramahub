@@ -248,6 +248,32 @@ class ApiService {
     return response.data;
   }
 
+  /**
+   * Best-effort diagram save while the page is being unloaded (tab close,
+   * reload). Uses `fetch` with `keepalive` because an axios request would be
+   * cancelled with the page. Browsers cap keepalive bodies at ~64 KB, so
+   * larger payloads return false and rely on the beforeunload warning instead.
+   */
+  updateDiagramOnUnload(diagramId: string, data: UpdateDiagramRequest): boolean {
+    const body = JSON.stringify(data);
+    if (body.length > 60_000) return false;
+    const token = localStorage.getItem('token');
+    try {
+      void fetch(`${API_URL}/api/v1/diagrams/${diagramId}`, {
+        method: 'PUT',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async moveDiagram(diagramId: string, data: MoveDiagramRequest): Promise<Diagram> {
     const response = await this.api.post<Diagram>(`/api/v1/diagrams/${diagramId}/move`, data);
     return response.data;
