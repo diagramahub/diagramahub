@@ -1,9 +1,24 @@
 # Plan vivo — Versión 0.7.0: Optimizar, Asegurar, Estabilizar (+ quick wins)
 
 - **Última actualización**: 2026-09-29
-- **Rama**: `release/0.7.0` (6 commits sobre main)
-- **Estado**: desarrollo en curso — este documento es el punto de retoma
+- **Rama**: `release/0.7.0`
+- **Estado**: ✅ **CERRADA el 2026-09-29** con alcance recortado por decisión del maintainer (ver §0). Lo pendiente pasa a 0.8.
 - **Regla del documento**: marcar cada ítem como ✅ hecho / 🔨 en curso / ⬜ pendiente / 🚫 diferido con criterio
+
+---
+
+## 0. Cierre de 0.7.0 (2026-09-29)
+
+**Qué salió en 0.7.0** (release notes: `docs/{es,en}/release-notes/0.7.0.md`, `CHANGELOG.md`):
+imagen de producción del frontend (B3) · alineación SOLID/DIP del backend + deps de auth unificadas · Explorador 2.0 completo (Q7) · cambio de diagrama suave con cobertura del área de trabajo · selector de idioma con sidebar colapsado · fixes (401 de cuenta eliminada, ownership en el autocorrector IA, tooltips, footer, i18n).
+`bash scripts/check-version.sh 0.7.0` → **OK (15/15)**.
+
+**La Definition of Done de §7 NO se cumplió en su versión original**: el maintainer decidió cerrar con el alcance entregado. Todo lo siguiente pasa a **0.8** tal cual está descrito abajo:
+
+- **Hardening Must**: A1 CI/CD, A2 índice único `users.email` (con migración), A5 límite global de payload, B1 MongoDB con auth en `local-full`, B2 backend no-root, C1 code splitting (bundle sigue en ~2.5 MB).
+- **Hardening Should/Could**: B4 Redis, B5 SSRF en URLs de proveedores IA, B6 separación de claves, B7 CSP + Monaco local, B8 backups, B9 higiene de secretos, C2–C5.
+- **Quick wins**: Q1 importar archivos, Q2 exportar desde link compartido, Q3 modo embed, Q4 galería de templates (incluye rehacer el modal de nuevo diagrama con i18n), Q6 pulido de guardado (incluye: el cambio de diagrama descarta ediciones hechas dentro del debounce de 1.5 s del autosave — preexistente).
+- **Deuda de §4** sin cambios.
 
 ---
 
@@ -129,7 +144,7 @@ Colaboración en tiempo real (CRDT/WebSockets), PWA/offline, sync con Git.
 
 ---
 
-## 6. Proceso de release (pendiente al final)
+## 6. Proceso de release (✅ completado 2026-09-29 — release notes, CHANGELOG, mkdocs nav, versión en 15/15 archivos)
 
 - Release notes `docs/{es,en}/release-notes/0.7.0.md` + nav de mkdocs.
 - CHANGELOG (Keep a Changelog).
