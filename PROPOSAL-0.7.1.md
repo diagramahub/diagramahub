@@ -12,12 +12,12 @@
 
 | # | Ítem | Evidencia (revisión 2026-09-30) | Estado |
 |---|------|--------------------------------|--------|
-| S1 | DOMPurify ≥ 3.4.13 | 19 avisos (XSS/bypasses); sanea el SVG de los diagramas | ⬜ |
-| S2 | Mermaid ≥ 11.16.1 | 6 avisos (inyección CSS, DoS, prototype pollution) | ⬜ |
-| S3 | react-router ≥ 7.18.2 | 1 aviso *high* (modo RSC, no usado) | ⬜ |
-| S4 | Poetry 2.x en la imagen del backend | Poetry 1.8.3 + `dulwich` con avisos | ⬜ |
-| S5 | Contenedor backend no-root | único contenedor que corre como root | ⬜ |
-| S6 | Límite global de tamaño de petición (413) | no existe | ⬜ |
+| S1 | DOMPurify ≥ 3.4.13 | 19 avisos (XSS/bypasses); sanea el SVG de los diagramas | ✅ 3.4.16 · overrides movidos a `pnpm.overrides` (pnpm los ignoraba) |
+| S2 | Mermaid ≥ 11.16.1 | 6 avisos (inyección CSS, DoS, prototype pollution) | ✅ 11.17.2 |
+| S3 | react-router ≥ 7.18.2 | 1 aviso *high* (modo RSC, no usado) | ✅ 7.18.4 |
+| S4 | Poetry 2.x en la imagen del backend | Poetry 1.8.3 + `dulwich` con avisos | ✅ 2.5.1 |
+| S5 | Contenedor backend no-root | único contenedor que corre como root | ✅ usuario `app` (1000) |
+| S6 | Límite global de tamaño de petición (413) | no existe | ✅ 5 MB configurable (`MAX_REQUEST_BODY_BYTES`) |
 
 ## 2. Bugs
 
@@ -34,7 +34,7 @@
 | # | Ítem | Evidencia | Estado |
 |---|------|-----------|--------|
 | P1 | Code splitting por ruta + carga diferida de exportación | `index.js` 2.46 MB / 662 KB gz en todas las páginas (login incluido) | ⬜ |
-| P2 | Recientes con una consulta limitada | descarga todos los diagramas con contenido de todos los proyectos para mostrar 4 | ⬜ |
+| P2 | Recientes con una consulta limitada | descarga todos los diagramas con contenido de todos los proyectos para mostrar 4 | ✅ 1 consulta + índice compuesto (examina 4 docs) |
 
 ## Fuera de alcance (→ 0.8.0)
 
