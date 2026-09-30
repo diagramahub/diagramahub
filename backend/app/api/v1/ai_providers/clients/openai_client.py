@@ -45,6 +45,14 @@ class OpenAIClient(BaseAIClient):
             ]
         )
 
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """Send the conversation as native turns after the system message."""
+        return await self._chat_completion(
+            [{"role": "system", "content": system_prompt}, *self._chat_turns(messages)]
+        )
+
     async def _chat_completion(
         self, messages: list[dict], response_format: dict | None = None
     ) -> str:

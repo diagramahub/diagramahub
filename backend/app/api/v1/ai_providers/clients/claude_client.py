@@ -49,6 +49,12 @@ class ClaudeClient(BaseAIClient):
             system=system_prompt,
         )
 
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """Send the conversation as native turns with Claude's top-level system."""
+        return await self._messages_request(self._chat_turns(messages), system=system_prompt)
+
     async def _messages_request(
         self,
         messages: list[dict],

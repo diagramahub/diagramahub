@@ -968,19 +968,10 @@ class ChatSessionService:
     ) -> str:
         """Dispatch an AI request through the unified public client API.
 
-        Builds a single user prompt from the conversation history and
-        delegates to ``client.complete``, the public completion entry
-        point shared by every provider client.
+        Delegates to ``client.complete_chat``: providers with a native chat API
+        receive real ``user``/``assistant`` turns, the rest a flattened transcript.
         """
-        conversation_parts: list[str] = []
-        for msg in history:
-            if msg["role"] == "user":
-                role_label = "Usuario" if language == "es" else "User"
-            else:
-                role_label = "Asistente" if language == "es" else "Assistant"
-            conversation_parts.append(f"{role_label}: {msg['content']}")
-        user_prompt = "\n".join(conversation_parts)
-        return await client.complete(system_prompt, user_prompt)
+        return await client.complete_chat(system_prompt, history, language)
 
     # ------------------------------------------------------------------ #
     #  Task 5.4 – Context compaction logic

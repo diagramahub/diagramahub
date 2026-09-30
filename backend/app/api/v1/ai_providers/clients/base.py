@@ -42,6 +42,41 @@ class BaseAIClient(ABC):
         """
         pass
 
+    @staticmethod
+    def _chat_turns(messages: list[dict]) -> list[dict]:
+        """Keep only the ``role``/``content`` keys providers accept for a turn."""
+        return [{"role": m["role"], "content": m["content"]} for m in messages]
+
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """
+        Complete a multi-turn conversation.
+
+        Providers with a native chat API override this to send each message as
+        a real ``user``/``assistant`` turn, which keeps role adherence (the model
+        doesn't "continue the transcript") and matches how they are trained.
+        This default flattens the history into a single labelled transcript for
+        providers without that API, ending with an assistant cue.
+
+        Args:
+            system_prompt: System-level instructions (diagram, markers, rules)
+            messages: Conversation turns as ``{"role", "content"}`` dicts
+            language: ``es`` or ``en``, used for the transcript labels
+
+        Returns:
+            Plain text response from the provider
+        """
+        user_label, assistant_label = (
+            ("Usuario", "Asistente") if language == "es" else ("User", "Assistant")
+        )
+        lines = [
+            f"{user_label if m['role'] == 'user' else assistant_label}: {m['content']}"
+            for m in messages
+        ]
+        lines.append(f"{assistant_label}:")
+        return await self.complete(system_prompt, "\n".join(lines))
+
     @abstractmethod
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"

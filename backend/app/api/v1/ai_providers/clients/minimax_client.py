@@ -44,6 +44,14 @@ class MinimaxClient(BaseAIClient):
             ]
         )
 
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """Send the conversation as native turns after the system message."""
+        return await self._make_request(
+            [{"role": "system", "content": system_prompt}, *self._chat_turns(messages)]
+        )
+
     async def _make_request(
         self,
         messages: List[Dict[str, str]],
