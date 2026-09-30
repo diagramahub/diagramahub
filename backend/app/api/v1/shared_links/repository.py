@@ -50,9 +50,11 @@ class SharedLinkRepository(ISharedLinkRepository):
 
     async def get_active_by_diagram(self, diagram_id: str) -> Optional[SharedLinkInDB]:
         """Get the active shared link for a diagram."""
+        # ``== True`` is required: beanie overloads ``==`` into a Mongo expression,
+        # while the bare field is an ExpressionField the query builder can't use.
         return await SharedLinkInDB.find_one(
             SharedLinkInDB.diagram_id == diagram_id,
-            SharedLinkInDB.is_active,
+            SharedLinkInDB.is_active == True,  # noqa: E712
         )
 
     async def update(self, link_id: str, update_data: SharedLinkUpdate) -> Optional[SharedLinkInDB]:

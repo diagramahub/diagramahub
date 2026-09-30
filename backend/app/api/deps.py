@@ -6,6 +6,7 @@ import each other's routes (route-to-route coupling) or instantiate
 repositories directly for identity lookups. Moved here from
 ``app.api.v1.users.routes`` during the 0.7.0 SOLID alignment.
 """
+
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -88,4 +89,11 @@ async def get_current_user_id(
     """Dependency returning the current user's ID from their email."""
     user_repo = UserRepository()
     user = await user_repo.get_by_email(current_user_email)
+    if user is None:
+        # Valid token for an account that no longer exists (e.g. deleted).
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return str(user.id)

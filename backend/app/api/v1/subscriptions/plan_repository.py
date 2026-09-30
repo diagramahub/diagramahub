@@ -45,7 +45,8 @@ class PlanRepository(IPlanRepository):
 
     async def get_all_active(self) -> list[PlanInDB]:
         """Get all active plans."""
-        plans = await PlanInDB.find(PlanInDB.is_active).to_list()
+        # ``== True`` is required by beanie's query DSL (see shared_links repository).
+        plans = await PlanInDB.find(PlanInDB.is_active == True).to_list()  # noqa: E712
         return plans
 
     async def get_all(self) -> list[PlanInDB]:
