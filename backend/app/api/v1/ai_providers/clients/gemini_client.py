@@ -30,32 +30,42 @@ class GeminiClient(BaseAIClient):
         self.client = genai.Client(api_key=self.api_key)
 
     def _gen_config(
-        self, temperature: float | None = None, max_tokens: int | None = None
+        self,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        system_instruction: str | None = None,
     ) -> types.GenerateContentConfig:
         """Configuracion de generacion reutilizable."""
         return types.GenerateContentConfig(
             temperature=temperature or self.parameters.get("temperature", 0.7),
             top_p=self.parameters.get("top_p", 0.95),
             max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 4096),
+            system_instruction=system_instruction or None,
         )
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
         """
-        Complete a chat request.
+        Complete a request with separate system and user prompts.
 
-        Gemini receives a single combined prompt; the system prompt is not
-        sent separately to preserve the existing prompt format.
+        The system prompt (current diagram, response markers, task rules) is
+        sent through Gemini's native ``system_instruction``, the equivalent of
+        the ``system`` role the other providers receive. Dropping it left the
+        chat without the diagram context, so replies could not be parsed.
         """
-        return await self._generate(user_prompt)
+        return await self._generate(user_prompt, system_instruction=system_prompt)
 
     async def _generate(
-        self, prompt: str, temperature: float | None = None, max_tokens: int | None = None
+        self,
+        prompt: str,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        system_instruction: str | None = None,
     ) -> str:
         """Llamada generica async a generate_content de Gemini."""
         response = await self.client.aio.models.generate_content(
             model=self.model,
             contents=prompt,
-            config=self._gen_config(temperature, max_tokens),
+            config=self._gen_config(temperature, max_tokens, system_instruction),
         )
         if not response or not response.text:
             raise ValueError("Gemini returned empty response")
