@@ -23,17 +23,17 @@
 
 | # | Ítem | Evidencia | Estado |
 |---|------|-----------|--------|
-| B1 | Abrir un diagrama lo guarda sin cambios | "Guardado justo ahora" al cargar; bump de `updated_at` altera Recientes | ⬜ |
-| B2 | Ediciones perdidas al cambiar de diagrama/salir dentro del debounce de 1.5 s | cleanup del efecto cancela el guardado pendiente | ⬜ |
-| B3 | Título de la barra con el diagrama anterior durante el cambio | observado en e2e | ⬜ |
-| B4 | 6 `alert()` nativos | `AIIntegrationsSection.tsx`, `DiagramEditorPage.tsx` | ⬜ |
-| B5 | Textos fijos restantes | modal de nuevo diagrama, 8 `es-ES` literales, 3 `setError("…")` | ⬜ |
+| B1 | Abrir un diagrama lo guarda sin cambios | "Guardado justo ahora" al cargar; bump de `updated_at` altera Recientes | ✅ línea base + backend no mueve `updated_at` por viewport/preferencias |
+| B2 | Ediciones perdidas al cambiar de diagrama/salir dentro del debounce de 1.5 s | cleanup del efecto cancela el guardado pendiente | ✅ flush al cambiar/salir/ocultar + aviso `beforeunload` |
+| B3 | Título de la barra con el diagrama anterior durante el cambio | observado en e2e | ✅ |
+| B4 | 6 `alert()` nativos | `AIIntegrationsSection.tsx`, `DiagramEditorPage.tsx` | ✅ `ErrorToast` compartido |
+| B5 | Textos fijos restantes | modal de nuevo diagrama, 8 `es-ES` literales, 3 `setError("…")` | ✅ + `dateLocale()` en 9 lugares |
 
 ## 3. Rendimiento
 
 | # | Ítem | Evidencia | Estado |
 |---|------|-----------|--------|
-| P1 | Code splitting por ruta + carga diferida de exportación | `index.js` 2.46 MB / 662 KB gz en todas las páginas (login incluido) | ⬜ |
+| P1 | Code splitting por ruta + carga diferida de exportación | `index.js` 2.46 MB / 662 KB gz en todas las páginas (login incluido) | ✅ login 668→193 KB · editor pinta 299→181 ms |
 | P2 | Recientes con una consulta limitada | descarga todos los diagramas con contenido de todos los proyectos para mostrar 4 | ✅ 1 consulta + índice compuesto (examina 4 docs) |
 
 ## Fuera de alcance (→ 0.8.0)
