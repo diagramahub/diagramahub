@@ -39,6 +39,7 @@ from app.api.v1.oauth.routes import router as oauth_router
 from app.api.v1.oauth.schemas import OAuthStateToken
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.config import settings
+from app.core.request_limits import BodySizeLimitMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Global body size limit (413). Registered before SecurityHeadersMiddleware and
+# CORS so both wrap it: the 413 keeps security headers and stays readable by
+# the browser (CORS headers present).
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ---------------------------------------------------------------------------
