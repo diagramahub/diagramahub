@@ -1,6 +1,7 @@
 """
 Resend email vendor adapter implementation.
 """
+
 import logging
 
 import resend
@@ -73,4 +74,5 @@ class ResendAdapter(IEmailVendor):
             return False
 
     def get_vendor_name(self) -> str:
+        """Devuelve el nombre del vendor de correo."""
         return "resend"

@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.7.0](0.7.0.md) | 2026-09-29 | Redesigned file explorer, smooth diagram switching, frontend production image and layered backend |
 | [0.6.2](0.6.2.md) | 2026-09-26 | Security hardening, request limits, complete audit trail and consistent versioning |
 | [0.6.1](0.6.1.md) | 2026-08-30 | Move/duplicate diagrams, lighter exports, export modal redesign, unified button system |
 | [0.6.0](0.6.0.md) | 2026-08-15 | Diagram conversion (AI), improved freehand canvas, pnpm migration |

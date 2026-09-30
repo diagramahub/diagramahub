@@ -5,6 +5,7 @@
  * parses SSE events, and routes them to the provided callbacks.
  */
 import type { SSEEvent, StreamCallbacks, SendMessageStreamRequest } from '../types/streaming';
+import { API_URL } from '../utils/runtimeConfig';
 
 /**
  * Create a stream consumer that connects to the SSE endpoint and processes events.
@@ -21,9 +22,8 @@ export function createStreamConsumer(
 ): AbortController {
   const controller = new AbortController();
   const token = localStorage.getItem('token');
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5172';
 
-  const url = `${apiUrl}/api/v1/chat-sessions/${sessionId}/messages/stream`;
+  const url = `${API_URL}/api/v1/chat-sessions/${sessionId}/messages/stream`;
 
   fetch(url, {
     method: 'POST',

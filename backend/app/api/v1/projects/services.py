@@ -1,15 +1,32 @@
 """
 Business logic layer for projects.
 """
+
 from fastapi import HTTPException, status
 from .interfaces import IProjectRepository
+from ..diagrams.interfaces import IDiagramRepository
+from ..diagrams.schemas import diagram_to_response
+from ..folders.interfaces import IFolderRepository
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithDiagramsResponse
 
 
 class ProjectService:
     """Service for project business logic."""
 
-    def __init__(self, repository: IProjectRepository, diagram_repository, folder_repository):
+    def __init__(
+        self,
+        repository: IProjectRepository,
+        diagram_repository: IDiagramRepository,
+        folder_repository: IFolderRepository,
+    ):
+        """
+        Initialize the project service.
+
+        Args:
+            repository: Project repository
+            diagram_repository: Diagram repository
+            folder_repository: Folder repository
+        """
         self.repository = repository
         self.diagram_repository = diagram_repository
         self.folder_repository = folder_repository
@@ -34,7 +51,7 @@ class ProjectService:
             user_id=project.user_id,
             diagram_count=0,
             created_at=project.created_at,
-            updated_at=project.updated_at
+            updated_at=project.updated_at,
         )
 
     async def get_project(self, project_id: str, user_id: str) -> ProjectResponse:
@@ -53,15 +70,12 @@ class ProjectService:
         """
         project = await self.repository.get_by_id(project_id)
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         if project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this project"
+                detail="You don't have access to this project",
             )
 
         # Count diagrams for this project
@@ -76,7 +90,7 @@ class ProjectService:
             user_id=project.user_id,
             diagram_count=diagram_count,
             created_at=project.created_at,
-            updated_at=project.updated_at
+            updated_at=project.updated_at,
         )
 
     async def get_project_with_diagrams(
@@ -97,63 +111,24 @@ class ProjectService:
         """
         project = await self.repository.get_by_id(project_id)
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         if project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this project"
+                detail="You don't have access to this project",
             )
 
         # Get diagrams without folder
         diagrams_without_folder = await self.diagram_repository.get_without_folder(project_id)
-        diagram_responses = [
-            {
-                "id": str(d.id),
-                "title": d.title,
-                "content": d.content,
-                "description": d.description,
-                "diagram_type": d.diagram_type,
-                "config": d.config,
-                "user_preferences": d.user_preferences,
-                "project_id": d.project_id,
-                "folder_id": d.folder_id,
-                "viewport_zoom": d.viewport_zoom,
-                "viewport_x": d.viewport_x,
-                "viewport_y": d.viewport_y,
-                "created_at": d.created_at,
-                "updated_at": d.updated_at
-            }
-            for d in diagrams_without_folder
-        ]
+        diagram_responses = [diagram_to_response(d) for d in diagrams_without_folder]
 
         # Get folders with their diagrams
         folders = await self.folder_repository.get_by_project_id(project_id)
         folder_responses = []
         for folder in folders:
             folder_diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
-            folder_diagram_responses = [
-                {
-                    "id": str(d.id),
-                    "title": d.title,
-                    "content": d.content,
-                    "description": d.description,
-                    "diagram_type": d.diagram_type,
-                    "config": d.config,
-                    "user_preferences": d.user_preferences,
-                    "project_id": d.project_id,
-                    "folder_id": d.folder_id,
-                    "viewport_zoom": d.viewport_zoom,
-                    "viewport_x": d.viewport_x,
-                    "viewport_y": d.viewport_y,
-                    "created_at": d.created_at,
-                    "updated_at": d.updated_at
-                }
-                for d in folder_diagrams
-            ]
+            folder_diagram_responses = [diagram_to_response(d) for d in folder_diagrams]
             folder_responses.append(
                 {
                     "id": str(folder.id),
@@ -162,7 +137,7 @@ class ProjectService:
                     "project_id": folder.project_id,
                     "created_at": folder.created_at,
                     "updated_at": folder.updated_at,
-                    "diagrams": folder_diagram_responses
+                    "diagrams": folder_diagram_responses,
                 }
             )
 
@@ -175,7 +150,7 @@ class ProjectService:
             created_at=project.created_at,
             updated_at=project.updated_at,
             diagrams=diagram_responses,
-            folders=folder_responses
+            folders=folder_responses,
         )
 
     async def get_user_projects(self, user_id: str) -> list[ProjectResponse]:
@@ -199,7 +174,7 @@ class ProjectService:
             # Count by diagram type
             type_counts: dict = {}
             for d in diagrams:
-                dt = d.diagram_type or 'mermaid'
+                dt = d.diagram_type or "mermaid"
                 type_counts[dt] = type_counts.get(dt, 0) + 1
 
             project_responses.append(
@@ -212,7 +187,7 @@ class ProjectService:
                     diagram_count=diagram_count,
                     diagram_type_counts=type_counts,
                     created_at=p.created_at,
-                    updated_at=p.updated_at
+                    updated_at=p.updated_at,
                 )
             )
 
@@ -237,15 +212,12 @@ class ProjectService:
         """
         project = await self.repository.get_by_id(project_id)
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         if project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this project"
+                detail="You don't have access to this project",
             )
 
         updated_project = await self.repository.update(project_id, project_data)
@@ -262,7 +234,7 @@ class ProjectService:
             user_id=updated_project.user_id,
             diagram_count=diagram_count,
             created_at=updated_project.created_at,
-            updated_at=updated_project.updated_at
+            updated_at=updated_project.updated_at,
         )
 
     async def delete_project(self, project_id: str, user_id: str) -> dict:
@@ -281,26 +253,19 @@ class ProjectService:
         """
         project = await self.repository.get_by_id(project_id)
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         if project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this project"
+                detail="You don't have access to this project",
             )
 
         # Delete all diagrams first
-        diagrams = await self.diagram_repository.get_by_project_id(project_id)
-        for diagram in diagrams:
-            await self.diagram_repository.delete(str(diagram.id))
+        await self.diagram_repository.delete_by_project_id(project_id)
 
         # Delete all folders
-        folders = await self.folder_repository.get_by_project_id(project_id)
-        for folder in folders:
-            await self.folder_repository.delete(str(folder.id))
+        await self.folder_repository.delete_by_project_id(project_id)
 
         # Delete project
         await self.repository.delete(project_id)

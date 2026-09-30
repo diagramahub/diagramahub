@@ -1,6 +1,7 @@
 """
 Pydantic schemas and Beanie documents for the integrations module.
 """
+
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -11,6 +12,7 @@ from pydantic import BaseModel, Field
 
 class VendorCategory(str, Enum):
     """Categories of vendor integrations."""
+
     EMAIL = "email"
     PAYMENT = "payment"
     OAUTH = "oauth"
@@ -18,6 +20,7 @@ class VendorCategory(str, Enum):
 
 class VendorConfigInDB(Document):
     """Vendor configuration stored in MongoDB with encrypted credentials."""
+
     vendor_type: str  # "resend", "stripe", "ses", etc.
     category: VendorCategory
     display_name: str
@@ -46,6 +49,7 @@ class VendorConfigInDB(Document):
 
 class VendorConfigCreate(BaseModel):
     """Schema for creating a new vendor configuration."""
+
     vendor_type: str
     category: VendorCategory
     display_name: str
@@ -54,12 +58,14 @@ class VendorConfigCreate(BaseModel):
 
 class VendorConfigUpdate(BaseModel):
     """Schema for updating an existing vendor configuration."""
+
     display_name: Optional[str] = None
     config: Optional[dict] = None
 
 
 class VendorConfigResponse(BaseModel):
     """Schema for vendor configuration response (no sensitive data)."""
+
     id: str
     vendor_type: str
     category: str
@@ -77,6 +83,7 @@ class VendorConfigResponse(BaseModel):
 
 class TestConnectionResponse(BaseModel):
     """Schema for vendor connection test result."""
+
     success: bool
     message: str
     error_detail: Optional[str] = None

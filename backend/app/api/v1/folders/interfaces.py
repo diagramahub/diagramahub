@@ -2,6 +2,7 @@
 Abstract interfaces for folder repository.
 Follows the Dependency Inversion Principle (SOLID).
 """
+
 from abc import ABC, abstractmethod
 from typing import Optional
 from .schemas import FolderInDB, FolderCreate, FolderUpdate
@@ -33,4 +34,9 @@ class IFolderRepository(ABC):
     @abstractmethod
     async def delete(self, folder_id: str) -> bool:
         """Delete folder."""
+        pass
+
+    @abstractmethod
+    async def delete_by_project_id(self, project_id: str) -> int:
+        """Delete all folders for a project."""
         pass

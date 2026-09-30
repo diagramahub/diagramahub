@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.6.2
+- **Current version**: 0.7.0
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -101,7 +101,7 @@ bash verify-installation.sh
 
 | Service | Container | Port | Notes |
 |---------|-----------|------|-------|
-| Frontend | diagramahub-frontend | 5173 | Vite dev server + HMR |
+| Frontend | diagramahub-frontend | 5173 | Dev image: Vite dev server + HMR · Prod image: static Nginx build (multi-stage Dockerfile, non-root) |
 | Backend | diagramahub-backend | 5172 | FastAPI + hot reload |
 | Kroki | diagramahub-kroki | internal | Diagram rendering (PlantUML, DBML, D2) |
 | MongoDB | diagramahub-mongodb | 27017 | Persistent volume |
@@ -381,7 +381,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.6.2
+VITE_APP_VERSION=0.7.0
 ```
 
 ---
@@ -461,7 +461,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.6.2**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.7.0**.
 
 | Bump | When |
 |------|------|

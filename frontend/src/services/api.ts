@@ -94,8 +94,7 @@ import {
   OAuthCallbackResponse,
   OAuthAuthorizeResponse
 } from '../types/oauth';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5172';
+import { API_URL } from '../utils/runtimeConfig';
 
 class ApiService {
   private api: AxiosInstance;

@@ -1,6 +1,7 @@
 """
 Concrete implementation of folder repository.
 """
+
 from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
@@ -18,7 +19,7 @@ class FolderRepository(IFolderRepository):
             color=folder_data.color or "#3B82F6",
             project_id=project_id,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
         await folder.insert()
         return folder
@@ -56,3 +57,8 @@ class FolderRepository(IFolderRepository):
 
         await folder.delete()
         return True
+
+    async def delete_by_project_id(self, project_id: str) -> int:
+        """Delete all folders for a project."""
+        result = await FolderInDB.find(FolderInDB.project_id == project_id).delete()
+        return result.deleted_count if result else 0

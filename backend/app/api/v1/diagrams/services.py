@@ -1,12 +1,23 @@
 """
 Business logic layer for diagrams.
 """
+
 from typing import Optional
 
 from fastapi import HTTPException, status
 from .interfaces import IDiagramRepository
-from .schemas import DiagramCreate, DiagramMove, DiagramUpdate, DiagramResponse, DiagramDuplicate
+from .schemas import (
+    DiagramCreate,
+    DiagramMove,
+    DiagramUpdate,
+    DiagramResponse,
+    DiagramDuplicate,
+    RenderDiagramRequest,
+)
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
+from .kroki_client import KrokiClient
+from .rate_limiter import render_rate_limiter
+from ..projects.interfaces import IProjectRepository
 from ..shared_links.interfaces import ISharedLinkRepository
 
 
@@ -16,16 +27,105 @@ class DiagramService:
     def __init__(
         self,
         diagram_repository: IDiagramRepository,
-        project_repository,
+        project_repository: IProjectRepository,
         config_embedder: MermaidConfigEmbedder = None,
         config_parser: MermaidConfigParser = None,
         shared_link_repository: Optional[ISharedLinkRepository] = None,
     ):
+        """
+        Initialize the diagram service.
+
+        Args:
+            diagram_repository: Diagram repository
+            project_repository: Project repository
+            config_embedder: Mermaid config embedder
+            config_parser: Mermaid config parser
+            shared_link_repository: Shared link repository
+        """
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
         self.config_embedder = config_embedder or MermaidConfigEmbedder()
         self.config_parser = config_parser or MermaidConfigParser()
         self.shared_link_repository = shared_link_repository
+
+    async def get_recent_diagrams(self, user_id: str, limit: int = 4) -> list[dict]:
+        """
+        Get the most recently updated diagrams for a user.
+
+        Args:
+            user_id: ID of the requesting user
+            limit: Maximum number of diagrams to return
+
+        Returns:
+            List of recent diagrams with project context, ordered by
+            updated_at descending
+        """
+        # Get all user projects
+        projects = await self.project_repository.get_by_user_id(user_id)
+
+        # Collect all diagrams across projects
+        all_diagrams = []
+        project_map = {}
+        for p in projects:
+            project_map[str(p.id)] = {"name": p.name, "emoji": p.emoji}
+            diagrams = await self.diagram_repository.get_by_project_id(str(p.id))
+            for d in diagrams:
+                all_diagrams.append(d)
+
+        # Sort by updated_at descending and take top N
+        all_diagrams.sort(key=lambda d: d.updated_at or d.created_at, reverse=True)
+        recent = all_diagrams[:limit]
+
+        return [
+            {
+                "id": str(d.id),
+                "title": d.title,
+                "diagram_type": d.diagram_type,
+                "project_id": d.project_id,
+                "project_name": project_map.get(d.project_id, {}).get("name", ""),
+                "project_emoji": project_map.get(d.project_id, {}).get("emoji", "📁"),
+                "updated_at": (d.updated_at or d.created_at).isoformat(),
+            }
+            for d in recent
+        ]
+
+    def validate_render_request(self, request: RenderDiagramRequest, client_ip: str) -> str:
+        """
+        Validate a render request against rate limits and supported diagram types.
+
+        Args:
+            request: Render request data
+            client_ip: IP address of the requesting client
+
+        Returns:
+            The diagram source to render
+
+        Raises:
+            HTTPException: If the client is rate limited or the diagram type is unsupported
+        """
+        allowed, retry_after = render_rate_limiter.is_allowed(client_ip)
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    "Demasiadas solicitudes de renderizado desde esta dirección. "
+                    f"Intente de nuevo en {retry_after} segundos."
+                ),
+                headers={"Retry-After": str(retry_after)},
+            )
+
+        # Validate diagram_type against supported types
+        if request.diagram_type not in KrokiClient.SUPPORTED_DIAGRAM_TYPES:
+            supported = ", ".join(sorted(KrokiClient.SUPPORTED_DIAGRAM_TYPES))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Tipo de diagrama '{request.diagram_type}' no soportado. "
+                    f"Tipos soportados: {supported}"
+                ),
+            )
+
+        return request.source
 
     async def create_diagram(
         self, diagram_data: DiagramCreate, project_id: str, user_id: str
@@ -47,15 +147,12 @@ class DiagramService:
         # Verify project exists and user has access
         project = await self.project_repository.get_by_id(project_id)
         if not project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
         if project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this project"
+                detail="You don't have access to this project",
             )
 
         # For Mermaid diagrams, config is in content (init block)
@@ -77,7 +174,7 @@ class DiagramService:
             viewport_x=diagram.viewport_x,
             viewport_y=diagram.viewport_y,
             created_at=diagram.created_at,
-            updated_at=diagram.updated_at
+            updated_at=diagram.updated_at,
         )
 
     async def get_diagram(self, diagram_id: str, user_id: str) -> DiagramResponse:
@@ -96,17 +193,14 @@ class DiagramService:
         """
         diagram = await self.diagram_repository.get_by_id(diagram_id)
         if not diagram:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diagram not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagram not found")
 
         # Verify user has access to the project
         project = await self.project_repository.get_by_id(diagram.project_id)
         if not project or project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this diagram"
+                detail="You don't have access to this diagram",
             )
 
         # For Mermaid diagrams, config is in content (init block), not in config object
@@ -126,7 +220,7 @@ class DiagramService:
             viewport_x=diagram.viewport_x,
             viewport_y=diagram.viewport_y,
             created_at=diagram.created_at,
-            updated_at=diagram.updated_at
+            updated_at=diagram.updated_at,
         )
 
     async def update_diagram(
@@ -148,17 +242,14 @@ class DiagramService:
         """
         diagram = await self.diagram_repository.get_by_id(diagram_id)
         if not diagram:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diagram not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagram not found")
 
         # Verify user has access to the project
         project = await self.project_repository.get_by_id(diagram.project_id)
         if not project or project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this diagram"
+                detail="You don't have access to this diagram",
             )
 
         # For Mermaid diagrams, config is in content (init block)
@@ -180,7 +271,7 @@ class DiagramService:
             viewport_x=updated_diagram.viewport_x,
             viewport_y=updated_diagram.viewport_y,
             created_at=updated_diagram.created_at,
-            updated_at=updated_diagram.updated_at
+            updated_at=updated_diagram.updated_at,
         )
 
     async def move_diagram(
@@ -298,17 +389,14 @@ class DiagramService:
         """
         diagram = await self.diagram_repository.get_by_id(diagram_id)
         if not diagram:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diagram not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagram not found")
 
         # Verify user has access to the project
         project = await self.project_repository.get_by_id(diagram.project_id)
         if not project or project.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You don't have access to this diagram"
+                detail="You don't have access to this diagram",
             )
 
         # Revoke any active shared links for this diagram before deleting
@@ -323,10 +411,10 @@ class DiagramService:
     def _is_mermaid_diagram(self, diagram_type: str) -> bool:
         """
         Check if diagram type is a Mermaid diagram.
-        
+
         Args:
             diagram_type: Type of diagram
-            
+
         Returns:
             True if it's a Mermaid diagram type
         """
@@ -343,6 +431,6 @@ class DiagramService:
             "gantt",
             "pie",
             "journey",
-            "gitgraph"
+            "gitgraph",
         ]
         return diagram_type.lower() in mermaid_types

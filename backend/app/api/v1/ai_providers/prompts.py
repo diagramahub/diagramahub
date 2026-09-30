@@ -4,9 +4,12 @@ Contiene todas las plantillas de prompts y funciones de construcción
 utilizadas por los clientes de IA (OpenAI, Claude, Gemini, DeepSeek).
 """
 
+from typing import Optional
+
 # ------------------------------------------------------------------ #
 #  Contexto de tipos de diagrama
 # ------------------------------------------------------------------ #
+
 
 def get_mermaid_context(language: str) -> str:
     """Contexto y mejores prácticas para diagramas Mermaid con sintaxis válida."""
@@ -19,7 +22,7 @@ def get_mermaid_context(language: str) -> str:
             "- Nodos: A[Rectangulo], B(Redondeado), C{Rombo}, D((Circulo)), E([Estadio]), F[[Subrutina]], G[(Base de datos)], H{{Hexagono}}\n"
             "- Flechas: A --> B, A --- B, A -.-> B, A ==> B\n"
             "- Etiquetas: A -->|texto| B, A -- texto --> B\n"
-            "- Subgrafos: subgraph idSinEspacios[\"Titulo Visible\"]  ...  end\n\n"
+            '- Subgrafos: subgraph idSinEspacios["Titulo Visible"]  ...  end\n\n'
             "ESTILOS VALIDOS EN FLOWCHART (definir DESPUES de todos los nodos y conexiones):\n"
             "- classDef nombreEstilo fill:#hex,stroke:#hex,stroke-width:2px,color:#hex\n"
             "- class nodoA,nodoB nombreEstilo\n"
@@ -27,10 +30,10 @@ def get_mermaid_context(language: str) -> str:
             "- style idSubgraph fill:#hex,stroke:#hex (para colorear subgrafos)\n\n"
             "EJEMPLO CORRECTO CON ESTILOS Y SUBGRAFOS:\n"
             "flowchart TD\n"
-            "    subgraph frontend[\"Capa Frontend\"]\n"
+            '    subgraph frontend["Capa Frontend"]\n'
             "        A[Navegador] --> B[React App]\n"
             "    end\n"
-            "    subgraph backend[\"Capa Backend\"]\n"
+            '    subgraph backend["Capa Backend"]\n'
             "        C[API REST] --> D[(Base de Datos)]\n"
             "    end\n"
             "    B --> C\n"
@@ -44,7 +47,7 @@ def get_mermaid_context(language: str) -> str:
             "    style backend fill:#E3F2FD,stroke:#2196F3\n\n"
             "ERRORES COMUNES QUE CAUSAN PARSE ERROR (NUNCA hacer esto):\n\n"
             "ERROR 1 - class con texto entre comillas:\n"
-            "  INCORRECTO: class \"Entorno de Desarrollo\" estiloVerde\n"
+            '  INCORRECTO: class "Entorno de Desarrollo" estiloVerde\n'
             "  CORRECTO:   class entornoDesarrollo estiloVerde\n"
             "  REGLA: El comando 'class' solo acepta IDs de nodos (sin comillas, sin espacios).\n\n"
             "ERROR 2 - classDef con nombre 'subgraph':\n"
@@ -68,9 +71,9 @@ def get_mermaid_context(language: str) -> str:
             "STATEDIAGRAM - Usa classDef similar a flowchart.\n"
             "GANTT - Colores via secciones, no via classDef.\n\n"
             "REGLAS CRITICAS DE SINTAXIS:\n"
-            "1. IDs de nodos sin espacios (camelCase: procesoA). Texto visible entre corchetes: procesoA[\"Proceso A\"]\n"
+            '1. IDs de nodos sin espacios (camelCase: procesoA). Texto visible entre corchetes: procesoA["Proceso A"]\n'
             "2. classDef y class van DESPUES de todas las conexiones\n"
-            "3. class SOLO acepta IDs de nodos: class A,B estilo. NUNCA: class \"texto\" estilo\n"
+            '3. class SOLO acepta IDs de nodos: class A,B estilo. NUNCA: class "texto" estilo\n'
             "4. Nombres de classDef NO pueden ser palabras reservadas: subgraph, end, class, style, graph, flowchart, default\n"
             "5. Para colorear subgrafos: style idSubgraph fill:#color,stroke:#color\n"
             "6. Colores hex: # + 3 o 6 chars (#fff, #4CAF50)\n"
@@ -86,7 +89,7 @@ def get_mermaid_context(language: str) -> str:
             "- Nodes: A[Rectangle], B(Rounded), C{Diamond}, D((Circle)), E([Stadium]), F[[Subroutine]], G[(Database)], H{{Hexagon}}\n"
             "- Arrows: A --> B, A --- B, A -.-> B, A ==> B\n"
             "- Labels: A -->|text| B, A -- text --> B\n"
-            "- Subgraphs: subgraph idNoSpaces[\"Visible Title\"]  ...  end\n\n"
+            '- Subgraphs: subgraph idNoSpaces["Visible Title"]  ...  end\n\n'
             "VALID STYLES IN FLOWCHART (define AFTER all nodes and connections):\n"
             "- classDef styleName fill:#hex,stroke:#hex,stroke-width:2px,color:#hex\n"
             "- class nodeA,nodeB styleName\n"
@@ -94,10 +97,10 @@ def get_mermaid_context(language: str) -> str:
             "- style subgraphId fill:#hex,stroke:#hex (to color subgraphs)\n\n"
             "CORRECT EXAMPLE WITH STYLES AND SUBGRAPHS:\n"
             "flowchart TD\n"
-            "    subgraph frontend[\"Frontend Layer\"]\n"
+            '    subgraph frontend["Frontend Layer"]\n'
             "        A[Browser] --> B[React App]\n"
             "    end\n"
-            "    subgraph backend[\"Backend Layer\"]\n"
+            '    subgraph backend["Backend Layer"]\n'
             "        C[REST API] --> D[(Database)]\n"
             "    end\n"
             "    B --> C\n"
@@ -111,7 +114,7 @@ def get_mermaid_context(language: str) -> str:
             "    style backend fill:#E3F2FD,stroke:#2196F3\n\n"
             "COMMON ERRORS THAT CAUSE PARSE ERRORS (NEVER do this):\n\n"
             "ERROR 1 - class with quoted text:\n"
-            "  WRONG:   class \"Development Environment\" greenStyle\n"
+            '  WRONG:   class "Development Environment" greenStyle\n'
             "  CORRECT: class devEnvironment greenStyle\n"
             "  RULE: The 'class' command only accepts node IDs (no quotes, no spaces).\n\n"
             "ERROR 2 - classDef named 'subgraph':\n"
@@ -135,9 +138,9 @@ def get_mermaid_context(language: str) -> str:
             "STATEDIAGRAM - Uses classDef similar to flowchart.\n"
             "GANTT - Colors via sections, not via classDef.\n\n"
             "CRITICAL SYNTAX RULES:\n"
-            "1. Node IDs without spaces (camelCase: processA). Visible text in brackets: processA[\"Process A\"]\n"
+            '1. Node IDs without spaces (camelCase: processA). Visible text in brackets: processA["Process A"]\n'
             "2. classDef and class go AFTER all connections\n"
-            "3. class ONLY accepts node IDs: class A,B style. NEVER: class \"text\" style\n"
+            '3. class ONLY accepts node IDs: class A,B style. NEVER: class "text" style\n'
             "4. classDef names CANNOT be reserved words: subgraph, end, class, style, graph, flowchart, default\n"
             "5. To color subgraphs: style subgraphId fill:#color,stroke:#color\n"
             "6. Hex colors: # + 3 or 6 chars (#fff, #4CAF50)\n"
@@ -164,8 +167,8 @@ def get_plantuml_context(language: str) -> str:
             "  skinparam ArrowColor #555555\n"
             "  skinparam ActorBorderColor #2196F3\n"
             "- Colores en notas: note right #FFFFCC : texto\n"
-            "- Colores en paquetes: package \"Nombre\" #E3F2FD { }\n"
-            "- Colores en rectangulos: rectangle \"Nombre\" #color { }\n\n"
+            '- Colores en paquetes: package "Nombre" #E3F2FD { }\n'
+            '- Colores en rectangulos: rectangle "Nombre" #color { }\n\n'
             "EJEMPLO CORRECTO CON ESTILOS:\n"
             "@startuml\n"
             "skinparam backgroundColor #FEFEFE\n"
@@ -176,9 +179,9 @@ def get_plantuml_context(language: str) -> str:
             "    ParticipantBackgroundColor #E3F2FD\n"
             "    ParticipantBorderColor #1565C0\n"
             "}\n\n"
-            "participant \"Usuario\" as U #E3F2FD\n"
-            "participant \"Sistema\" as S #E8F5E9\n"
-            "database \"Base de Datos\" as DB #FFF3E0\n\n"
+            'participant "Usuario" as U #E3F2FD\n'
+            'participant "Sistema" as S #E8F5E9\n'
+            'database "Base de Datos" as DB #FFF3E0\n\n'
             "U -> S: Solicitud\n"
             "activate S #E3F2FD\n"
             "S -> DB: Consultar\n"
@@ -194,7 +197,7 @@ def get_plantuml_context(language: str) -> str:
             "3. skinparam va ANTES de los elementos del diagrama\n"
             "4. NO usar sintaxis de Mermaid (classDef, style, -->, etc.)\n"
             "5. Relaciones: -> (solida), --> (punteada), ->> (asincrona)\n"
-            "6. Usar comillas para nombres con espacios: participant \"Mi Servicio\" as MS\n"
+            '6. Usar comillas para nombres con espacios: participant "Mi Servicio" as MS\n'
             "7. NUNCA generes mas de UN diagrama (un solo @startuml...@enduml). Si necesitas multiples diagramas, indicalo al usuario.\n"
             "8. Cada 'activate' debe tener su 'deactivate' correspondiente. No dejes participantes activados sin cerrar."
         )
@@ -214,8 +217,8 @@ def get_plantuml_context(language: str) -> str:
             "  skinparam ArrowColor #555555\n"
             "  skinparam ActorBorderColor #2196F3\n"
             "- Note colors: note right #FFFFCC : text\n"
-            "- Package colors: package \"Name\" #E3F2FD { }\n"
-            "- Rectangle colors: rectangle \"Name\" #color { }\n\n"
+            '- Package colors: package "Name" #E3F2FD { }\n'
+            '- Rectangle colors: rectangle "Name" #color { }\n\n'
             "CORRECT EXAMPLE WITH STYLES:\n"
             "@startuml\n"
             "skinparam backgroundColor #FEFEFE\n"
@@ -226,9 +229,9 @@ def get_plantuml_context(language: str) -> str:
             "    ParticipantBackgroundColor #E3F2FD\n"
             "    ParticipantBorderColor #1565C0\n"
             "}\n\n"
-            "participant \"User\" as U #E3F2FD\n"
-            "participant \"System\" as S #E8F5E9\n"
-            "database \"Database\" as DB #FFF3E0\n\n"
+            'participant "User" as U #E3F2FD\n'
+            'participant "System" as S #E8F5E9\n'
+            'database "Database" as DB #FFF3E0\n\n'
             "U -> S: Request\n"
             "activate S #E3F2FD\n"
             "S -> DB: Query\n"
@@ -244,7 +247,7 @@ def get_plantuml_context(language: str) -> str:
             "3. skinparam goes BEFORE diagram elements\n"
             "4. DO NOT use Mermaid syntax (classDef, style, -->, etc.)\n"
             "5. Relationships: -> (solid), --> (dotted), ->> (async)\n"
-            "6. Use quotes for names with spaces: participant \"My Service\" as MS\n"
+            '6. Use quotes for names with spaces: participant "My Service" as MS\n'
             "7. NEVER generate more than ONE diagram (a single @startuml...@enduml). If multiple diagrams are needed, tell the user.\n"
             "8. Every 'activate' must have a matching 'deactivate'. Don't leave participants activated without closing."
         )
@@ -286,29 +289,29 @@ def get_d2_context(language: str) -> str:
             "- nodo.shape: class\n\n"
             "ESTILOS:\n"
             "nodo.style: {\n"
-            "  fill: \"#E3F2FD\"\n"
-            "  stroke: \"#1565C0\"\n"
+            '  fill: "#E3F2FD"\n'
+            '  stroke: "#1565C0"\n'
             "  border-radius: 8\n"
-            "  font-color: \"#333\"\n"
+            '  font-color: "#333"\n'
             "}\n\n"
             "ETIQUETAS:\n"
-            "- nodo: \"Texto de etiqueta\"\n"
-            "- nodo.label: \"Texto\"\n\n"
+            '- nodo: "Texto de etiqueta"\n'
+            '- nodo.label: "Texto"\n\n'
             "COMENTARIOS: # comentario de línea\n\n"
             "EJEMPLO CORRECTO:\n"
             "# Arquitectura de microservicios\n"
             "frontend: {\n"
-            "  label: \"Frontend React\"\n"
-            "  style.fill: \"#E3F2FD\"\n"
+            '  label: "Frontend React"\n'
+            '  style.fill: "#E3F2FD"\n'
             "}\n"
             "api: {\n"
-            "  label: \"API Gateway\"\n"
-            "  style.fill: \"#E8F5E9\"\n"
+            '  label: "API Gateway"\n'
+            '  style.fill: "#E8F5E9"\n'
             "}\n"
             "db: {\n"
-            "  label: \"PostgreSQL\"\n"
+            '  label: "PostgreSQL"\n'
             "  shape: cylinder\n"
-            "  style.fill: \"#FFF3E0\"\n"
+            '  style.fill: "#FFF3E0"\n'
             "}\n"
             "frontend -> api: REST\n"
             "api -> db: SQL\n\n"
@@ -316,7 +319,7 @@ def get_d2_context(language: str) -> str:
             "1. NO usar @startuml/@enduml (eso es PlantUML, NO D2)\n"
             "2. NO usar sintaxis de Mermaid (graph TD, -->, classDef, etc.)\n"
             "3. Las llaves { } deben estar balanceadas\n"
-            "4. Los colores van entre comillas: \"#4CAF50\"\n"
+            '4. Los colores van entre comillas: "#4CAF50"\n'
             "5. Comentarios con # (no con // ni ')\n"
             "6. Las conexiones usan -> (no --> ni ->>)"
         )
@@ -354,29 +357,29 @@ def get_d2_context(language: str) -> str:
             "- node.shape: class\n\n"
             "STYLES:\n"
             "node.style: {\n"
-            "  fill: \"#E3F2FD\"\n"
-            "  stroke: \"#1565C0\"\n"
+            '  fill: "#E3F2FD"\n'
+            '  stroke: "#1565C0"\n'
             "  border-radius: 8\n"
-            "  font-color: \"#333\"\n"
+            '  font-color: "#333"\n'
             "}\n\n"
             "LABELS:\n"
-            "- node: \"Label text\"\n"
-            "- node.label: \"Text\"\n\n"
+            '- node: "Label text"\n'
+            '- node.label: "Text"\n\n'
             "COMMENTS: # line comment\n\n"
             "CORRECT EXAMPLE:\n"
             "# Microservices architecture\n"
             "frontend: {\n"
-            "  label: \"React Frontend\"\n"
-            "  style.fill: \"#E3F2FD\"\n"
+            '  label: "React Frontend"\n'
+            '  style.fill: "#E3F2FD"\n'
             "}\n"
             "api: {\n"
-            "  label: \"API Gateway\"\n"
-            "  style.fill: \"#E8F5E9\"\n"
+            '  label: "API Gateway"\n'
+            '  style.fill: "#E8F5E9"\n'
             "}\n"
             "db: {\n"
-            "  label: \"PostgreSQL\"\n"
+            '  label: "PostgreSQL"\n'
             "  shape: cylinder\n"
-            "  style.fill: \"#FFF3E0\"\n"
+            '  style.fill: "#FFF3E0"\n'
             "}\n"
             "frontend -> api: REST\n"
             "api -> db: SQL\n\n"
@@ -384,7 +387,7 @@ def get_d2_context(language: str) -> str:
             "1. DO NOT use @startuml/@enduml (that's PlantUML, NOT D2)\n"
             "2. DO NOT use Mermaid syntax (graph TD, -->, classDef, etc.)\n"
             "3. Curly braces { } must be balanced\n"
-            "4. Colors go in quotes: \"#4CAF50\"\n"
+            '4. Colors go in quotes: "#4CAF50"\n'
             "5. Comments use # (not // or ')\n"
             "6. Connections use -> (not --> or ->>)"
         )
@@ -415,7 +418,7 @@ def get_dbml_context(language: str) -> str:
             "- [unique] — valor unico\n"
             "- [default: valor] — valor por defecto (usar backticks para expresiones: `now()`)\n"
             "- [increment] — auto incremento\n"
-            "- [note: \"texto\"] — nota descriptiva (SIEMPRE usar comillas dobles)\n"
+            '- [note: "texto"] — nota descriptiva (SIEMPRE usar comillas dobles)\n'
             "- Se pueden combinar: [pk, not null, increment]\n\n"
             "RELACIONES (Ref):\n"
             "- Uno a muchos: Ref: posts.user_id > users.id\n"
@@ -427,16 +430,16 @@ def get_dbml_context(language: str) -> str:
             "Enum nombre_enum {\n"
             "  valor1\n"
             "  valor2\n"
-            "  valor3 [note: \"descripcion\"]\n"
+            '  valor3 [note: "descripcion"]\n'
             "}\n"
             "- Uso en columna: status enum_nombre\n\n"
             "NOTAS:\n"
-            "- Nota en tabla: Note: \"Descripcion de la tabla\"\n"
-            "- Nota en columna: nombre tipo [note: \"descripcion\"]\n"
+            '- Nota en tabla: Note: "Descripcion de la tabla"\n'
+            '- Nota en columna: nombre tipo [note: "descripcion"]\n'
             "- Nota multilínea:\n"
             "  Note {\n"
-            "    \"Linea 1\"\n"
-            "    \"Linea 2\"\n"
+            '    "Linea 1"\n'
+            '    "Linea 2"\n'
             "  }\n\n"
             "INDICES:\n"
             "Table nombre {\n"
@@ -457,16 +460,16 @@ def get_dbml_context(language: str) -> str:
             "  id integer [pk, increment]\n"
             "  username varchar [not null, unique]\n"
             "  email varchar [not null, unique]\n"
-            "  role varchar [default: \"user\"]\n"
+            '  role varchar [default: "user"]\n'
             "  created_at timestamp [default: `now()`]\n"
             "\n"
-            "  Note: \"Tabla principal de usuarios\"\n"
+            '  Note: "Tabla principal de usuarios"\n'
             "}\n\n"
             "Table posts {\n"
             "  id integer [pk, increment]\n"
             "  title varchar [not null]\n"
             "  body text\n"
-            "  status post_status [not null, default: \"draft\"]\n"
+            '  status post_status [not null, default: "draft"]\n'
             "  user_id integer [not null]\n"
             "  created_at timestamp [default: `now()`]\n"
             "\n"
@@ -479,7 +482,7 @@ def get_dbml_context(language: str) -> str:
             "Enum post_status {\n"
             "  draft\n"
             "  published\n"
-            "  archived [note: \"No visible para usuarios\"]\n"
+            '  archived [note: "No visible para usuarios"]\n'
             "}\n\n"
             "Ref: posts.user_id > users.id\n\n"
             "ERRORES COMUNES QUE CAUSAN PROBLEMAS (NUNCA hacer esto):\n\n"
@@ -521,7 +524,7 @@ def get_dbml_context(language: str) -> str:
             "7. NO usar sintaxis de Mermaid, PlantUML ni D2\n"
             "8. Los comentarios usan // para linea simple\n"
             "9. SIEMPRE usar comillas DOBLES (\") para notas y strings. NUNCA usar comillas simples ('). El renderer NO soporta comillas simples.\n"
-            "10. Para defaults con strings usar comillas dobles: [default: \"valor\"]\n"
+            '10. Para defaults con strings usar comillas dobles: [default: "valor"]\n'
             "11. NO usar DiagramView, Schemas ni Project — el renderer solo soporta: Table, Enum, Ref, Note, TableGroup, indexes\n"
             "12. NO usar [headercolor] en tablas — no soportado por el renderer\n"
             "13. NO usar notas multilinea con triple comillas (''') ni con llaves Note: {''} — solo Note: \"texto en una linea\"\n"
@@ -679,12 +682,12 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "1. NO usar 'class' con texto entre comillas: class \"Texto\" estilo → usar IDs sin comillas\n"
                 "2. NO usar palabras reservadas como nombre de classDef: subgraph, end, default, graph, flowchart, style\n"
                 "3. NO usar classDef/style en sequenceDiagram, classDiagram, erDiagram ni pie\n"
-                "4. NO poner espacios en IDs de nodos — usar camelCase: procesoA, no \"proceso A\"\n"
+                '4. NO poner espacios en IDs de nodos — usar camelCase: procesoA, no "proceso A"\n'
                 "5. classDef y class SIEMPRE van DESPUES de todos los nodos y conexiones\n"
                 "6. Cada classDef en su propia linea\n\n"
                 "CHECKLIST DE AUTO-VERIFICACION (revisa MENTALMENTE antes de responder):\n"
                 "☐ ¿Use classDef con nombre NO reservado? (no 'subgraph', 'end', 'default', 'graph', 'flowchart', 'style')\n"
-                "☐ ¿Class solo referencia IDs de nodos sin comillas? (class A,B estilo — NO class \"texto\" estilo)\n"
+                '☐ ¿Class solo referencia IDs de nodos sin comillas? (class A,B estilo — NO class "texto" estilo)\n'
                 "☐ ¿ClassDef y class van DESPUES de todos los nodos y conexiones?\n"
                 "☐ ¿No use classDef/style en sequenceDiagram, classDiagram, erDiagram o pie?\n"
                 "☐ ¿Los IDs de nodos no tienen espacios? (camelCase)\n"
@@ -696,7 +699,7 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "1. NO olvidar @startuml al inicio y @enduml al final\n"
                 "2. NO usar sintaxis de Mermaid (classDef, style, -->, graph TD)\n"
                 "3. skinparam SIEMPRE va ANTES de los elementos del diagrama\n"
-                "4. Usar comillas para nombres con espacios: participant \"Mi Servicio\" as MS\n"
+                '4. Usar comillas para nombres con espacios: participant "Mi Servicio" as MS\n'
                 "5. Colores con # seguido del nombre o hex: #LightBlue, #4CAF50\n"
                 "6. Relaciones: -> (solida), --> (punteada), ->> (asincrona)"
             )
@@ -706,7 +709,7 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "1. NO usar @startuml/@enduml — eso es PlantUML, NO D2\n"
                 "2. NO usar sintaxis de Mermaid (graph TD, -->, classDef)\n"
                 "3. Las llaves { } DEBEN estar balanceadas\n"
-                "4. Los colores van entre comillas: \"#4CAF50\"\n"
+                '4. Los colores van entre comillas: "#4CAF50"\n'
                 "5. Comentarios con # (no con // ni ')\n"
                 "6. Conexiones usan -> (no --> ni ->>)\n"
                 "7. ⚠️ NO usar style.dash — usar style.stroke-dash: 5 (dash NO existe en D2)\n"
@@ -727,9 +730,9 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "6. Cada llave de apertura { debe tener su llave de cierre }\n"
                 "7. NUNCA usar comillas simples (') — SIEMPRE usar comillas dobles (\") para notas, defaults y strings\n"
                 "   INCORRECTO: Note: 'Mi nota'\n"
-                "   CORRECTO:   Note: \"Mi nota\"\n"
+                '   CORRECTO:   Note: "Mi nota"\n'
                 "   INCORRECTO: [default: 'valor']\n"
-                "   CORRECTO:   [default: \"valor\"]\n"
+                '   CORRECTO:   [default: "valor"]\n'
                 "8. NO usar DiagramView, Schemas ni Project — NO estan soportados por el renderer\n"
                 "   Solo usar: Table, Enum, Ref, Note, TableGroup, indexes"
             )
@@ -742,7 +745,7 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "1. DO NOT use 'class' with quoted text: class \"Text\" style → use IDs without quotes\n"
                 "2. DO NOT use reserved words as classDef names: subgraph, end, default, graph, flowchart, style\n"
                 "3. DO NOT use classDef/style in sequenceDiagram, classDiagram, erDiagram or pie\n"
-                "4. DO NOT put spaces in node IDs — use camelCase: processA, not \"process A\"\n"
+                '4. DO NOT put spaces in node IDs — use camelCase: processA, not "process A"\n'
                 "5. classDef and class ALWAYS go AFTER all nodes and connections\n"
                 "6. Each classDef on its own line\n\n"
                 "SELF-VERIFICATION CHECKLIST (mentally review BEFORE responding):\n"
@@ -759,7 +762,7 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "1. DO NOT forget @startuml at the start and @enduml at the end\n"
                 "2. DO NOT use Mermaid syntax (classDef, style, -->, graph TD)\n"
                 "3. skinparam ALWAYS goes BEFORE diagram elements\n"
-                "4. Use quotes for names with spaces: participant \"My Service\" as MS\n"
+                '4. Use quotes for names with spaces: participant "My Service" as MS\n'
                 "5. Colors with # followed by name or hex: #LightBlue, #4CAF50\n"
                 "6. Relationships: -> (solid), --> (dotted), ->> (async)"
             )
@@ -769,7 +772,7 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "1. DO NOT use @startuml/@enduml — that's PlantUML, NOT D2\n"
                 "2. DO NOT use Mermaid syntax (graph TD, -->, classDef)\n"
                 "3. Braces { } MUST be balanced\n"
-                "4. Colors go in quotes: \"#4CAF50\"\n"
+                '4. Colors go in quotes: "#4CAF50"\n'
                 "5. Comments use # (not // or ')\n"
                 "6. Connections use -> (not --> or ->>)\n"
                 "7. ⚠️ DO NOT use style.dash — use style.stroke-dash: 5 (dash does NOT exist in D2)\n"
@@ -790,9 +793,9 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
                 "6. Every opening brace { must have a matching closing brace }\n"
                 "7. NEVER use single quotes (') — ALWAYS use double quotes (\") for notes, defaults and strings\n"
                 "   WRONG:   Note: 'My note'\n"
-                "   CORRECT: Note: \"My note\"\n"
+                '   CORRECT: Note: "My note"\n'
                 "   WRONG:   [default: 'value']\n"
-                "   CORRECT: [default: \"value\"]\n"
+                '   CORRECT: [default: "value"]\n'
                 "8. Do NOT use DiagramView, Schemas or Project — NOT supported by the renderer\n"
                 "   Only use: Table, Enum, Ref, Note, TableGroup, indexes"
             )
@@ -804,11 +807,8 @@ def get_common_errors_section(diagram_type: str, language: str) -> str:
 #  Prompt: Generar descripcion de diagrama
 # ------------------------------------------------------------------ #
 
-def build_description_prompt(
-    diagram_code: str,
-    diagram_type: str,
-    language: str = "es"
-) -> str:
+
+def build_description_prompt(diagram_code: str, diagram_type: str, language: str = "es") -> str:
     """Prompt para generar una descripcion tecnica de un diagrama existente."""
     lang_map = {"es": "espanol", "en": "English"}
     lang_text = lang_map.get(language, "espanol")
@@ -865,7 +865,7 @@ def build_refine_description_prompt(
     diagram_type: str,
     current_description: str,
     refinement_request: str,
-    language: str = "es"
+    language: str = "es",
 ) -> str:
     """Prompt para refinar una descripcion existente segun instrucciones del usuario."""
     lang_map = {"es": "espanol", "en": "English"}
@@ -909,11 +909,8 @@ def build_refine_description_prompt(
 #  Prompt: Generar diagrama desde descripcion
 # ------------------------------------------------------------------ #
 
-def build_generate_diagram_prompt(
-    description: str,
-    diagram_type: str,
-    language: str = "es"
-) -> str:
+
+def build_generate_diagram_prompt(description: str, diagram_type: str, language: str = "es") -> str:
     """Prompt para generar codigo de diagrama a partir de una descripcion."""
     context = get_diagram_context(diagram_type, language)
 
@@ -931,7 +928,7 @@ def build_generate_diagram_prompt(
             "3. SINTAXIS 100% VALIDA:\n"
             "   - Sigue ESTRICTAMENTE la referencia de sintaxis proporcionada arriba\n"
             "   - Los estilos (classDef, class) van DESPUES de todos los nodos y conexiones\n"
-            "   - Los IDs de nodos NO pueden tener espacios (usa camelCase: procesoInicio, no \"proceso inicio\")\n"
+            '   - Los IDs de nodos NO pueden tener espacios (usa camelCase: procesoInicio, no "proceso inicio")\n'
             "   - Si el tipo de diagrama NO soporta estilos (erDiagram, pie, etc.), NO intentes agregarlos\n"
             "4. Genera SOLO el codigo del diagrama, sin texto adicional\n"
             "5. NO incluyas markdown code blocks (```)\n"
@@ -953,7 +950,7 @@ def build_generate_diagram_prompt(
             "3. 100% VALID SYNTAX:\n"
             "   - Follow STRICTLY the syntax reference provided above\n"
             "   - Styles (classDef, class) go AFTER all nodes and connections\n"
-            "   - Node IDs CANNOT have spaces (use camelCase: startProcess, not \"start process\")\n"
+            '   - Node IDs CANNOT have spaces (use camelCase: startProcess, not "start process")\n'
             "   - If the diagram type does NOT support styles (erDiagram, pie, etc.), DO NOT try to add them\n"
             "4. Generate ONLY the diagram code, no additional text\n"
             "5. DO NOT include markdown code blocks (```)\n"
@@ -972,11 +969,9 @@ def get_generate_diagram_system_prompt(diagram_type: str) -> str:
 #  Prompt: Mejorar diagrama existente
 # ------------------------------------------------------------------ #
 
+
 def build_improve_diagram_prompt(
-    diagram_code: str,
-    improvement_request: str,
-    diagram_type: str,
-    language: str = "es"
+    diagram_code: str, improvement_request: str, diagram_type: str, language: str = "es"
 ) -> str:
     """Prompt para mejorar un diagrama existente segun la solicitud del usuario."""
     context = get_diagram_context(diagram_type, language)
@@ -1046,11 +1041,8 @@ def get_improve_diagram_system_prompt(diagram_type: str) -> str:
 #  Prompt: Chat con contexto de diagrama
 # ------------------------------------------------------------------ #
 
-def build_chat_system_prompt(
-    diagram_code: str,
-    diagram_type: str,
-    language: str = "es"
-) -> str:
+
+def build_chat_system_prompt(diagram_code: str, diagram_type: str, language: str = "es") -> str:
     """System prompt para conversacion con contexto de diagrama."""
     context = get_diagram_context(diagram_type, language)
     if language == "es":
@@ -1150,13 +1142,17 @@ def build_unified_chat_prompt(
             "tambien deben estar en espanol cuando sea posible.\n\n"
         )
 
-        complete_code_instruction = "" if preset_action == "explain" else (
-            "CODIGO COMPLETO OBLIGATORIO:\n"
-            "Cuando generes o modifiques codigo de diagrama, SIEMPRE incluye el codigo COMPLETO "
-            "del diagrama, no fragmentos parciales. El usuario reemplazara todo el codigo actual "
-            "con tu respuesta, por lo que omitir partes causara perdida de contenido. "
-            "Nunca uses comentarios como '// ... resto del codigo ...' o '/* codigo anterior */'. "
-            "Incluye TODAS las definiciones, conexiones, estilos y configuraciones.\n\n"
+        complete_code_instruction = (
+            ""
+            if preset_action == "explain"
+            else (
+                "CODIGO COMPLETO OBLIGATORIO:\n"
+                "Cuando generes o modifiques codigo de diagrama, SIEMPRE incluye el codigo COMPLETO "
+                "del diagrama, no fragmentos parciales. El usuario reemplazara todo el codigo actual "
+                "con tu respuesta, por lo que omitir partes causara perdida de contenido. "
+                "Nunca uses comentarios como '// ... resto del codigo ...' o '/* codigo anterior */'. "
+                "Incluye TODAS las definiciones, conexiones, estilos y configuraciones.\n\n"
+            )
         )
 
         return (
@@ -1198,13 +1194,17 @@ def build_unified_chat_prompt(
             "should also be in English when possible.\n\n"
         )
 
-        complete_code_instruction = "" if preset_action == "explain" else (
-            "COMPLETE CODE REQUIRED:\n"
-            "When generating or modifying diagram code, ALWAYS include the COMPLETE "
-            "diagram code, not partial fragments. The user will replace all current code "
-            "with your response, so omitting parts will cause content loss. "
-            "Never use comments like '// ... rest of code ...' or '/* previous code */'. "
-            "Include ALL definitions, connections, styles and configurations.\n\n"
+        complete_code_instruction = (
+            ""
+            if preset_action == "explain"
+            else (
+                "COMPLETE CODE REQUIRED:\n"
+                "When generating or modifying diagram code, ALWAYS include the COMPLETE "
+                "diagram code, not partial fragments. The user will replace all current code "
+                "with your response, so omitting parts will cause content loss. "
+                "Never use comments like '// ... rest of code ...' or '/* previous code */'. "
+                "Include ALL definitions, connections, styles and configurations.\n\n"
+            )
         )
 
         return (
@@ -1309,15 +1309,14 @@ def _get_chat_action_instruction(preset_action: str | None, language: str) -> st
 SUMMARIZE_SYSTEM_PROMPT = "You are a helpful assistant that creates concise conversation summaries."
 
 
-def build_summarize_prompt(
-    messages: list[dict],
-    language: str = "es"
-) -> str:
+def build_summarize_prompt(messages: list[dict], language: str = "es") -> str:
     """Prompt para generar un resumen compacto de una conversacion."""
     conversation_text = "\n".join(
-        f"{'Usuario' if m['role'] == 'user' else 'Asistente'}: {m['content']}"
-        if language == "es"
-        else f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        (
+            f"{'Usuario' if m['role'] == 'user' else 'Asistente'}: {m['content']}"
+            if language == "es"
+            else f"{'User' if m['role'] == 'user' else 'Assistant'}: {m['content']}"
+        )
         for m in messages
     )
 
@@ -1343,11 +1342,9 @@ def build_summarize_prompt(
 #  Prompt: Conversión de diagrama entre tipos
 # ------------------------------------------------------------------ #
 
+
 def build_convert_diagram_prompt(
-    diagram_code: str,
-    source_type: str,
-    target_type: str,
-    language: str = "es"
+    diagram_code: str, source_type: str, target_type: str, language: str = "es"
 ) -> str:
     """Prompt para convertir un diagrama de un tipo a otro manteniendo la estructura."""
     target_context = get_diagram_context(target_type, language)
@@ -1423,6 +1420,7 @@ CONVERSION_SYSTEM_PROMPT = (
 #  Utilidades comunes
 # ------------------------------------------------------------------ #
 
+
 def clean_code_response(text: str) -> str:
     """Limpiar respuesta de IA removiendo bloques de codigo markdown."""
     import re
@@ -1432,7 +1430,7 @@ def clean_code_response(text: str) -> str:
         return text
 
     # Remove markdown code fences: ```lang\n...\n```
-    match = re.match(r'^```\w*\s*\n(.*?)```\s*$', text, re.DOTALL)
+    match = re.match(r"^```\w*\s*\n(.*?)```\s*$", text, re.DOTALL)
     if match:
         return match.group(1).strip()
 
@@ -1469,17 +1467,17 @@ def clean_ai_code_response(text: str) -> str:
 def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
     """
     Extraer respuesta de fix usando delimitadores <<<SECTION>>>.
-    
+
     Usado para DBML y otros lenguajes donde JSON es problemático
     por el uso extensivo de llaves {}.
-    
+
     Returns:
         Dict con corrected_code, explanation, changes_summary
     """
     text = response_text.strip()
-    
+
     result = {}
-    
+
     # Extract explanation
     if "<<<EXPLANATION>>>" in text and "<<<END_EXPLANATION>>>" in text:
         start = text.index("<<<EXPLANATION>>>") + len("<<<EXPLANATION>>>")
@@ -1489,8 +1487,10 @@ def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
         start = text.index("<<<EXPLANATION>>>") + len("<<<EXPLANATION>>>")
         # Find next delimiter or end
         next_delim = text.find("<<<", start)
-        result["explanation"] = text[start:next_delim].strip() if next_delim > start else text[start:].strip()
-    
+        result["explanation"] = (
+            text[start:next_delim].strip() if next_delim > start else text[start:].strip()
+        )
+
     # Extract changes summary
     if "<<<CHANGES>>>" in text and "<<<END_CHANGES>>>" in text:
         start = text.index("<<<CHANGES>>>") + len("<<<CHANGES>>>")
@@ -1499,8 +1499,10 @@ def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
     elif "<<<CHANGES>>>" in text:
         start = text.index("<<<CHANGES>>>") + len("<<<CHANGES>>>")
         next_delim = text.find("<<<", start)
-        result["changes_summary"] = text[start:next_delim].strip() if next_delim > start else text[start:].strip()
-    
+        result["changes_summary"] = (
+            text[start:next_delim].strip() if next_delim > start else text[start:].strip()
+        )
+
     # Extract code
     if "<<<CODE>>>" in text and "<<<END_CODE>>>" in text:
         start = text.index("<<<CODE>>>") + len("<<<CODE>>>")
@@ -1509,28 +1511,29 @@ def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
     elif "<<<CODE>>>" in text:
         start = text.index("<<<CODE>>>") + len("<<<CODE>>>")
         result["corrected_code"] = text[start:].strip()
-    
+
     # Validate required fields
     if "corrected_code" not in result or not result["corrected_code"]:
         # Fallback: try to find code in markdown block
         import re
-        code_match = re.search(r'```(?:dbml)?\s*\n(.*?)```', text, re.DOTALL)
+
+        code_match = re.search(r"```(?:dbml)?\s*\n(.*?)```", text, re.DOTALL)
         if code_match:
             result["corrected_code"] = code_match.group(1).strip()
         else:
             raise ValueError(
                 f"No se pudo extraer el código corregido de la respuesta de {provider_name}"
             )
-    
+
     # Clean code from markdown fences if present
     result["corrected_code"] = clean_code_response(result["corrected_code"])
-    
+
     # Set defaults for missing fields
     if "explanation" not in result:
         result["explanation"] = "Código corregido"
     if "changes_summary" not in result:
         result["changes_summary"] = "Corrección de sintaxis aplicada"
-    
+
     return result
 
 
@@ -1557,7 +1560,7 @@ def extract_fix_json(response_text: str, provider_name: str) -> dict:
     text = response_text.strip()
 
     # 1. Remover bloques de código markdown que envuelvan el JSON
-    md_match = re.match(r'^```(?:json)?\s*\n(.*?)```\s*$', text, re.DOTALL)
+    md_match = re.match(r"^```(?:json)?\s*\n(.*?)```\s*$", text, re.DOTALL)
     if md_match:
         text = md_match.group(1).strip()
 
@@ -1577,7 +1580,7 @@ def extract_fix_json(response_text: str, provider_name: str) -> dict:
         return result
 
     # 4. Fallback: intentar regex greedy (último recurso)
-    json_match = re.search(r'\{[\s\S]*\}', text)
+    json_match = re.search(r"\{[\s\S]*\}", text)
     if json_match:
         try:
             result = json.loads(json_match.group())
@@ -1587,9 +1590,7 @@ def extract_fix_json(response_text: str, provider_name: str) -> dict:
         except json.JSONDecodeError:
             pass
 
-    raise ValueError(
-        f"No se pudo extraer JSON de la respuesta de {provider_name}"
-    )
+    raise ValueError(f"No se pudo extraer JSON de la respuesta de {provider_name}")
 
 
 def _extract_balanced_json(text: str) -> dict | None:
@@ -1601,7 +1602,7 @@ def _extract_balanced_json(text: str) -> dict | None:
     """
     import json
 
-    start = text.find('{')
+    start = text.find("{")
     if start == -1:
         return None
 
@@ -1618,7 +1619,7 @@ def _extract_balanced_json(text: str) -> dict | None:
             i += 1
             continue
 
-        if char == '\\' and in_string:
+        if char == "\\" and in_string:
             escape_next = True
             i += 1
             continue
@@ -1629,12 +1630,12 @@ def _extract_balanced_json(text: str) -> dict | None:
             continue
 
         if not in_string:
-            if char == '{':
+            if char == "{":
                 depth += 1
-            elif char == '}':
+            elif char == "}":
                 depth -= 1
                 if depth == 0:
-                    candidate = text[start:i + 1]
+                    candidate = text[start : i + 1]
                     try:
                         result = json.loads(candidate)
                         if isinstance(result, dict):
@@ -1642,7 +1643,7 @@ def _extract_balanced_json(text: str) -> dict | None:
                     except json.JSONDecodeError:
                         # Este bloque balanceado no es JSON válido,
                         # buscar el siguiente '{'
-                        start = text.find('{', i + 1)
+                        start = text.find("{", i + 1)
                         if start == -1:
                             return None
                         i = start
@@ -1658,6 +1659,403 @@ def _validate_fix_fields(result: dict, provider_name: str) -> None:
     """Validar que el dict tenga los campos requeridos para fix_diagram."""
     for field in ("corrected_code", "explanation", "changes_summary"):
         if field not in result:
-            raise ValueError(
-                f"Respuesta de {provider_name} no contiene '{field}'"
-            )
+            raise ValueError(f"Respuesta de {provider_name} no contiene '{field}'")
+
+
+def build_mermaid_fix_prompt(
+    diagram_code: str, error_context: Optional[str] = None, language: str = "es"
+) -> str:
+    """
+    Construir prompt especializado para corrección de diagramas Mermaid.
+
+    Args:
+        diagram_code: Código del diagrama con errores
+        error_context: Contexto del error (mensaje, línea)
+        language: Idioma para la explicación (es, en)
+
+    Returns:
+        Prompt formateado para el modelo de IA
+    """
+    lang_instructions = {
+        "es": {
+            "intro": "Eres un experto en diagramas Mermaid. Analiza el siguiente código que tiene errores de sintaxis y corrígelo.",
+            "error_label": "ERROR DETECTADO:",
+            "rules_label": "REGLAS DE SINTAXIS MERMAID:",
+            "instructions_label": "INSTRUCCIONES:",
+            "instructions": [
+                "1. Identifica el error de sintaxis específico",
+                "2. Corrige SOLO el error, manteniendo la estructura original",
+                "3. Preserva todos los nodos, relaciones y etiquetas",
+                "4. NO cambies el significado del diagrama",
+                "5. NO agregues ni elimines elementos innecesariamente",
+            ],
+            "format_label": "FORMATO DE RESPUESTA (JSON):",
+        },
+        "en": {
+            "intro": "You are an expert in Mermaid diagrams. Analyze the following code that has syntax errors and fix it.",
+            "error_label": "DETECTED ERROR:",
+            "rules_label": "MERMAID SYNTAX RULES:",
+            "instructions_label": "INSTRUCTIONS:",
+            "instructions": [
+                "1. Identify the specific syntax error",
+                "2. Fix ONLY the error, maintaining the original structure",
+                "3. Preserve all nodes, relationships and labels",
+                "4. DO NOT change the diagram's meaning",
+                "5. DO NOT add or remove elements unnecessarily",
+            ],
+            "format_label": "RESPONSE FORMAT (JSON):",
+        },
+    }
+
+    lang = lang_instructions.get(language, lang_instructions["es"])
+
+    error_section = ""
+    if error_context:
+        error_section = f"""
+{lang["error_label"]}
+{error_context}
+"""
+
+    prompt = f"""{lang["intro"]}
+
+CÓDIGO ORIGINAL:
+```mermaid
+{diagram_code}
+```
+{error_section}
+{lang["rules_label"]}
+- Nodos: A[Texto], B(Texto), C{{Texto}}, D((Texto)), E>Texto], F[/Texto/], G[\\Texto\\]
+- Flechas: -->, --->, -.->,-.->, ==>, ==>
+- Etiquetas en flechas: -->|texto|, -.->|texto|
+- Subgrafos: subgraph titulo ... end
+- Comentarios: %% comentario
+- Tipos válidos: graph, flowchart, sequenceDiagram, classDiagram, stateDiagram, erDiagram, gantt, pie, journey
+
+{lang["instructions_label"]}
+{chr(10).join(lang["instructions"])}
+
+{lang["format_label"]}
+{{
+  "corrected_code": "código corregido aquí (sin bloques de código markdown)",
+  "explanation": "explicación clara de qué se corrigió y por qué",
+  "changes_summary": "resumen breve (1 línea)"
+}}
+
+IMPORTANTE: Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional antes o después."""
+
+    return prompt
+
+
+def build_plantuml_fix_prompt(
+    diagram_code: str, error_context: Optional[str] = None, language: str = "es"
+) -> str:
+    """
+    Construir prompt especializado para corrección de diagramas PlantUML.
+
+    Args:
+        diagram_code: Código del diagrama con errores
+        error_context: Contexto del error (mensaje, línea)
+        language: Idioma para la explicación (es, en)
+
+    Returns:
+        Prompt formateado para el modelo de IA
+    """
+    lang_instructions = {
+        "es": {
+            "intro": "Eres un experto en diagramas PlantUML. Analiza el siguiente código que tiene errores de sintaxis y corrígelo.",
+            "error_label": "ERROR DETECTADO:",
+            "rules_label": "REGLAS DE SINTAXIS PLANTUML:",
+            "instructions_label": "INSTRUCCIONES:",
+            "instructions": [
+                "1. Identifica el error de sintaxis específico",
+                "2. Corrige SOLO el error, manteniendo la estructura original",
+                "3. Preserva todos los elementos y relaciones",
+                "4. NO cambies el significado del diagrama",
+                "5. NO agregues ni elimines elementos innecesariamente",
+            ],
+            "format_label": "FORMATO DE RESPUESTA (JSON):",
+        },
+        "en": {
+            "intro": "You are an expert in PlantUML diagrams. Analyze the following code that has syntax errors and fix it.",
+            "error_label": "DETECTED ERROR:",
+            "rules_label": "PLANTUML SYNTAX RULES:",
+            "instructions_label": "INSTRUCTIONS:",
+            "instructions": [
+                "1. Identify the specific syntax error",
+                "2. Fix ONLY the error, maintaining the original structure",
+                "3. Preserve all elements and relationships",
+                "4. DO NOT change the diagram's meaning",
+                "5. DO NOT add or remove elements unnecessarily",
+            ],
+            "format_label": "RESPONSE FORMAT (JSON):",
+        },
+    }
+
+    lang = lang_instructions.get(language, lang_instructions["es"])
+
+    error_section = ""
+    if error_context:
+        error_section = f"""
+{lang["error_label"]}
+{error_context}
+"""
+
+    prompt = f"""{lang["intro"]}
+
+CÓDIGO ORIGINAL:
+```plantuml
+{diagram_code}
+```
+{error_section}
+{lang["rules_label"]}
+- Inicio/Fin: @startuml / @enduml
+- Clases: class NombreClase {{ ... }}
+- Relaciones: <|-- (herencia), *-- (composición), o-- (agregación), --> (asociación)
+- Secuencia: participant, activate, deactivate, alt/else/end, loop/end
+- Casos de uso: usecase, actor, rectangle
+- Componentes: component, interface, package
+- Comentarios: ' comentario o /' comentario multilinea '/
+
+{lang["instructions_label"]}
+{chr(10).join(lang["instructions"])}
+
+{lang["format_label"]}
+{{
+  "corrected_code": "código corregido aquí (sin bloques de código markdown)",
+  "explanation": "explicación clara de qué se corrigió y por qué",
+  "changes_summary": "resumen breve (1 línea)"
+}}
+
+IMPORTANTE: Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional antes o después."""
+
+    return prompt
+
+
+def build_d2_fix_prompt(
+    diagram_code: str, error_context: Optional[str] = None, language: str = "es"
+) -> str:
+    """
+    Construir prompt especializado para corrección de diagramas D2.
+
+    Args:
+        diagram_code: Código del diagrama con errores
+        error_context: Contexto del error (mensaje, línea)
+        language: Idioma para la explicación (es, en)
+
+    Returns:
+        Prompt formateado para el modelo de IA
+    """
+    lang_instructions = {
+        "es": {
+            "intro": (
+                "Eres un experto en diagramas D2. Analiza el siguiente código "
+                "que tiene errores de sintaxis y corrígelo."
+            ),
+            "error_label": "ERROR DETECTADO:",
+            "rules_label": "REGLAS DE SINTAXIS D2:",
+            "instructions_label": "INSTRUCCIONES:",
+            "instructions": [
+                "1. Identifica el error de sintaxis específico",
+                "2. Corrige SOLO el error, manteniendo la estructura original",
+                "3. Preserva todos los nodos, conexiones y etiquetas",
+                "4. NO cambies el significado del diagrama",
+                "5. NO agregues ni elimines elementos innecesariamente",
+            ],
+            "format_label": "FORMATO DE RESPUESTA (JSON):",
+        },
+        "en": {
+            "intro": (
+                "You are an expert in D2 diagrams. Analyze the following code "
+                "that has syntax errors and fix it."
+            ),
+            "error_label": "DETECTED ERROR:",
+            "rules_label": "D2 SYNTAX RULES:",
+            "instructions_label": "INSTRUCTIONS:",
+            "instructions": [
+                "1. Identify the specific syntax error",
+                "2. Fix ONLY the error, maintaining the original structure",
+                "3. Preserve all nodes, connections and labels",
+                "4. DO NOT change the diagram's meaning",
+                "5. DO NOT add or remove elements unnecessarily",
+            ],
+            "format_label": "RESPONSE FORMAT (JSON):",
+        },
+    }
+
+    lang = lang_instructions.get(language, lang_instructions["es"])
+
+    error_section = ""
+    if error_context:
+        error_section = f"""
+{lang["error_label"]}
+{error_context}
+"""
+
+    prompt = f"""{lang["intro"]}
+
+CÓDIGO ORIGINAL:
+```d2
+{diagram_code}
+```
+{error_section}
+{lang["rules_label"]}
+- Conexiones dirigidas: a -> b (flecha unidireccional)
+- Conexiones bidireccionales: a <-> b (flecha bidireccional)
+- Conexiones inversas: a <- b (flecha inversa)
+- Conexiones sin dirección: a -- b (línea sin flecha)
+- Etiquetas en conexiones: a -> b: etiqueta
+- Formas (shape): rectangle, square, page, parallelogram, document, cylinder, queue, package, \
+step, callout, stored_data, person, diamond, oval, circle, hexagon, cloud, text, code, class, \
+sql_table, image, sequence_diagram
+- Contenedores: nodo {{ hijos }}
+- Estilos (style): opacity, stroke, fill, stroke-width, stroke-dash, border-radius, font-color, \
+font-size, font, bold, italic, underline, shadow, multiple, animated, 3d
+- Comentarios: # comentario de línea
+- Etiquetas de nodos: nodo: "Texto de etiqueta"
+- Propiedades especiales: label, icon, near, tooltip, link, constraint
+- Clases: classes {{ nombre {{ style {{ ... }} }} }}
+- Capas y escenarios: layers {{ ... }}, scenarios {{ ... }}
+
+{lang["instructions_label"]}
+{chr(10).join(lang["instructions"])}
+
+{lang["format_label"]}
+{{
+  "corrected_code": "código corregido aquí (sin bloques de código markdown)",
+  "explanation": "explicación clara de qué se corrigió y por qué",
+  "changes_summary": "resumen breve (1 línea)"
+}}
+
+IMPORTANTE: Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional antes o después."""
+
+    return prompt
+
+
+def build_dbml_fix_prompt(
+    diagram_code: str, error_context: Optional[str] = None, language: str = "es"
+) -> str:
+    """
+    Construir prompt especializado para corrección de diagramas DBML.
+
+    Usa delimitadores <<<CODE>>> en vez de JSON para evitar conflictos
+    con las llaves {} del código DBML.
+    """
+    lang_instructions = {
+        "es": {
+            "intro": (
+                "Eres un experto en DBML (Database Markup Language). "
+                "Analiza el siguiente código que tiene errores de sintaxis y corrígelo."
+            ),
+            "error_label": "ERROR DETECTADO:",
+            "rules_label": "REGLAS DE SINTAXIS DBML:",
+            "instructions_label": "INSTRUCCIONES:",
+            "instructions": [
+                "1. Identifica el error de sintaxis específico",
+                "2. Corrige SOLO el error, manteniendo la estructura original",
+                "3. Preserva todas las tablas, columnas y relaciones",
+                "4. NO cambies el significado del diagrama",
+                "5. NO agregues ni elimines elementos innecesariamente",
+            ],
+            "format_label": "FORMATO DE RESPUESTA:",
+        },
+        "en": {
+            "intro": (
+                "You are an expert in DBML (Database Markup Language). "
+                "Analyze the following code that has syntax errors and fix it."
+            ),
+            "error_label": "DETECTED ERROR:",
+            "rules_label": "DBML SYNTAX RULES:",
+            "instructions_label": "INSTRUCTIONS:",
+            "instructions": [
+                "1. Identify the specific syntax error",
+                "2. Fix ONLY the error, maintaining the original structure",
+                "3. Preserve all tables, columns and relationships",
+                "4. DO NOT change the diagram's meaning",
+                "5. DO NOT add or remove elements unnecessarily",
+            ],
+            "format_label": "RESPONSE FORMAT:",
+        },
+    }
+
+    lang = lang_instructions.get(language, lang_instructions["es"])
+
+    error_section = ""
+    if error_context:
+        error_section = f"""
+{lang["error_label"]}
+{error_context}
+"""
+
+    prompt = f"""{lang["intro"]}
+
+CÓDIGO ORIGINAL:
+```dbml
+{diagram_code}
+```
+{error_section}
+{lang["rules_label"]}
+- Tablas: Table nombre {{ columnas }}
+- Columnas: nombre tipo [opciones]
+- Opciones: [pk], [not null], [unique], [increment], [default: valor], [note: "texto"]
+- Enums: Enum nombre {{ valores }}
+- Relaciones: Ref: tabla1.col > tabla2.col (muchos a uno)
+- Relaciones: Ref: tabla1.col < tabla2.col (uno a muchos)
+- Relaciones: Ref: tabla1.col - tabla2.col (uno a uno)
+- Relaciones: Ref: tabla1.col <> tabla2.col (muchos a muchos)
+- Opciones de Ref: [delete: cascade], [update: no action]
+- Índices: indexes {{ columna [tipo] }}
+- Notas: Note: "texto" (SIEMPRE comillas dobles, NUNCA simples)
+- TableGroup: TableGroup nombre {{ tablas }}
+- Comentarios: // comentario de línea
+- CRITICO: SIEMPRE usar comillas DOBLES (") para notas y strings. NUNCA comillas simples ('). El renderer rechaza comillas simples.
+- CRITICO: NO usar DiagramView, Schemas ni Project. Solo soportados: Table, Enum, Ref, Note, TableGroup, indexes.
+
+{lang["instructions_label"]}
+{chr(10).join(lang["instructions"])}
+
+{lang["format_label"]}
+Responde con EXACTAMENTE este formato (usa los delimitadores tal cual):
+
+<<<EXPLANATION>>>
+explicación clara de qué se corrigió y por qué
+<<<END_EXPLANATION>>>
+
+<<<CHANGES>>>
+resumen breve de los cambios (1 línea)
+<<<END_CHANGES>>>
+
+<<<CODE>>>
+código DBML corregido completo aquí
+<<<END_CODE>>>
+
+IMPORTANTE: Usa EXACTAMENTE los delimitadores <<<EXPLANATION>>>, <<<CHANGES>>> y <<<CODE>>> con sus respectivos cierres. No uses JSON."""
+
+    return prompt
+
+
+def build_fix_prompt(
+    diagram_code: str, diagram_type: str, error_context: Optional[str] = None, language: str = "es"
+) -> str:
+    """
+    Construir prompt de corrección según tipo de diagrama.
+
+    Args:
+        diagram_code: Código del diagrama con errores
+        diagram_type: Tipo de diagrama (mermaid, plantuml, d2, dbml)
+        error_context: Contexto del error (mensaje, línea)
+        language: Idioma para la explicación (es, en)
+
+    Returns:
+        Prompt formateado para el modelo de IA
+    """
+    diagram_type_lower = diagram_type.lower()
+
+    if "d2" in diagram_type_lower:
+        return build_d2_fix_prompt(diagram_code, error_context, language)
+    elif "plantuml" in diagram_type_lower or diagram_type_lower == "uml":
+        return build_plantuml_fix_prompt(diagram_code, error_context, language)
+    elif "dbml" in diagram_type_lower:
+        return build_dbml_fix_prompt(diagram_code, error_context, language)
+    else:
+        # Por defecto, usar prompt de Mermaid
+        return build_mermaid_fix_prompt(diagram_code, error_context, language)

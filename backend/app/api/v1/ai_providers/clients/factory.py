@@ -1,6 +1,7 @@
 """
 Factory for creating AI client instances.
 """
+
 from typing import Dict, Any
 from .base import BaseAIClient
 from .gemini_client import GeminiClient
@@ -25,17 +26,13 @@ class AIClientFactory:
 
     @classmethod
     def create_client(
-        cls,
-        provider: AIProviderType,
-        api_key: str,
-        model: str,
-        parameters: Dict[str, Any]
+        cls, provider: AIProviderType, api_key: str, model: str, parameters: Dict[str, Any]
     ) -> BaseAIClient:
         """
         Create instance of the appropriate AI client.
 
         Args:
-            provider: Provider type (gemini, openai, claude, deepseek)
+            provider: Provider type (gemini, openai, claude, deepseek, minimax)
             api_key: API key for the provider
             model: Model name to use
             parameters: Provider-specific parameters

@@ -1,6 +1,7 @@
 """
 Business logic layer for shared links.
 """
+
 import hashlib
 import secrets
 import string
@@ -13,12 +14,17 @@ from app.core.config import settings
 from app.core.security import pwd_context
 
 from ..diagrams.interfaces import IDiagramRepository
+from ..projects.interfaces import IProjectRepository
+from ..projects.repository import ProjectRepository
+from ..users.interfaces import IUserRepository
+from ..users.repository import UserRepository
 from .interfaces import ISharedLinkRepository
 from .schemas import (
     AccessLogCreate,
     CreateSharedLinkRequest,
     SharedDiagramResponse,
     SharedLinkCreate,
+    SharedLinkInDB,
     SharedLinkInfoResponse,
     SharedLinkResponse,
     SharedLinkUpdate,
@@ -80,13 +86,15 @@ class SharedLinkService:
         self,
         shared_link_repository: ISharedLinkRepository,
         diagram_repository: IDiagramRepository,
+        project_repository: IProjectRepository = ProjectRepository(),
+        user_repository: IUserRepository = UserRepository(),
     ):
         self.shared_link_repository = shared_link_repository
         self.diagram_repository = diagram_repository
+        self.project_repository = project_repository
+        self.user_repository = user_repository
 
-    async def _verify_diagram_ownership(
-        self, diagram_id: str, user_id: str
-    ):
+    async def _verify_diagram_ownership(self, diagram_id: str, user_id: str):
         """
         Verify that the user owns the diagram (via its project).
 
@@ -102,14 +110,7 @@ class SharedLinkService:
                 detail="Diagrama no encontrado",
             )
 
-        # Import here to avoid circular imports
-        from beanie import PydanticObjectId
-        from ..projects.schemas import ProjectInDB
-
-        try:
-            project = await ProjectInDB.get(PydanticObjectId(diagram.project_id))
-        except Exception:
-            project = None
+        project = await self.project_repository.get_by_id(diagram.project_id)
 
         if not project or project.user_id != user_id:
             raise HTTPException(
@@ -132,9 +133,7 @@ class SharedLinkService:
         await self._verify_diagram_ownership(request.diagram_id, user_id)
 
         # Revoke any existing active link for this diagram
-        existing = await self.shared_link_repository.get_active_by_diagram(
-            request.diagram_id
-        )
+        existing = await self.shared_link_repository.get_active_by_diagram(request.diagram_id)
         if existing:
             await self.shared_link_repository.revoke(str(existing.id))
 
@@ -183,9 +182,7 @@ class SharedLinkService:
             updated_at=link.updated_at,
         )
 
-    async def get_active_link(
-        self, diagram_id: str, user_id: str
-    ) -> Optional[SharedLinkResponse]:
+    async def get_active_link(self, diagram_id: str, user_id: str) -> Optional[SharedLinkResponse]:
         """
         Get the active shared link for a diagram, verifying ownership.
 
@@ -217,16 +214,7 @@ class SharedLinkService:
         Update shared link configuration without changing the token.
         """
         # Get the existing link to verify ownership
-        from .schemas import SharedLinkInDB as SharedLinkDoc
-        from beanie import PydanticObjectId
-
-        try:
-            link = await SharedLinkDoc.get(PydanticObjectId(link_id))
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Enlace compartido no encontrado",
-            )
+        link = await self.shared_link_repository.get_by_id(link_id)
 
         if not link:
             raise HTTPException(
@@ -285,16 +273,7 @@ class SharedLinkService:
         """
         Revoke (deactivate) a shared link.
         """
-        from .schemas import SharedLinkInDB as SharedLinkDoc
-        from beanie import PydanticObjectId
-
-        try:
-            link = await SharedLinkDoc.get(PydanticObjectId(link_id))
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Enlace compartido no encontrado",
-            )
+        link = await self.shared_link_repository.get_by_id(link_id)
 
         if not link:
             raise HTTPException(
@@ -327,9 +306,7 @@ class SharedLinkService:
             )
 
         # Check expiration
-        is_expired = (
-            link.expires_at is not None and link.expires_at < datetime.utcnow()
-        )
+        is_expired = link.expires_at is not None and link.expires_at < datetime.utcnow()
 
         # Get diagram title
         diagram = await self.diagram_repository.get_by_id(link.diagram_id)
@@ -347,23 +324,20 @@ class SharedLinkService:
 
     async def _get_owner_display_name(self, user_id: str) -> Optional[str]:
         """Get the display name of a user by their ID."""
-        from beanie import PydanticObjectId
-        from ..users.schemas import UserInDB
-
         try:
-            user = await UserInDB.get(PydanticObjectId(user_id))
+            user = await self.user_repository.get_by_id(user_id)
             if user:
                 return user.full_name or user.email.split("@")[0]
         except Exception:
             pass
         return None
 
-    async def get_shared_diagram(
-        self, token: str, client_ip: str
-    ) -> SharedDiagramResponse:
+    async def _get_valid_link(self, token: str, client_ip: str) -> SharedLinkInDB:
         """
-        Get diagram data for a public (non-protected) shared link.
-        Controls content visibility based on allow_copy_code.
+        Fetch an active, non-expired link by token, logging failures.
+
+        Raises:
+            HTTPException: 404 if the link is missing/inactive, 410 if expired.
         """
         link = await self.shared_link_repository.get_by_token(token)
         if not link or not link.is_active:
@@ -381,13 +355,16 @@ class SharedLinkService:
                 detail="Este enlace ha expirado",
             )
 
-        # Public endpoint only serves public links
-        if link.access_type != "public":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Este enlace requiere un código de acceso",
-            )
+        return link
 
+    async def _fetch_diagram_for_link(
+        self, link: SharedLinkInDB, token: str, client_ip: str
+    ) -> SharedDiagramResponse:
+        """
+        Fetch the diagram referenced by a validated link and build the response.
+
+        Logs the successful access; raises 410 if the diagram no longer exists.
+        """
         diagram = await self.diagram_repository.get_by_id(link.diagram_id)
         if not diagram:
             await self._log_access(token, client_ip, "not_found")
@@ -411,6 +388,22 @@ class SharedLinkService:
             owner_name=owner_name,
         )
 
+    async def get_shared_diagram(self, token: str, client_ip: str) -> SharedDiagramResponse:
+        """
+        Get diagram data for a public (non-protected) shared link.
+        Controls content visibility based on allow_copy_code.
+        """
+        link = await self._get_valid_link(token, client_ip)
+
+        # Public endpoint only serves public links
+        if link.access_type != "public":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Este enlace requiere un código de acceso",
+            )
+
+        return await self._fetch_diagram_for_link(link, token, client_ip)
+
     async def verify_access_code(
         self,
         token: str,
@@ -423,21 +416,7 @@ class SharedLinkService:
         """
         ip_hash = _anonymize_ip(client_ip)
 
-        link = await self.shared_link_repository.get_by_token(token)
-        if not link or not link.is_active:
-            await self._log_access(token, client_ip, "not_found")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Enlace no encontrado",
-            )
-
-        # Check expiration
-        if link.expires_at is not None and link.expires_at < datetime.utcnow():
-            await self._log_access(token, client_ip, "expired")
-            raise HTTPException(
-                status_code=status.HTTP_410_GONE,
-                detail="Este enlace ha expirado",
-            )
+        link = await self._get_valid_link(token, client_ip)
 
         # Check brute-force protection
         failed_count = await self.shared_link_repository.count_failed_attempts(
@@ -462,28 +441,7 @@ class SharedLinkService:
             )
 
         # Code is correct — fetch diagram
-        diagram = await self.diagram_repository.get_by_id(link.diagram_id)
-        if not diagram:
-            await self._log_access(token, client_ip, "not_found")
-            raise HTTPException(
-                status_code=status.HTTP_410_GONE,
-                detail="El diagrama ya no está disponible",
-            )
-
-        await self._log_access(token, client_ip, "success")
-
-        owner_name = await self._get_owner_display_name(link.user_id)
-
-        return SharedDiagramResponse(
-            title=diagram.title,
-            description=diagram.description or None,
-            content=diagram.content if link.allow_copy_code else None,
-            diagram_type=diagram.diagram_type,
-            rendered_content=diagram.content,
-            config=diagram.config.model_dump() if diagram.config else {},
-            allow_copy_code=link.allow_copy_code,
-            owner_name=owner_name,
-        )
+        return await self._fetch_diagram_for_link(link, token, client_ip)
 
     async def _log_access(self, token: str, client_ip: str, result: str) -> None:
         """Log an access attempt with anonymized IP."""

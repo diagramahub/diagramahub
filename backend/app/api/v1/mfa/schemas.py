@@ -1,10 +1,10 @@
 """
 Pydantic schemas for the MFA (Multi-Factor Authentication) module.
 """
+
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # --- Allowed MFA methods ---
 
@@ -16,15 +16,6 @@ def _validate_mfa_method(v: str) -> str:
     if v not in ALLOWED_MFA_METHODS:
         raise ValueError(f"Method must be one of: {', '.join(sorted(ALLOWED_MFA_METHODS))}")
     return v
-
-
-class MfaEnableEmailRequest(BaseModel):
-    """Request to initiate MFA email activation.
-
-    Empty body — uses the authenticated user's registered email address.
-    """
-
-    pass
 
 
 class MfaVerifyEmailActivationRequest(BaseModel):
@@ -86,9 +77,7 @@ class MfaVerifyRequest(BaseModel):
     method: Optional[str] = Field(
         default=None, description="MFA method used: 'email' or 'totp' (optional)"
     )
-    is_recovery_code: bool = Field(
-        default=False, description="Whether the code is a recovery code"
-    )
+    is_recovery_code: bool = Field(default=False, description="Whether the code is a recovery code")
 
     @field_validator("method")
     @classmethod

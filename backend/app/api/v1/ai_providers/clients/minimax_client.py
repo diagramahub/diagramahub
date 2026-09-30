@@ -2,6 +2,7 @@
 Minimax AI client implementation.
 Uses OpenAI-compatible API format.
 """
+
 import json
 import time
 
@@ -27,14 +28,29 @@ class MinimaxClient(BaseAIClient):
 
     BASE_URL = "https://api.minimax.io/v1"
 
-    def __init__(
-        self, api_key: str, model: str = "minimax-01", parameters: Dict[str, Any] = None
-    ):
+    def __init__(self, api_key: str, model: str = "minimax-01", parameters: Dict[str, Any] = None):
         super().__init__(api_key, model, parameters or {})
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """Complete a chat request with system and user messages."""
+        return await self._make_request(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+        )
+
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """Send the conversation as native turns after the system message."""
+        return await self._make_request(
+            [{"role": "system", "content": system_prompt}, *self._chat_turns(messages)]
+        )
 
     async def _make_request(
         self,
@@ -68,14 +84,10 @@ class MinimaxClient(BaseAIClient):
                     error_detail = response.text
                     try:
                         error_json = response.json()
-                        error_detail = error_json.get("error", {}).get(
-                            "message", response.text
-                        )
+                        error_detail = error_json.get("error", {}).get("message", response.text)
                     except Exception:
                         pass
-                    raise ValueError(
-                        f"Minimax API error ({response.status_code}): {error_detail}"
-                    )
+                    raise ValueError(f"Minimax API error ({response.status_code}): {error_detail}")
 
                 result = response.json()
                 return result["choices"][0]["message"]["content"]
@@ -90,10 +102,15 @@ class MinimaxClient(BaseAIClient):
     ) -> str:
         prompt = build_description_prompt(diagram_code, diagram_type, language)
         try:
-            response = await self._make_request([
-                {"role": "system", "content": "Eres un experto en análisis de diagramas técnicos."},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._make_request(
+                [
+                    {
+                        "role": "system",
+                        "content": "Eres un experto en análisis de diagramas técnicos.",
+                    },
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except Exception as e:
             raise ValueError(f"Error generating description with Minimax: {str(e)}")
@@ -120,10 +137,12 @@ class MinimaxClient(BaseAIClient):
     ) -> str:
         prompt = build_generate_diagram_prompt(description, diagram_type, language)
         try:
-            response = await self._make_request([
-                {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._make_request(
+                [
+                    {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except Exception as e:
             raise ValueError(f"Error generating diagram with Minimax: {str(e)}")
@@ -139,10 +158,12 @@ class MinimaxClient(BaseAIClient):
             diagram_code, improvement_request, diagram_type, language
         )
         try:
-            response = await self._make_request([
-                {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._make_request(
+                [
+                    {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except Exception as e:
             raise ValueError(f"Error improving diagram with Minimax: {str(e)}")
@@ -154,18 +175,22 @@ class MinimaxClient(BaseAIClient):
         error_context: str | None = None,
         language: str = "es",
     ) -> Dict[str, str]:
-        from ...diagrams.fix_prompts import build_fix_prompt
+        from ..prompts import build_fix_prompt
         from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             is_dbml = diagram_type.lower() == "dbml"
             system_msg = (
-                "You are an expert in fixing syntax errors in DBML diagrams. "
-                "Respond using the exact delimiter format requested."
-            ) if is_dbml else (
-                "You are an expert in fixing syntax errors in technical diagrams. "
-                "Always respond with valid JSON only, no markdown fences or extra text."
+                (
+                    "You are an expert in fixing syntax errors in DBML diagrams. "
+                    "Respond using the exact delimiter format requested."
+                )
+                if is_dbml
+                else (
+                    "You are an expert in fixing syntax errors in technical diagrams. "
+                    "Always respond with valid JSON only, no markdown fences or extra text."
+                )
             )
 
             response_text = await self._make_request(
@@ -180,9 +205,7 @@ class MinimaxClient(BaseAIClient):
                 fix_result = extract_fix_delimited(response_text, "Minimax")
             else:
                 fix_result = extract_fix_json(response_text, "Minimax")
-                fix_result["corrected_code"] = clean_code_response(
-                    fix_result["corrected_code"]
-                )
+                fix_result["corrected_code"] = clean_code_response(fix_result["corrected_code"])
             return fix_result
 
         except Exception as e:
@@ -205,9 +228,7 @@ class MinimaxClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error in chat with Minimax: {str(e)}")
 
-    async def summarize_conversation(
-        self, messages: list[dict], language: str = "es"
-    ) -> str:
+    async def summarize_conversation(self, messages: list[dict], language: str = "es") -> str:
         user_prompt = build_summarize_prompt(messages, language)
         try:
             return await self._make_request(
@@ -259,9 +280,7 @@ class MinimaxClient(BaseAIClient):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(120.0, connect=10.0)
-            ) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
                     f"{self.BASE_URL}/chat/completions",
@@ -273,16 +292,13 @@ class MinimaxClient(BaseAIClient):
                             "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
                         )
                     if response.status_code != 200:
-                        raise ValueError(
-                            f"Minimax API error: {response.status_code}"
-                        )
+                        raise ValueError(f"Minimax API error: {response.status_code}")
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():
                         if time.time() - last_token_time > 60:
                             raise ValueError(
-                                f"{self.provider_name} stream timeout: "
-                                "no token received in 60s"
+                                f"{self.provider_name} stream timeout: " "no token received in 60s"
                             )
 
                         if not line.startswith("data: "):
@@ -311,9 +327,7 @@ class MinimaxClient(BaseAIClient):
         except ValueError:
             raise
         except Exception as e:
-            raise ValueError(
-                f"Error in streaming chat with {self.provider_name}: {str(e)}"
-            )
+            raise ValueError(f"Error in streaming chat with {self.provider_name}: {str(e)}")
 
     @property
     def provider_name(self) -> str:

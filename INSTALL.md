@@ -306,7 +306,10 @@ The default configuration targets `localhost`. Set these three values before goi
 
 - `BACKEND_CORS_ORIGINS` in `backend/.env` — comma-separated list of public frontend origins. When empty, it falls back to `FRONTEND_URL`.
 - `FRONTEND_URL` in `backend/.env` — public frontend URL used by Stripe redirects and email links.
-- `VITE_API_URL` — public API URL, set in the active compose file (not in `backend/.env`). The frontend reads it when Vite starts, so recreate the frontend container after changing it.
+- `VITE_API_URL` — public API URL, set as an environment variable (compose file, a `.env` file next to it, or the platform settings). In the Docker image the frontend reads it when the container starts — it is written to `/config.js` before Nginx serves anything — so changing it only requires recreating the frontend container, never a rebuild. On a managed platform's Static Site there is no container: the value is baked into the bundle at build time, so environment changes trigger a rebuild.
+
+> [!NOTE]
+> The external-Mongo (production) configuration builds the frontend with the `production` target: a static bundle served by Nginx running as a non-root user, listening on the same port 5173 as before. The local-full configuration builds the `development` target: the Vite dev server with hot reload and source volumes.
 
 > [!NOTE]
 > Interactive API docs (`/docs`, `/redoc`) are served only when `APP_ENV` is not `production`. The external-Mongo configuration runs in production mode.
@@ -324,12 +327,11 @@ server {
     server_name diagramahub.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:5173; # Frontend container
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_pass http://localhost:5173; # Frontend container (static Nginx)
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 
@@ -363,6 +365,7 @@ sudo certbot --nginx -d diagramahub.yourdomain.com
 ### 3. Security Considerations
 
 - **JWT_SECRET**: Ensure your `JWT_SECRET` is a strong, random string (at least 32 chars).
+- **Content-Security-Policy**: the frontend image ships a tested starting point in `frontend/csp.conf.example` (disabled by default). Enable it per deployment after validating the editor and export flows — see the file for instructions.
 - **MongoDB**: If using local MongoDB, ensure port `27017` is **NOT** exposed to the public internet (use a firewall like UFW).
 - **Backups**: Regularly backup your `mongodb_data` volume.
 

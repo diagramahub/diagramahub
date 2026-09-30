@@ -1,12 +1,20 @@
 """
 Business logic layer for prompt history.
 """
+
+import hashlib
 from math import ceil
 
 from fastapi import HTTPException, status
 
 from .interfaces import IPromptHistoryRepository
 from .schemas import PromptHistoryResponse, PaginatedPromptHistoryResponse
+
+
+def compute_prompt_hash(text: str) -> str:
+    """Compute SHA-256 hash of normalized prompt text (lowercase, stripped)."""
+    normalized = text.strip().lower()
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
 class PromptHistoryService:
@@ -32,7 +40,12 @@ class PromptHistoryService:
         )
 
     async def list_prompts(
-        self, user_id: str, page: int, page_size: int, search: str | None = None, diagram_id: str | None = None
+        self,
+        user_id: str,
+        page: int,
+        page_size: int,
+        search: str | None = None,
+        diagram_id: str | None = None,
     ) -> PaginatedPromptHistoryResponse:
         """
         List paginated prompt history for a user with optional search and diagram filter.

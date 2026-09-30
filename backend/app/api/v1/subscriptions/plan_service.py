@@ -1,40 +1,36 @@
 """
 Plan service with business logic.
 """
+
+import logging
 from datetime import datetime
 from typing import Optional
 
 from .interfaces import IPlanRepository
 from .payment_providers.interfaces import IPaymentProvider
 from .schemas import PlanCreate, PlanUpdate, PlanResponse, PlanInDB, StripeGatewayConfig
-from .stripe_catalog_service import (
-    sync_plan_to_stripe,
-    archive_plan_in_stripe,
-    reactivate_plan_in_stripe,
-    update_price_currency_options,
-)
 from .exceptions import (
     ValidationError,
     FreePlanProtectionError,
     DuplicatePlanNameError,
-    NotFoundError
+    NotFoundError,
 )
 from .constants import FREE_PLAN_CODE
 from .logger import SubscriptionLogger
+
+logger = logging.getLogger(__name__)
 
 
 class PlanService:
     """Servicio para gestión de planes de suscripción."""
 
-    def __init__(self, repository: IPlanRepository, payment_provider: Optional[IPaymentProvider] = None):
+    def __init__(
+        self, repository: IPlanRepository, payment_provider: Optional[IPaymentProvider] = None
+    ):
         self.repository = repository
         self.payment_provider = payment_provider
 
-    async def create_plan(
-        self,
-        plan_data: PlanCreate,
-        admin_user_id: str
-    ) -> PlanResponse:
+    async def create_plan(self, plan_data: PlanCreate, admin_user_id: str) -> PlanResponse:
         """
         Crea un nuevo plan de suscripción.
 
@@ -71,17 +67,20 @@ class PlanService:
                 for currency, amount in plan_data.prices.items():
                     if currency.lower() != "usd" and amount > 0:
                         initial_prices[currency.lower()] = amount
-            stripe_product_id, stripe_price_id = await sync_plan_to_stripe(
-                plan, initial_prices, self.payment_provider.secret_key
+            stripe_product_id, stripe_price_id = await self.payment_provider.sync_plan(
+                plan, initial_prices
             )
-            await plan.set({
-                "gateway_config": StripeGatewayConfig(
-                    external_product_id=stripe_product_id,
-                    external_price_id=stripe_price_id,
-                ).model_dump(),
-                "prices": initial_prices,
-                "updated_at": datetime.utcnow()
-            })
+            await self.repository.update(
+                str(plan.id),
+                {
+                    "gateway_config": StripeGatewayConfig(
+                        external_product_id=stripe_product_id,
+                        external_price_id=stripe_price_id,
+                    ).model_dump(),
+                    "prices": initial_prices,
+                    "updated_at": datetime.utcnow(),
+                },
+            )
             # Re-fetch to get updated data
             plan = await self.repository.get_by_id(str(plan.id))
 
@@ -90,17 +89,14 @@ class PlanService:
             plan_id=str(plan.id),
             plan_name=plan.name,
             price=plan.price_usd,
-            created_by=admin_user_id
+            created_by=admin_user_id,
         )
 
         active_subs = await self.repository.count_active_subscriptions(str(plan.id))
         return self._to_response(plan, active_subs)
 
     async def update_plan(
-        self,
-        plan_id: str,
-        plan_data: PlanUpdate,
-        admin_user_id: str
+        self, plan_id: str, plan_data: PlanUpdate, admin_user_id: str
     ) -> PlanResponse:
         """
         Actualiza un plan existente.
@@ -151,7 +147,9 @@ class PlanService:
 
         if self.payment_provider and is_paid:
             name_changed = plan_data.name is not None and plan_data.name != plan.name
-            desc_changed = plan_data.description is not None and plan_data.description != plan.description
+            desc_changed = (
+                plan_data.description is not None and plan_data.description != plan.description
+            )
             price_usd_changed = new_price is not None and new_price != current_price
 
             if name_changed or desc_changed or price_usd_changed:
@@ -161,17 +159,20 @@ class PlanService:
                 updated_prices = dict(plan.prices) if plan.prices else {}
                 updated_prices["usd"] = effective_price_usd
 
-                stripe_product_id, stripe_price_id = await sync_plan_to_stripe(
-                    updated_plan, updated_prices, self.payment_provider.secret_key
+                stripe_product_id, stripe_price_id = await self.payment_provider.sync_plan(
+                    updated_plan, updated_prices
                 )
-                await updated_plan.set({
-                    "gateway_config": StripeGatewayConfig(
-                        external_product_id=stripe_product_id,
-                        external_price_id=stripe_price_id,
-                    ).model_dump(),
-                    "prices": updated_prices,
-                    "updated_at": datetime.utcnow()
-                })
+                await self.repository.update(
+                    plan_id,
+                    {
+                        "gateway_config": StripeGatewayConfig(
+                            external_product_id=stripe_product_id,
+                            external_price_id=stripe_price_id,
+                        ).model_dump(),
+                        "prices": updated_prices,
+                        "updated_at": datetime.utcnow(),
+                    },
+                )
                 # Re-fetch to get updated data
                 updated_plan = await self.repository.get_by_id(plan_id)
 
@@ -179,29 +180,19 @@ class PlanService:
         if self.payment_provider and plan_data.is_active is True and not plan.is_active:
             if updated_plan.gateway_config:
                 try:
-                    await reactivate_plan_in_stripe(updated_plan, self.payment_provider.secret_key)
+                    await self.payment_provider.reactivate_plan(updated_plan)
                 except Exception as exc:
-                    import logging
-                    logging.getLogger(__name__).error(
-                        "Failed to reactivate plan %s in Stripe: %s", plan_id, exc
-                    )
+                    logger.error("Failed to reactivate plan %s in Stripe: %s", plan_id, exc)
 
         changes = plan_data.model_dump(exclude_unset=True)
         SubscriptionLogger.plan_updated(
-            plan_id=plan_id,
-            plan_name=updated_plan.name,
-            updated_by=admin_user_id,
-            changes=changes
+            plan_id=plan_id, plan_name=updated_plan.name, updated_by=admin_user_id, changes=changes
         )
 
         active_subs = await self.repository.count_active_subscriptions(plan_id)
         return self._to_response(updated_plan, active_subs)
 
-    async def deactivate_plan(
-        self,
-        plan_id: str,
-        admin_user_id: str
-    ) -> dict:
+    async def deactivate_plan(self, plan_id: str, admin_user_id: str) -> dict:
         """Desactiva un plan (soft delete) y archiva en Stripe. No aplica al plan FREE."""
         plan = await self.repository.get_by_id(plan_id)
         if not plan:
@@ -217,31 +208,22 @@ class PlanService:
         # Archivar en Stripe (Product inactive + Price inactive)
         if self.payment_provider and plan.gateway_config:
             try:
-                await archive_plan_in_stripe(plan, self.payment_provider.secret_key)
+                await self.payment_provider.archive_plan(plan)
             except Exception as exc:
-                import logging
-                logging.getLogger(__name__).error(
-                    "Failed to archive plan %s in Stripe: %s", plan_id, exc
-                )
+                logger.error("Failed to archive plan %s in Stripe: %s", plan_id, exc)
 
         SubscriptionLogger.plan_deactivated(
-            plan_id=plan_id,
-            plan_name=deactivated_plan.name,
-            deactivated_by=admin_user_id
+            plan_id=plan_id, plan_name=deactivated_plan.name, deactivated_by=admin_user_id
         )
 
         active_subs = await self.repository.count_active_subscriptions(plan_id)
         return {
             "message": "Plan deactivated successfully",
             "plan_id": plan_id,
-            "active_subscriptions_maintained": active_subs
+            "active_subscriptions_maintained": active_subs,
         }
 
-    async def delete_plan(
-        self,
-        plan_id: str,
-        admin_user_id: str
-    ) -> dict:
+    async def delete_plan(self, plan_id: str, admin_user_id: str) -> dict:
         """
         Elimina o desactiva un plan según tenga suscriptores.
         """
@@ -260,35 +242,22 @@ class PlanService:
         # Sin suscriptores: archivar en Stripe y eliminar de MongoDB
         if self.payment_provider and plan.gateway_config:
             try:
-                await archive_plan_in_stripe(plan, self.payment_provider.secret_key)
+                await self.payment_provider.archive_plan(plan)
             except Exception as exc:
-                import logging
-                logging.getLogger(__name__).error(
-                    "Failed to archive plan %s in Stripe: %s", plan_id, exc
-                )
+                logger.error("Failed to archive plan %s in Stripe: %s", plan_id, exc)
 
         deleted = await self.repository.delete(plan_id)
         if not deleted:
             raise NotFoundError("Plan", plan_id)
 
         SubscriptionLogger.plan_deactivated(
-            plan_id=plan_id,
-            plan_name=plan.name,
-            deactivated_by=admin_user_id
+            plan_id=plan_id, plan_name=plan.name, deactivated_by=admin_user_id
         )
 
-        return {
-            "message": "Plan deleted successfully",
-            "plan_id": plan_id,
-            "deleted": True
-        }
+        return {"message": "Plan deleted successfully", "plan_id": plan_id, "deleted": True}
 
     async def add_currency_price(
-        self,
-        plan_id: str,
-        currency: str,
-        amount: float,
-        admin_user_id: str
+        self, plan_id: str, currency: str, amount: float, admin_user_id: str
     ) -> PlanResponse:
         """Add a price in a specific currency to a plan."""
         from .constants import SUPPORTED_CURRENCIES
@@ -320,30 +289,30 @@ class PlanService:
         updated_prices[currency] = amount
 
         # Create new multi-currency Price with updated currency_options
-        new_price_id = await update_price_currency_options(
-            plan, updated_prices, self.payment_provider.secret_key
+        new_price_id = await self.payment_provider.update_price_currency_options(
+            plan, updated_prices
         )
 
         # Update MongoDB
         gw = plan.parsed_gateway_config
-        await plan.set({
-            "gateway_config": StripeGatewayConfig(
-                external_product_id=gw.external_product_id,
-                external_price_id=new_price_id,
-            ).model_dump(),
-            "prices": updated_prices,
-            "updated_at": datetime.utcnow()
-        })
+        await self.repository.update(
+            plan_id,
+            {
+                "gateway_config": StripeGatewayConfig(
+                    external_product_id=gw.external_product_id,
+                    external_price_id=new_price_id,
+                ).model_dump(),
+                "prices": updated_prices,
+                "updated_at": datetime.utcnow(),
+            },
+        )
 
         plan = await self.repository.get_by_id(plan_id)
         active_subs = await self.repository.count_active_subscriptions(plan_id)
         return self._to_response(plan, active_subs)
 
     async def remove_currency_price(
-        self,
-        plan_id: str,
-        currency: str,
-        admin_user_id: str
+        self, plan_id: str, currency: str, admin_user_id: str
     ) -> PlanResponse:
         """
         Remove a currency price from a plan.
@@ -371,20 +340,23 @@ class PlanService:
         updated_prices = {k: v for k, v in plan.prices.items() if k != currency}
 
         # Create new Price without that currency_option
-        new_price_id = await update_price_currency_options(
-            plan, updated_prices, self.payment_provider.secret_key
+        new_price_id = await self.payment_provider.update_price_currency_options(
+            plan, updated_prices
         )
 
         # Update MongoDB
         gw = plan.parsed_gateway_config
-        await plan.set({
-            "gateway_config": StripeGatewayConfig(
-                external_product_id=gw.external_product_id,
-                external_price_id=new_price_id,
-            ).model_dump(),
-            "prices": updated_prices,
-            "updated_at": datetime.utcnow()
-        })
+        await self.repository.update(
+            plan_id,
+            {
+                "gateway_config": StripeGatewayConfig(
+                    external_product_id=gw.external_product_id,
+                    external_price_id=new_price_id,
+                ).model_dump(),
+                "prices": updated_prices,
+                "updated_at": datetime.utcnow(),
+            },
+        )
 
         plan = await self.repository.get_by_id(plan_id)
         active_subs = await self.repository.count_active_subscriptions(plan_id)
@@ -440,5 +412,5 @@ class PlanService:
             gateway_config=plan.gateway_config,
             prices=plan.prices,
             created_at=plan.created_at,
-            updated_at=plan.updated_at
+            updated_at=plan.updated_at,
         )

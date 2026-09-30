@@ -4,9 +4,12 @@ Abstract interface for OAuth provider adapters.
 Defines the contract that all OAuth provider implementations must follow,
 enabling a provider-agnostic architecture.
 """
-from abc import ABC, abstractmethod
 
-from .schemas import ProviderUserInfo
+from abc import ABC, abstractmethod
+from datetime import datetime
+from typing import Optional
+
+from .schemas import OAuthStateToken, ProviderUserInfo
 
 
 class IOAuthProvider(ABC):
@@ -71,4 +74,47 @@ class IOAuthProvider(ABC):
     @abstractmethod
     def get_provider_name(self) -> str:
         """Return the provider identifier (e.g., 'google')."""
+        pass
+
+
+class IOAuthStateRepository(ABC):
+    """Abstract interface for OAuth state token persistence."""
+
+    @abstractmethod
+    async def create(self, state: str, provider: str, expires_at: datetime) -> OAuthStateToken:
+        """Persist a new OAuth state token for CSRF protection.
+
+        Args:
+            state: Cryptographically random state token.
+            provider: OAuth provider identifier (e.g., ``"google"``).
+            expires_at: Expiration timestamp (10-minute TTL).
+
+        Returns:
+            The created OAuthStateToken document.
+        """
+        pass
+
+    @abstractmethod
+    async def get_by_token(self, state: str) -> Optional[OAuthStateToken]:
+        """Fetch an OAuth state token document by its token value.
+
+        Args:
+            state: The state token to look up.
+
+        Returns:
+            The matching document, or ``None`` when it does not exist.
+        """
+        pass
+
+    @abstractmethod
+    async def consume(self, state: str) -> bool:
+        """Mark an OAuth state token as consumed.
+
+        Args:
+            state: The state token to consume.
+
+        Returns:
+            ``True`` when the token was found and marked consumed,
+            ``False`` otherwise.
+        """
         pass

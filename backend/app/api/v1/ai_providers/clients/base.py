@@ -1,6 +1,7 @@
 """
 Base abstract client for AI providers.
 """
+
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, Dict, Any
 
@@ -22,11 +23,63 @@ class BaseAIClient(ABC):
         self.parameters = parameters
 
     @abstractmethod
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """
+        Complete a chat request with system and user prompts.
+
+        Single public entry point for raw prompt completion; each client
+        maps this to its provider-specific request method.
+
+        Args:
+            system_prompt: System-level instructions for the model
+            user_prompt: User message content
+
+        Returns:
+            Plain text response from the provider
+
+        Raises:
+            ValueError: If generation fails
+        """
+        pass
+
+    @staticmethod
+    def _chat_turns(messages: list[dict]) -> list[dict]:
+        """Keep only the ``role``/``content`` keys providers accept for a turn."""
+        return [{"role": m["role"], "content": m["content"]} for m in messages]
+
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """
+        Complete a multi-turn conversation.
+
+        Providers with a native chat API override this to send each message as
+        a real ``user``/``assistant`` turn, which keeps role adherence (the model
+        doesn't "continue the transcript") and matches how they are trained.
+        This default flattens the history into a single labelled transcript for
+        providers without that API, ending with an assistant cue.
+
+        Args:
+            system_prompt: System-level instructions (diagram, markers, rules)
+            messages: Conversation turns as ``{"role", "content"}`` dicts
+            language: ``es`` or ``en``, used for the transcript labels
+
+        Returns:
+            Plain text response from the provider
+        """
+        user_label, assistant_label = (
+            ("Usuario", "Asistente") if language == "es" else ("User", "Assistant")
+        )
+        lines = [
+            f"{user_label if m['role'] == 'user' else assistant_label}: {m['content']}"
+            for m in messages
+        ]
+        lines.append(f"{assistant_label}:")
+        return await self.complete(system_prompt, "\n".join(lines))
+
+    @abstractmethod
     async def generate_description(
-        self,
-        diagram_code: str,
-        diagram_type: str,
-        language: str = "es"
+        self, diagram_code: str, diagram_type: str, language: str = "es"
     ) -> str:
         """
         Generate diagram description using AI.
@@ -46,10 +99,7 @@ class BaseAIClient(ABC):
 
     @abstractmethod
     async def generate_diagram(
-        self,
-        description: str,
-        diagram_type: str,
-        language: str = "es"
+        self, description: str, diagram_type: str, language: str = "es"
     ) -> str:
         """
         Generate diagram code from a description.
@@ -69,11 +119,7 @@ class BaseAIClient(ABC):
 
     @abstractmethod
     async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es"
+        self, diagram_code: str, improvement_request: str, diagram_type: str, language: str = "es"
     ) -> str:
         """
         Improve an existing diagram based on user's request.
@@ -98,7 +144,7 @@ class BaseAIClient(ABC):
         diagram_code: str,
         diagram_type: str,
         error_context: str | None = None,
-        language: str = "es"
+        language: str = "es",
     ) -> Dict[str, str]:
         """
         Corregir errores de sintaxis en código de diagrama.
@@ -132,11 +178,7 @@ class BaseAIClient(ABC):
 
     @abstractmethod
     async def chat_with_context(
-        self,
-        messages: list[dict],
-        diagram_code: str,
-        diagram_type: str,
-        language: str = "es"
+        self, messages: list[dict], diagram_code: str, diagram_type: str, language: str = "es"
     ) -> str:
         """
         Conversación con contexto de historial y diagrama.
@@ -156,11 +198,7 @@ class BaseAIClient(ABC):
         pass
 
     @abstractmethod
-    async def summarize_conversation(
-        self,
-        messages: list[dict],
-        language: str = "es"
-    ) -> str:
+    async def summarize_conversation(self, messages: list[dict], language: str = "es") -> str:
         """
         Genera un resumen compacto de una conversación para compactación de contexto.
 
@@ -214,9 +252,7 @@ class BaseAIClient(ABC):
             NotImplementedError: If the provider does not support streaming
             ValueError: If streaming fails or times out
         """
-        raise NotImplementedError(
-            f"{self.provider_name} does not support streaming"
-        )
+        raise NotImplementedError(f"{self.provider_name} does not support streaming")
         # Make this an async generator (yield is unreachable but required by Python)
         yield ""  # pragma: no cover
 
@@ -226,19 +262,5 @@ class BaseAIClient(ABC):
         Delegado al módulo centralizado de prompts.
         """
         from ..prompts import build_description_prompt
-        return build_description_prompt(diagram_code, diagram_type, language)
 
-    def _build_refine_prompt(
-        self,
-        diagram_code: str,
-        diagram_type: str,
-        current_description: str,
-        refinement_request: str,
-        language: str,
-    ) -> str:
-        """Build prompt for refining an existing description."""
-        from ..prompts import build_refine_description_prompt
-        return build_refine_description_prompt(
-            diagram_code, diagram_type, current_description,
-            refinement_request, language,
-        )
+        return build_description_prompt(diagram_code, diagram_type, language)

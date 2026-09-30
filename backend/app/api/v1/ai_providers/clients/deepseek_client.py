@@ -1,6 +1,7 @@
 """
 DeepSeek AI client implementation.
 """
+
 import json
 import time
 
@@ -26,12 +27,31 @@ class DeepSeekClient(BaseAIClient):
 
     BASE_URL = "https://api.deepseek.com"
 
-    def __init__(self, api_key: str, model: str = "deepseek-chat", parameters: Dict[str, Any] = None):
+    def __init__(
+        self, api_key: str, model: str = "deepseek-chat", parameters: Dict[str, Any] = None
+    ):
         super().__init__(api_key, model, parameters or {})
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+
+    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+        """Complete a chat request with system and user messages."""
+        return await self._make_request(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+        )
+
+    async def complete_chat(
+        self, system_prompt: str, messages: list[dict], language: str = "es"
+    ) -> str:
+        """Send the conversation as native turns after the system message."""
+        return await self._make_request(
+            [{"role": "system", "content": system_prompt}, *self._chat_turns(messages)]
+        )
 
     async def _make_request(
         self,
@@ -58,7 +78,9 @@ class DeepSeekClient(BaseAIClient):
                 )
 
                 if response.status_code == 429:
-                    raise ValueError("Rate limit excedido. Por favor intenta de nuevo en unos momentos.")
+                    raise ValueError(
+                        "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
+                    )
                 if response.status_code != 200:
                     error_detail = response.text
                     try:
@@ -81,10 +103,15 @@ class DeepSeekClient(BaseAIClient):
     ) -> str:
         prompt = build_description_prompt(diagram_code, diagram_type, language)
         try:
-            response = await self._make_request([
-                {"role": "system", "content": "Eres un experto en análisis de diagramas técnicos."},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._make_request(
+                [
+                    {
+                        "role": "system",
+                        "content": "Eres un experto en análisis de diagramas técnicos.",
+                    },
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except Exception as e:
             raise ValueError(f"Error generating description with DeepSeek: {str(e)}")
@@ -111,10 +138,12 @@ class DeepSeekClient(BaseAIClient):
     ) -> str:
         prompt = build_generate_diagram_prompt(description, diagram_type, language)
         try:
-            response = await self._make_request([
-                {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._make_request(
+                [
+                    {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except Exception as e:
             raise ValueError(f"Error generating diagram with DeepSeek: {str(e)}")
@@ -126,12 +155,16 @@ class DeepSeekClient(BaseAIClient):
         diagram_type: str,
         language: str = "es",
     ) -> str:
-        prompt = build_improve_diagram_prompt(diagram_code, improvement_request, diagram_type, language)
+        prompt = build_improve_diagram_prompt(
+            diagram_code, improvement_request, diagram_type, language
+        )
         try:
-            response = await self._make_request([
-                {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
-                {"role": "user", "content": prompt},
-            ])
+            response = await self._make_request(
+                [
+                    {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
+                    {"role": "user", "content": prompt},
+                ]
+            )
             return clean_code_response(response)
         except Exception as e:
             raise ValueError(f"Error improving diagram with DeepSeek: {str(e)}")
@@ -143,14 +176,21 @@ class DeepSeekClient(BaseAIClient):
         error_context: str | None = None,
         language: str = "es",
     ) -> Dict[str, str]:
-        from ...diagrams.fix_prompts import build_fix_prompt
+        from ..prompts import build_fix_prompt
         from ..prompts import extract_fix_json, extract_fix_delimited, clean_code_response
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
             response_text = await self._make_request(
                 [
-                    {"role": "system", "content": "You are an expert in fixing syntax errors in technical diagrams. Always respond with valid JSON only, no markdown fences or extra text." if diagram_type.lower() != "dbml" else "You are an expert in fixing syntax errors in DBML diagrams. Respond using the exact delimiter format requested."},
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert in fixing syntax errors in technical diagrams. Always respond with valid JSON only, no markdown fences or extra text."
+                            if diagram_type.lower() != "dbml"
+                            else "You are an expert in fixing syntax errors in DBML diagrams. Respond using the exact delimiter format requested."
+                        ),
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
@@ -183,9 +223,7 @@ class DeepSeekClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error in chat with DeepSeek: {str(e)}")
 
-    async def summarize_conversation(
-        self, messages: list[dict], language: str = "es"
-    ) -> str:
+    async def summarize_conversation(self, messages: list[dict], language: str = "es") -> str:
         user_prompt = build_summarize_prompt(messages, language)
         try:
             return await self._make_request(
@@ -238,9 +276,7 @@ class DeepSeekClient(BaseAIClient):
         }
 
         try:
-            async with httpx.AsyncClient(
-                timeout=httpx.Timeout(120.0, connect=10.0)
-            ) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
                 async with client.stream(
                     "POST",
                     f"{self.BASE_URL}/chat/completions",
@@ -252,9 +288,7 @@ class DeepSeekClient(BaseAIClient):
                             "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
                         )
                     if response.status_code != 200:
-                        raise ValueError(
-                            f"DeepSeek API error: {response.status_code}"
-                        )
+                        raise ValueError(f"DeepSeek API error: {response.status_code}")
 
                     last_token_time = time.time()
                     in_think_block = False

@@ -4,21 +4,25 @@ MFA service layer implementing business logic for Multi-Factor Authentication.
 Handles TOTP and email MFA setup, verification, recovery codes, and method management.
 Depends on IMfaRepository (Dependency Inversion) and uses TotpService for TOTP operations.
 """
+
 import logging
 import secrets
 import string
 import time
 
 from fastapi import HTTPException, status
+from jose import JWTError
 
 from app.api.v1.mfa.interfaces import IMfaRepository
 from app.api.v1.mfa.totp_service import TotpService
-from app.api.v1.users.schemas import UserInDB
+from app.api.v1.users.interfaces import IUserRepository
+from app.api.v1.users.repository import UserRepository
 from app.core.security import (
+    create_access_token,
+    decode_mfa_temp_token,
     decrypt_totp_secret,
     encrypt_totp_secret,
     pwd_context,
-    verify_password,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,14 +38,25 @@ RESEND_COOLDOWN_SECONDS = 60
 class MfaService:
     """Service class handling MFA business logic."""
 
-    def __init__(self, repository: IMfaRepository):
+    def __init__(
+        self,
+        repository: IMfaRepository,
+        user_repository: IUserRepository | None = None,
+    ):
         """
         Initialize MFA service with repository.
 
+        All collaborators are injected for testability. When a collaborator
+        is not provided, the production default is constructed so existing
+        call sites keep working unchanged.
+
         Args:
             repository: MFA repository implementation
+            user_repository: User repository implementation
+                (defaults to UserRepository)
         """
         self.repository = repository
+        self.user_repository = user_repository if user_repository is not None else UserRepository()
 
     # ------------------------------------------------------------------
     # TOTP setup & activation
@@ -68,12 +83,7 @@ class MfaService:
         # Persist the encrypted secret so enable_totp can retrieve it later.
         # TOTP is NOT added to mfa_methods yet — that happens in enable_totp.
         encrypted_secret = encrypt_totp_secret(secret)
-        from bson import ObjectId
-
-        user = await UserInDB.get(ObjectId(user_id))
-        if user:
-            user.totp_secret_encrypted = encrypted_secret
-            await user.save()
+        await self.repository.save_pending_totp_secret(user_id, encrypted_secret)
 
         return {
             "qr_code_base64": qr_base64,
@@ -112,9 +122,9 @@ class MfaService:
 
         # Determine whether to set as default method
         mfa_data = await self.repository.get_mfa_data(user_id)
-        is_first_method = not mfa_data or len(
-            [m for m in mfa_data.get("mfa_methods", []) if m != "totp"]
-        ) == 0
+        is_first_method = (
+            not mfa_data or len([m for m in mfa_data.get("mfa_methods", []) if m != "totp"]) == 0
+        )
         if is_first_method or set_as_default:
             await self.repository.set_default_method(user_id, "totp")
 
@@ -208,9 +218,9 @@ class MfaService:
 
         # Refresh MFA data after enabling
         mfa_data = await self.repository.get_mfa_data(user_id)
-        is_first_method = not mfa_data or len(
-            [m for m in mfa_data.get("mfa_methods", []) if m != "email"]
-        ) == 0
+        is_first_method = (
+            not mfa_data or len([m for m in mfa_data.get("mfa_methods", []) if m != "email"]) == 0
+        )
         if is_first_method or set_as_default:
             await self.repository.set_default_method(user_id, "email")
 
@@ -245,16 +255,14 @@ class MfaService:
             HTTPException 403: If the password is incorrect.
             HTTPException 404: If the user is not found.
         """
-        from bson import ObjectId
-
-        user = await UserInDB.get(ObjectId(user_id))
-        if not user:
+        password_valid = await self.repository.verify_password(user_id, password)
+        if password_valid is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Usuario no encontrado",
             )
 
-        if not verify_password(password, user.hashed_password):
+        if not password_valid:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Contraseña incorrecta",
@@ -266,9 +274,7 @@ class MfaService:
     # MFA code verification (login flow)
     # ------------------------------------------------------------------
 
-    async def verify_mfa_code(
-        self, user_id: str, code: str, mfa_method: str
-    ) -> bool:
+    async def verify_mfa_code(self, user_id: str, code: str, mfa_method: str) -> bool:
         """Verify an MFA code for the given method.
 
         Args:
@@ -304,6 +310,136 @@ class MfaService:
             return pwd_context.verify(code, stored_hash)
 
         return False
+
+    # ------------------------------------------------------------------
+    # Login-flow verification
+    # ------------------------------------------------------------------
+
+    async def verify_login_mfa(
+        self,
+        mfa_token: str,
+        code: str,
+        method: str | None,
+        is_recovery_code: bool,
+    ) -> dict:
+        """Verify an MFA code during the login flow and issue a full token.
+
+        Decodes the temporary MFA token, enforces the attempt limit,
+        verifies the supplied code (TOTP, email, or recovery code) and
+        returns a full access token on success.
+
+        Args:
+            mfa_token: Temporary MFA token issued at login.
+            code: 6-digit code or recovery code provided by the user.
+            method: Requested MFA method (falls back to the default
+                method carried in the token).
+            is_recovery_code: Whether ``code`` is a recovery code.
+
+        Returns:
+            Dict with ``access_token``, ``token_type`` and, when the last
+            recovery code was consumed, ``recovery_warning``.
+
+        Raises:
+            HTTPException 400: If the requested method is not available.
+            HTTPException 401: If the token or the MFA code is invalid.
+            HTTPException 404: If the user does not exist.
+        """
+        # Decode the temporary MFA token
+        try:
+            payload = decode_mfa_temp_token(mfa_token)
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    "Token de verificación MFA inválido o expirado. " "Inicie sesión nuevamente"
+                ),
+            )
+
+        email: str = payload.get("sub", "")
+        attempt_count: int = payload.get("attempt_count", 0)
+        available_methods: list[str] = payload.get("available_methods", [])
+
+        # Check attempt limit (max 5)
+        if attempt_count >= 5:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Máximo de intentos alcanzado. Inicie sesión nuevamente",
+            )
+
+        # Get user from DB
+        user = await self.user_repository.get_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado",
+            )
+        user_id = str(user.id)
+
+        # Determine the method to use
+        selected_method = method or payload.get("mfa_default_method")
+
+        is_valid = False
+        recovery_warning = None
+
+        if is_recovery_code:
+            is_valid = await self.verify_recovery_code(user_id, code)
+            if is_valid:
+                # Check remaining recovery codes
+                mfa_status = await self.get_mfa_status(user_id)
+                remaining = mfa_status.get("recovery_codes_remaining", 0)
+                if remaining == 0:
+                    recovery_warning = (
+                        "Has utilizado tu último código de recuperación. "
+                        "Te recomendamos generar nuevos códigos desde la "
+                        "configuración de seguridad."
+                    )
+        else:
+            if selected_method is None or selected_method not in available_methods:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El método MFA solicitado no está activo",
+                )
+            is_valid = await self.verify_mfa_code(user_id, code, selected_method)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Código MFA inválido",
+            )
+
+        # Issue full access token with 5-day expiry (MFA enabled)
+        from app.api.v1.users.audit_log import (
+            EVENT_LOGIN_MFA_VERIFIED,
+            EVENT_MFA_RECOVERY_USED,
+            log_event,
+        )
+
+        if is_recovery_code:
+            await log_event(EVENT_MFA_RECOVERY_USED, email, user_id=user_id)
+        else:
+            await log_event(
+                EVENT_LOGIN_MFA_VERIFIED,
+                email,
+                user_id=user_id,
+                details=f"method={selected_method}",
+            )
+
+        access_token = create_access_token(
+            email,
+            mfa_enabled=True,
+            password_changed_at=user.password_changed_at,
+        )
+
+        await self.user_repository.update_last_login(user_id)
+
+        response: dict = {
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+        if recovery_warning:
+            response["recovery_warning"] = recovery_warning
+
+        return response
 
     # ------------------------------------------------------------------
     # Recovery codes
@@ -406,9 +542,7 @@ class MfaService:
 
         # Update resend tracking
         new_resend_count = resend_count + 1
-        await self.repository.save_mfa_temp_data(
-            user_id, new_resend_count, time.time()
-        )
+        await self.repository.save_mfa_temp_data(user_id, new_resend_count, time.time())
 
         return {
             "code": plain_code,
@@ -419,9 +553,7 @@ class MfaService:
     # Method switching & default management
     # ------------------------------------------------------------------
 
-    async def switch_method(
-        self, user_id: str, method: str, email: str
-    ) -> dict:
+    async def switch_method(self, user_id: str, method: str, email: str) -> dict:
         """Switch to an alternative MFA method during login verification.
 
         If switching to email, generates and stores a new email code.
@@ -532,10 +664,12 @@ class MfaService:
             raw = "".join(secrets.choice(alphabet) for _ in range(RECOVERY_CODE_LENGTH))
             formatted = f"{raw[:5]}-{raw[5:]}"
             plain_codes.append(formatted)
-            hashed_entries.append({
-                "hash": pwd_context.hash(raw),
-                "used": False,
-            })
+            hashed_entries.append(
+                {
+                    "hash": pwd_context.hash(raw),
+                    "used": False,
+                }
+            )
 
         return plain_codes, hashed_entries
 

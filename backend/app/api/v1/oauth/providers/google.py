@@ -5,6 +5,7 @@ Uses Google's discovery document to resolve endpoints dynamically.
 Validates id_token signature and claims (iss, aud, exp) using
 Google's public keys.
 """
+
 import logging
 from urllib.parse import urlencode
 
@@ -21,9 +22,7 @@ from ..schemas import (
 
 logger = logging.getLogger(__name__)
 
-DISCOVERY_URL = (
-    "https://accounts.google.com/.well-known/openid-configuration"
-)
+DISCOVERY_URL = "https://accounts.google.com/.well-known/openid-configuration"
 GOOGLE_ISSUERS = {"https://accounts.google.com", "accounts.google.com"}
 
 
@@ -43,6 +42,17 @@ class GoogleOAuthProvider(IOAuthProvider):
         allowed_scopes: str = "openid email profile",
         **kwargs,
     ):
+        """
+        Initialize the Google OAuth provider adapter.
+
+        Args:
+            client_id: OAuth 2.0 client ID from the Google Cloud console.
+            client_secret: OAuth 2.0 client secret from the Google Cloud console.
+            redirect_uri: Callback URL registered with the provider.
+            allowed_scopes: Space-separated OAuth scopes to request.
+                Defaults to ``"openid email profile"``.
+            **kwargs: Additional provider-specific settings (ignored).
+        """
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
@@ -77,10 +87,7 @@ class GoogleOAuthProvider(IOAuthProvider):
             "access_type": "offline",
             "prompt": "select_account",
         }
-        return (
-            f"https://accounts.google.com/o/oauth2/v2/auth"
-            f"?{urlencode(params)}"
-        )
+        return f"https://accounts.google.com/o/oauth2/v2/auth" f"?{urlencode(params)}"
 
     async def exchange_code(self, code: str, redirect_uri: str) -> dict:
         """Exchange an authorization code for Google tokens."""
@@ -108,15 +115,11 @@ class GoogleOAuthProvider(IOAuthProvider):
                 resp.status_code,
                 resp.text,
             )
-            raise OAuthTokenExchangeError(
-                f"Token exchange failed with status {resp.status_code}"
-            )
+            raise OAuthTokenExchangeError(f"Token exchange failed with status {resp.status_code}")
 
         return resp.json()
 
-    async def get_user_info(
-        self, token_response: dict
-    ) -> ProviderUserInfo:
+    async def get_user_info(self, token_response: dict) -> ProviderUserInfo:
         """Get user info, preferring id_token decoding over userinfo endpoint."""
         id_token = token_response.get("id_token")
         if id_token:
@@ -131,9 +134,7 @@ class GoogleOAuthProvider(IOAuthProvider):
         # Fallback: call the userinfo endpoint
         access_token = token_response.get("access_token")
         if not access_token:
-            raise OAuthUserInfoError(
-                "No access_token or id_token in token response"
-            )
+            raise OAuthUserInfoError("No access_token or id_token in token response")
 
         return await self._fetch_userinfo(access_token)
 
@@ -152,9 +153,7 @@ class GoogleOAuthProvider(IOAuthProvider):
 
     # ── Private helpers ──────────────────────────────────────────────
 
-    async def _decode_id_token(
-        self, id_token: str
-    ) -> ProviderUserInfo:
+    async def _decode_id_token(self, id_token: str) -> ProviderUserInfo:
         """Decode and validate a Google id_token JWT."""
         discovery = await self._fetch_discovery()
         jwks_uri = discovery["jwks_uri"]
@@ -169,9 +168,7 @@ class GoogleOAuthProvider(IOAuthProvider):
                 issuer=list(GOOGLE_ISSUERS),
             )
         except JWTError as exc:
-            raise OAuthUserInfoError(
-                f"Invalid id_token: {exc}"
-            ) from exc
+            raise OAuthUserInfoError(f"Invalid id_token: {exc}") from exc
 
         email = claims.get("email")
         if not email:
@@ -187,9 +184,7 @@ class GoogleOAuthProvider(IOAuthProvider):
             provider_user_id=claims["sub"],
         )
 
-    async def _fetch_userinfo(
-        self, access_token: str
-    ) -> ProviderUserInfo:
+    async def _fetch_userinfo(self, access_token: str) -> ProviderUserInfo:
         """Fetch user info from Google's userinfo endpoint."""
         discovery = await self._fetch_discovery()
         userinfo_endpoint = discovery["userinfo_endpoint"]
@@ -202,16 +197,12 @@ class GoogleOAuthProvider(IOAuthProvider):
             )
 
         if resp.status_code != 200:
-            raise OAuthUserInfoError(
-                f"Userinfo request failed with status {resp.status_code}"
-            )
+            raise OAuthUserInfoError(f"Userinfo request failed with status {resp.status_code}")
 
         data = resp.json()
         email = data.get("email")
         if not email:
-            raise OAuthUserInfoError(
-                "No email in userinfo response"
-            )
+            raise OAuthUserInfoError("No email in userinfo response")
 
         return ProviderUserInfo(
             email=email,

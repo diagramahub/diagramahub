@@ -1,12 +1,12 @@
 """
 FastAPI routes for prompt history.
 """
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.api.v1.users.routes import get_current_user_email
-from app.api.v1.users.repository import UserRepository
+from app.api.deps import get_current_user_id
 from .repository import PromptHistoryRepository
 from .services import PromptHistoryService
 from .schemas import (
@@ -20,18 +20,10 @@ router = APIRouter(prefix="/prompt-history", tags=["prompt-history"])
 
 # Dependency injection
 
+
 def get_prompt_history_service() -> PromptHistoryService:
     """Get prompt history service instance."""
     return PromptHistoryService(repository=PromptHistoryRepository())
-
-
-async def get_current_user_id(
-    current_user_email: str = Depends(get_current_user_email),
-) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
 
 
 @router.get("", response_model=PaginatedPromptHistoryResponse)
@@ -54,7 +46,9 @@ async def save_prompt(
     service: PromptHistoryService = Depends(get_prompt_history_service),
 ):
     """Save a prompt to the user's history."""
-    return await service.save_prompt(user_id, body.prompt_text, body.operation_type, body.diagram_id)
+    return await service.save_prompt(
+        user_id, body.prompt_text, body.operation_type, body.diagram_id
+    )
 
 
 @router.delete("/{entry_id}")

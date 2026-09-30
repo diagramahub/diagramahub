@@ -1,9 +1,9 @@
 """
 FastAPI routes for subscriptions and plans.
 """
+
 from fastapi import APIRouter, Depends, status, HTTPException
-from fastapi.responses import RedirectResponse
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_id, get_current_user
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserRole
 
@@ -15,9 +15,14 @@ from .billing_service import BillingService
 from .usage_limiter import UsageLimiter
 from .payment_providers.stripe_provider import StripePaymentProvider
 from .schemas import (
-    PlanCreate, PlanUpdate, PlanResponse, CurrencyPriceRequest,
-    CheckoutSessionRequest, CheckoutSessionResponse,
-    UsageSummaryResponse, BillingHistoryResponse
+    PlanCreate,
+    PlanUpdate,
+    PlanResponse,
+    CurrencyPriceRequest,
+    CheckoutSessionRequest,
+    CheckoutSessionResponse,
+    UsageSummaryResponse,
+    BillingHistoryResponse,
 )
 from ..projects.repository import ProjectRepository
 from ..diagrams.repository import DiagramRepository
@@ -29,37 +34,18 @@ router = APIRouter()
 # Dependency Injection
 # ============================================================================
 
-async def get_current_user_id(current_user_email: str = Depends(get_current_user_email)) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
 
-
-async def get_current_user(current_user_email: str = Depends(get_current_user_email)):
-    """Get current user."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return user
-
-
-async def require_admin(current_user = Depends(get_current_user)):
+async def require_admin(current_user=Depends(get_current_user)):
     """Require admin role."""
     if current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return current_user
 
 
 async def get_plan_service() -> PlanService:
     """Get plan service instance."""
     payment_provider = await StripePaymentProvider.from_db_or_env()
-    return PlanService(
-        repository=PlanRepository(),
-        payment_provider=payment_provider
-    )
+    return PlanService(repository=PlanRepository(), payment_provider=payment_provider)
 
 
 async def get_subscription_service() -> SubscriptionService:
@@ -73,7 +59,7 @@ async def get_subscription_service() -> SubscriptionService:
     return SubscriptionService(
         repository=SubscriptionRepository(),
         plan_repository=PlanRepository(),
-        payment_provider=payment_provider
+        payment_provider=payment_provider,
     )
 
 
@@ -84,26 +70,24 @@ def get_usage_limiter() -> UsageLimiter:
         plan_repository=PlanRepository(),
         project_repository=ProjectRepository(),
         diagram_repository=DiagramRepository(),
-        user_repository=UserRepository()
+        user_repository=UserRepository(),
     )
 
 
 async def get_billing_service() -> BillingService:
     """Get billing service instance.
 
-    Tries to load Stripe API key from the DB first (active payment
+    Tries to load the payment provider from the DB first (active payment
     vendor), falling back to .env for gradual migration.
     """
     payment_provider = await StripePaymentProvider.from_db_or_env()
     if not payment_provider:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Billing service not configured"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Billing service not configured"
         )
 
     return BillingService(
-        subscription_repository=SubscriptionRepository(),
-        stripe_api_key=payment_provider.secret_key
+        subscription_repository=SubscriptionRepository(), payment_provider=payment_provider
     )
 
 
@@ -111,74 +95,63 @@ async def get_billing_service() -> BillingService:
 # Admin Plan Endpoints
 # ============================================================================
 
+
 @router.post(
     "/admin/plans",
     response_model=PlanResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["admin", "plans"]
+    tags=["admin", "plans"],
 )
 async def create_plan(
     plan_data: PlanCreate,
-    admin_user = Depends(require_admin),
-    service: PlanService = Depends(get_plan_service)
+    admin_user=Depends(require_admin),
+    service: PlanService = Depends(get_plan_service),
 ):
     """
     Create a new plan (admin only).
-    
+
     Requires admin role.
     """
     return await service.create_plan(plan_data, str(admin_user.id))
 
 
-@router.get(
-    "/admin/plans",
-    response_model=list[PlanResponse],
-    tags=["admin", "plans"]
-)
+@router.get("/admin/plans", response_model=list[PlanResponse], tags=["admin", "plans"])
 async def get_all_plans_admin(
-    admin_user = Depends(require_admin),
-    service: PlanService = Depends(get_plan_service)
+    admin_user=Depends(require_admin), service: PlanService = Depends(get_plan_service)
 ):
     """
     Get all plans including inactive (admin only).
-    
+
     Requires admin role.
     """
     return await service.get_all_plans()
 
 
-@router.put(
-    "/admin/plans/{plan_id}",
-    response_model=PlanResponse,
-    tags=["admin", "plans"]
-)
+@router.put("/admin/plans/{plan_id}", response_model=PlanResponse, tags=["admin", "plans"])
 async def update_plan(
     plan_id: str,
     plan_data: PlanUpdate,
-    admin_user = Depends(require_admin),
-    service: PlanService = Depends(get_plan_service)
+    admin_user=Depends(require_admin),
+    service: PlanService = Depends(get_plan_service),
 ):
     """
     Update a plan (admin only).
-    
+
     Requires admin role.
     Cannot modify FREE plan.
     """
     return await service.update_plan(plan_id, plan_data, str(admin_user.id))
 
 
-@router.delete(
-    "/admin/plans/{plan_id}",
-    tags=["admin", "plans"]
-)
+@router.delete("/admin/plans/{plan_id}", tags=["admin", "plans"])
 async def delete_plan(
     plan_id: str,
-    admin_user = Depends(require_admin),
-    service: PlanService = Depends(get_plan_service)
+    admin_user=Depends(require_admin),
+    service: PlanService = Depends(get_plan_service),
 ):
     """
     Delete or deactivate a plan (admin only).
-    
+
     - No active subscribers: hard delete from DB + archive in Stripe
     - Has active subscribers: soft delete (deactivate) + archive in Stripe
     - Cannot delete FREE plan.
@@ -190,17 +163,17 @@ async def delete_plan(
     "/admin/plans/{plan_id}/prices",
     response_model=PlanResponse,
     status_code=status.HTTP_201_CREATED,
-    tags=["admin", "plans"]
+    tags=["admin", "plans"],
 )
 async def add_plan_price(
     plan_id: str,
     price_data: CurrencyPriceRequest,
-    admin_user = Depends(require_admin),
-    service: PlanService = Depends(get_plan_service)
+    admin_user=Depends(require_admin),
+    service: PlanService = Depends(get_plan_service),
 ):
     """
     Add a currency price to a plan (admin only).
-    
+
     Creates a Stripe Price for the specified currency and links it to the plan.
     USD is managed through the plan edit flow and cannot be added here.
     """
@@ -210,56 +183,40 @@ async def add_plan_price(
 
 
 @router.delete(
-    "/admin/plans/{plan_id}/prices/{currency}",
-    response_model=PlanResponse,
-    tags=["admin", "plans"]
+    "/admin/plans/{plan_id}/prices/{currency}", response_model=PlanResponse, tags=["admin", "plans"]
 )
 async def remove_plan_price(
     plan_id: str,
     currency: str,
-    admin_user = Depends(require_admin),
-    service: PlanService = Depends(get_plan_service)
+    admin_user=Depends(require_admin),
+    service: PlanService = Depends(get_plan_service),
 ):
     """
     Remove a currency price from a plan (admin only).
-    
+
     Deactivates the Stripe Price and removes it from the plan.
     Cannot remove the USD base price.
     """
-    return await service.remove_currency_price(
-        plan_id, currency, str(admin_user.id)
-    )
+    return await service.remove_currency_price(plan_id, currency, str(admin_user.id))
 
 
 # ============================================================================
 # Public Plan Endpoints
 # ============================================================================
 
-@router.get(
-    "/plans",
-    response_model=list[PlanResponse],
-    tags=["plans"]
-)
-async def get_active_plans(
-    service: PlanService = Depends(get_plan_service)
-):
+
+@router.get("/plans", response_model=list[PlanResponse], tags=["plans"])
+async def get_active_plans(service: PlanService = Depends(get_plan_service)):
     """
     Get all active plans (public).
-    
+
     Returns only active plans available for subscription.
     """
     return await service.get_active_plans()
 
 
-@router.get(
-    "/plans/{plan_id}",
-    response_model=PlanResponse,
-    tags=["plans"]
-)
-async def get_plan(
-    plan_id: str,
-    service: PlanService = Depends(get_plan_service)
-):
+@router.get("/plans/{plan_id}", response_model=PlanResponse, tags=["plans"])
+async def get_plan(plan_id: str, service: PlanService = Depends(get_plan_service)):
     """
     Get plan details (public).
     """
@@ -270,183 +227,139 @@ async def get_plan(
 # Subscription Endpoints
 # ============================================================================
 
-@router.get(
-    "/subscriptions/me",
-    tags=["subscriptions"]
-)
+
+@router.get("/subscriptions/me", tags=["subscriptions"])
 async def get_my_subscription(
     user_id: str = Depends(get_current_user_id),
-    current_user = Depends(get_current_user),
-    service: SubscriptionService = Depends(get_subscription_service)
+    current_user=Depends(get_current_user),
+    service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
     Get current user's subscription.
     Admin users get a virtual unlimited response.
     """
-    if current_user.role == UserRole.ADMIN:
-        return {
-            "id": None,
-            "user_id": user_id,
-            "plan": {
-                "id": None,
-                "name": "Administrador",
-                "description": "Acceso completo sin límites",
-                "price_usd": 0,
-                "max_projects": None,
-                "max_diagrams": None,
-                "is_active": True,
-                "is_free": False,
-                "active_subscriptions": 0,
-                "created_at": None,
-                "updated_at": None
-            },
-            "status": "active",
-            "stripe_customer_id": None,
-            "stripe_subscription_id": None,
-            "payment_provider": None,
-            "started_at": None,
-            "current_period_start": None,
-            "current_period_end": None,
-            "cancelled_at": None,
-            "created_at": None,
-            "updated_at": None
-        }
-    return await service.get_user_subscription(user_id)
+    return await service.get_user_subscription(
+        user_id, is_admin=current_user.role == UserRole.ADMIN
+    )
 
 
 @router.post(
-    "/subscriptions/checkout",
-    response_model=CheckoutSessionResponse,
-    tags=["subscriptions"]
+    "/subscriptions/checkout", response_model=CheckoutSessionResponse, tags=["subscriptions"]
 )
 async def create_checkout_session(
     request: CheckoutSessionRequest,
     user_id: str = Depends(get_current_user_id),
-    current_user = Depends(get_current_user),
-    service: SubscriptionService = Depends(get_subscription_service)
+    current_user=Depends(get_current_user),
+    service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
     Initiate plan change / checkout.
-    
+
     If the new plan is FREE, changes immediately.
     If the new plan is paid, returns Stripe checkout URL.
     """
-    result = await service.initiate_plan_change(user_id, request.plan_id, user_email=current_user.email)
-    
+    result = await service.initiate_plan_change(
+        user_id, request.plan_id, user_email=current_user.email
+    )
+
     if result["type"] == "immediate":
         # Plan FREE, cambio inmediato
         return {
             "session_id": None,
             "session_url": None,
-            "message": "Plan changed immediately to FREE"
+            "message": "Plan changed immediately to FREE",
         }
     else:
         # Plan de pago, retornar checkout URL
         return CheckoutSessionResponse(
-            session_id=result["data"]["session_id"],
-            session_url=result["data"]["session_url"]
+            session_id=result["data"]["session_id"], session_url=result["data"]["session_url"]
         )
 
 
-@router.post(
-    "/subscriptions/cancel",
-    tags=["subscriptions"]
-)
+@router.post("/subscriptions/cancel", tags=["subscriptions"])
 async def cancel_subscription(
     immediate: bool = False,
     user_id: str = Depends(get_current_user_id),
-    service: SubscriptionService = Depends(get_subscription_service)
+    service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
     Cancel current subscription.
-    
+
     Args:
         immediate: If True, cancels immediately and switches to FREE.
                   If False (default), maintains access until end of billing period.
-    
+
     Returns:
         Cancellation details including when access ends.
     """
     return await service.cancel_subscription(user_id, immediate=immediate)
 
 
-@router.post(
-    "/subscriptions/update-payment-method",
-    tags=["subscriptions"]
-)
+@router.post("/subscriptions/update-payment-method", tags=["subscriptions"])
 async def update_payment_method(
     user_id: str = Depends(get_current_user_id),
-    service: SubscriptionService = Depends(get_subscription_service)
+    service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
     Create a Stripe Checkout session in setup mode to update payment method.
-    
+
     Returns session_url to redirect the user to Stripe.
     """
     result = await service.create_setup_session(user_id)
     return result
 
 
-@router.get(
-    "/subscriptions/usage",
-    response_model=UsageSummaryResponse,
-    tags=["subscriptions"]
-)
+@router.get("/subscriptions/usage", response_model=UsageSummaryResponse, tags=["subscriptions"])
 async def get_usage_summary(
-    user_id: str = Depends(get_current_user_id),
-    limiter: UsageLimiter = Depends(get_usage_limiter)
+    user_id: str = Depends(get_current_user_id), limiter: UsageLimiter = Depends(get_usage_limiter)
 ):
     """
     Get usage summary for current user.
-    
+
     Returns current usage and limits for projects and diagrams.
     """
     return await limiter.get_usage_summary(user_id)
-
 
 
 # ============================================================================
 # Billing History Endpoints
 # ============================================================================
 
+
 @router.get(
     "/subscriptions/billing-history",
     response_model=BillingHistoryResponse,
-    tags=["subscriptions", "billing"]
+    tags=["subscriptions", "billing"],
 )
 async def get_billing_history(
     limit: int = 10,
     user_id: str = Depends(get_current_user_id),
-    service: BillingService = Depends(get_billing_service)
+    service: BillingService = Depends(get_billing_service),
 ):
     """
     Get billing history for current user.
-    
+
     Returns list of invoices/payments from Stripe.
     """
     return await service.get_billing_history(user_id, limit)
 
 
-@router.get(
-    "/subscriptions/invoices/{invoice_id}/pdf-url",
-    tags=["subscriptions", "billing"]
-)
+@router.get("/subscriptions/invoices/{invoice_id}/pdf-url", tags=["subscriptions", "billing"])
 async def get_invoice_pdf_url(
     invoice_id: str,
     user_id: str = Depends(get_current_user_id),
-    service: BillingService = Depends(get_billing_service)
+    service: BillingService = Depends(get_billing_service),
 ):
     """
     Get invoice PDF URL.
-    
+
     Returns the Stripe-hosted PDF URL for the invoice.
     Verifies that the invoice belongs to the current user.
     """
     try:
         pdf_url = await service.get_invoice_pdf_url(user_id, invoice_id)
         return {"pdf_url": pdf_url}
-    except Exception as e:
+    except Exception:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Invoice not found or access denied"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found or access denied"
         )

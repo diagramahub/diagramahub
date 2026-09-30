@@ -2,6 +2,7 @@
 Business logic layer for chat sessions.
 Orchestrates session/message CRUD, AI interactions, context compaction, and title generation.
 """
+
 import time
 import logging
 from typing import Optional
@@ -106,9 +107,7 @@ class ChatSessionService:
             result.append(self._session_to_response(s, message_count=count))
         return result
 
-    async def get_session_with_messages(
-        self, session_id: str
-    ) -> ChatSessionWithMessagesResponse:
+    async def get_session_with_messages(self, session_id: str) -> ChatSessionWithMessagesResponse:
         """Get a session together with all its messages."""
         session = await self.session_repo.get_session_by_id(session_id)
         if not session:
@@ -123,9 +122,7 @@ class ChatSessionService:
             messages=[self._message_to_response(m) for m in messages],
         )
 
-    async def update_session_title(
-        self, session_id: str, title: str
-    ) -> ChatSessionResponse:
+    async def update_session_title(self, session_id: str, title: str) -> ChatSessionResponse:
         """Update the title of a chat session."""
         try:
             session = await self.session_repo.update_session_title(session_id, title)
@@ -151,6 +148,31 @@ class ChatSessionService:
             "deleted_messages": deleted_messages,
         }
 
+    async def get_provider_usage_stats(self, user_id: str) -> dict:
+        """Aggregate AI provider usage statistics for a user's sessions."""
+        sessions = await self.session_repo.get_sessions_by_user(user_id)
+
+        provider_counts: dict = {}
+        total_messages = 0
+
+        for session in sessions:
+            messages = await self.message_repo.get_recent_messages(str(session.id), limit=100)
+            for msg in messages:
+                if msg.provider_used:
+                    provider_counts[msg.provider_used] = (
+                        provider_counts.get(msg.provider_used, 0) + 1
+                    )
+                    total_messages += 1
+
+        return {
+            "provider_counts": provider_counts,
+            "total_messages": total_messages,
+        }
+
+    async def delete_message(self, message_id: str) -> bool:
+        """Delete a single chat message by its ID."""
+        return await self.message_repo.delete_message(message_id)
+
     async def update_session_model(
         self, session_id: str, provider: str, model: str
     ) -> ChatSessionResponse:
@@ -163,7 +185,7 @@ class ChatSessionService:
             )
         session.last_provider = provider
         session.last_model = model
-        await session.save()
+        session = await self.session_repo.update_session_model(session)
         count = await self.message_repo.count_messages_by_session(session_id)
         return self._session_to_response(session, message_count=count)
 
@@ -224,12 +246,14 @@ class ChatSessionService:
             # Build context: persistent summary + last few messages + current diagram
             # Strategy: always use session.summary (if exists) + last 4 messages
             RECENT_WINDOW = 4
-            all_recent = await self.message_repo.get_recent_messages(session_id_str, limit=RECENT_WINDOW)
+            all_recent = await self.message_repo.get_recent_messages(
+                session_id_str, limit=RECENT_WINDOW
+            )
             history = self._build_message_history(all_recent, session.summary)
 
             # Get provider config
             provider_type = AIProviderType(provider) if provider else None
-            provider_config = await self.ai_service.repository.get_active_provider(
+            provider_config = await self.ai_service.get_active_provider_config(
                 user_id, provider_type
             )
             if not provider_config:
@@ -266,9 +290,7 @@ class ChatSessionService:
                     content=content,
                 )
                 recent_new = await self.message_repo.get_recent_messages(new_sid, limit=20)
-                history = self._build_message_history(
-                    recent_new, compacted_session.summary
-                )
+                history = self._build_message_history(recent_new, compacted_session.summary)
                 session = compacted_session
                 session_id_str = new_sid
 
@@ -285,27 +307,26 @@ class ChatSessionService:
             start = time.time()
 
             # Call AI with unified system prompt + conversation history
-            ai_text = await self._call_ai_client(
-                client, system_prompt, history, language
-            )
+            ai_text = await self._call_ai_client(client, system_prompt, history, language)
 
             generation_time = time.time() - start
 
             # Strip <think>...</think> tags (chain-of-thought from some models like DeepSeek/MiniMax)
             import re
+
             # Handle both closed and unclosed think tags
-            ai_text = re.sub(r'<think>.*?</think>\s*', '', ai_text, flags=re.DOTALL)
+            ai_text = re.sub(r"<think>.*?</think>\s*", "", ai_text, flags=re.DOTALL)
             # If <think> is present but not closed (truncated), remove everything from <think> onwards
-            if '<think>' in ai_text:
-                ai_text = ai_text[:ai_text.index('<think>')].strip()
+            if "<think>" in ai_text:
+                ai_text = ai_text[: ai_text.index("<think>")].strip()
             ai_text = ai_text.strip()
 
             # Normalize diagram markers (AI sometimes translates them)
-            ai_text = re.sub(r'<<<DIAGRAMA>>>', '<<<DIAGRAM>>>', ai_text)
-            ai_text = re.sub(r'<<<FIN_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
-            ai_text = re.sub(r'<<<END_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
-            ai_text = re.sub(r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text)
-            ai_text = re.sub(r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text)
+            ai_text = re.sub(r"<<<DIAGRAMA>>>", "<<<DIAGRAM>>>", ai_text)
+            ai_text = re.sub(r"<<<FIN_DIAGRAMA>>>", "<<<END_DIAGRAM>>>", ai_text)
+            ai_text = re.sub(r"<<<END_DIAGRAMA>>>", "<<<END_DIAGRAM>>>", ai_text)
+            ai_text = re.sub(r"<<<DIAGRAM>>>\s*\n?```\w*\s*\n?", "<<<DIAGRAM>>>\n", ai_text)
+            ai_text = re.sub(r"\n?```\s*\n?<<<END_DIAGRAM>>>", "\n<<<END_DIAGRAM>>>", ai_text)
 
             # Parse response
             improved_code = None
@@ -326,52 +347,57 @@ class ChatSessionService:
                 else:
                     # Fallback: AI didn't use delimiters but may have included a code block
                     import re
+
                     # Try closed code block first
                     code_block_match = re.search(
-                        r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
+                        r"```(?:"
+                        + re.escape(diagram_type)
+                        + r"|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```",
                         ai_text,
-                        re.DOTALL
+                        re.DOTALL,
                     )
                     if code_block_match:
                         raw_code = code_block_match.group(1).strip()
                         if raw_code and len(raw_code) > 20:
                             improved_code = clean_code_response(raw_code)
-                    
+
                     # If no closed code block, try unclosed (truncated response)
                     if not improved_code:
                         unclosed_match = re.search(
-                            r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n(.+)',
+                            r"```(?:"
+                            + re.escape(diagram_type)
+                            + r"|mermaid|plantuml|d2|dbml)?\s*\n(.+)",
                             ai_text,
-                            re.DOTALL
+                            re.DOTALL,
                         )
                         if unclosed_match:
                             raw_code = unclosed_match.group(1).strip()
                             # Remove trailing ``` if partially present
-                            raw_code = re.sub(r'`{1,2}$', '', raw_code).strip()
+                            raw_code = re.sub(r"`{1,2}$", "", raw_code).strip()
                             if raw_code and len(raw_code) > 20:
                                 improved_code = clean_code_response(raw_code)
 
                     # Fallback 3: detect raw diagram code without any wrappers
                     if not improved_code:
-                        if diagram_type == 'plantuml' or diagram_type == 'uml':
+                        if diagram_type == "plantuml" or diagram_type == "uml":
                             # PlantUML: detect @startuml...@enduml
-                            puml_match = re.search(r'(@startuml\b.*?@enduml\b)', ai_text, re.DOTALL)
+                            puml_match = re.search(r"(@startuml\b.*?@enduml\b)", ai_text, re.DOTALL)
                             if puml_match:
                                 improved_code = puml_match.group(1).strip()
-                        elif diagram_type == 'mermaid':
+                        elif diagram_type == "mermaid":
                             # Mermaid: detect common diagram type keywords at start of a line
                             mermaid_match = re.search(
-                                r'^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)',
+                                r"^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)",
                                 ai_text,
-                                re.MULTILINE | re.DOTALL
+                                re.MULTILINE | re.DOTALL,
                             )
                             if mermaid_match:
                                 raw_code = mermaid_match.group(1).strip()
                                 if len(raw_code) > 30:
                                     improved_code = raw_code
-                        elif diagram_type == 'dbml':
+                        elif diagram_type == "dbml":
                             # DBML: detect Table keyword followed by content
-                            dbml_match = re.search(r'(Table\s+\w+\s*\{.+)', ai_text, re.DOTALL)
+                            dbml_match = re.search(r"(Table\s+\w+\s*\{.+)", ai_text, re.DOTALL)
                             if dbml_match:
                                 raw_code = dbml_match.group(1).strip()
                                 if len(raw_code) > 30:
@@ -384,12 +410,10 @@ class ChatSessionService:
                 # Auto-retry: validate syntax and retry if invalid
                 # Skip retry for PlantUML and DBML — their validators give false positives
                 # with skinparam blocks and complex syntax. Let Kroki be the final validator.
-                skip_retry = diagram_type in ('plantuml', 'uml', 'dbml')
+                skip_retry = diagram_type in ("plantuml", "uml", "dbml")
                 retries = 0
                 while improved_code and retries < MAX_RETRIES and not skip_retry:
-                    validation = await SyntaxValidator.validate(
-                        improved_code, diagram_type
-                    )
+                    validation = await SyntaxValidator.validate(improved_code, diagram_type)
                     if validation.is_valid:
                         break
 
@@ -429,17 +453,13 @@ class ChatSessionService:
 
                     # Re-parse the retry response
                     if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                        start_idx = ai_text.index(self.DIAGRAM_START) + len(
-                            self.DIAGRAM_START
-                        )
+                        start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
                         end_idx = ai_text.index(self.DIAGRAM_END)
                         raw_code = ai_text[start_idx:end_idx].strip()
                         improved_code = clean_code_response(raw_code)
                     elif self.DIAGRAM_START in ai_text:
                         # Fallback: truncated retry response
-                        start_idx = ai_text.index(self.DIAGRAM_START) + len(
-                            self.DIAGRAM_START
-                        )
+                        start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
                         raw_code = ai_text[start_idx:].strip()
                         improved_code = clean_code_response(raw_code)
                     else:
@@ -447,22 +467,21 @@ class ChatSessionService:
                         improved_code = None
                         break
 
-                explanation_end = len(ai_text)
                 # Extract display text: combine text BEFORE and AFTER the diagram block
-                before_text = ''
-                after_text = ''
-                
+                before_text = ""
+                after_text = ""
+
                 if self.DIAGRAM_START in ai_text:
-                    before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
-                
+                    before_text = ai_text[: ai_text.index(self.DIAGRAM_START)].strip()
+
                 if self.DIAGRAM_END in ai_text:
                     end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
                     after_text = ai_text[end_marker_pos:].strip()
-                
+
                 # Combine both parts
                 parts = [p for p in [before_text, after_text] if p and len(p) > 3]
                 if parts:
-                    display_text = '\n\n'.join(parts)
+                    display_text = "\n\n".join(parts)
                 else:
                     # No meaningful text before or after the diagram block
                     display_text = ""
@@ -494,11 +513,11 @@ class ChatSessionService:
 
             # Update last_provider and last_model on the session
             try:
-                session_doc = await self.session_repo.get_session_by_id(session_id_str)
-                if session_doc:
-                    session_doc.last_provider = provider_config.provider.value
-                    session_doc.last_model = actual_model
-                    await session_doc.save()
+                await self.session_repo.update_session_last_provider(
+                    session_id_str,
+                    provider_config.provider.value,
+                    actual_model,
+                )
             except Exception as e:
                 logger.warning(f"Failed to update session provider/model: {e}")
 
@@ -543,7 +562,6 @@ class ChatSessionService:
             Formatted SSE event strings (``data: {...}\\n\\n``).
         """
         import re
-        from typing import AsyncGenerator
         from app.api.v1.ai_providers.prompts import (
             build_unified_chat_prompt,
             clean_code_response,
@@ -587,7 +605,7 @@ class ChatSessionService:
 
             # Get provider config
             provider_type = AIProviderType(provider) if provider else None
-            provider_config = await self.ai_service.repository.get_active_provider(
+            provider_config = await self.ai_service.get_active_provider_config(
                 user_id, provider_type
             )
             if not provider_config:
@@ -620,9 +638,7 @@ class ChatSessionService:
                     content=content,
                 )
                 recent_new = await self.message_repo.get_recent_messages(new_sid, limit=20)
-                history = self._build_message_history(
-                    recent_new, compacted_session.summary
-                )
+                history = self._build_message_history(recent_new, compacted_session.summary)
                 session = compacted_session
                 session_id_str = new_sid
 
@@ -644,16 +660,8 @@ class ChatSessionService:
             think_buffer = ""
             think_content_parts: list[str] = []
 
-            # Check if client supports streaming
-            import inspect
-            supports_streaming = (
-                hasattr(client, "chat_with_context_stream")
-                and inspect.ismethod(client.chat_with_context_stream)
-                and type(client).chat_with_context_stream
-                is not type(client).__mro__[1].chat_with_context_stream
-            )
-
-            # Simpler detection: try calling and catch NotImplementedError
+            # Streaming detection: try calling and catch NotImplementedError
+            supports_streaming = False
             if hasattr(client, "chat_with_context_stream"):
                 try:
                     stream_gen = client.chat_with_context_stream(
@@ -684,7 +692,7 @@ class ChatSessionService:
                                 if end_idx != -1:
                                     # Capture think content
                                     think_content_parts.append(think_buffer[:end_idx])
-                                    think_buffer = think_buffer[end_idx + len("</think>"):]
+                                    think_buffer = think_buffer[end_idx + len("</think>") :]
                                     in_think_block = False
                                     # Continue processing remaining buffer
                                 else:
@@ -704,7 +712,7 @@ class ChatSessionService:
                                     if before:
                                         accumulated_text += before
                                         yield token_event(before)
-                                    think_buffer = think_buffer[start_idx + len("<think>"):]
+                                    think_buffer = think_buffer[start_idx + len("<think>") :]
                                     in_think_block = True
                                     # Continue processing
                                 else:
@@ -723,13 +731,20 @@ class ChatSessionService:
                             and not accumulated_text.endswith(self.DIAGRAM_END)
                         ):
                             generating_phase = (
-                                "Generating code…"
-                                if language == "en"
-                                else "Generando código…"
+                                "Generating code…" if language == "en" else "Generando código…"
                             )
                             # Only emit once (check if we already emitted)
-                            if accumulated_text.count(self.DIAGRAM_START) == 1 and \
-                               accumulated_text.index(self.DIAGRAM_START) == len(accumulated_text) - len(chunk) - len(self.DIAGRAM_START) + len(chunk):
+                            if accumulated_text.count(
+                                self.DIAGRAM_START
+                            ) == 1 and accumulated_text.index(self.DIAGRAM_START) == len(
+                                accumulated_text
+                            ) - len(
+                                chunk
+                            ) - len(
+                                self.DIAGRAM_START
+                            ) + len(
+                                chunk
+                            ):
                                 yield phase_event(generating_phase)
 
                     # Flush remaining buffer after stream ends
@@ -747,9 +762,7 @@ class ChatSessionService:
 
             if not first_token_received and not supports_streaming:
                 # Non-streaming fallback
-                ai_text = await self._call_ai_client(
-                    client, system_prompt, history, language
-                )
+                ai_text = await self._call_ai_client(client, system_prompt, history, language)
                 accumulated_text = ai_text
                 yield token_event(ai_text)
 
@@ -757,21 +770,17 @@ class ChatSessionService:
             ai_text = accumulated_text
 
             # Strip <think>...</think> tags
-            ai_text = re.sub(r'<think>.*?</think>\s*', '', ai_text, flags=re.DOTALL)
-            if '<think>' in ai_text:
-                ai_text = ai_text[:ai_text.index('<think>')].strip()
+            ai_text = re.sub(r"<think>.*?</think>\s*", "", ai_text, flags=re.DOTALL)
+            if "<think>" in ai_text:
+                ai_text = ai_text[: ai_text.index("<think>")].strip()
             ai_text = ai_text.strip()
 
             # Normalize diagram markers
-            ai_text = re.sub(r'<<<DIAGRAMA>>>', '<<<DIAGRAM>>>', ai_text)
-            ai_text = re.sub(r'<<<FIN_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
-            ai_text = re.sub(r'<<<END_DIAGRAMA>>>', '<<<END_DIAGRAM>>>', ai_text)
-            ai_text = re.sub(
-                r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', ai_text
-            )
-            ai_text = re.sub(
-                r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', ai_text
-            )
+            ai_text = re.sub(r"<<<DIAGRAMA>>>", "<<<DIAGRAM>>>", ai_text)
+            ai_text = re.sub(r"<<<FIN_DIAGRAMA>>>", "<<<END_DIAGRAM>>>", ai_text)
+            ai_text = re.sub(r"<<<END_DIAGRAMA>>>", "<<<END_DIAGRAM>>>", ai_text)
+            ai_text = re.sub(r"<<<DIAGRAM>>>\s*\n?```\w*\s*\n?", "<<<DIAGRAM>>>\n", ai_text)
+            ai_text = re.sub(r"\n?```\s*\n?<<<END_DIAGRAM>>>", "\n<<<END_DIAGRAM>>>", ai_text)
 
             # Parse response
             improved_code = None
@@ -791,8 +800,9 @@ class ChatSessionService:
                 else:
                     # Fallback: fenced code block detection
                     code_block_match = re.search(
-                        r'```(?:' + re.escape(diagram_type)
-                        + r'|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```',
+                        r"```(?:"
+                        + re.escape(diagram_type)
+                        + r"|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```",
                         ai_text,
                         re.DOTALL,
                     )
@@ -806,20 +816,16 @@ class ChatSessionService:
 
             if improved_code:
                 # Auto-retry: validate syntax (skip for plantuml/dbml)
-                skip_retry = diagram_type in ('plantuml', 'uml', 'dbml')
+                skip_retry = diagram_type in ("plantuml", "uml", "dbml")
                 retries = 0
                 while improved_code and retries < MAX_RETRIES and not skip_retry:
-                    validation = await SyntaxValidator.validate(
-                        improved_code, diagram_type
-                    )
+                    validation = await SyntaxValidator.validate(improved_code, diagram_type)
                     if validation.is_valid:
                         break
 
                     retries += 1
                     validating_phase = (
-                        "Validating syntax…"
-                        if language == "en"
-                        else "Validando sintaxis…"
+                        "Validating syntax…" if language == "en" else "Validando sintaxis…"
                     )
                     yield phase_event(validating_phase)
 
@@ -862,27 +868,27 @@ class ChatSessionService:
 
                 if response_mode == "code":
                     # Build display text for code responses only
-                    before_text = ''
-                    after_text = ''
+                    before_text = ""
+                    after_text = ""
                     if self.DIAGRAM_START in ai_text:
-                        before_text = ai_text[:ai_text.index(self.DIAGRAM_START)].strip()
+                        before_text = ai_text[: ai_text.index(self.DIAGRAM_START)].strip()
                     if self.DIAGRAM_END in ai_text:
                         end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
                         after_text = ai_text[end_marker_pos:].strip()
 
                     parts = [p for p in [before_text, after_text] if p and len(p) > 3]
                     if parts:
-                        display_text = '\n\n'.join(parts)
+                        display_text = "\n\n".join(parts)
                     else:
                         # No explanation text outside diagram markers.
                         # Use thinking content as explanation if available.
                         thinking_text = "".join(think_content_parts).strip()
                         if thinking_text and len(thinking_text) > 10:
                             summary = thinking_text[:200]
-                            for sep in ['. ', '.\n', '\n\n']:
+                            for sep in [". ", ".\n", "\n\n"]:
                                 last_sep = summary.rfind(sep)
                                 if last_sep > 50:
-                                    summary = summary[:last_sep + 1]
+                                    summary = summary[: last_sep + 1]
                                     break
                             display_text = summary.strip()
                         else:
@@ -915,11 +921,11 @@ class ChatSessionService:
 
             # Update last_provider and last_model
             try:
-                session_doc = await self.session_repo.get_session_by_id(session_id_str)
-                if session_doc:
-                    session_doc.last_provider = provider_config.provider.value
-                    session_doc.last_model = actual_model
-                    await session_doc.save()
+                await self.session_repo.update_session_last_provider(
+                    session_id_str,
+                    provider_config.provider.value,
+                    actual_model,
+                )
             except Exception as e:
                 logger.warning(f"Failed to update session provider/model: {e}")
 
@@ -960,51 +966,12 @@ class ChatSessionService:
         history: list[dict],
         language: str = "es",
     ) -> str:
-        """Dispatch an AI request to the appropriate client method.
+        """Dispatch an AI request through the unified public client API.
 
-        Encapsulates the client-specific call pattern so it can be reused
-        for the initial request and for syntax-validation retries.
+        Delegates to ``client.complete_chat``: providers with a native chat API
+        receive real ``user``/``assistant`` turns, the rest a flattened transcript.
         """
-        if hasattr(client, '_generate'):
-            # Gemini: concatenate system + history into single prompt
-            conversation_parts = [system_prompt, ""]
-            for msg in history:
-                role_label = (
-                    "Usuario" if msg["role"] == "user" else "Asistente"
-                )
-                if language != "es":
-                    role_label = (
-                        "User" if msg["role"] == "user" else "Assistant"
-                    )
-                conversation_parts.append(
-                    f"{role_label}: {msg['content']}"
-                )
-                role_suffix = "Asistente:" if language == "es" else "Assistant:"
-            conversation_parts.append(role_suffix)
-            full_prompt = "\n".join(conversation_parts)
-            return await client._generate(full_prompt)
-        elif hasattr(client, '_chat_completion'):
-            # OpenAI
-            api_messages = [{"role": "system", "content": system_prompt}]
-            for msg in history:
-                api_messages.append({"role": msg["role"], "content": msg["content"]})
-            return await client._chat_completion(api_messages)
-        elif hasattr(client, '_make_request'):
-            # DeepSeek / Minimax
-            api_messages = [{"role": "system", "content": system_prompt}]
-            for msg in history:
-                api_messages.append({"role": msg["role"], "content": msg["content"]})
-            return await client._make_request(api_messages)
-        elif hasattr(client, '_messages_request'):
-            # Claude
-            api_messages = []
-            for msg in history:
-                api_messages.append({"role": msg["role"], "content": msg["content"]})
-            return await client._messages_request(
-                api_messages, system=system_prompt
-            )
-        else:
-            raise ValueError(f"Unsupported client: {type(client).__name__}")
+        return await client.complete_chat(system_prompt, history, language)
 
     # ------------------------------------------------------------------ #
     #  Task 5.4 – Context compaction logic
@@ -1046,7 +1013,9 @@ class ChatSessionService:
 
         logger.info(
             "Context compaction triggered: ~%d tokens vs threshold %d for model %s",
-            estimated, threshold, model,
+            estimated,
+            threshold,
+            model,
         )
 
         # Generate summary of the current conversation
@@ -1062,10 +1031,10 @@ class ChatSessionService:
             diagram_id=session.diagram_id,
             title=session.title,
         )
-        # Persist parent link and summary directly on the document
+        # Persist parent link and summary via the repository
         new_session.parent_session_id = session_id
         new_session.summary = summary
-        await new_session.save()
+        new_session = await self.session_repo.create_child_session(new_session)
 
         return new_session
 
@@ -1080,14 +1049,7 @@ class ChatSessionService:
 
         Validates that the message has improved_code and is currently pending.
         """
-        try:
-            from beanie import PydanticObjectId
-            msg = await ChatMessageInDB.get(PydanticObjectId(message_id))
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Mensaje no encontrado",
-            )
+        msg = await self.message_repo.get_message_by_id(message_id)
         if not msg:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -1112,9 +1074,7 @@ class ChatSessionService:
     #  Task 5.6 – Auto-generate session title
     # ------------------------------------------------------------------ #
 
-    async def _maybe_auto_title(
-        self, session: ChatSessionInDB, content: str
-    ) -> None:
+    async def _maybe_auto_title(self, session: ChatSessionInDB, content: str) -> None:
         """On the first message of a session, derive the title from the content."""
         session_id = str(session.id)
         count = await self.message_repo.count_messages_by_session(session_id)
@@ -1157,26 +1117,88 @@ class ChatSessionService:
         lower = content.lower().strip()
 
         # Question indicators → text mode
-        question_markers = ['?', '¿', 'qué es', 'what is', 'explain', 'explica',
-                           'describe', 'analiza', 'analyze', 'por qué', 'why',
-                           'cómo funciona', 'how does', 'cuántos', 'how many']
+        question_markers = [
+            "?",
+            "¿",
+            "qué es",
+            "what is",
+            "explain",
+            "explica",
+            "describe",
+            "analiza",
+            "analyze",
+            "por qué",
+            "why",
+            "cómo funciona",
+            "how does",
+            "cuántos",
+            "how many",
+        ]
         for marker in question_markers:
             if marker in lower:
                 return "text"
 
         # Code generation indicators → code mode
-        code_markers = ['agrega', 'añade', 'add', 'crea', 'create', 'genera',
-                       'generate', 'modifica', 'modify', 'cambia', 'change',
-                       'mejora', 'improve', 'corrige', 'fix', 'actualiza',
-                       'update', 'elimina', 'remove', 'delete', 'quita',
-                       'renombra', 'rename', 'mueve', 'move', 'reorganiza',
-                       'reorganize', 'refactoriza', 'refactor', 'simplifica',
-                       'simplify', 'optimiza', 'optimize', 'convierte',
-                       'convert', 'transforma', 'transform', 'haz', 'make',
-                       'pon', 'put', 'incluye', 'include', 'conecta',
-                       'connect', 'enlaza', 'link', 'separa', 'separate',
-                       'divide', 'split', 'combina', 'combine', 'merge',
-                       'reemplaza', 'replace', 'sustituye', 'substitute']
+        code_markers = [
+            "agrega",
+            "añade",
+            "add",
+            "crea",
+            "create",
+            "genera",
+            "generate",
+            "modifica",
+            "modify",
+            "cambia",
+            "change",
+            "mejora",
+            "improve",
+            "corrige",
+            "fix",
+            "actualiza",
+            "update",
+            "elimina",
+            "remove",
+            "delete",
+            "quita",
+            "renombra",
+            "rename",
+            "mueve",
+            "move",
+            "reorganiza",
+            "reorganize",
+            "refactoriza",
+            "refactor",
+            "simplifica",
+            "simplify",
+            "optimiza",
+            "optimize",
+            "convierte",
+            "convert",
+            "transforma",
+            "transform",
+            "haz",
+            "make",
+            "pon",
+            "put",
+            "incluye",
+            "include",
+            "conecta",
+            "connect",
+            "enlaza",
+            "link",
+            "separa",
+            "separate",
+            "divide",
+            "split",
+            "combina",
+            "combine",
+            "merge",
+            "reemplaza",
+            "replace",
+            "sustituye",
+            "substitute",
+        ]
         for marker in code_markers:
             if marker in lower:
                 return "code"
@@ -1200,43 +1222,46 @@ class ChatSessionService:
         1. Summary as context (if exists)
         2. Recent messages as conversation history (excluding the last user message)
         3. Last user message marked as "[Nueva petición]" for clarity
-        
+
         This helps the AI distinguish between historical context and the current request.
         """
         history: list[dict] = []
-        
+
         if summary:
-            history.append({
-                "role": "assistant",
-                "content": (
-                    f"[Contexto de la conversación]\n{summary}\n\n"
-                    "IMPORTANTE: El diagrama actual ya refleja todos los cambios anteriores. "
-                    "Si el usuario pide modificaciones, genera el código COMPLETO entre <<<DIAGRAM>>> y <<<END_DIAGRAM>>>."
-                )
-            })
-        
+            history.append(
+                {
+                    "role": "assistant",
+                    "content": (
+                        f"[Contexto de la conversación]\n{summary}\n\n"
+                        "IMPORTANTE: El diagrama actual ya refleja todos los cambios anteriores. "
+                        "Si el usuario pide modificaciones, genera el código COMPLETO entre <<<DIAGRAM>>> y <<<END_DIAGRAM>>>."
+                    ),
+                }
+            )
+
         # Filter out error messages
         valid_messages = [m for m in messages if m.role != MessageRole.ERROR]
-        
+
         if not valid_messages:
             return history
-        
+
         # Check if last message is from user (the new request)
         last_msg = valid_messages[-1]
-        context_messages = valid_messages[:-1] if last_msg.role == MessageRole.USER else valid_messages
-        
+        context_messages = (
+            valid_messages[:-1] if last_msg.role == MessageRole.USER else valid_messages
+        )
+
         # Add context messages (historical)
         for m in context_messages:
             role = "user" if m.role == MessageRole.USER else "assistant"
             history.append({"role": role, "content": m.content})
-        
+
         # Add the last user message with a clear marker
         if last_msg.role == MessageRole.USER:
-            history.append({
-                "role": "user",
-                "content": f"[Nueva petición del usuario]:\n{last_msg.content}"
-            })
-        
+            history.append(
+                {"role": "user", "content": f"[Nueva petición del usuario]:\n{last_msg.content}"}
+            )
+
         return history
 
     @staticmethod
@@ -1247,33 +1272,33 @@ class ChatSessionService:
         had_code: bool,
     ) -> str:
         """Build a rolling summary that accumulates conversation context.
-        
+
         Keeps the summary concise by:
         - Truncating old summary if too long
         - Adding only key info from the latest exchange
         - Limiting total summary to ~800 chars
         """
         MAX_SUMMARY_LENGTH = 800
-        
+
         # Summarize the latest exchange
         user_short = user_message[:100] + "..." if len(user_message) > 100 else user_message
         ai_short = ai_response[:120] + "..." if len(ai_response) > 120 else ai_response
         code_note = " (se generó código de diagrama)" if had_code else ""
-        
+
         new_entry = f"- Usuario pidió: {user_short}\n - IA respondió: {ai_short}{code_note}"
-        
+
         if existing_summary:
             # Append new entry to existing summary
             combined = f"{existing_summary}\n{new_entry}"
-            
+
             # If too long, trim from the beginning (keep most recent)
             if len(combined) > MAX_SUMMARY_LENGTH:
-                lines = combined.split('\n')
+                lines = combined.split("\n")
                 # Remove oldest lines until within limit
-                while len('\n'.join(lines)) > MAX_SUMMARY_LENGTH and len(lines) > 4:
+                while len("\n".join(lines)) > MAX_SUMMARY_LENGTH and len(lines) > 4:
                     lines.pop(0)
-                combined = '\n'.join(lines)
-            
+                combined = "\n".join(lines)
+
             return combined
         else:
             return new_entry

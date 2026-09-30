@@ -2,6 +2,7 @@
 Abstract interfaces for diagram repository.
 Follows the Dependency Inversion Principle (SOLID).
 """
+
 from abc import ABC, abstractmethod
 from typing import Optional
 from .schemas import DiagramInDB, DiagramCreate, DiagramUpdate
@@ -53,4 +54,19 @@ class IDiagramRepository(ABC):
     @abstractmethod
     async def delete(self, diagram_id: str) -> bool:
         """Delete diagram."""
+        pass
+
+    @abstractmethod
+    async def delete_by_project_id(self, project_id: str) -> int:
+        """Delete all diagrams for a project."""
+        pass
+
+    @abstractmethod
+    async def delete_by_folder_id(self, folder_id: str) -> int:
+        """Delete all diagrams in a folder."""
+        pass
+
+    @abstractmethod
+    async def clear_folder(self, folder_id: str) -> int:
+        """Remove folder assignment from all diagrams in a folder."""
         pass

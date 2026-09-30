@@ -1,6 +1,7 @@
 """
 Service for converting diagrams between different types using AI.
 """
+
 import logging
 import re
 import time
@@ -203,9 +204,7 @@ class DiagramConversionService:
             )
 
         # Resolve provider
-        provider_type = (
-            AIProviderType(request.provider) if request.provider else None
-        )
+        provider_type = AIProviderType(request.provider) if request.provider else None
         provider_config = await self.ai_provider_repository.get_active_provider(
             user_id, provider_type
         )
@@ -227,9 +226,7 @@ class DiagramConversionService:
                 parameters=provider_config.parameters,
             )
         except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         # Build prompt and call AI
         prompt = build_convert_diagram_prompt(
@@ -286,31 +283,9 @@ class DiagramConversionService:
         )
 
     async def _call_with_prompt(self, client: BaseAIClient, prompt: str) -> str:
-        """Call the AI client with a conversion prompt using the appropriate method."""
-        if hasattr(client, "_generate"):
-            # Gemini client
-            return await client._generate(prompt)
-        elif hasattr(client, "_chat_completion"):
-            # OpenAI client
-            return await client._chat_completion(
-                [
-                    {"role": "system", "content": CONVERSION_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-        elif hasattr(client, "_make_request"):
-            # DeepSeek / MiniMax client
-            return await client._make_request(
-                [
-                    {"role": "system", "content": CONVERSION_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-        elif hasattr(client, "_messages_request"):
-            # Claude client
-            return await client._messages_request(
-                [{"role": "user", "content": prompt}],
-                system=CONVERSION_SYSTEM_PROMPT,
-            )
-        else:
-            raise ValueError(f"Unsupported client type: {type(client).__name__}")
+        """Call the AI client with a conversion prompt.
+
+        Uses the public ``complete()`` method of the BaseAIClient abstraction;
+        each client maps it to its provider-specific call internally.
+        """
+        return await client.complete(CONVERSION_SYSTEM_PROMPT, prompt)

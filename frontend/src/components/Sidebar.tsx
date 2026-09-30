@@ -352,10 +352,16 @@ export default function Sidebar() {
         )}
 
         {/* Language selector */}
-        {isExpanded && (
+        {isExpanded ? (
           <div className="px-1">
             <LanguageSelector />
           </div>
+        ) : (
+          <Tooltip content={t('sidebar.language')} position="right">
+            <div className="w-full">
+              <LanguageSelector compact />
+            </div>
+          </Tooltip>
         )}
 
         {/* User info */}

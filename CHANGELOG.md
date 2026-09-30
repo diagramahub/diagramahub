@@ -5,6 +5,43 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-09-29
+
+### Added
+- File explorer row menu (`⋯` / right-click): rename (F2 / double-click), duplicate, move to folder without dragging, move to another project and delete; folder menu (new diagram here, rename, delete) and a "new diagram here" shortcut in empty folders.
+- Pinnable explorer (same pushpin as the description panel), persisted; `Ctrl/Cmd+B` toggle (ignored inside the markdown description editor).
+- Resizable explorer (200–480 px; drag, arrow keys, Home/End, double-click reset), persisted width; expanded folders persisted per project.
+- Keyboard-accessible explorer tree (WAI-ARIA `tree`/`treeitem`/`group`, arrows, Home/End, roving tabindex, `Shift+F10` row menu).
+- Diagram type badges (MMD/PUML/D2/DBML/DRAW), folders-first ordering, title tooltips, filtered result count and `Esc` to clear the search; visible root drop zone while dragging.
+- Diagram switch cover: the workspace (code, preview, footer, description, chat) is covered with a centered "Loading diagram…" until the next diagram is loaded and painted, then revealed at once.
+- Language selector in the collapsed sidebar (flag + tooltip, menu portaled to `<body>`).
+- Frontend production image: multi-stage Dockerfile with a static Nginx target (`nginx-unprivileged`, non-root, security headers, gzip, immutable asset caching, healthcheck; 68 MB vs 951 MB) and runtime configuration via `/config.js` generated from `VITE_*` env vars at container start. `csp.conf.example` ships disabled by default.
+- Regression tests for the deleted-account 401 and the active shared-link / active-plan queries.
+
+### Changed
+- `deploy/external-mongodb` runs the frontend production target with runtime env vars (no source bind mounts; rebuild the image to upgrade). `deploy/local-full` keeps the development target with HMR.
+- The explorer is a layout column that pushes the code panel, preview and status footer instead of overlaying them.
+- Explorer operations (create/move/rename/delete) update the project tree locally with optimistic updates and rollback instead of reloading the whole project; switching diagrams no longer shows the full-editor skeleton.
+- The preview keeps the previous SVG until the new render is ready; stale renders and stale project loads are ignored.
+- `Tooltip` renders through a portal on `<body>`; shared `PinIcon` for pinnable panels; status footer is `nowrap` with a non-shrinking clock.
+- Backend aligned to the SOLID/DIP module contract across all 14 modules: services depend on repository interfaces, no raw Beanie or Stripe SDK access in services/handlers (`IPaymentProvider`), business logic moved out of routes, `BaseAIClient.complete()` shared by all providers, bulk deletes replace N+1 loops.
+- Current-user auth dependencies consolidated in `app/api/deps.py` (no route-to-route imports).
+
+### Fixed
+- Dropping a diagram on a folder also fired the root drop (event bubbling), sending two racing PUTs; the folder drop highlight never showed.
+- Explorer search hid matches inside collapsed folders and emptied folders matched by name.
+- A 1 s clock re-rendered the whole editor page (now an isolated `LiveClock` that follows the UI language).
+- Blank preview frames on every render (the container was cleared before the async render).
+- Nav tooltips hidden under the pinned explorer when the sidebar was collapsed (z-index stacking context).
+- Status footer wrapping onto two lines with both side panels open.
+- Protected routes returned 500 for a valid token whose account no longer exists; they now return 401.
+- Editor error toast could not be dismissed, had no dark variant and never auto-hid.
+- Hardcoded Spanish strings in the editor (new-folder modal, "saved … ago", pin labels, explorer errors, language selector title) and `es-ES`-only date formatting.
+
+### Security
+- The AI diagram fix flow verifies diagram ownership (403 for non-owners).
+- Non-root frontend production container with security headers.
+
 ## [0.6.2] - 2026-09-26
 
 ### Security

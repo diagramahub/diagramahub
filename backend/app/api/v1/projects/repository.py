@@ -1,6 +1,7 @@
 """
 Concrete implementation of project repository.
 """
+
 from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
@@ -19,7 +20,7 @@ class ProjectRepository(IProjectRepository):
             emoji=project_data.emoji or "📊",
             user_id=user_id,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
         await project.insert()
         return project
@@ -57,3 +58,8 @@ class ProjectRepository(IProjectRepository):
 
         await project.delete()
         return True
+
+    async def delete_by_user_id(self, user_id: str) -> int:
+        """Delete all projects belonging to a user."""
+        result = await ProjectInDB.find(ProjectInDB.user_id == user_id).delete()
+        return result.deleted_count

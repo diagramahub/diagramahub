@@ -1,12 +1,12 @@
 """
 FastAPI routes for chat sessions.
 """
+
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.api.v1.users.routes import get_current_user_email
-from app.api.v1.users.repository import UserRepository
+from app.api.deps import get_current_user_id
 from app.api.v1.ai_providers.repository import AIProviderRepository
 from app.api.v1.ai_providers.services import AIProviderService
 from .repository import ChatSessionRepository, ChatMessageRepository
@@ -26,12 +26,15 @@ router = APIRouter(prefix="/chat-sessions", tags=["chat-sessions"])
 
 # --- Inline request schema for title update ---
 
+
 class UpdateSessionTitleRequest(BaseModel):
     """Request model for updating a chat session title."""
+
     title: str = Field(..., min_length=1, max_length=200)
 
 
 # --- Dependency injection ---
+
 
 def get_chat_session_service() -> ChatSessionService:
     """Get chat session service instance."""
@@ -42,16 +45,8 @@ def get_chat_session_service() -> ChatSessionService:
     )
 
 
-async def get_current_user_id(
-    current_user_email: str = Depends(get_current_user_email),
-) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
-
-
 # --- Stats endpoints ---
+
 
 @router.get("/stats/provider-usage")
 async def get_provider_usage_stats(
@@ -59,32 +54,11 @@ async def get_provider_usage_stats(
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
     """Get AI provider usage statistics for the current user."""
-    message_repo = service.message_repo
-    session_repo = service.session_repo
-    
-    # Get all sessions for this user
-    from .schemas import ChatMessageInDB
-    
-    # Aggregate provider_used from all messages across user's sessions
-    sessions = await session_repo.get_sessions_by_user(user_id)
-    
-    provider_counts: dict = {}
-    total_messages = 0
-    
-    for session in sessions:
-        messages = await message_repo.get_recent_messages(str(session.id), limit=100)
-        for msg in messages:
-            if msg.provider_used:
-                provider_counts[msg.provider_used] = provider_counts.get(msg.provider_used, 0) + 1
-                total_messages += 1
-    
-    return {
-        "provider_counts": provider_counts,
-        "total_messages": total_messages,
-    }
+    return await service.get_provider_usage_stats(user_id)
 
 
 # --- Session endpoints ---
+
 
 @router.post("", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)
 async def create_session(
@@ -150,6 +124,7 @@ async def update_session_model(
 
 # --- Message endpoints ---
 
+
 @router.post(
     "/{session_id}/messages",
     response_model=ChatMessageResponse,
@@ -199,12 +174,12 @@ async def stream_message(
             user_id=user_id,
             content=body.content,
             diagram_code=body.diagram_code,
-        diagram_type=body.diagram_type,
-        provider=body.provider,
-        model=body.model,
-        language=body.language,
-        preset_action=body.preset_action,
-    ),
+            diagram_type=body.diagram_type,
+            provider=body.provider,
+            model=body.model,
+            language=body.language,
+            preset_action=body.preset_action,
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -221,7 +196,7 @@ async def delete_message(
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
     """Delete a single message from a chat session."""
-    deleted = await service.message_repo.delete_message(message_id)
+    deleted = await service.delete_message(message_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

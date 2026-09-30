@@ -1,14 +1,14 @@
 """
 FastAPI routes for shared links (authenticated endpoints).
 """
+
 import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, status
 
 from app.api.v1.diagrams.repository import DiagramRepository
-from app.api.v1.users.repository import UserRepository
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_id
 
 from .repository import SharedLinkRepository
 from .schemas import (
@@ -25,21 +25,13 @@ router = APIRouter()
 
 # Dependency injection
 
+
 def get_shared_link_service() -> SharedLinkService:
     """Get shared link service instance."""
     return SharedLinkService(
         shared_link_repository=SharedLinkRepository(),
         diagram_repository=DiagramRepository(),
     )
-
-
-async def get_current_user_id(
-    current_user_email: str = Depends(get_current_user_email),
-) -> str:
-    """Get current user ID from email."""
-    user_repo = UserRepository()
-    user = await user_repo.get_by_email(current_user_email)
-    return str(user.id)
 
 
 # ============ Shared Link Endpoints ============

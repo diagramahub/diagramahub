@@ -1,13 +1,13 @@
 """
 Business logic layer for vendor integrations.
 """
+
 import logging
-from datetime import datetime
 from typing import Optional
 
 from fastapi import HTTPException, status
 
-from .repository import IntegrationsRepository
+from .interfaces import IIntegrationsRepository
 from .schemas import (
     VendorCategory,
     VendorConfigCreate,
@@ -31,7 +31,7 @@ REQUIRED_FIELDS: dict[str, list[str]] = {
 class IntegrationsService:
     """Service for vendor integration business logic."""
 
-    def __init__(self, repository: IntegrationsRepository):
+    def __init__(self, repository: IIntegrationsRepository):
         self.repository = repository
 
     # ── helpers ──────────────────────────────────────────────────────
@@ -70,9 +70,7 @@ class IntegrationsService:
 
     # ── public API ───────────────────────────────────────────────────
 
-    async def list_vendors(
-        self, category: Optional[str] = None
-    ) -> list[VendorConfigResponse]:
+    async def list_vendors(self, category: Optional[str] = None) -> list[VendorConfigResponse]:
         """List vendor configs, optionally filtered by category.
 
         Returns ``VendorConfigResponse`` objects whose ``config_fields``
@@ -90,7 +88,10 @@ class IntegrationsService:
 
         results: list[VendorConfigResponse] = []
         for v in vendors:
-            config = self.repository._decrypt_config(v.encrypted_config)
+            decrypted = await self.repository.get_by_id_decrypted(str(v.id))
+            if decrypted is None:
+                continue
+            _, config = decrypted
             results.append(self._to_response(v, list(config.keys())))
         return results
 
@@ -117,7 +118,7 @@ class IntegrationsService:
             elif vendor_data.category == VendorCategory.PAYMENT:
                 await self.repository.set_active_payment(str(vendor.id))
             elif vendor_data.category == VendorCategory.OAUTH:
-                await self._set_active_oauth(str(vendor.id), vendor_data.vendor_type)
+                await self.repository.set_active_oauth(vendor_data.vendor_type, str(vendor.id))
             # Refresh vendor from DB to get updated flags
             vendor = await self.repository.get_by_id(str(vendor.id))
 
@@ -140,7 +141,13 @@ class IntegrationsService:
 
         # When new config fields are supplied, validate the merged config
         if update_data.config is not None:
-            existing_config = self.repository._decrypt_config(vendor.encrypted_config)
+            decrypted = await self.repository.get_by_id_decrypted(vendor_id)
+            if decrypted is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Vendor configuration not found",
+                )
+            _, existing_config = decrypted
             merged = {**existing_config, **update_data.config}
             self._validate_required_fields(vendor.vendor_type, merged)
 
@@ -151,7 +158,13 @@ class IntegrationsService:
                 detail="Vendor configuration not found",
             )
 
-        config = self.repository._decrypt_config(updated.encrypted_config)
+        decrypted = await self.repository.get_by_id_decrypted(vendor_id)
+        if decrypted is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendor configuration not found",
+            )
+        _, config = decrypted
         return self._to_response(updated, list(config.keys()))
 
     async def delete_vendor_config(self, vendor_id: str) -> bool:
@@ -177,7 +190,10 @@ class IntegrationsService:
         vendor, config = result
         logger.info(
             "test_vendor_connection: vendor_id=%s, type=%s, category=%s, config_keys=%s",
-            vendor_id, vendor.vendor_type, vendor.category, list(config.keys()),
+            vendor_id,
+            vendor.vendor_type,
+            vendor.category,
+            list(config.keys()),
         )
 
         try:
@@ -188,7 +204,9 @@ class IntegrationsService:
                 logger.info("test_vendor_connection: test_connection returned %s", success)
             elif vendor.category == VendorCategory.PAYMENT:
                 adapter = VendorFactory.create_payment_vendor(vendor.vendor_type, config)
-                logger.info("test_vendor_connection: payment adapter created, calling validate_configuration()")
+                logger.info(
+                    "test_vendor_connection: payment adapter created, calling validate_configuration()"
+                )
                 success = await adapter.validate_configuration()
             elif vendor.category == VendorCategory.OAUTH:
                 from app.api.v1.oauth.providers.factory import OAuthProviderFactory
@@ -215,11 +233,7 @@ class IntegrationsService:
             logger.exception("test_vendor_connection: EXCEPTION for %s", vendor_id)
             success = False
             # Persist failure
-            vendor.connection_tested = True
-            vendor.last_test_at = datetime.utcnow()
-            vendor.last_test_success = False
-            vendor.updated_at = datetime.utcnow()
-            await vendor.save()
+            await self.repository.record_test_result(vendor_id, success)
             return TestConnectionResponse(
                 success=False,
                 message=f"Connection test failed for {vendor.vendor_type}",
@@ -227,11 +241,7 @@ class IntegrationsService:
             )
 
         # Persist test result
-        vendor.connection_tested = True
-        vendor.last_test_at = datetime.utcnow()
-        vendor.last_test_success = success
-        vendor.updated_at = datetime.utcnow()
-        await vendor.save()
+        await self.repository.record_test_result(vendor_id, success)
 
         if success:
             return TestConnectionResponse(
@@ -267,7 +277,7 @@ class IntegrationsService:
         elif vendor.category == VendorCategory.PAYMENT:
             updated = await self.repository.set_active_payment(vendor_id)
         elif vendor.category == VendorCategory.OAUTH:
-            updated = await self._set_active_oauth(vendor_id, vendor.vendor_type)
+            updated = await self.repository.set_active_oauth(vendor.vendor_type, vendor_id)
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -280,35 +290,43 @@ class IntegrationsService:
                 detail="Vendor configuration not found",
             )
 
-        config = self.repository._decrypt_config(updated.encrypted_config)
+        decrypted = await self.repository.get_by_id_decrypted(vendor_id)
+        if decrypted is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Vendor configuration not found",
+            )
+        _, config = decrypted
         return self._to_response(updated, list(config.keys()))
 
-    async def _set_active_oauth(self, vendor_id: str, vendor_type: str) -> VendorConfigInDB:
-        """Activate an OAuth vendor, ensuring mutual exclusion per vendor_type.
+    async def get_integration_status(self) -> dict:
+        """Build the integration status overview across all categories."""
+        email_vendors = await self.list_vendors("email")
+        payment_vendors = await self.list_vendors("payment")
 
-        Deactivates all other OAuth vendors of the same ``vendor_type``
-        before activating the requested one.
-        """
-        # Deactivate all OAuth vendors of the same vendor_type
-        oauth_vendors = await self.repository.list_by_category(VendorCategory.OAUTH)
-        for v in oauth_vendors:
-            if v.vendor_type == vendor_type and v.is_active_oauth:
-                v.is_active_oauth = False
-                v.updated_at = datetime.utcnow()
-                await v.save()
+        email_default = next((v for v in email_vendors if v.is_default), None)
+        payment_active = next((v for v in payment_vendors if v.is_active_payment), None)
 
-        # Activate the requested vendor
-        vendor = await self.repository.get_by_id(vendor_id)
-        if vendor is None:
-            return None
-        vendor.is_active_oauth = True
-        vendor.updated_at = datetime.utcnow()
-        await vendor.save()
-        return vendor
+        return {
+            "email": {
+                "configured_count": len(email_vendors),
+                "default_vendor": (email_default.display_name if email_default else None),
+                "has_default": email_default is not None,
+            },
+            "payment": {
+                "configured_count": len(payment_vendors),
+                "active_vendor": (payment_active.display_name if payment_active else None),
+                "has_active": payment_active is not None,
+            },
+        }
 
     # ── sensitive fields that should be masked ───────────────────────
     SENSITIVE_FIELDS = {
-        "api_key", "secret_key", "webhook_secret", "publishable_key", "client_secret",
+        "api_key",
+        "secret_key",
+        "webhook_secret",
+        "publishable_key",
+        "client_secret",
     }
 
     async def get_vendor_config_masked(self, vendor_id: str) -> dict:

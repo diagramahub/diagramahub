@@ -2,6 +2,7 @@
 Abstract interfaces for project repository.
 Follows the Dependency Inversion Principle (SOLID).
 """
+
 from abc import ABC, abstractmethod
 from typing import Optional
 from .schemas import ProjectInDB, ProjectCreate, ProjectUpdate
@@ -23,6 +24,11 @@ class IProjectRepository(ABC):
     @abstractmethod
     async def get_by_user_id(self, user_id: str) -> list[ProjectInDB]:
         """Get all projects for a user."""
+        pass
+
+    @abstractmethod
+    async def delete_by_user_id(self, user_id: str) -> int:
+        """Delete all projects belonging to a user. Returns the number deleted."""
         pass
 
     @abstractmethod

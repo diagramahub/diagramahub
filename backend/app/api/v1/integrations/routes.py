@@ -3,12 +3,13 @@ Admin routes for managing vendor integrations (email and payment).
 
 All endpoints require admin role.
 """
+
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.v1.users.repository import UserRepository
-from app.api.v1.users.routes import get_current_user_email
+from app.api.deps import get_current_user_email
 from app.api.v1.users.schemas import UserRole
 
 from .repository import IntegrationsRepository
@@ -24,6 +25,7 @@ router = APIRouter(prefix="/admin/integrations", tags=["Integrations (Admin)"])
 
 
 # ── Dependencies ─────────────────────────────────────────────────────
+
 
 def get_integrations_service() -> IntegrationsService:
     """Dependency injection for IntegrationsService."""
@@ -128,24 +130,7 @@ async def get_integration_status(
     service: IntegrationsService = Depends(get_integrations_service),
 ) -> dict:
     """Get an overview of integration status across all categories."""
-    email_vendors = await service.list_vendors("email")
-    payment_vendors = await service.list_vendors("payment")
-
-    email_default = next((v for v in email_vendors if v.is_default), None)
-    payment_active = next((v for v in payment_vendors if v.is_active_payment), None)
-
-    return {
-        "email": {
-            "configured_count": len(email_vendors),
-            "default_vendor": email_default.display_name if email_default else None,
-            "has_default": email_default is not None,
-        },
-        "payment": {
-            "configured_count": len(payment_vendors),
-            "active_vendor": payment_active.display_name if payment_active else None,
-            "has_active": payment_active is not None,
-        },
-    }
+    return await service.get_integration_status()
 
 
 @router.get("/vendors/{vendor_id}/config")
