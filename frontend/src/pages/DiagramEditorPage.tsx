@@ -41,6 +41,7 @@ import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal from "../components/ExportDiagramModal";
 import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
+import { LiveClock } from "../components/LiveClock";
 import MoveDiagramModal from "../components/MoveDiagramModal";
 import CloneDiagramModal from "../components/CloneDiagramModal";
 import { EditorSkeleton } from "../components/Skeleton";
@@ -139,13 +140,13 @@ export default function DiagramEditorPage() {
   const getTimeAgo = (date: Date | null): string => {
     if (!date) return "";
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 10) return "justo ahora";
-    if (seconds < 60) return `hace ${seconds}s`;
+    if (seconds < 10) return t("editor.timeAgoJustNow");
+    if (seconds < 60) return t("editor.timeAgoSeconds", { count: seconds });
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `hace ${minutes}m`;
+    if (minutes < 60) return t("editor.timeAgoMinutes", { count: minutes });
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `hace ${hours}h`;
-    return `hace ${Math.floor(hours / 24)}d`;
+    if (hours < 24) return t("editor.timeAgoHours", { count: hours });
+    return t("editor.timeAgoDays", { count: Math.floor(hours / 24) });
   };
 
   // Freehand diagrams manage their own canvas interactions (pan, zoom, selection)
@@ -259,9 +260,6 @@ export default function DiagramEditorPage() {
   );
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
 
-  // Current time state (updates every second)
-  const [currentTime, setCurrentTime] = useState<Date>(new Date());
-
   // Collapsible panels state
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -275,7 +273,17 @@ export default function DiagramEditorPage() {
   const isMobile = useIsMobile();
 
   // Floating panels state
-  const [showFloatingSidebar, setShowFloatingSidebar] = useState(false);
+  // A pinned file browser stays open across outside clicks and page loads (desktop only).
+  const [isFileBrowserPinned, setIsFileBrowserPinned] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("fileBrowserPinned") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [showFloatingSidebar, setShowFloatingSidebar] = useState(
+    () => isFileBrowserPinned && !isMobile,
+  );
   const [showCodeView, setShowCodeView] = useState(false);
   const [codePanelWidth, setCodePanelWidth] = useState(350);
   const isResizingCode = useRef(false);
@@ -430,8 +438,9 @@ export default function DiagramEditorPage() {
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      // Only close floating sidebar on click outside
+      // Only close floating sidebar on click outside, unless it is pinned
       if (
+        !isFileBrowserPinned &&
         !target.closest(".floating-sidebar") &&
         !target.closest(".floating-sidebar-button")
       ) {
@@ -462,7 +471,61 @@ export default function DiagramEditorPage() {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isDescriptionPinned, isMobile]);
+  }, [isDescriptionPinned, isFileBrowserPinned, isMobile]);
+
+  // Persist the file browser pin preference
+  useEffect(() => {
+    try {
+      localStorage.setItem("fileBrowserPinned", String(isFileBrowserPinned));
+    } catch {
+      // Storage unavailable (private mode) — the preference just won't persist.
+    }
+  }, [isFileBrowserPinned]);
+
+  // Restore which folders the user left expanded in this project (saved by toggleFolder).
+  useEffect(() => {
+    if (!projectId) return;
+    let saved: string[] = [];
+    try {
+      const raw = localStorage.getItem(`expandedFolders_${projectId}`);
+      const parsed: unknown = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) {
+        saved = parsed.filter((id): id is string => typeof id === "string");
+      }
+    } catch {
+      // Ignore unreadable storage and start collapsed.
+    }
+    setExpandedFolders(new Set(saved));
+  }, [projectId]);
+
+  // Action errors (with a loaded project) auto-dismiss; a fatal load error stays on screen.
+  useEffect(() => {
+    if (!error || !project) return;
+    const timeout = setTimeout(() => setError(null), 6000);
+    return () => clearTimeout(timeout);
+  }, [error, project]);
+
+  // Ctrl/Cmd+B toggles the file browser (desktop)
+  useEffect(() => {
+    if (isMobile) return;
+    const handleToggleShortcut = (event: KeyboardEvent) => {
+      // Ctrl/Cmd+B is "bold" inside the markdown description editor — leave it alone there.
+      if ((event.target as HTMLElement | null)?.closest?.(".EasyMDEContainer")) {
+        return;
+      }
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "b"
+      ) {
+        event.preventDefault();
+        setShowFloatingSidebar((prev) => !prev);
+      }
+    };
+    document.addEventListener("keydown", handleToggleShortcut);
+    return () => document.removeEventListener("keydown", handleToggleShortcut);
+  }, [isMobile]);
 
   // Close convert menu when clicking outside
   useEffect(() => {
@@ -682,15 +745,6 @@ export default function DiagramEditorPage() {
       String(chatPanelWidth),
     );
   }, [diagramId, chatPanelWidth]);
-
-  // Update current time every second
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000); // Update every second
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Update time ago display every minute
   useEffect(() => {
@@ -2221,8 +2275,112 @@ export default function DiagramEditorPage() {
       } else {
         newSet.add(folderId);
       }
+      // Persist only explicit user toggles (idempotent, safe under StrictMode re-runs).
+      if (projectId) {
+        try {
+          localStorage.setItem(
+            `expandedFolders_${projectId}`,
+            JSON.stringify([...newSet]),
+          );
+        } catch {
+          // Storage unavailable — expansion state just won't persist.
+        }
+      }
       return newSet;
     });
+  };
+
+  // Project tree helpers. File-browser operations update the loaded project in place
+  // instead of calling loadProject(), which swaps the whole editor for the skeleton
+  // and re-hydrates the current diagram.
+
+  /** Folder id holding the diagram, `null` for the project root, `undefined` if not found. */
+  const findDiagramLocation = (
+    tree: ProjectWithDiagrams,
+    diagramId: string,
+  ): string | null | undefined => {
+    if (tree.diagrams.some((d) => d.id === diagramId)) return null;
+    return tree.folders.find((f) => f.diagrams.some((d) => d.id === diagramId))
+      ?.id;
+  };
+
+  /** Returns a copy of the tree with `transform` applied to every diagram list. */
+  const mapDiagramLists = (
+    tree: ProjectWithDiagrams,
+    transform: (diagrams: Diagram[]) => Diagram[],
+  ): ProjectWithDiagrams => ({
+    ...tree,
+    diagrams: transform(tree.diagrams),
+    folders: tree.folders.map((f) => ({ ...f, diagrams: transform(f.diagrams) })),
+  });
+
+  const renameDiagram = async (diagramId: string, title: string) => {
+    if (!project) return;
+    const previous = project;
+    const isCurrent = currentDiagram?.id === diagramId;
+    const previousTitle = diagramTitle;
+
+    setProject(
+      mapDiagramLists(project, (list) =>
+        list.map((d) => (d.id === diagramId ? { ...d, title } : d)),
+      ),
+    );
+    if (isCurrent) setDiagramTitle(title);
+
+    try {
+      await api.updateDiagram(diagramId, { title });
+    } catch (err) {
+      console.error("Error renaming diagram:", err);
+      setProject(previous);
+      if (isCurrent) setDiagramTitle(previousTitle);
+      setError(t("fileBrowser.renameError"));
+    }
+  };
+
+  const moveDiagramToFolder = async (
+    diagramId: string,
+    targetFolderId: string | null,
+  ) => {
+    if (!project) return;
+    const fromFolderId = findDiagramLocation(project, diagramId);
+    if (fromFolderId === undefined || fromFolderId === targetFolderId) return;
+
+    const diagram = [
+      ...project.diagrams,
+      ...project.folders.flatMap((f) => f.diagrams),
+    ].find((d) => d.id === diagramId);
+    if (!diagram) return;
+
+    const previous = project;
+    const isCurrent = currentDiagram?.id === diagramId;
+    const moved = { ...diagram, folder_id: targetFolderId };
+    const withoutDiagram = mapDiagramLists(project, (list) =>
+      list.filter((d) => d.id !== diagramId),
+    );
+    setProject({
+      ...withoutDiagram,
+      diagrams:
+        targetFolderId === null
+          ? [...withoutDiagram.diagrams, moved]
+          : withoutDiagram.diagrams,
+      folders: withoutDiagram.folders.map((f) =>
+        f.id === targetFolderId ? { ...f, diagrams: [...f.diagrams, moved] } : f,
+      ),
+    });
+    if (targetFolderId) {
+      setExpandedFolders((prev) => new Set(prev).add(targetFolderId));
+    }
+    // Keeps autosave (which sends folder_id) consistent with the new location.
+    if (isCurrent) setSelectedFolderId(targetFolderId);
+
+    try {
+      await api.updateDiagram(diagramId, { folder_id: targetFolderId });
+    } catch (err) {
+      console.error("Error moving diagram:", err);
+      setProject(previous);
+      if (isCurrent) setSelectedFolderId(fromFolderId);
+      setError(t("fileBrowser.moveError"));
+    }
   };
 
   const handleCreateFolder = async () => {
@@ -2230,20 +2388,23 @@ export default function DiagramEditorPage() {
 
     try {
       setCreatingFolder(true);
-      await api.createFolder(projectId, {
-        name: newFolderName,
+      const folder = await api.createFolder(projectId, {
+        name: newFolderName.trim(),
         color: newFolderColor,
       });
 
-      // Reload project to get updated folders
-      await loadProject();
+      setProject((prev) =>
+        prev
+          ? { ...prev, folders: [...prev.folders, { ...folder, diagrams: [] }] }
+          : prev,
+      );
 
       setShowNewFolderModal(false);
       setNewFolderName("");
       setNewFolderColor("#3B82F6");
     } catch (err) {
       console.error("Error creating folder:", err);
-      setError("Error al crear carpeta");
+      setError(t("fileBrowser.createFolderError"));
     } finally {
       setCreatingFolder(false);
     }
@@ -2255,17 +2416,25 @@ export default function DiagramEditorPage() {
   };
 
   const handleSaveFolderEdit = async () => {
-    if (!editingFolderId || !editingFolderName.trim()) return;
+    if (!editingFolderId || !editingFolderName.trim() || !project) return;
+
+    const folderId = editingFolderId;
+    const name = editingFolderName.trim();
+    const previous = project;
+
+    setProject({
+      ...project,
+      folders: project.folders.map((f) => (f.id === folderId ? { ...f, name } : f)),
+    });
+    setEditingFolderId(null);
+    setEditingFolderName("");
 
     try {
-      await api.updateFolder(editingFolderId, {
-        name: editingFolderName.trim(),
-      });
-      await loadProject();
-      setEditingFolderId(null);
-      setEditingFolderName("");
+      await api.updateFolder(folderId, { name });
     } catch (err) {
       console.error("Error updating folder:", err);
+      setProject(previous);
+      setError(t("fileBrowser.renameFolderError"));
     }
   };
 
@@ -2288,15 +2457,38 @@ export default function DiagramEditorPage() {
   };
 
   const confirmDeleteFolder = async (deleteDiagrams: boolean) => {
-    if (!deleteFolderModal.folderId) return;
+    const folderId = deleteFolderModal.folderId;
+    if (!folderId || !project) return;
 
-    console.log("Deleting folder with deleteDiagrams:", deleteDiagrams);
     try {
-      await api.deleteFolder(deleteFolderModal.folderId, deleteDiagrams);
-      await loadProject();
+      await api.deleteFolder(folderId, deleteDiagrams);
+
+      const folder = project.folders.find((f) => f.id === folderId);
+      const containsCurrent =
+        !!currentDiagram &&
+        !!folder?.diagrams.some((d) => d.id === currentDiagram.id);
+
+      if (deleteDiagrams && containsCurrent) {
+        // The open diagram is gone — the project route reloads everything.
+        navigate(`/projects/${projectId}`);
+        return;
+      }
+
+      setProject({
+        ...project,
+        folders: project.folders.filter((f) => f.id !== folderId),
+        // Without deleteDiagrams the backend moves the folder's diagrams to the root.
+        diagrams: deleteDiagrams
+          ? project.diagrams
+          : [
+              ...project.diagrams,
+              ...(folder?.diagrams ?? []).map((d) => ({ ...d, folder_id: null })),
+            ],
+      });
+      if (containsCurrent) setSelectedFolderId(null);
     } catch (err) {
       console.error("Error deleting folder:", err);
-      setError("Error al eliminar carpeta");
+      setError(t("fileBrowser.deleteFolderError"));
     }
   };
 
@@ -2363,25 +2555,31 @@ export default function DiagramEditorPage() {
   };
 
   const confirmDeleteDiagram = async () => {
-    if (!deleteDiagramModal.diagramId || !projectId) return;
+    const deletedId = deleteDiagramModal.diagramId;
+    if (!deletedId || !projectId) return;
 
     try {
-      await api.deleteDiagram(deleteDiagramModal.diagramId);
-
-      // If the deleted diagram is the current one, navigate to project
-      if (deleteDiagramModal.diagramId === currentDiagram?.id) {
-        navigate(`/projects/${projectId}`);
-      }
-
-      await loadProject();
+      await api.deleteDiagram(deletedId);
       setDeleteDiagramModal({
         isOpen: false,
         diagramId: null,
         diagramName: "",
       });
+
+      // If the deleted diagram is the current one, the project route reloads everything
+      if (deletedId === currentDiagram?.id) {
+        navigate(`/projects/${projectId}`);
+        return;
+      }
+
+      setProject((prev) =>
+        prev
+          ? mapDiagramLists(prev, (list) => list.filter((d) => d.id !== deletedId))
+          : prev,
+      );
     } catch (err) {
       console.error("Error deleting diagram:", err);
-      setError("Error al eliminar diagrama");
+      setError(t("fileBrowser.deleteDiagramError"));
     }
   };
 
@@ -2405,28 +2603,18 @@ export default function DiagramEditorPage() {
   ) => {
     e.preventDefault();
 
-    if (!draggedDiagramId) return;
+    const diagramToMove = draggedDiagramId;
+    setDraggedDiagramId(null);
+    setDropTargetFolderId(null);
+    if (!diagramToMove) return;
 
-    try {
-      // Update diagram's folder
-      await api.updateDiagram(draggedDiagramId, {
-        folder_id: targetFolderId,
-      });
+    await moveDiagramToFolder(diagramToMove, targetFolderId);
+  };
 
-      // Reload project to update folder structure
-      await loadProject();
-
-      // If the dropped diagram is the current one, update selected folder
-      if (currentDiagram?.id === draggedDiagramId) {
-        setSelectedFolderId(targetFolderId);
-      }
-    } catch (err) {
-      console.error("Error moving diagram:", err);
-      setError("Error al mover diagrama");
-    } finally {
-      setDraggedDiagramId(null);
-      setDropTargetFolderId(null);
-    }
+  const handleDragEnd = () => {
+    // Fires after a cancelled drag too (dropped outside any target).
+    setDraggedDiagramId(null);
+    setDropTargetFolderId(null);
   };
 
   if (loading) {
@@ -2455,7 +2643,7 @@ export default function DiagramEditorPage() {
                 className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1 max-w-[140px]"
                 title={project?.name || ""}
               >
-                <span className="truncate">{project?.name || "Proyecto"}</span>
+                <span className="truncate">{project?.name || t("editor.defaultProjectName")}</span>
                 <svg
                   className="w-3 h-3 flex-shrink-0"
                   fill="none"
@@ -3049,11 +3237,16 @@ export default function DiagramEditorPage() {
                       onNewDiagram={(folderId) => handleNewDiagram(folderId)}
                       onNewFolder={() => setShowNewFolderModal(true)}
                       onDeleteDiagram={handleDeleteDiagram}
+                      onRenameDiagram={renameDiagram}
+                      onDuplicateDiagram={handleCloneDiagram}
+                      onMoveDiagramToFolder={moveDiagramToFolder}
+                      onMoveDiagramToProject={handleMoveDiagram}
                       onDeleteFolder={handleDeleteFolder}
                       onEditFolder={handleEditFolder}
                       onDragStart={handleDragStart}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
+                      onDragEnd={handleDragEnd}
                       onDrop={handleDrop}
                       draggedDiagramId={draggedDiagramId}
                       dropTargetFolderId={dropTargetFolderId}
@@ -3065,6 +3258,8 @@ export default function DiagramEditorPage() {
                       onSaveFolderEdit={handleSaveFolderEdit}
                       onCancelFolderEdit={handleCancelFolderEdit}
                       closeOnSelect={false}
+                      isPinned={isFileBrowserPinned}
+                      onTogglePin={() => setIsFileBrowserPinned((prev) => !prev)}
                     />
                   </div>
                 )}
@@ -3703,7 +3898,9 @@ export default function DiagramEditorPage() {
                                 />
                               </svg>
                               <span className="text-green-600">
-                                Guardado {getTimeAgo(lastSavedTime)}
+                                {t("editor.savedAgo", {
+                                  time: getTimeAgo(lastSavedTime),
+                                })}
                               </span>
                             </>
                           )}
@@ -3823,24 +4020,7 @@ export default function DiagramEditorPage() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <span className="text-sm text-gray-600">
-                          {currentTime.toLocaleTimeString("es-ES", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                            hour12: false,
-                            timeZone: user?.timezone || "UTC",
-                          })}
-                        </span>
-                        <span className="text-xs text-gray-400">•</span>
-                        <span className="text-xs text-gray-500">
-                          {currentTime.toLocaleDateString("es-ES", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            timeZone: user?.timezone || "UTC",
-                          })}
-                        </span>
+                        <LiveClock timeZone={user?.timezone || "UTC"} />
                       </div>
                     </div>
                   </div>
@@ -3988,7 +4168,9 @@ export default function DiagramEditorPage() {
                           : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                       }`}
                       title={
-                        isDescriptionPinned ? "Desfijar panel" : "Fijar panel"
+                        isDescriptionPinned
+                          ? t("editor.unpinPanel")
+                          : t("editor.pinPanel")
                       }
                     >
                       <svg
@@ -4474,13 +4656,20 @@ export default function DiagramEditorPage() {
 
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Nombre de la carpeta
+                <label
+                  htmlFor="new-folder-name"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  {t("folder.name")}
                 </label>
                 <input
+                  id="new-folder-name"
                   type="text"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !creatingFolder) handleCreateFolder();
+                  }}
                   placeholder={t("editor.folderNamePlaceholder")}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   autoFocus
@@ -4489,7 +4678,7 @@ export default function DiagramEditorPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Color
+                  {t("fileBrowser.folderColor")}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {[
@@ -4508,8 +4697,11 @@ export default function DiagramEditorPage() {
                   ].map((color) => (
                     <button
                       key={color}
+                      type="button"
                       onClick={() => setNewFolderColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                      aria-label={t("fileBrowser.colorOption", { color })}
+                      aria-pressed={newFolderColor === color}
+                      className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                         newFolderColor === color
                           ? "border-gray-900 dark:border-white scale-110 ring-2 ring-purple-300"
                           : "border-gray-300 dark:border-gray-600"
@@ -4529,16 +4721,18 @@ export default function DiagramEditorPage() {
                   setNewFolderColor("#3B82F6");
                 }}
                 disabled={creatingFolder}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400"
+                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
                 className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {creatingFolder ? "Creando..." : "Crear Carpeta"}
+                {creatingFolder
+                  ? t("folder.creating")
+                  : t("fileBrowser.createFolder")}
               </button>
             </div>
           </div>
@@ -4547,8 +4741,20 @@ export default function DiagramEditorPage() {
 
       {/* Error message */}
       {error && (
-        <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md shadow-lg">
-          {error}
+        <div
+          role="alert"
+          className="fixed bottom-4 right-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md shadow-lg max-w-md z-50"
+        >
+          <span className="text-sm">{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="p-0.5 text-red-500 hover:text-red-700 dark:hover:text-red-200 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+            aria-label={t("common.close")}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
@@ -5054,6 +5260,16 @@ export default function DiagramEditorPage() {
                   diagramName: name,
                 })
               }
+              onRenameDiagram={renameDiagram}
+              onDuplicateDiagram={(id, name) => {
+                setShowFloatingSidebar(false);
+                handleCloneDiagram(id, name);
+              }}
+              onMoveDiagramToFolder={moveDiagramToFolder}
+              onMoveDiagramToProject={(id, name) => {
+                setShowFloatingSidebar(false);
+                handleMoveDiagram(id, name);
+              }}
               onDeleteFolder={(id, name, count) =>
                 setDeleteFolderModal({
                   isOpen: true,
@@ -5069,6 +5285,7 @@ export default function DiagramEditorPage() {
               onDragStart={(id) => setDraggedDiagramId(id)}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
+              onDragEnd={handleDragEnd}
               onDrop={handleDrop}
               draggedDiagramId={draggedDiagramId}
               dropTargetFolderId={dropTargetFolderId}
