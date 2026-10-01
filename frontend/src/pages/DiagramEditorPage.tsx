@@ -1255,13 +1255,25 @@ export default function DiagramEditorPage() {
   //   of edits (the debounce cleanup used to cancel it silently).
   type PendingSave = { id: string; payload: UpdateDiagramRequest; key: string };
   const autosaveBaseline = useRef<{ id: string; key: string } | null>(null);
+  // Latest save not yet confirmed by the server. It stays set while its PUT is
+  // in flight (only a success clears it), so closing the page mid-request still
+  // warns and resends it through the keepalive fallback.
   const pendingSave = useRef<PendingSave | null>(null);
+  // The save whose PUT is currently in flight (avoids sending it twice).
+  const inFlightSave = useRef<PendingSave | null>(null);
 
-  const persistDiagram = useCallback(async (save: PendingSave) => {
-    if (pendingSave.current === save) pendingSave.current = null;
+  // Saves are serialized: never two autosave PUTs at once, so a slow earlier
+  // request can't land after (and overwrite) a newer one. A save requested while
+  // another is in flight waits in `pendingSave`; when the in-flight one settles,
+  // only the newest pending save is sent.
+  const persistDiagram = useCallback(async function persist(save: PendingSave) {
+    if (inFlightSave.current) return; // sent from the finally below once it settles
+    inFlightSave.current = save;
     try {
       setSaveStatus("saving");
       await api.updateDiagram(save.id, save.payload);
+      // Confirmed: no longer pending, unless a newer edit replaced it meanwhile.
+      if (pendingSave.current === save) pendingSave.current = null;
       if (autosaveBaseline.current?.id === save.id) {
         autosaveBaseline.current = { id: save.id, key: save.key };
       }
@@ -1298,8 +1310,13 @@ export default function DiagramEditorPage() {
     } catch (err) {
       console.error("Error autosaving:", err);
       setSaveStatus("idle");
-      // Keep it pending so the next flush (or edit) retries it
-      if (!pendingSave.current) pendingSave.current = save;
+      // Still pending (it was never cleared), so the next flush or edit retries it.
+    } finally {
+      if (inFlightSave.current === save) inFlightSave.current = null;
+      const next = pendingSave.current;
+      // Send the newest edit that arrived meanwhile (not a failed retry loop:
+      // after an error `next` is this same save, so it waits for the next flush).
+      if (next && next !== save) void persist(next);
     }
   }, []);
 
@@ -1394,8 +1411,10 @@ export default function DiagramEditorPage() {
       autosaveBaseline.current = { id: currentDiagram.id, key };
       return;
     }
-    if (key === autosaveBaseline.current.key) {
+    if (key === autosaveBaseline.current.key && !inFlightSave.current) {
       // Back to the saved state (e.g. an edit was undone): nothing to save.
+      // Not while a save is in flight: that PUT will store the edited version,
+      // so the undone state must still be saved after it.
       pendingSave.current = null;
       return;
     }
@@ -1446,13 +1465,15 @@ export default function DiagramEditorPage() {
       }
     };
     const handlePageHide = () => {
-      const save = pendingSave.current;
+      // Pending includes a save whose PUT is in flight: the page is going away
+      // and that request may be cancelled, so resend it with keepalive.
+      const save = pendingSave.current ?? inFlightSave.current;
       if (save && api.updateDiagramOnUnload(save.id, save.payload)) {
         pendingSave.current = null;
       }
     };
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!pendingSave.current) return;
+      if (!pendingSave.current && !inFlightSave.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
