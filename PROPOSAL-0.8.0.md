@@ -64,6 +64,48 @@
 
 **Recomendación**: H1 + H2 + H4 + H5 (+ H6 por ser trivial). H3 si aceptas el cambio en la instalación local. H7 a cuando alguien despliegue con réplicas.
 
+## 3b. Track D — Pizarrón a mano alzada: calidad + diferenciación frente a Excalidraw
+
+### Por qué hoy no se siente como Excalidraw (verificado en `FreehandCanvas.tsx`)
+
+| Aspecto | Hoy | Excalidraw |
+|---|---|---|
+| Formas | geometría perfecta (`strokeRect`, líneas rectas) → app de dibujo básica | trazo "a mano" con `roughjs` (irregular, relleno rayado) |
+| Trazo libre | polilínea cruda, grosor constante, sin suavizado → dentado | `perfect-freehand`: suavizado, grosor variable, puntas afinadas |
+| Texto | `sans-serif` | fuente manuscrita (Virgil/Excalifont) |
+| Dependencias | ninguna de las dos librerías | ambas son MIT y son la base de su look |
+
+**Conclusión**: el salto de calidad percibida viene de **dos librerías MIT y una fuente**, no de reescribir el lienzo.
+
+### Estrategia: paridad en lo esencial, ganar en lo que Excalidraw no tiene
+
+Competir con Excalidraw *en dibujar* es perder: es un producto enfocado y muy pulido. Diagramahub gana si el pizarrón deja de ser una isla y se conecta con lo que ya lo hace único (diagramas como código, IA con tu propia key, organización, historial, compartir, self-host multiusuario).
+
+**Paridad (lo mínimo para que no se sienta inferior)**
+
+| # | Ítem | Esfuerzo | Estado |
+|---|------|----------|--------|
+| W1 | **Estilo "a mano" con `roughjs`**: control de *trazo* (arquitecto / artista / caricatura) y relleno (sólido / rayado / cruzado); sin cambiar el formato guardado (atributos nuevos opcionales, *seed* estable por elemento para que no "tiemble" al redibujar) | M | ❓ |
+| W2 | **Trazo libre con `perfect-freehand`** (suavizado, presión del lápiz/stylus, puntas) | S | ❓ |
+| W3 | **Fuente manuscrita empaquetada** (OFL, servida localmente) + texto que se ajusta dentro de las formas | S | ❓ |
+| W4 | **Rendimiento**: caché del dibujo por elemento (roughjs es costoso) para no redibujar todo en cada cuadro | S/M | ❓ |
+| W5 | **Lo que se nota al usarlo**: pegar imágenes, atajos de teclado por herramienta (1–9), exportar PNG/SVG con fondo transparente, bloquear elementos, "ajustar a pantalla", lienzo oscuro | M | ❓ |
+
+**Diferenciación (lo que Excalidraw no tiene o cobra)**
+
+| # | Ítem | Por qué gana usuarios | Esfuerzo | Estado |
+|---|------|-----------------------|----------|--------|
+| D1 | **Boceto ↔ código**: convertir un pizarrón a Mermaid/PlantUML con IA (para versionarlo, documentarlo, ponerlo en un README) y Mermaid → pizarrón "a mano" (para presentarlo con look informal). Hoy la conversión excluye freehand | Nadie une boceto y diagrama-como-código en ambos sentidos | M/L | ❓ |
+| D2 | **Bloques de diagrama vivos dentro del pizarrón**: un elemento con código Mermaid/PlantUML/D2 que se renderiza y se edita ahí mismo | Pizarrón libre + diagramas precisos en el mismo lienzo | M | ❓ |
+| D3 | **"Dibuja esto" con IA (BYOK)**: genera un boceto editable en el lienzo desde un prompt, con el proveedor del usuario | En Excalidraw la IA es de pago/limitada; aquí es tu key, self-hosted | M | ❓ |
+| D4 | **Lo que ya existe, puesto en valor para el pizarrón**: proyectos/carpetas, historial de versiones (F1), links con código y expiración, modo presentación con anotaciones, descripción en Markdown | Excalidraw gratis no organiza ni versiona (Excalidraw+ es de pago) | S (mensaje + pulido) | ❓ |
+
+**Fuera de alcance de 0.8**: colaboración en tiempo real (la gran fortaleza de Excalidraw; requiere CRDT/WebSockets — apuesta mayor).
+
+**Alternativa considerada — incrustar el componente de Excalidraw (MIT)**: paridad inmediata de dibujo, pero migración del formato guardado, ~1 MB más en el chunk del editor, perder lo que ya tiene el lienzo propio (guías de alineación, anclajes de flechas, integración con autosave/presentación/solo lectura) y, sobre todo, refuerza la pregunta "¿por qué no usar Excalidraw directamente?". Se recomienda el camino propio (W1–W4) y reevaluar si después la calidad sigue por debajo.
+
+**Recomendación**: W1–W4 + D1 + D4 en 0.8.0 (D2/D3 si hay espacio; W5 por partes).
+
 ## 4. Deuda técnica
 
 - `ChatSessionService` (1,336 líneas, send/stream casi duplicados): dividir **después** de Q2, que le da red de pruebas.
@@ -72,10 +114,11 @@
 ## 5. Decisiones abiertas
 
 1. ¿Qué features entran? (recomendado: F1–F4)
-2. ¿Q4 (extraer hooks del editor) entra con F1?
-3. ¿H3 cambia la instalación local por defecto o queda como opción documentada?
-4. ¿Modo embed (F6): se acepta permitir *framing* en la ruta pública de embed?
-5. ¿Umbral de cobertura objetivo: 55%?
+2. ¿Pizarrón: camino propio (`roughjs` + `perfect-freehand`) o incrustar Excalidraw? (recomendado: propio) ¿Qué diferenciadores entran? (recomendado: D1 + D4)
+3. ¿Q4 (extraer hooks del editor) entra con F1?
+4. ¿H3 cambia la instalación local por defecto o queda como opción documentada?
+5. ¿Modo embed (F6): se acepta permitir *framing* en la ruta pública de embed?
+6. ¿Umbral de cobertura objetivo: 55%?
 
 ## 6. Cierre
 
