@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.1] - 2026-09-30
+
+### Security
+- Frontend production dependencies: 25 advisories (1 high) -> 0. dompurify ^3.4.16, mermaid ^11.17.2, react-router-dom ^7.18.4.
+- The frontend security overrides lived under npm's top-level `overrides` key, which pnpm ignores (since the 0.6.0 pnpm migration none of the six applied); moved to `pnpm.overrides`.
+- Backend image: Poetry 1.8.3 -> 2.5.1 (Poetry and its `dulwich` dependency had advisories); the container runs as the unprivileged `app` user (uid/gid 1000).
+- Global request body size limit: 413 above `MAX_REQUEST_BODY_BYTES` (default 5 MB), checked on the declared `Content-Length` and while chunked bodies stream in; 400 on a malformed `Content-Length`.
+
+### Changed
+- Route-level code splitting with a preloading lazy wrapper (`lazyWithPreload`) so preloaded routes render without Suspense; the current route's chunk is fetched in parallel with the auth checks and the main routes are warmed after load for signed-in users. Initial JS for login/dashboard 668 KB -> 193 KB gzip; time to content: login ~163 -> ~106 ms, dashboard ~191 -> ~131 ms, editor diagram painted ~299 -> ~181 ms.
+- html2canvas is loaded on demand in the export paths.
+- `GET /diagrams/recent` uses a single `$in` query sorted by `updated_at`, limited and projected to summary fields, backed by a new `(project_id, updated_at)` index.
+- `updated_at` only moves when a non-presentation field actually changes; viewport (`viewport_zoom`, `viewport_x`, `viewport_y`) and `user_preferences` updates keep it.
+- Viewport saves are silent in the editor (no "Saved" badge).
+
+### Fixed
+- Opening a diagram wrote to it (content autosave and viewport save fired on load), bumping `updated_at` and reshuffling the dashboard's Recent list.
+- Edits made within the 1.5 s autosave debounce were lost when switching diagrams or leaving the editor; pending saves are now flushed on switch, unmount and tab hide, with a keepalive request and a `beforeunload` warning on close.
+- The toolbar title showed the previous diagram while switching.
+- Native `alert()` calls in AI generation and AI provider settings replaced by a shared dismissible `ErrorToast`.
+- Hardcoded Spanish strings in the new-diagram modal, preview messages, resize tooltips and three error messages; `es-ES`-only date formatting in exports, billing, subscription, profile, admin and editor (shared `dateLocale()` helper).
+
 ## [0.7.0] - 2026-09-29
 
 ### Added
