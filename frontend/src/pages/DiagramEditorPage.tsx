@@ -1468,9 +1468,16 @@ export default function DiagramEditorPage() {
       // Pending includes a save whose PUT is in flight: the page is going away
       // and that request may be cancelled, so resend it with keepalive.
       const save = pendingSave.current ?? inFlightSave.current;
-      if (save && api.updateDiagramOnUnload(save.id, save.payload)) {
-        pendingSave.current = null;
-      }
+      if (!save) return;
+      // Only a confirmed response clears it: if the request fails (quota, network)
+      // and the page is restored from the back/forward cache, it is still pending.
+      void api.updateDiagramOnUnload(save.id, save.payload)?.then((ok) => {
+        if (ok && pendingSave.current === save) pendingSave.current = null;
+      });
+    };
+    // Restored from the back/forward cache with unconfirmed edits: retry them.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && pendingSave.current) void persistDiagram(pendingSave.current);
     };
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!pendingSave.current && !inFlightSave.current) return;
@@ -1479,10 +1486,12 @@ export default function DiagramEditorPage() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [persistDiagram]);

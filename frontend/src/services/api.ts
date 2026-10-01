@@ -96,6 +96,9 @@ import {
 } from '../types/oauth';
 import { API_URL } from '../utils/runtimeConfig';
 
+/** Keepalive body budget: below the ~64 KiB browser quota, leaving room for headers. */
+const KEEPALIVE_MAX_BODY_BYTES = 60_000;
+
 class ApiService {
   private api: AxiosInstance;
   private publicApi: AxiosInstance;
@@ -251,15 +254,28 @@ class ApiService {
   /**
    * Best-effort diagram save while the page is being unloaded (tab close,
    * reload). Uses `fetch` with `keepalive` because an axios request would be
-   * cancelled with the page. Browsers cap keepalive bodies at ~64 KB, so
-   * larger payloads return false and rely on the beforeunload warning instead.
+   * cancelled with the page.
+   *
+   * Browsers cap in-flight keepalive bodies at ~64 KiB of *encoded bytes*, so
+   * the size is measured as UTF-8 (a string's `.length` counts UTF-16 units and
+   * undercounts accents, ñ, emoji or CJK text). Larger payloads return `null`
+   * without sending and rely on the beforeunload warning instead.
+   *
+   * @returns `null` when not attempted; otherwise a promise resolving to whether
+   *   the server accepted it (never rejects, so a quota or network failure is
+   *   reported instead of being mistaken for success).
    */
-  updateDiagramOnUnload(diagramId: string, data: UpdateDiagramRequest): boolean {
+  updateDiagramOnUnload(diagramId: string, data: UpdateDiagramRequest): Promise<boolean> | null {
     const body = JSON.stringify(data);
-    if (body.length > 60_000) return false;
-    const token = localStorage.getItem('token');
+    if (new TextEncoder().encode(body).byteLength > KEEPALIVE_MAX_BODY_BYTES) return null;
+    let token: string | null = null;
     try {
-      void fetch(`${API_URL}/api/v1/diagrams/${diagramId}`, {
+      token = localStorage.getItem('token');
+    } catch {
+      // storage blocked: send without auth (the server will reject it)
+    }
+    try {
+      return fetch(`${API_URL}/api/v1/diagrams/${diagramId}`, {
         method: 'PUT',
         keepalive: true,
         headers: {
@@ -267,10 +283,12 @@ class ApiService {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body,
-      });
-      return true;
+      }).then(
+        (response) => response.ok,
+        () => false,
+      );
     } catch {
-      return false;
+      return Promise.resolve(false);
     }
   }
 

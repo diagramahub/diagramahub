@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - Opening a diagram wrote to it (content autosave and viewport save fired on load), bumping `updated_at` and reshuffling the dashboard's Recent list.
-- Edits made within the 1.5 s autosave debounce were lost when switching diagrams or leaving the editor; pending saves are now flushed on switch, unmount and tab hide, with a keepalive request and a `beforeunload` warning on close. A save stays pending until the server confirms it (an in-flight PUT is resent on unload), and autosave PUTs are serialized so a slow earlier request can't overwrite a newer one.
+- Edits made within the 1.5 s autosave debounce were lost when switching diagrams or leaving the editor; pending saves are now flushed on switch, unmount and tab hide, with a keepalive request and a `beforeunload` warning on close. A save stays pending until the server confirms it (an in-flight PUT is resent on unload; the keepalive body budget is measured in UTF-8 bytes and only a confirmed response clears the save, which is retried if the page returns from the back/forward cache), and autosave PUTs are serialized so a slow earlier request can't overwrite a newer one.
 - The toolbar title showed the previous diagram while switching.
 - Native `alert()` calls in AI generation and AI provider settings replaced by a shared dismissible `ErrorToast`.
 - Hardcoded Spanish strings in the new-diagram modal, preview messages, resize tooltips and three error messages; `es-ES`-only date formatting in exports, billing, subscription, profile, admin and editor (shared `dateLocale()` helper).
