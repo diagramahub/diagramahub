@@ -60,21 +60,14 @@ class DiagramService:
             List of recent diagrams with project context, ordered by
             updated_at descending
         """
-        # Get all user projects
         projects = await self.project_repository.get_by_user_id(user_id)
+        project_map = {str(p.id): {"name": p.name, "emoji": p.emoji} for p in projects}
 
-        # Collect all diagrams across projects
-        all_diagrams = []
-        project_map = {}
-        for p in projects:
-            project_map[str(p.id)] = {"name": p.name, "emoji": p.emoji}
-            diagrams = await self.diagram_repository.get_by_project_id(str(p.id))
-            for d in diagrams:
-                all_diagrams.append(d)
-
-        # Sort by updated_at descending and take top N
-        all_diagrams.sort(key=lambda d: d.updated_at or d.created_at, reverse=True)
-        recent = all_diagrams[:limit]
+        # One sorted + limited query with a summary projection, instead of loading
+        # every diagram (with its full content) of every project and sorting here.
+        recent = await self.diagram_repository.get_recent_by_project_ids(
+            list(project_map), limit
+        )
 
         return [
             {

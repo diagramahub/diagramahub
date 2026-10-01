@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../utils/locale';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import PremiumAvatar from '../components/PremiumAvatar';
@@ -34,7 +35,7 @@ const TIMEZONES = [
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -278,7 +279,7 @@ export default function ProfilePage() {
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('profile.memberSince')}</label>
                   <p className="mt-1 text-gray-900 dark:text-gray-100">
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString('es-ES', {
+                    {user?.created_at ? new Date(user.created_at).toLocaleDateString(dateLocale(i18n.language), {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric',

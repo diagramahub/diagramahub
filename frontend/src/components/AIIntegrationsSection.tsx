@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserAISettings, AIProviderConfig, AI_PROVIDER_NAMES, AI_PROVIDER_STATUS, AI_PROVIDER_MODELS } from '../types/ai';
 import apiService from '../services/api';
 import AddProviderModal from './AddProviderModal';
 import EditProviderModal from './EditProviderModal';
 import ConfirmModal from './ConfirmModal';
+import { ErrorToast } from './ErrorToast';
 
 export default function AIIntegrationsSection() {
   const { t } = useTranslation();
@@ -15,6 +16,8 @@ export default function AIIntegrationsSection() {
   const [editingProvider, setEditingProvider] = useState<{ provider: AIProviderConfig; index: number } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const clearActionError = useCallback(() => setActionError(null), []);
 
   useEffect(() => {
     loadSettings();
@@ -41,7 +44,7 @@ export default function AIIntegrationsSection() {
       await apiService.removeAIProvider(index);
       await loadSettings();
     } catch (error: any) {
-      alert(error.response?.data?.detail || t('errors.genericError'));
+      setActionError(error.response?.data?.detail || t('errors.genericError'));
     } finally {
       setActionLoading(null);
     }
@@ -56,7 +59,7 @@ export default function AIIntegrationsSection() {
       await apiService.setDefaultAIProvider(provider.provider);
       await loadSettings();
     } catch (error: any) {
-      alert(error.response?.data?.detail || t('errors.genericError'));
+      setActionError(error.response?.data?.detail || t('errors.genericError'));
     } finally {
       setActionLoading(null);
     }
@@ -303,6 +306,8 @@ export default function AIIntegrationsSection() {
         cancelText={t('common.cancel')}
         isDangerous={true}
       />
+
+      <ErrorToast message={actionError} onClose={clearActionError} />
     </>
   );
 }

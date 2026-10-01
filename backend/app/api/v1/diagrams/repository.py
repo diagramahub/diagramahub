@@ -5,8 +5,13 @@ Concrete implementation of diagram repository.
 from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
+from beanie.operators import In
 from .interfaces import IDiagramRepository
-from .schemas import DiagramInDB, DiagramCreate, DiagramUpdate
+from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
+
+
+# Fields that only describe how a diagram is being viewed, not its content.
+PRESENTATION_FIELDS = frozenset({"viewport_zoom", "viewport_x", "viewport_y", "user_preferences"})
 
 
 class DiagramRepository(IDiagramRepository):
@@ -64,6 +69,27 @@ class DiagramRepository(IDiagramRepository):
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()
         return diagrams
 
+    async def get_recent_by_project_ids(
+        self, project_ids: list[str], limit: int
+    ) -> list[DiagramSummary]:
+        """Most recently updated diagrams across projects in one indexed query.
+
+        Sorting, limiting and projecting happen in MongoDB, so only ``limit``
+        small documents come back instead of every diagram with its content.
+        """
+        if not project_ids or limit <= 0:
+            return []
+        return (
+            await DiagramInDB.find(In(DiagramInDB.project_id, project_ids))
+            # Sort on updated_at alone (always set) so MongoDB can SORT_MERGE the
+            # per-project ranges of the (project_id, updated_at) index: it examines
+            # only `limit` documents instead of sorting every match in memory.
+            .sort(-DiagramInDB.updated_at)
+            .limit(limit)
+            .project(DiagramSummary)
+            .to_list()
+        )
+
     async def get_by_folder_id(self, folder_id: str) -> list[DiagramInDB]:
         """Get all diagrams for a folder."""
         diagrams = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).to_list()
@@ -101,9 +127,22 @@ class DiagramRepository(IDiagramRepository):
             return None
 
         update_data = diagram_data.model_dump(exclude_unset=True)
-        if update_data:
+        if not update_data:
+            return diagram
+
+        # updated_at tracks edits, not viewing: the editor saves viewport and
+        # panel preferences on its own and always sends the full payload, so
+        # only a real change to a non-presentation field moves the timestamp
+        # (it orders the dashboard's Recent list).
+        current = diagram.model_dump(include=set(update_data))
+        edited = any(
+            current.get(field) != value
+            for field, value in update_data.items()
+            if field not in PRESENTATION_FIELDS
+        )
+        if edited:
             update_data["updated_at"] = datetime.utcnow()
-            await diagram.set(update_data)
+        await diagram.set(update_data)
 
         return diagram
 

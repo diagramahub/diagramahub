@@ -6,6 +6,7 @@
  * - Footer: export date + "Powered by Diagramahub" linking to diagramahub.com
  */
 
+import { dateLocale } from './locale';
 import type { jsPDF } from 'jspdf';
 import type { ExportMetadata } from './exportService';
 
@@ -153,7 +154,7 @@ export class MetadataHeader {
     // Export date
     const dateSpan = document.createElement('span');
     const now = new Date();
-    dateSpan.textContent = now.toLocaleDateString('es-ES', {
+    dateSpan.textContent = now.toLocaleDateString(dateLocale(), {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -256,7 +257,7 @@ export class MetadataHeader {
     pdf.setFont('helvetica', 'normal');
     pdf.setTextColor(156, 163, 175); // gray-400
     const now = new Date();
-    const dateStr = now.toLocaleDateString('es-ES', {
+    const dateStr = now.toLocaleDateString(dateLocale(), {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

@@ -5,8 +5,9 @@ Pydantic models for diagram module.
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from beanie import Document
+from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
+from pymongo import ASCENDING, DESCENDING, IndexModel
 
 
 class MermaidConfig(BaseModel):
@@ -155,7 +156,33 @@ class DiagramInDB(Document):
 
     class Settings:
         name = "diagrams"
-        indexes = ["project_id", "folder_id"]
+        indexes = [
+            "project_id",
+            "folder_id",
+            # Serves the dashboard "recent" query: filter by project, newest first.
+            IndexModel([("project_id", ASCENDING), ("updated_at", DESCENDING)]),
+        ]
+
+
+class DiagramSummary(BaseModel):
+    """Lightweight diagram projection for lists (no content/config/preferences)."""
+
+    id: PydanticObjectId = Field(alias="_id")
+    title: str
+    diagram_type: str
+    project_id: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Settings:
+        projection = {
+            "_id": 1,
+            "title": 1,
+            "diagram_type": 1,
+            "project_id": 1,
+            "created_at": 1,
+            "updated_at": 1,
+        }
 
 
 class DiagramResponse(BaseModel):
