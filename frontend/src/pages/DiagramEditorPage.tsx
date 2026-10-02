@@ -38,6 +38,7 @@ import { DiagramConversionModal } from "../components/DiagramConversionModal";
 import FreehandCanvas from "../components/FreehandCanvas";
 import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal from "../components/ExportDiagramModal";
+import ExportProjectModal from "../components/ExportProjectModal";
 import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
 import { LiveClock } from "../components/LiveClock";
@@ -297,6 +298,11 @@ export default function DiagramEditorPage() {
       return false;
     }
   });
+  // Project / folder export dialog (folderId preselects the folder scope)
+  const [exportProjectModal, setExportProjectModal] = useState<{
+    isOpen: boolean;
+    folderId: string | null;
+  }>({ isOpen: false, folderId: null });
   const [showFloatingSidebar, setShowFloatingSidebar] = useState(
     () => isFileBrowserPinned && !isMobile,
   );
@@ -3469,6 +3475,8 @@ export default function DiagramEditorPage() {
                   onMoveDiagramToProject={handleMoveDiagram}
                   onDeleteFolder={handleDeleteFolder}
                   onEditFolder={handleEditFolder}
+                  onExportProject={() => setExportProjectModal({ isOpen: true, folderId: null })}
+                  onExportFolder={(id) => setExportProjectModal({ isOpen: true, folderId: id })}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -4601,6 +4609,17 @@ export default function DiagramEditorPage() {
       </div>
 
       {/* Export Modal */}
+      {project && (
+        <ExportProjectModal
+          isOpen={exportProjectModal.isOpen}
+          onClose={() => setExportProjectModal({ isOpen: false, folderId: null })}
+          projectId={project.id}
+          projectName={project.name}
+          folders={project.folders.map((f) => ({ id: f.id, name: f.name }))}
+          initialFolderId={exportProjectModal.folderId}
+        />
+      )}
+
       <ExportDiagramModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
@@ -5536,6 +5555,14 @@ export default function DiagramEditorPage() {
               onEditFolder={(id, name) => {
                 setEditingFolderId(id);
                 setEditingFolderName(name);
+              }}
+              onExportProject={() => {
+                setShowFloatingSidebar(false);
+                setExportProjectModal({ isOpen: true, folderId: null });
+              }}
+              onExportFolder={(id) => {
+                setShowFloatingSidebar(false);
+                setExportProjectModal({ isOpen: true, folderId: id });
               }}
               onDragStart={(id) => setDraggedDiagramId(id)}
               onDragOver={handleDragOver}

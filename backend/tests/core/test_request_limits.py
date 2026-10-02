@@ -73,3 +73,12 @@ async def test_real_app_rejects_oversized_body_with_cors_headers(client: AsyncCl
     )
     assert response.status_code == 413
     assert response.headers.get("access-control-allow-origin") == origin
+
+
+@pytest.mark.integration
+async def test_cors_exposes_content_disposition(client: AsyncClient) -> None:
+    """Downloads need the browser to read the file name from Content-Disposition."""
+    origin = settings.cors_origins[0]
+    response = await client.get("/health", headers={"Origin": origin})
+    exposed = response.headers.get("access-control-expose-headers", "").lower()
+    assert "content-disposition" in exposed

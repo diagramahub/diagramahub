@@ -18,7 +18,7 @@ Tres pilares que se refuerzan entre sí: **lo que se exporta se puede importar**
 | # | Tarea | Esfuerzo | Estado |
 |---|-------|----------|--------|
 | E1 | **Backend**: servicio + `GET /projects/{id}/export?folder_id&format=zip\|markdown&variant=ai\|standard&descriptions` y `GET …/export/summary` | M | ✅ `export_builders.py` (puro) + `export_service.py` + rutas; 27 pruebas |
-| E2 | **Frontend**: diálogo (alcance, formato, variante, descripciones, resumen) desde el proyecto y desde el menú de carpeta del explorador | S/M | 🎯 |
+| E2 | **Frontend**: diálogo (alcance, formato, variante, descripciones, resumen) desde el proyecto y desde el menú de carpeta del explorador | S/M | ✅ `ExportProjectModal`; entradas en explorador (cabecera + menú de carpeta) y en la lista de proyectos; e2e 18/18 |
 
 **Diálogo**
 ```

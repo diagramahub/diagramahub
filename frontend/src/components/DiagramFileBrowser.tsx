@@ -34,6 +34,10 @@ interface DiagramFileBrowserProps {
   onMoveDiagramToProject: (id: string, title: string) => void;
   onDeleteFolder: (id: string, name: string, count: number) => void;
   onEditFolder: (id: string, name: string) => void;
+  /** Export the whole project (header action). */
+  onExportProject?: () => void;
+  /** Export one folder (folder menu). */
+  onExportFolder?: (id: string) => void;
   onDragStart: (id: string) => void;
   onDragOver: (e: React.DragEvent, folderId: string | null) => void;
   onDragLeave: () => void;
@@ -99,6 +103,7 @@ const ICONS = {
   newFile: 'M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   newFolder: 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+  download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
 };
 
 /**
@@ -130,6 +135,8 @@ export default function DiagramFileBrowser({
   onMoveDiagramToProject,
   onDeleteFolder,
   onEditFolder,
+  onExportProject,
+  onExportFolder,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -517,6 +524,12 @@ export default function DiagramFileBrowser({
             <Icon d={ICONS.rename} />
             {t('fileBrowser.rename')}
           </button>
+          {onExportFolder && (
+            <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onExportFolder(folder.id); }}>
+              <Icon d={ICONS.download} />
+              {t('projectExport.exportFolder')}
+            </button>
+          )}
           <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
           <button
             role="menuitem"
@@ -560,6 +573,11 @@ export default function DiagramFileBrowser({
           <button onClick={onNewFolder} className={rowActionClass} aria-label={t('editor.newFolder')} title={t('editor.newFolder')}>
             <Icon d={ICONS.newFolder} className="w-4 h-4" />
           </button>
+          {onExportProject && (
+            <button onClick={onExportProject} className={rowActionClass} aria-label={t('projectExport.exportProject')} title={t('projectExport.exportProject')}>
+              <Icon d={ICONS.download} className="w-4 h-4" />
+            </button>
+          )}
           {onTogglePin && (
             <button
               onClick={onTogglePin}

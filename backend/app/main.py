@@ -245,6 +245,9 @@ app.add_middleware(
         "sentry-trace",
         "baggage",
     ],
+    # Browsers only let scripts read these response headers when listed here.
+    # Content-Disposition carries the file name of project/folder exports.
+    expose_headers=["Content-Disposition", "Retry-After"],
 )
 
 # Include routers

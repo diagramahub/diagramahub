@@ -96,6 +96,51 @@ import {
 } from '../types/oauth';
 import { API_URL } from '../utils/runtimeConfig';
 
+export type ProjectExportFormat = 'zip' | 'markdown';
+export type ProjectExportVariant = 'ai' | 'standard';
+
+export interface ProjectExportRequest {
+  format: ProjectExportFormat;
+  variant: ProjectExportVariant;
+  descriptions: boolean;
+  /** Export only this folder; null/undefined exports the whole project. */
+  folderId?: string | null;
+}
+
+export interface ProjectExportSummary {
+  diagram_count: number;
+  folder_count: number;
+  size_bytes: number;
+  /** Only for the Markdown "ai" variant. */
+  estimated_tokens: number | null;
+  filename: string;
+}
+
+function exportParams(options: ProjectExportRequest): Record<string, string> {
+  const params: Record<string, string> = {
+    format: options.format,
+    variant: options.variant,
+    descriptions: String(options.descriptions),
+  };
+  if (options.folderId) params.folder_id = options.folderId;
+  return params;
+}
+
+/** File name from a Content-Disposition header (prefers the UTF-8 `filename*`). */
+function filenameFromDisposition(header: string | undefined): string | null {
+  if (!header) return null;
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8[1]);
+    } catch {
+      /* fall through to the ASCII name */
+    }
+  }
+  const ascii = /filename="([^"]+)"/i.exec(header);
+  return ascii ? ascii[1] : null;
+}
+
 /** Keepalive body budget: below the ~64 KiB browser quota, leaving room for headers. */
 const KEEPALIVE_MAX_BODY_BYTES = 60_000;
 
@@ -767,6 +812,37 @@ class ApiService {
   async adminResetUserMfa(userId: string): Promise<{ message: string }> {
     const response = await this.api.post<{ message: string }>(`/api/v1/mfa/admin/users/${userId}/reset-mfa`);
     return response.data;
+  }
+
+  // ============================================================================
+  // Project / folder export
+  // ============================================================================
+
+  async getProjectExportSummary(
+    projectId: string,
+    options: ProjectExportRequest,
+  ): Promise<ProjectExportSummary> {
+    const response = await this.api.get<ProjectExportSummary>(
+      `/api/v1/projects/${projectId}/export/summary`,
+      { params: exportParams(options) },
+    );
+    return response.data;
+  }
+
+  /** Downloads the export; the file name comes from the server's Content-Disposition. */
+  async downloadProjectExport(
+    projectId: string,
+    options: ProjectExportRequest,
+  ): Promise<{ blob: Blob; filename: string }> {
+    const response = await this.api.get(`/api/v1/projects/${projectId}/export`, {
+      params: exportParams(options),
+      responseType: 'blob',
+    });
+    const fallback = `export.${options.format === 'zip' ? 'zip' : 'md'}`;
+    return {
+      blob: response.data,
+      filename: filenameFromDisposition(response.headers['content-disposition']) ?? fallback,
+    };
   }
 
   async adminExportUsersExcel(): Promise<Blob> {
