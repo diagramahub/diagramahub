@@ -40,7 +40,23 @@
 
 #### F8 — Exportación masiva (diseño propuesto)
 
-**Alcance**: proyecto completo (todas sus carpetas + diagramas en la raíz) o una carpeta. Desde el explorador (menú de carpeta → "Exportar carpeta") y desde el proyecto ("Exportar proyecto").
+**Diálogo de exportación** (desde el proyecto o desde el menú de una carpeta en el explorador; al abrirlo desde una carpeta, ya viene seleccionada):
+
+```
+Exportar
+  Alcance   (•) Proyecto completo (raíz + todas las carpetas)
+            ( ) Una carpeta: [ Arquitectura ▾ ]
+  Formato   (•) ZIP — carpetas y archivos individuales
+            ( ) Markdown — un solo archivo
+                  Variante  (•) Para contexto de IA
+                            ( ) Estándar
+  Incluir   [x] Descripciones
+  Resumen   12 diagramas · 3 carpetas · ~48 KB · ~11.000 tokens (solo variante IA)
+                                              [Cancelar] [Exportar]
+```
+
+- El **alcance** aplica a los dos formatos: con "una carpeta" se exporta solo esa carpeta (con la misma estructura).
+- El **resumen** se calcula antes de descargar, para saber qué se va a bajar.
 
 **Formato 1 — ZIP con la estructura del proyecto**
 ```
@@ -61,7 +77,19 @@ Mi proyecto/
 - Nombres saneados para cualquier sistema de archivos (sin `/`, `..`, caracteres reservados) y sin colisiones (dos diagramas con el mismo título → sufijo `(2)`).
 - Fase 2 opcional: incluir también la imagen (SVG) de cada diagrama. PlantUML/D2/DBML ya se pueden dibujar en el servidor con Kroki; **Mermaid no**, porque requiere el contenedor adicional `kroki-mermaid`.
 
-**Formato 2 — Un solo Markdown "listo para IA"**
+**Formato 2 — Un solo Markdown, en dos variantes**
+
+| | **Para contexto de IA** | **Estándar** |
+|---|---|---|
+| Para qué | pegarlo/adjuntarlo en ChatGPT, Claude, etc. y que el modelo entienda el proyecto | leerlo, compartirlo o publicarlo como documento |
+| Encabezado | preámbulo que explica qué es el archivo, cómo está organizado y cómo leer cada bloque | solo el título del proyecto |
+| Índice | sí, con la ruta de cada diagrama | sí, simple |
+| Metadatos por diagrama | tipo, carpeta/ruta, fecha de actualización | ninguno |
+| Pizarrones | sus textos como lista, con una nota de que es un dibujo | sus textos como lista |
+| Estimación de tokens | sí | no |
+| Común a ambas | secciones por carpeta y diagrama, descripción, código en bloques con su etiqueta (`mermaid`, `plantuml`, `d2`, `dbml`) | |
+
+Ejemplo de la variante **para contexto de IA**:
 ```markdown
 # Proyecto: Mi proyecto
 > Exportado de Diagramahub el 2026-10-01 · 3 carpetas · 12 diagramas
@@ -87,9 +115,9 @@ graph TD
 - Antes de descargar se muestra el tamaño y una **estimación de tokens**, útil para saber si cabe en el contexto del modelo.
 
 **Implementación**
-- Endpoint `GET /api/v1/projects/{id}/export?format=zip|markdown[&folder_id=…]`: verifica que el proyecto sea del usuario y genera el archivo en el servidor (no depende de que el navegador tenga cargados todos los diagramas; servirá también para los tokens de API de F7).
+- Endpoint `GET /api/v1/projects/{id}/export?format=zip|markdown[&variant=ai|standard][&folder_id=…][&descriptions=true|false]` (+ `GET …/export/summary` para el resumen del diálogo): verifica que el proyecto sea del usuario y genera el archivo en el servidor (no depende de que el navegador tenga cargados todos los diagramas; servirá también para los tokens de API de F7).
 - ZIP con `zipfile` de la librería estándar (sin dependencias nuevas). Respeta el límite de peticiones por usuario para evitar abuso.
-- Pruebas: estructura del ZIP, nombres saneados y colisiones, Markdown con bloques por tipo, carpeta vacía, proyecto de otro usuario → 403/404.
+- Pruebas: estructura del ZIP (proyecto completo y una carpeta), nombres saneados y colisiones, las dos variantes de Markdown (preámbulo/metadatos solo en la de IA), bloques por tipo, sin descripciones, carpeta vacía, carpeta de otro proyecto y proyecto de otro usuario → 403/404.
 
 **Sinergia con F2 (importar)**: si F2 acepta el ZIP con `manifest.json`, exportar + importar un proyecto completo sirve como **respaldo y migración entre instancias self-hosted**.
 
