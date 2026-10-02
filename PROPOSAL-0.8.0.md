@@ -36,8 +36,64 @@
 | F5 | **Búsqueda global** de diagramas (título + contenido) | Encontrar en proyectos grandes | M | Índice `$text` en Mongo + endpoint paginado + UI en dashboard | ❓ |
 | F6 | **Modo embed** (`?embed=1` + "copiar código embed") | Diagramas vivos en READMEs/Notion/wikis | M | Requiere permitir *framing* solo en esa ruta (hoy `X-Frame-Options`/CSP lo impiden): decisión de seguridad | ❓ |
 | F7 | **Tokens personales de API** (export/render vía curl en CI) | Automatización | M/L | Sensible: scopes, hash del token, auditoría, revocación | ❓ |
+| F8 | **Exportación masiva de proyecto o carpeta**, en dos formatos (detalle abajo) | Respaldo, migrar entre instancias, compartir con un modelo de IA en un solo archivo | M | Backend genera el archivo; reutiliza el mapeo de tipos a bloques de código de `MarkdownExporter` | ❓ |
 
-**Recomendación**: F1 + F2 + F3 + F4 para 0.8.0 (F5 si hay espacio). F6 y F7 a 0.9 por su superficie de seguridad.
+#### F8 — Exportación masiva (diseño propuesto)
+
+**Alcance**: proyecto completo (todas sus carpetas + diagramas en la raíz) o una carpeta. Desde el explorador (menú de carpeta → "Exportar carpeta") y desde el proyecto ("Exportar proyecto").
+
+**Formato 1 — ZIP con la estructura del proyecto**
+```
+Mi proyecto/
+├── README.md                 ← índice: carpetas, diagramas, tipo y fecha
+├── manifest.json             ← metadatos para reimportar (versión de formato, tipos, carpetas, colores)
+├── Arquitectura/
+│   ├── Flujo de login.mmd
+│   ├── Flujo de login.md     ← descripción del diagrama
+│   ├── Pagos.puml
+│   └── Pagos.md
+├── Base de datos/
+│   └── Esquema.dbml (+ .md)
+└── Boceto.freehand.json      ← pizarrón: su JSON original (reimportable)
+```
+- Extensiones por tipo: `.mmd`, `.puml`, `.d2`, `.dbml`, `.freehand.json`.
+- La descripción va en un `.md` hermano (solo si el diagrama tiene descripción).
+- Nombres saneados para cualquier sistema de archivos (sin `/`, `..`, caracteres reservados) y sin colisiones (dos diagramas con el mismo título → sufijo `(2)`).
+- Fase 2 opcional: incluir también la imagen (SVG) de cada diagrama. PlantUML/D2/DBML ya se pueden dibujar en el servidor con Kroki; **Mermaid no**, porque requiere el contenedor adicional `kroki-mermaid`.
+
+**Formato 2 — Un solo Markdown "listo para IA"**
+```markdown
+# Proyecto: Mi proyecto
+> Exportado de Diagramahub el 2026-10-01 · 3 carpetas · 12 diagramas
+
+## Índice
+- Arquitectura → Flujo de login (Mermaid), Pagos (PlantUML) …
+
+## Carpeta: Arquitectura
+### Flujo de login
+- Tipo: Mermaid · Actualizado: 2026-09-30
+
+**Descripción**
+(texto de la descripción en Markdown)
+
+```mermaid
+graph TD
+  A --> B
+```
+```
+- Bloques de código con la etiqueta de lenguaje correcta (`mermaid`, `plantuml`, `d2`, `dbml`) para que ChatGPT/Claude y los visores Markdown los reconozcan.
+- Encabezado con contexto (qué es el archivo y cómo está organizado) para que el modelo lo entienda sin instrucciones extra.
+- Pizarrones: como no son texto, se incluyen sus textos (etiquetas de formas y cajas de texto) como lista; con D1 (boceto → código) podrían ir como Mermaid.
+- Antes de descargar se muestra el tamaño y una **estimación de tokens**, útil para saber si cabe en el contexto del modelo.
+
+**Implementación**
+- Endpoint `GET /api/v1/projects/{id}/export?format=zip|markdown[&folder_id=…]`: verifica que el proyecto sea del usuario y genera el archivo en el servidor (no depende de que el navegador tenga cargados todos los diagramas; servirá también para los tokens de API de F7).
+- ZIP con `zipfile` de la librería estándar (sin dependencias nuevas). Respeta el límite de peticiones por usuario para evitar abuso.
+- Pruebas: estructura del ZIP, nombres saneados y colisiones, Markdown con bloques por tipo, carpeta vacía, proyecto de otro usuario → 403/404.
+
+**Sinergia con F2 (importar)**: si F2 acepta el ZIP con `manifest.json`, exportar + importar un proyecto completo sirve como **respaldo y migración entre instancias self-hosted**.
+
+**Recomendación**: F1 + F2 + F3 + F4 + F8 para 0.8.0 (F5 si hay espacio). F6 y F7 a 0.9 por su superficie de seguridad.
 
 ## 2. Track B — Calidad (habilita ir rápido sin romper)
 
@@ -113,7 +169,7 @@ Competir con Excalidraw *en dibujar* es perder: es un producto enfocado y muy pu
 
 ## 5. Decisiones abiertas
 
-1. ¿Qué features entran? (recomendado: F1–F4)
+1. ¿Qué features entran? (recomendado: F1–F4 + F8) ¿F2 debe importar también el ZIP de F8 (respaldo/migración)? ¿Imágenes en el ZIP desde ya (agrega el contenedor `kroki-mermaid`) o en una segunda fase?
 2. ¿Pizarrón: camino propio (`roughjs` + `perfect-freehand`) o incrustar Excalidraw? (recomendado: propio) ¿Qué diferenciadores entran? (recomendado: D1 + D4)
 3. ¿Q4 (extraer hooks del editor) entra con F1?
 4. ¿H3 cambia la instalación local por defecto o queda como opción documentada?
