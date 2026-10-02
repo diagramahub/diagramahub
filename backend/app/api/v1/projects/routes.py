@@ -2,7 +2,10 @@
 FastAPI routes for projects.
 """
 
-from fastapi import APIRouter, Depends, status
+from typing import Literal, Optional
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, Query, Response, status
 from app.api.deps import get_current_user_id
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.diagrams.repository import DiagramRepository
@@ -12,6 +15,7 @@ from app.api.v1.subscriptions.subscription_repository import SubscriptionReposit
 from app.api.v1.subscriptions.plan_repository import PlanRepository
 from .repository import ProjectRepository
 from .services import ProjectService
+from .export_service import ExportSummary, ProjectExportService
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithDiagramsResponse
 
 router = APIRouter()
@@ -24,6 +28,15 @@ def get_project_service() -> ProjectService:
         repository=ProjectRepository(),
         diagram_repository=DiagramRepository(),
         folder_repository=FolderRepository(),
+    )
+
+
+def get_export_service() -> ProjectExportService:
+    """Get project export service instance."""
+    return ProjectExportService(
+        project_repository=ProjectRepository(),
+        folder_repository=FolderRepository(),
+        diagram_repository=DiagramRepository(),
     )
 
 
@@ -62,6 +75,54 @@ async def get_user_projects(
 ):
     """Get all projects for the current user."""
     return await service.get_user_projects(user_id)
+
+
+@router.get("/projects/{project_id}/export/summary", response_model=ExportSummary)
+async def get_project_export_summary(
+    project_id: str,
+    format: Literal["zip", "markdown"] = Query("zip"),
+    variant: Literal["ai", "standard"] = Query("ai"),
+    descriptions: bool = Query(True),
+    folder_id: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
+    service: ProjectExportService = Depends(get_export_service),
+):
+    """What an export would contain (counts, size, token estimate) before downloading."""
+    return await service.summarize(
+        project_id, user_id, format, variant, descriptions, folder_id
+    )
+
+
+@router.get("/projects/{project_id}/export")
+async def export_project(
+    project_id: str,
+    format: Literal["zip", "markdown"] = Query("zip"),
+    variant: Literal["ai", "standard"] = Query("ai"),
+    descriptions: bool = Query(True),
+    folder_id: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
+    service: ProjectExportService = Depends(get_export_service),
+) -> Response:
+    """
+    Download the whole project (or one folder, with ``folder_id``) as a ZIP of
+    source files or as a single Markdown document (``variant=ai|standard``).
+    """
+    result = await service.export(
+        project_id, user_id, format, variant, descriptions, folder_id
+    )
+    ascii_name = result.filename.encode("ascii", "ignore").decode() or "export"
+    return Response(
+        content=result.content,
+        media_type=result.media_type,
+        headers={
+            # RFC 6266: ASCII fallback plus the UTF-8 name for browsers that read it.
+            "Content-Disposition": (
+                f'attachment; filename="{ascii_name}"; '
+                f"filename*=UTF-8''{quote(result.filename)}"
+            ),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.get("/projects/{project_id}", response_model=ProjectWithDiagramsResponse)
