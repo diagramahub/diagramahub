@@ -601,6 +601,7 @@
     "includeDescriptions": "Incluir descripciones",
     "summary": "Se descargará",
     "summaryLine": "{{diagrams}} diagramas · {{folders}} carpetas · {{size}}",
+    "sizeUpTo": "hasta {{size}}",
     "tokens": "≈ {{tokens}} tokens",
     "empty": "No hay diagramas en este alcance.",
     "summaryError": "No fue posible calcular el resumen.",

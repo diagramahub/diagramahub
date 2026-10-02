@@ -384,8 +384,13 @@ def _readme(tree: ExportTree, layout: list[tuple[str, ExportDiagram]]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def build_zip(tree: ExportTree, include_descriptions: bool = True) -> bytes:
-    """Render the tree as a ZIP archive (bytes)."""
+def build_zip(tree: ExportTree, include_descriptions: bool = True, compress: bool = True) -> bytes:
+    """Render the tree as a ZIP archive (bytes).
+
+    ``compress=False`` stores the entries without deflating them: the export
+    summary uses it to measure an upper bound of the download size without
+    paying the compression cost.
+    """
     root = sanitize_filename(tree.title, fallback="project")
     buffer = io.BytesIO()
     layout: list[tuple[str, ExportDiagram]] = []  # (path inside root, diagram)
@@ -437,7 +442,8 @@ def build_zip(tree: ExportTree, include_descriptions: bool = True) -> bytes:
         "diagrams": manifest_diagrams,
     }
 
-    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    compression = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
+    with zipfile.ZipFile(buffer, "w", compression=compression) as archive:
         archive.writestr(f"{root}/{README_FILENAME}", _readme(tree, layout))
         archive.writestr(
             f"{root}/{MANIFEST_FILENAME}", json.dumps(manifest, ensure_ascii=False, indent=2)

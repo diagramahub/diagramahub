@@ -13,11 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Freehand canvas: hand-drawn rendering with roughjs (stroke style Clean/Architect/Artist/Cartoonist, fill Solid/Hachure/Cross-hatch, stable per-element seed, cached drawables), smooth pressure-aware strokes with perfect-freehand, bundled Caveat handwriting font (SIL OFL 1.1) with a font selector, element locking (panel, context menu, Ctrl/Cmd+Shift+L), PNG export with 1x/2x/3x and transparent background, `.freehand.json` source download, and a deterministic "Sketch → Mermaid" conversion that creates a flowchart diagram next to the sketch.
 - `THIRD_PARTY_NOTICES.md` for bundled third-party components.
 - Vitest for pure frontend utilities (`npm test`), starting with `sketchToMermaid`.
-- Backend: `BodySizeLimitMiddleware` path overrides; `(project_id, …)` import/export services and pure builders/parsers with 69 tests.
+- Backend: `BodySizeLimitMiddleware` path overrides; `(project_id, …)` import/export services and pure builders/parsers with 70 tests.
 
 ### Changed
 - Existing drawings keep their clean rendering; only new elements use the hand-drawn style (switchable per element).
 - CORS exposes `Content-Disposition` and `Retry-After` so browser downloads keep the server file name.
+- The export summary has its own per-user rate limit (60/min) and measures ZIPs without compressing them (the dialog shows "up to" that size).
 - Export dialog offers PNG only for sketches (no SVG/PDF/Markdown pipeline for canvas drawings).
 
 ### Fixed
@@ -25,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - The export button was hidden for freehand diagrams, so sketches could not be exported.
 - DBML source downloads used the `.mmd` extension.
 - Canvas live preview ignored fill colour changes.
+- Opening the export dialog on a sketch after choosing SVG/PDF/Markdown for another diagram kept the hidden format, so the export button failed; sketches always export PNG.
 
 ## [0.7.1] - 2026-09-30
 

@@ -29,6 +29,20 @@ ExportFormat = Literal["zip", "markdown"]
 # Exports read every diagram of a project and build an archive: cheap enough
 # for normal use, expensive enough to deserve a per-user ceiling.
 export_rate_limiter = SlidingWindowRateLimiter(max_requests=30, window_seconds=60)
+# The export dialog asks for a summary on every option change, so it gets its
+# own (more generous) ceiling instead of eating into the download budget.
+export_summary_rate_limiter = SlidingWindowRateLimiter(max_requests=60, window_seconds=60)
+
+
+def _check_rate_limit(limiter: SlidingWindowRateLimiter, user_id: str) -> None:
+    """Raise 429 (with Retry-After) when the user exceeded the limiter's ceiling."""
+    allowed, retry_after = limiter.is_allowed(user_id)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many exports. Please wait a moment and try again.",
+            headers={"Retry-After": str(retry_after)},
+        )
 
 
 @dataclass
@@ -38,6 +52,8 @@ class ExportSummary:
     diagram_count: int
     folder_count: int
     size_bytes: int
+    # ZIP summaries are measured without compression: size_bytes is an upper bound.
+    size_is_upper_bound: bool
     estimated_tokens: Optional[int]  # only for the Markdown "ai" variant
     filename: str
 
@@ -163,20 +179,31 @@ class ProjectExportService:
         include_descriptions: bool = True,
         folder_id: Optional[str] = None,
     ) -> ExportSummary:
-        """Counts, size and (for the AI variant) token estimate, without downloading."""
+        """Counts, size and (for the AI variant) token estimate, without downloading.
+
+        Rate limited like the download, and a ZIP is never compressed here: its
+        entries are stored as-is, so the size is an upper bound of the download.
+        """
+        _check_rate_limit(export_summary_rate_limiter, user_id)
         tree = await self.load_tree(project_id, user_id, folder_id)
-        result = self.render(tree, fmt, variant, include_descriptions)
-        tokens = (
-            estimate_tokens(result.content.decode("utf-8"))
-            if fmt == "markdown" and variant == "ai"
-            else None
-        )
+        if fmt == "zip":
+            size = len(build_zip(tree, include_descriptions=include_descriptions, compress=False))
+            return ExportSummary(
+                diagram_count=tree.diagram_count,
+                folder_count=len(tree.folders),
+                size_bytes=size,
+                size_is_upper_bound=True,
+                estimated_tokens=None,
+                filename=download_filename(tree, "zip"),
+            )
+        document = build_markdown(tree, variant=variant, include_descriptions=include_descriptions)
         return ExportSummary(
             diagram_count=tree.diagram_count,
             folder_count=len(tree.folders),
-            size_bytes=len(result.content),
-            estimated_tokens=tokens,
-            filename=result.filename,
+            size_bytes=len(document.encode("utf-8")),
+            size_is_upper_bound=False,
+            estimated_tokens=estimate_tokens(document) if variant == "ai" else None,
+            filename=download_filename(tree, "markdown"),
         )
 
     async def export(
@@ -189,12 +216,6 @@ class ProjectExportService:
         folder_id: Optional[str] = None,
     ) -> ExportResult:
         """Build the download, enforcing the per-user rate limit."""
-        allowed, retry_after = export_rate_limiter.is_allowed(user_id)
-        if not allowed:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many exports. Please wait a moment and try again.",
-                headers={"Retry-After": str(retry_after)},
-            )
+        _check_rate_limit(export_rate_limiter, user_id)
         tree = await self.load_tree(project_id, user_id, folder_id)
         return self.render(tree, fmt, variant, include_descriptions)

@@ -601,6 +601,7 @@
     "includeDescriptions": "Include descriptions",
     "summary": "Will download",
     "summaryLine": "{{diagrams}} diagrams · {{folders}} folders · {{size}}",
+    "sizeUpTo": "up to {{size}}",
     "tokens": "≈ {{tokens}} tokens",
     "empty": "There are no diagrams in this scope.",
     "summaryError": "Could not compute the summary.",

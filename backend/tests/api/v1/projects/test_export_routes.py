@@ -7,14 +7,16 @@ import zipfile
 import pytest
 from httpx import AsyncClient
 
-from app.api.v1.projects.export_service import export_rate_limiter
+from app.api.v1.projects.export_service import export_rate_limiter, export_summary_rate_limiter
 
 
 @pytest.fixture(autouse=True)
 def _reset_rate_limiter():
     export_rate_limiter.reset()
+    export_summary_rate_limiter.reset()
     yield
     export_rate_limiter.reset()
+    export_summary_rate_limiter.reset()
 
 
 async def _seed(client: AsyncClient) -> dict:
@@ -99,6 +101,25 @@ async def test_export_summary(authenticated_client: AsyncClient) -> None:
     assert md["size_bytes"] > 200 and md["estimated_tokens"] == pytest.approx(md["size_bytes"] / 4, rel=0.05)
     assert md["filename"].endswith(".md")
     assert zipped["estimated_tokens"] is None and zipped["filename"].endswith(".zip") and zipped["size_bytes"] > 0
+    assert md["size_is_upper_bound"] is False and zipped["size_is_upper_bound"] is True
+    # The summary measures the archive uncompressed: never below the real download.
+    download = await authenticated_client.get(f"/api/v1/projects/{seed['id']}/export?format=zip")
+    assert zipped["size_bytes"] >= len(download.content)
+
+
+@pytest.mark.integration
+async def test_export_summary_is_rate_limited_per_user(authenticated_client: AsyncClient) -> None:
+    seed = await _seed(authenticated_client)
+    url = f"/api/v1/projects/{seed['id']}/export/summary?format=zip"
+    for _ in range(export_summary_rate_limiter.max_requests):
+        assert (await authenticated_client.get(url)).status_code == 200
+
+    response = await authenticated_client.get(url)
+
+    assert response.status_code == 429
+    assert "retry-after" in response.headers
+    # Its own budget: downloads are still available.
+    assert (await authenticated_client.get(f"/api/v1/projects/{seed['id']}/export?format=markdown")).status_code == 200
 
 
 @pytest.mark.integration

@@ -245,7 +245,9 @@ export default function ExportProjectModal({
                 {t('projectExport.summaryLine', {
                   diagrams: summary.diagram_count,
                   folders: summary.folder_count,
-                  size: formatBytes(summary.size_bytes),
+                  size: summary.size_is_upper_bound
+                    ? t('projectExport.sizeUpTo', { size: formatBytes(summary.size_bytes) })
+                    : formatBytes(summary.size_bytes),
                 })}
                 {summary.estimated_tokens != null && (
                   <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">

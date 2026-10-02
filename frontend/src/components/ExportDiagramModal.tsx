@@ -56,8 +56,11 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
   diagramType,
 }) => {
   const { t } = useTranslation();
-  // Format selected for export; the options below adapt to it.
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  // Format selected for export; the options below adapt to it. The modal stays
+  // mounted between diagrams, so a sketch (PNG only) must not inherit the format
+  // picked for a previous text diagram.
+  const [chosenFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  const selectedFormat: ExportFormat = diagramType === 'freehand' ? 'png' : chosenFormat;
 
   if (!isOpen) return null;
 

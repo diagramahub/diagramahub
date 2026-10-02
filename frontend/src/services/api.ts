@@ -111,6 +111,8 @@ export interface ProjectExportSummary {
   diagram_count: number;
   folder_count: number;
   size_bytes: number;
+  /** ZIP summaries are measured uncompressed: the download is at most this size. */
+  size_is_upper_bound: boolean;
   /** Only for the Markdown "ai" variant. */
   estimated_tokens: number | null;
   filename: string;
