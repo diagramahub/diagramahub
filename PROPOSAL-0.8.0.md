@@ -1,219 +1,136 @@
-# Plan vivo — Versión 0.8.0 (MINOR): borrador para revisar
+# Plan vivo — Versión 0.8.0 (MINOR): Exportar, Importar y Pizarrón a mano alzada
 
 - **Inicio**: 2026-10-01 · **Rama**: `release/0.8.0` (desde `main` = tag `0.7.1`)
-- **Tipo**: MINOR — admite funcionalidad nueva compatible; cambios con migración van con notas de actualización
+- **Tipo**: MINOR — funcionalidad nueva compatible
 - **Regla**: archivo interno de la rama; **se elimina antes del merge a `main`**
-- **Estados**: 🎯 en alcance · ✅ hecho · 🔨 en curso · 🚫 descartado/diferido con criterio · ❓ por decidir
+- **Estados**: 🎯 en alcance · 🔨 en curso · ✅ hecho · ❓ por decidir · 🚫 fuera de 0.8
+
+## Alcance
+
+Tres pilares que se refuerzan entre sí: **lo que se exporta se puede importar**, y el **pizarrón** se vuelve ciudadano de primera clase en ambos (y se conecta con los diagramas como código).
+
+**Fuera de 0.8.0** (para otra versión): historial de versiones, galería de templates, exportar desde link compartido, búsqueda global, modo embed, tokens de API, bloques de diagrama vivos y "dibuja esto" en el pizarrón, CI, pruebas de contrato, hardening (email único, clave TOTP, PyJWT, Monaco empaquetado), MongoDB con credenciales, Redis.
 
 ---
 
-## 0. Revisión de partida (2026-10-01, verificada en el código)
+## Pilar 1 — Exportar (proyecto o carpeta)
 
-| Hallazgo | Evidencia |
-|---|---|
-| Sin CI | no existe `.github/workflows/` |
-| Cobertura backend 52.38%, pero baja donde más duele | webhooks de Stripe **14%**, `chat_sessions/services.py` **10%** (519 stmts), `shared_links/services.py` **24%**, OAuth **0–20%**, `plan_service` 19% |
-| Las 3 regresiones de 0.7.0 salieron de endpoints sin pruebas | consultas Beanie de links compartidos/planes, `GET /folders/{id}` |
-| Frontend sin framework de pruebas | sin Vitest/Jest en `package.json` |
-| `DiagramEditorPage.tsx` con 5,632 líneas | autosave, viewport, cambio de diagrama y export viven en un solo componente |
-| Índice `users.email` no único | TODO en `users/schemas.py:148` desde 0.6.x |
-| Una sola clave cifra API keys de IA **y** secretos TOTP | `core/security.py` usa `AI_ENCRYPTION_KEY` para ambos |
-| `python-jose` arrastra `ecdsa` con aviso sin versión corregida | `pyproject.toml` |
-| Monaco se carga desde CDN | `@monaco-editor/react` sin `loader.config` → un self-host sin internet pierde el editor y bloquea una CSP estricta |
-| MongoDB de `local-full` sin credenciales y con `27017` expuesto | `deploy/local-full/docker-compose.yml` |
-| 🚫 **Descartado: SSRF en URLs de proveedores IA** | las URLs de los 5 clientes están fijas en el código; no hay URL configurable que validar |
+| # | Tarea | Esfuerzo | Estado |
+|---|-------|----------|--------|
+| E1 | **Backend**: servicio + `GET /projects/{id}/export?folder_id&format=zip\|markdown&variant=ai\|standard&descriptions` y `GET …/export/summary` | M | 🎯 |
+| E2 | **Frontend**: diálogo (alcance, formato, variante, descripciones, resumen) desde el proyecto y desde el menú de carpeta del explorador | S/M | 🎯 |
 
----
-
-## 1. Track A — Producto (funcionalidad nueva)
-
-| # | Feature | Valor | Esfuerzo | Notas | Estado |
-|---|---------|-------|----------|-------|--------|
-| F1 | **Historial de versiones** (snapshot al guardar con política de retención, listar, restaurar, comparar) | Alto: red de seguridad ante errores/IA; diferencia clara en el nicho | M/L | Reusa `DiagramDiffView`; nueva colección + límites por plan | 🎯 en alcance |
-| F2 | **Importar archivos** (.mmd/.puml/.d2/.dbml/.txt, arrastrar o seleccionar) | Migración desde archivos locales | S | Solo frontend + endpoint de creación existente; detectar tipo por extensión/contenido | 🎯 en alcance |
-| F3 | **Galería de templates** al crear diagrama (flujo, secuencia, ER, gantt, estados, clases + PlantUML/D2/DBML) | Elimina la página en blanco; onboarding | S/M | El modal de nuevo diagrama ya está traducido (0.7.1) | 🎯 en alcance |
-| F4 | **Exportar desde link compartido** (PNG/SVG para quien ve, sin login) | El link pasa de vitrina a entregable | S/M | Reusa `exportService` (ya carga html2canvas bajo demanda) | 🚫 → 0.9 |
-| F5 | **Búsqueda global** de diagramas (título + contenido) | Encontrar en proyectos grandes | M | Índice `$text` en Mongo + endpoint paginado + UI en dashboard | 🚫 → 0.9 |
-| F6 | **Modo embed** (`?embed=1` + "copiar código embed") | Diagramas vivos en READMEs/Notion/wikis | M | Requiere permitir *framing* solo en esa ruta (hoy `X-Frame-Options`/CSP lo impiden): decisión de seguridad | 🚫 → 0.9 |
-| F7 | **Tokens personales de API** (export/render vía curl en CI) | Automatización | M/L | Sensible: scopes, hash del token, auditoría, revocación | 🚫 → 0.9 |
-| F8 | **Exportación masiva de proyecto o carpeta**, en dos formatos (detalle abajo) | Respaldo, migrar entre instancias, compartir con un modelo de IA en un solo archivo | M | Backend genera el archivo; reutiliza el mapeo de tipos a bloques de código de `MarkdownExporter` | 🎯 en alcance |
-
-#### F8 — Exportación masiva (diseño propuesto)
-
-**Diálogo de exportación** (desde el proyecto o desde el menú de una carpeta en el explorador; al abrirlo desde una carpeta, ya viene seleccionada):
-
+**Diálogo**
 ```
 Exportar
   Alcance   (•) Proyecto completo (raíz + todas las carpetas)
-            ( ) Una carpeta: [ Arquitectura ▾ ]
+            ( ) Una carpeta: [ Arquitectura ▾ ]        ← preseleccionada si se abre desde una carpeta
   Formato   (•) ZIP — carpetas y archivos individuales
-            ( ) Markdown — un solo archivo
-                  Variante  (•) Para contexto de IA
-                            ( ) Estándar
+            ( ) Markdown — un solo archivo (.md)
+                  Variante  (•) Para contexto de IA   ( ) Estándar
   Incluir   [x] Descripciones
   Resumen   12 diagramas · 3 carpetas · ~48 KB · ~11.000 tokens (solo variante IA)
-                                              [Cancelar] [Exportar]
 ```
 
-- El **alcance** aplica a los dos formatos: con "una carpeta" se exporta solo esa carpeta (con la misma estructura).
-- El **resumen** se calcula antes de descargar, para saber qué se va a bajar.
+**ZIP**: carpeta raíz con el nombre del proyecto; una subcarpeta por carpeta; por diagrama su fuente (`.mmd`, `.puml`, `.d2`, `.dbml`, `.freehand.json`) y, si tiene, su descripción en un `.md` hermano; `README.md` (índice) y `manifest.json` (versión de formato, carpetas con color, tipos) para reimportar. Nombres saneados para cualquier sistema operativo y sin colisiones (sufijo `(2)`).
 
-**Formato 1 — ZIP con la estructura del proyecto**
-```
-Mi proyecto/
-├── README.md                 ← índice: carpetas, diagramas, tipo y fecha
-├── manifest.json             ← metadatos para reimportar (versión de formato, tipos, carpetas, colores)
-├── Arquitectura/
-│   ├── Flujo de login.mmd
-│   ├── Flujo de login.md     ← descripción del diagrama
-│   ├── Pagos.puml
-│   └── Pagos.md
-├── Base de datos/
-│   └── Esquema.dbml (+ .md)
-└── Boceto.freehand.json      ← pizarrón: su JSON original (reimportable)
-```
-- Extensiones por tipo: `.mmd`, `.puml`, `.d2`, `.dbml`, `.freehand.json`.
-- La descripción va en un `.md` hermano (solo si el diagrama tiene descripción).
-- Nombres saneados para cualquier sistema de archivos (sin `/`, `..`, caracteres reservados) y sin colisiones (dos diagramas con el mismo título → sufijo `(2)`).
-- Fase 2 opcional: incluir también la imagen (SVG) de cada diagrama. PlantUML/D2/DBML ya se pueden dibujar en el servidor con Kroki; **Mermaid no**, porque requiere el contenedor adicional `kroki-mermaid`.
+**Markdown**
 
-**Formato 2 — Un solo Markdown, en dos variantes**
-
-| | **Para contexto de IA** | **Estándar** |
+| | Para contexto de IA | Estándar |
 |---|---|---|
-| Para qué | pegarlo/adjuntarlo en ChatGPT, Claude, etc. y que el modelo entienda el proyecto | leerlo, compartirlo o publicarlo como documento |
-| Encabezado | preámbulo que explica qué es el archivo, cómo está organizado y cómo leer cada bloque | solo el título del proyecto |
-| Índice | sí, con la ruta de cada diagrama | sí, simple |
-| Metadatos por diagrama | tipo, carpeta/ruta, fecha de actualización | ninguno |
-| Pizarrones | sus textos como lista, con una nota de que es un dibujo | sus textos como lista |
+| Encabezado | preámbulo que explica qué es el archivo, cómo está organizado y cómo leer cada bloque | solo el título |
+| Índice | con la ruta de cada diagrama | simple |
+| Metadatos por diagrama | tipo, carpeta, fecha | ninguno |
 | Estimación de tokens | sí | no |
-| Común a ambas | secciones por carpeta y diagrama, descripción, código en bloques con su etiqueta (`mermaid`, `plantuml`, `d2`, `dbml`) | |
+| Común | secciones por carpeta/diagrama, descripción, código en bloques con etiqueta (`mermaid`, `plantuml`, `d2`, `dbml`); pizarrones como lista de sus textos (y como Mermaid si D1a puede convertirlos) | |
 
-Ejemplo de la variante **para contexto de IA**:
-```markdown
-# Proyecto: Mi proyecto
-> Exportado de Diagramahub el 2026-10-01 · 3 carpetas · 12 diagramas
+**Notas técnicas**: se genera en el servidor (no depende de lo que el navegador tenga cargado); ZIP con `zipfile` de la librería estándar; límite de peticiones por usuario; `Content-Disposition` con nombre saneado.
 
-## Índice
-- Arquitectura → Flujo de login (Mermaid), Pagos (PlantUML) …
+**Pruebas**: proyecto completo y una carpeta; las dos variantes (preámbulo/metadatos solo en IA); sin descripciones; nombres saneados y colisiones; carpeta vacía; carpeta de otro proyecto o proyecto de otro usuario → 403/404.
 
-## Carpeta: Arquitectura
-### Flujo de login
-- Tipo: Mermaid · Actualizado: 2026-09-30
+---
 
-**Descripción**
-(texto de la descripción en Markdown)
+## Pilar 2 — Importar
 
-```mermaid
-graph TD
-  A --> B
-```
-```
-- Bloques de código con la etiqueta de lenguaje correcta (`mermaid`, `plantuml`, `d2`, `dbml`) para que ChatGPT/Claude y los visores Markdown los reconozcan.
-- Encabezado con contexto (qué es el archivo y cómo está organizado) para que el modelo lo entienda sin instrucciones extra.
-- Pizarrones: como no son texto, se incluyen sus textos (etiquetas de formas y cajas de texto) como lista; con D1 (boceto → código) podrían ir como Mermaid.
-- Antes de descargar se muestra el tamaño y una **estimación de tokens**, útil para saber si cabe en el contexto del modelo.
+| # | Tarea | Esfuerzo | Estado |
+|---|-------|----------|--------|
+| I1 | **Archivos sueltos** (arrastrar al explorador o seleccionar): `.mmd/.mermaid`, `.puml/.plantuml/.pu`, `.d2`, `.dbml`, `.freehand.json`, `.md` con un bloque de código | S/M | 🎯 |
+| I2 | **ZIP**: el de E1 (con `manifest.json`, restaura carpetas y colores) y también un ZIP cualquiera (carpetas desde las rutas, tipo por extensión, descripción desde el `.md` hermano) | M | 🎯 |
+| I3 | **Importar de Excalidraw** (`.excalidraw` → pizarrón): rectángulo, rombo, elipse, flecha, línea, texto, trazo libre; lo no soportado (imágenes, *frames*) se omite y se informa | M | 🎯 |
 
-**Implementación**
-- Endpoint `GET /api/v1/projects/{id}/export?format=zip|markdown[&variant=ai|standard][&folder_id=…][&descriptions=true|false]` (+ `GET …/export/summary` para el resumen del diálogo): verifica que el proyecto sea del usuario y genera el archivo en el servidor (no depende de que el navegador tenga cargados todos los diagramas; servirá también para los tokens de API de F7).
-- ZIP con `zipfile` de la librería estándar (sin dependencias nuevas). Respeta el límite de peticiones por usuario para evitar abuso.
-- Pruebas: estructura del ZIP (proyecto completo y una carpeta), nombres saneados y colisiones, las dos variantes de Markdown (preámbulo/metadatos solo en la de IA), bloques por tipo, sin descripciones, carpeta vacía, carpeta de otro proyecto y proyecto de otro usuario → 403/404.
+**Flujo**: subir → **vista previa** ("se crearán 2 carpetas y 14 diagramas; 1 archivo omitido: `foto.png`") → confirmar → crear. Destino: la carpeta o raíz desde donde se importa.
 
-**Sinergia con F2 (importar)**: si F2 acepta el ZIP con `manifest.json`, exportar + importar un proyecto completo sirve como **respaldo y migración entre instancias self-hosted**.
+**Reglas**
+- **Detección de tipo** por extensión y, si es ambigua, por contenido (`@startuml`, `Table …`, `graph`/`flowchart`, sintaxis de D2).
+- **Título** desde el nombre del archivo; si ya existe en el destino, sufijo `(2)`.
+- **Límites del plan**: se revisa el cupo de diagramas **antes** de crear nada (`usage_limiter.check_diagram_limit`).
+- **Seguridad del ZIP**: tamaño de subida propio para este endpoint (el límite global de 0.7.1 es 5 MB), tope de tamaño descomprimido y de cantidad de archivos (protección contra *zip bombs*), sin ZIP anidados, se ignoran `__MACOSX/` y ocultos, rutas saneadas.
+- **Validación**: el JSON de pizarrón y el de Excalidraw se validan antes de guardarse.
+- **Sin escrituras parciales**: se valida todo primero; si algo falla al crear, se revierte lo creado (MongoDB standalone no tiene transacciones).
 
-**Recomendación**: F1 + F2 + F3 + F4 + F8 para 0.8.0 (F5 si hay espacio). F6 y F7 a 0.9 por su superficie de seguridad.
+**Implementación**: `POST /projects/{id}/import` (multipart, `python-multipart` ya está en las dependencias; `?dry_run=true` para la vista previa). Parsers puros (detección de tipo, ZIP, Excalidraw → pizarrón) con pruebas propias.
 
-## 2. Track B — Calidad (habilita ir rápido sin romper)
+**Por qué I3 importa**: es la puerta de entrada para usuarios de Excalidraw ("trae tus dibujos") — la forma más directa de que prueben Diagramahub.
 
-| # | Ítem | Por qué | Esfuerzo | Estado |
-|---|------|---------|----------|--------|
-| Q1 | **CI en GitHub Actions**: backend (ruff + pytest con umbral), frontend (`tsc` + build + lint sin regresión), `check-version.sh` en ramas `release/*`, auditoría semanal (`pnpm audit`, `pip-audit`) | Nada valida hoy un PR automáticamente | M | 🎯 en alcance (por defecto, confirmar) |
-| Q2 | **Pruebas de contrato por endpoint** (cada `GET` con datos devuelve su esquema) + **cobertura de caminos críticos**: webhooks de Stripe (idempotencia), chat, links compartidos, OAuth. Subir umbral 45% → 55% | Las regresiones de 0.7.0 y las invariantes de billing/auth sin red | M | 🎯 en alcance (por defecto, confirmar) |
-| Q3 | **Vitest en el frontend** para utilidades puras (`configInitBlockManager`, `sanitize`, `lazyWithPreload`, `dateLocale`, exportadores) | Primer piso de pruebas del frontend | S | 🎯 en alcance (por defecto, confirmar) |
-| Q4 | **Extraer del editor** hooks probables: `useAutosave`, `useViewportSave`, `useDiagramSwitch` | 5,632 líneas; la lógica de 0.7.1 (línea base, en vuelo, serialización) merece pruebas unitarias | M | 🎯 en alcance (por defecto, confirmar) |
+---
 
-**Recomendación**: Q1 + Q2 sí o sí (son la lección de 0.7.0); Q3 + Q4 juntos si entra F1 (el historial toca el autosave).
+## Pilar 3 — Pizarrón a mano alzada
 
-## 3. Track C — Seguridad / hardening (con migraciones)
-
-| # | Ítem | Impacto de actualización | Esfuerzo | Estado |
-|---|------|--------------------------|----------|--------|
-| H1 | **Índice único `users.email`** + script de migración (detecta duplicados, elimina `email_1`, deja que Beanie cree el único) | Correr la migración **antes** de desplegar | S/M | 🎯 en alcance (por defecto, confirmar) |
-| H2 | **Clave propia para TOTP** (`TOTP_ENCRYPTION_KEY`) con re-cifrado atómico de secretos existentes | Nueva variable + migración | M | 🎯 en alcance (por defecto, confirmar) |
-| H3 | **MongoDB con credenciales en `local-full`** y sin exponer `27017` al host | Cambia la instalación local: documentar | S | 🚫 fuera (cambia la instalación local) |
-| H4 | **`python-jose` → PyJWT** (elimina `ecdsa`) | Sin cambio visible (mismos tokens HS256) | S/M | 🎯 en alcance (por defecto, confirmar) |
-| H5 | **Monaco empaquetado** (sin CDN) | Self-host sin internet funciona; habilita CSP estricta | M | 🎯 en alcance (por defecto, confirmar) |
-| H6 | pytest 9 + pytest-asyncio actual (solo desarrollo) | Ninguno | S | 🎯 en alcance (por defecto, confirmar) |
-| H7 | Rate limiting con Redis (opcional, `REDIS_URL` con fallback en memoria) | Solo útil con varias réplicas | M | 🚫 → 0.9 |
-
-**Recomendación**: H1 + H2 + H4 + H5 (+ H6 por ser trivial). H3 si aceptas el cambio en la instalación local. H7 a cuando alguien despliegue con réplicas.
-
-## 3b. Track D — Pizarrón a mano alzada: calidad + diferenciación frente a Excalidraw
-
-### Por qué hoy no se siente como Excalidraw (verificado en `FreehandCanvas.tsx`)
+### Diagnóstico (verificado en `FreehandCanvas.tsx`)
 
 | Aspecto | Hoy | Excalidraw |
 |---|---|---|
-| Formas | geometría perfecta (`strokeRect`, líneas rectas) → app de dibujo básica | trazo "a mano" con `roughjs` (irregular, relleno rayado) |
-| Trazo libre | polilínea cruda, grosor constante, sin suavizado → dentado | `perfect-freehand`: suavizado, grosor variable, puntas afinadas |
-| Texto | `sans-serif` | fuente manuscrita (Virgil/Excalifont) |
-| Dependencias | ninguna de las dos librerías | ambas son MIT y son la base de su look |
+| Formas | geometría perfecta (`strokeRect`, líneas rectas) | trazo "a mano" con `roughjs` |
+| Trazo libre | polilínea cruda, grosor constante, sin suavizado | `perfect-freehand`: suavizado, presión, puntas |
+| Texto | `sans-serif` | fuente manuscrita |
 
-**Conclusión**: el salto de calidad percibida viene de **dos librerías MIT y una fuente**, no de reescribir el lienzo.
+Ambas librerías son MIT y livianas. **Camino propio** (no incrustar Excalidraw): conserva el formato guardado y lo que ya tiene el lienzo (guías de alineación, anclajes de flechas, grupos, integración con autosave, presentación y solo lectura).
 
-### Estrategia: paridad en lo esencial, ganar en lo que Excalidraw no tiene
+### Calidad visual
 
-Competir con Excalidraw *en dibujar* es perder: es un producto enfocado y muy pulido. Diagramahub gana si el pizarrón deja de ser una isla y se conecta con lo que ya lo hace único (diagramas como código, IA con tu propia key, organización, historial, compartir, self-host multiusuario).
+| # | Tarea | Esfuerzo | Estado |
+|---|-------|----------|--------|
+| W1 | **`roughjs`**: estilo de trazo (Arquitecto / Artista / Caricatura) y relleno (sólido / rayado / cruzado), con *seed* estable por elemento para que no "tiemble" al redibujar. Atributos nuevos opcionales: **sin migración** | M | 🎯 |
+| W2 | **`perfect-freehand`**: trazo suave con presión del lápiz/stylus (`PointerEvent.pressure`) | S | 🎯 |
+| W3 | **Fuente manuscrita empaquetada** (servida localmente, licencia OFL) + selector (manuscrita / normal / código) + texto que se ajusta dentro de las formas | S | 🎯 |
+| W4 | **Rendimiento**: caché del dibujo por elemento; medir con 1.000 elementos antes/después | S/M | 🎯 |
+| W5 | **Pulido de uso**: atajos por herramienta, "ajustar a pantalla", exportar PNG/SVG con fondo transparente, lienzo oscuro, bloquear elementos. (Pegar imágenes queda fuera: inflaría el contenido por encima del límite de 5 MB) | M | 🎯 |
 
-**Paridad (lo mínimo para que no se sienta inferior)**
+### Diferenciación
 
-| # | Ítem | Esfuerzo | Estado |
-|---|------|----------|--------|
-| W1 | **Estilo "a mano" con `roughjs`**: control de *trazo* (arquitecto / artista / caricatura) y relleno (sólido / rayado / cruzado); sin cambiar el formato guardado (atributos nuevos opcionales, *seed* estable por elemento para que no "tiemble" al redibujar) | M | 🎯 en alcance |
-| W2 | **Trazo libre con `perfect-freehand`** (suavizado, presión del lápiz/stylus, puntas) | S | 🎯 en alcance |
-| W3 | **Fuente manuscrita empaquetada** (OFL, servida localmente) + texto que se ajusta dentro de las formas | S | 🎯 en alcance |
-| W4 | **Rendimiento**: caché del dibujo por elemento (roughjs es costoso) para no redibujar todo en cada cuadro | S/M | 🎯 en alcance |
-| W5 | **Lo que se nota al usarlo**: pegar imágenes, atajos de teclado por herramienta (1–9), exportar PNG/SVG con fondo transparente, bloquear elementos, "ajustar a pantalla", lienzo oscuro | M | 🎯 por partes |
+| # | Tarea | Esfuerzo | Estado |
+|---|-------|----------|--------|
+| D1a | **Pizarrón → Mermaid** (diagrama de flujo), **determinista**: formas con texto → nodos (rectángulo `[ ]`, rombo `{ }`, elipse `( )`), flechas ancladas → conexiones (con su texto como etiqueta; punteada → `-.->`). Trazos libres y flechas sueltas se omiten con aviso. Crea un diagrama nuevo; el original no cambia. IA opcional (BYOK) solo para completar lo que no es estructurado | M | 🎯 |
+| D1b | **Mermaid → pizarrón** (diagrama de flujo): se dibuja con Mermaid, se toma la geometría de nodos y conexiones del SVG y se crean formas "a mano" con sus flechas ancladas | M | 🎯 (si hay tiempo tras D1a) |
+| D4 | **Pizarrón de primera clase**: incluido en exportar/importar; revisión del modo presentación y de la vista compartida con el nuevo renderizado | S | 🎯 |
 
-**Diferenciación (lo que Excalidraw no tiene o cobra)**
+**Compatibilidad**: los dibujos existentes no tienen los atributos nuevos. Ver decisión 1.
 
-| # | Ítem | Por qué gana usuarios | Esfuerzo | Estado |
-|---|------|-----------------------|----------|--------|
-| D1 | **Boceto ↔ código**: convertir un pizarrón a Mermaid/PlantUML con IA (para versionarlo, documentarlo, ponerlo en un README) y Mermaid → pizarrón "a mano" (para presentarlo con look informal). Hoy la conversión excluye freehand | Nadie une boceto y diagrama-como-código en ambos sentidos | M/L | 🎯 en alcance |
-| D2 | **Bloques de diagrama vivos dentro del pizarrón**: un elemento con código Mermaid/PlantUML/D2 que se renderiza y se edita ahí mismo | Pizarrón libre + diagramas precisos en el mismo lienzo | M | 🚫 → 0.9 |
-| D3 | **"Dibuja esto" con IA (BYOK)**: genera un boceto editable en el lienzo desde un prompt, con el proveedor del usuario | En Excalidraw la IA es de pago/limitada; aquí es tu key, self-hosted | M | 🚫 → 0.9 |
-| D4 | **Lo que ya existe, puesto en valor para el pizarrón**: proyectos/carpetas, historial de versiones (F1), links con código y expiración, modo presentación con anotaciones, descripción en Markdown | Excalidraw gratis no organiza ni versiona (Excalidraw+ es de pago) | S (mensaje + pulido) | 🎯 en alcance |
+---
 
-**Fuera de alcance de 0.8**: colaboración en tiempo real (la gran fortaleza de Excalidraw; requiere CRDT/WebSockets — apuesta mayor).
+## Calidad mínima del alcance (no es un pilar aparte)
 
-**Alternativa considerada — incrustar el componente de Excalidraw (MIT)**: paridad inmediata de dibujo, pero migración del formato guardado, ~1 MB más en el chunk del editor, perder lo que ya tiene el lienzo propio (guías de alineación, anclajes de flechas, integración con autosave/presentación/solo lectura) y, sobre todo, refuerza la pregunta "¿por qué no usar Excalidraw directamente?". Se recomienda el camino propio (W1–W4) y reevaluar si después la calidad sigue por debajo.
+- **Pruebas de backend** para exportar e importar (límites, seguridad del ZIP, permisos).
+- **Vitest** en el frontend solo para las funciones puras nuevas: detección de tipo, Excalidraw → pizarrón, pizarrón → Mermaid, nombres saneados. Son la lógica más fácil de romper y la más barata de probar.
+- Verificación en el navegador (Playwright) de los flujos completos, como en 0.7.x.
 
-**Recomendación**: W1–W4 + D1 + D4 en 0.8.0 (D2/D3 si hay espacio; W5 por partes).
+## Orden de ejecución
 
-## 4. Deuda técnica
+1. **E1 → E2** exportar (define el formato que reutiliza importar).
+2. **I1 → I2** importar (mismo formato), luego **I3** Excalidraw.
+3. **W1–W4** calidad visual del pizarrón, luego **W5**.
+4. **D1a** pizarrón → Mermaid; **D1b** si hay tiempo.
+5. **D4** y cierre del release (notas, CHANGELOG, badge, `check-version.sh`, borrar este archivo).
 
-- `ChatSessionService` (1,336 líneas, send/stream casi duplicados): dividir **después** de Q2, que le da red de pruebas.
-- `ai_providers/prompts.py` (2,061 líneas): revisar duplicación entre idiomas/proveedores.
+## Decisiones abiertas
 
-## 5. Alcance acordado (2026-10-01)
+1. **Dibujos existentes**: ¿conservan su aspecto actual (limpio) y solo los nuevos elementos usan el estilo "a mano"? (recomendado: sí, para no cambiarle el aspecto a nadie sin avisar; cualquiera puede cambiar el estilo de sus elementos)
+2. **Importar por encima del cupo del plan**: ¿rechazar todo con un mensaje claro, o importar hasta el límite? (recomendado: rechazar todo — es predecible)
+3. **Tamaño máximo de subida para importar**: ¿20 MB? (recomendado)
+4. **Fuente manuscrita**: Excalifont, Virgil o una de Google Fonts (Caveat/Kalam) — todas con licencia OFL; se verifica la licencia antes de empaquetar (recomendado: Excalifont, diseñada para este uso)
+5. **Vitest** solo para las funciones puras nuevas (recomendado: sí)
 
-- **Producto**: historial de versiones (F1), importar archivos (F2, incluido el ZIP de F8 si el tiempo da), galería de templates (F3), exportación masiva (F8: ZIP o Markdown; el Markdown se descarga como un `.md`). Extras F4–F7 → 0.9.
-- **Pizarrón**: camino propio — paridad visual (W1–W4, W5 por partes) + boceto ↔ código (D1) + puesta en valor de organización/historial/compartir (D4). Bloques vivos (D2) y "dibuja esto" (D3) → 0.9. Excalidraw incrustado descartado.
-- **Calidad y seguridad — por defecto (recomendación), pendiente de confirmar**: CI + pruebas de contrato con umbral 55% (Q1–Q2), Vitest + hooks del editor (Q3–Q4), hardening H1/H2/H4/H5/H6. MongoDB con credenciales en `local-full` (H3) queda fuera. Redis (H7) → cuando haya despliegues con réplicas.
-
-### Orden de ejecución propuesto
-
-1. **Q1 CI** — todo lo demás se valida solo desde el primer PR.
-2. **Q2 pruebas de contrato + caminos críticos** — red antes de tocar autosave/chat.
-3. **Q3/Q4 Vitest + hooks del editor** — prepara el terreno de F1.
-4. **F8 exportación** y **F2 importar** (comparten formato: `manifest.json`).
-5. **F1 historial de versiones** (sobre los hooks ya probados).
-6. **F3 templates**.
-7. **Pizarrón W1–W4**, luego **D1** (boceto ↔ código) y **D4**.
-8. **Hardening H1/H2/H4/H5/H6** (H1 y H2 con migración y notas de actualización).
-9. Cierre del release.
-
-## 6. Cierre
+## Cierre
 
 - [ ] Release notes `docs/{es,en}/release-notes/0.8.0.md`, índices, nav de mkdocs, CHANGELOG
 - [ ] Badge de cobertura del README actualizado
