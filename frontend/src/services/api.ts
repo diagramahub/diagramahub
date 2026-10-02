@@ -96,6 +96,86 @@ import {
 } from '../types/oauth';
 import { API_URL } from '../utils/runtimeConfig';
 
+export type ProjectExportFormat = 'zip' | 'markdown';
+export type ProjectExportVariant = 'ai' | 'standard';
+
+export interface ProjectExportRequest {
+  format: ProjectExportFormat;
+  variant: ProjectExportVariant;
+  descriptions: boolean;
+  /** Export only this folder; null/undefined exports the whole project. */
+  folderId?: string | null;
+}
+
+export interface ProjectExportSummary {
+  diagram_count: number;
+  folder_count: number;
+  size_bytes: number;
+  /** ZIP summaries are measured uncompressed: the download is at most this size. */
+  size_is_upper_bound: boolean;
+  /** Only for the Markdown "ai" variant. */
+  estimated_tokens: number | null;
+  filename: string;
+}
+
+function exportParams(options: ProjectExportRequest): Record<string, string> {
+  const params: Record<string, string> = {
+    format: options.format,
+    variant: options.variant,
+    descriptions: String(options.descriptions),
+  };
+  if (options.folderId) params.folder_id = options.folderId;
+  return params;
+}
+
+/** File name from a Content-Disposition header (prefers the UTF-8 `filename*`). */
+function filenameFromDisposition(header: string | undefined): string | null {
+  if (!header) return null;
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8[1]);
+    } catch {
+      /* fall through to the ASCII name */
+    }
+  }
+  const ascii = /filename="([^"]+)"/i.exec(header);
+  return ascii ? ascii[1] : null;
+}
+
+export interface ProjectImportDiagramPreview {
+  title: string;
+  diagram_type: string;
+  folder: string | null;
+  source: string;
+  has_description: boolean;
+  warnings: string[];
+}
+
+export interface ProjectImportPreview {
+  diagram_count: number;
+  folder_count: number;
+  folders: string[];
+  diagrams: ProjectImportDiagramPreview[];
+  skipped: { source: string; reason: string }[];
+  current_usage: number;
+  limit: number | null;
+  allowed: boolean;
+  target_folder: string | null;
+}
+
+export interface ProjectImportResult extends ProjectImportPreview {
+  created_diagram_ids: string[];
+  created_folder_ids: string[];
+}
+
+function importForm(files: File[], folderId: string | null): FormData {
+  const form = new FormData();
+  files.forEach((file) => form.append('files', file, file.name));
+  if (folderId) form.append('folder_id', folderId);
+  return form;
+}
+
 /** Keepalive body budget: below the ~64 KiB browser quota, leaving room for headers. */
 const KEEPALIVE_MAX_BODY_BYTES = 60_000;
 
@@ -766,6 +846,59 @@ class ApiService {
 
   async adminResetUserMfa(userId: string): Promise<{ message: string }> {
     const response = await this.api.post<{ message: string }>(`/api/v1/mfa/admin/users/${userId}/reset-mfa`);
+    return response.data;
+  }
+
+  // ============================================================================
+  // Project / folder export
+  // ============================================================================
+
+  async getProjectExportSummary(
+    projectId: string,
+    options: ProjectExportRequest,
+  ): Promise<ProjectExportSummary> {
+    const response = await this.api.get<ProjectExportSummary>(
+      `/api/v1/projects/${projectId}/export/summary`,
+      { params: exportParams(options) },
+    );
+    return response.data;
+  }
+
+  /** Downloads the export; the file name comes from the server's Content-Disposition. */
+  async downloadProjectExport(
+    projectId: string,
+    options: ProjectExportRequest,
+  ): Promise<{ blob: Blob; filename: string }> {
+    const response = await this.api.get(`/api/v1/projects/${projectId}/export`, {
+      params: exportParams(options),
+      responseType: 'blob',
+    });
+    const fallback = `export.${options.format === 'zip' ? 'zip' : 'md'}`;
+    return {
+      blob: response.data,
+      filename: filenameFromDisposition(response.headers['content-disposition']) ?? fallback,
+    };
+  }
+
+  // ============================================================================
+  // Project import
+  // ============================================================================
+
+  async previewProjectImport(projectId: string, files: File[], folderId: string | null): Promise<ProjectImportPreview> {
+    const response = await this.api.post<ProjectImportPreview>(
+      `/api/v1/projects/${projectId}/import`,
+      importForm(files, folderId),
+      { params: { dry_run: 'true' }, headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return response.data;
+  }
+
+  async runProjectImport(projectId: string, files: File[], folderId: string | null): Promise<ProjectImportResult> {
+    const response = await this.api.post<ProjectImportResult>(
+      `/api/v1/projects/${projectId}/import`,
+      importForm(files, folderId),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
     return response.data;
   }
 

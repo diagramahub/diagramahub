@@ -6,6 +6,8 @@ export type ExportFormat = 'png' | 'pdf' | 'svg' | 'markdown';
 export interface ExportContentOptions {
   includeDescription: boolean;
   includeProjectInfo: boolean;
+  /** PNG of a freehand sketch without the canvas background. */
+  transparentBackground?: boolean;
 }
 
 interface ExportDiagramModalProps {
@@ -54,8 +56,11 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
   diagramType,
 }) => {
   const { t } = useTranslation();
-  // Format selected for export; the options below adapt to it.
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  // Format selected for export; the options below adapt to it. The modal stays
+  // mounted between diagrams, so a sketch (PNG only) must not inherit the format
+  // picked for a previous text diagram.
+  const [chosenFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  const selectedFormat: ExportFormat = diagramType === 'freehand' ? 'png' : chosenFormat;
 
   if (!isOpen) return null;
 
@@ -131,7 +136,11 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
       ? '.puml'
       : diagramType === 'd2'
         ? '.d2'
-        : '.mmd';
+        : diagramType === 'dbml'
+          ? '.dbml'
+          : diagramType === 'freehand'
+            ? '.freehand.json'
+            : '.mmd';
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -156,7 +165,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
         <div className="px-6 py-5 space-y-5">
           {/* Format grid */}
           <div className="grid grid-cols-2 gap-3">
-            {formats.map((format) => {
+            {formats.filter((format) => diagramType !== 'freehand' || format.id === 'png').map((format) => {
               const isSelected = selectedFormat === format.id;
               return (
                 <button
@@ -224,6 +233,22 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                   {t('editor.includeProjectInfo')}
                 </span>
               </label>
+              {/* Transparent background — freehand sketches exported as PNG */}
+              {selectedFormat === 'png' && diagramType === 'freehand' && (
+                <label className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!exportOptions.transparentBackground}
+                    onChange={(e) =>
+                      setExportOptions({ ...exportOptions, transparentBackground: e.target.checked })
+                    }
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {t('editor.transparentBackground')}
+                  </span>
+                </label>
+              )}
               {/* PNG resolution selector — only visible when PNG is selected */}
               {selectedFormat === 'png' && (
                 <div>

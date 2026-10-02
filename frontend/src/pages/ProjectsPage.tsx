@@ -7,12 +7,31 @@ import CreateProjectModal from '../components/CreateProjectModal';
 import ConfirmModal from '../components/ConfirmModal';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
+import ExportProjectModal from '../components/ExportProjectModal';
 
 const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [exportModal, setExportModal] = useState<{
+    isOpen: boolean;
+    project: Project | null;
+    folders: { id: string; name: string }[];
+  }>({ isOpen: false, project: null, folders: [] });
+
+  const handleExportProject = async (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    // The dialog needs the folder list for the "single folder" scope.
+    let folders: { id: string; name: string }[] = [];
+    try {
+      const full = await api.getProject(project.id);
+      folders = full.folders.map((f) => ({ id: f.id, name: f.name }));
+    } catch (err) {
+      console.error('Error loading folders for export:', err);
+    }
+    setExportModal({ isOpen: true, project, folders });
+  };
   const [loading, setLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editModal, setEditModal] = useState<{ isOpen: boolean; project: Project | null }>({
@@ -191,6 +210,16 @@ const ProjectsPage: React.FC = () => {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
+                            onClick={(e) => handleExportProject(e, project)}
+                            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                            aria-label={t('projectExport.exportProject')}
+                            title={t('projectExport.exportProject')}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </button>
+                          <button
                             onClick={(e) => handleEditProject(e, project)}
                             className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
                             aria-label={t('dashboard.editProject')}
@@ -220,6 +249,16 @@ const ProjectsPage: React.FC = () => {
       </main>
 
       {/* Create Project Modal */}
+      {exportModal.project && (
+        <ExportProjectModal
+          isOpen={exportModal.isOpen}
+          onClose={() => setExportModal({ isOpen: false, project: null, folders: [] })}
+          projectId={exportModal.project.id}
+          projectName={exportModal.project.name}
+          folders={exportModal.folders}
+        />
+      )}
+
       <CreateProjectModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

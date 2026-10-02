@@ -13,12 +13,17 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.7.1"
+    VERSION: str = "0.8.0"
     API_V1_PREFIX: str = "/api/v1"
 
     # Global request body limit (bytes). Generous on purpose: freehand
     # drawings are stored as JSON and can legitimately reach a few MB.
     MAX_REQUEST_BODY_BYTES: int = 5 * 1024 * 1024
+    # Project import uploads (ZIP or loose files) get a larger budget than the
+    # global body limit, plus caps on what an archive may expand to.
+    MAX_IMPORT_UPLOAD_BYTES: int = 20 * 1024 * 1024
+    MAX_IMPORT_FILES: int = 500
+    MAX_IMPORT_UNCOMPRESSED_BYTES: int = 50 * 1024 * 1024
 
     # MongoDB
     MONGO_URI: str = "mongodb://mongodb:27017"

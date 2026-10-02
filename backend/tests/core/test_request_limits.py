@@ -73,3 +73,24 @@ async def test_real_app_rejects_oversized_body_with_cors_headers(client: AsyncCl
     )
     assert response.status_code == 413
     assert response.headers.get("access-control-allow-origin") == origin
+
+
+@pytest.mark.integration
+async def test_cors_exposes_content_disposition(client: AsyncClient) -> None:
+    """Downloads need the browser to read the file name from Content-Disposition."""
+    origin = settings.cors_origins[0]
+    response = await client.get("/health", headers={"Origin": origin})
+    exposed = response.headers.get("access-control-expose-headers", "").lower()
+    assert "content-disposition" in exposed
+
+
+@pytest.mark.unit
+def test_path_overrides_pick_the_first_matching_limit() -> None:
+    middleware = BodySizeLimitMiddleware(
+        app=lambda *_: None,  # type: ignore[arg-type]
+        max_bytes=100,
+        path_overrides=[(r"^/api/v1/projects/[^/]+/import$", 5000), (r"^/api/v1/projects", 200)],
+    )
+    assert middleware.limit_for("/api/v1/projects/abc/import") == 5000
+    assert middleware.limit_for("/api/v1/projects/abc") == 200
+    assert middleware.limit_for("/api/v1/diagrams") == 100

@@ -14,6 +14,8 @@ Per-endpoint caps (e.g. the public render endpoint's source length) still
 apply on top of this; this is the outer bound for every route.
 """
 
+import re
+
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -24,14 +26,29 @@ _TOO_LARGE_DETAIL = "Request body too large"
 class BodySizeLimitMiddleware:
     """Reject HTTP requests whose body exceeds ``max_bytes`` with a 413."""
 
-    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        max_bytes: int,
+        path_overrides: list[tuple[str, int]] | None = None,
+    ) -> None:
         """
         Args:
             app: The wrapped ASGI application.
             max_bytes: Maximum accepted request body size in bytes.
+            path_overrides: ``(regex, max_bytes)`` pairs for routes that accept
+                larger bodies (e.g. file uploads); the first match wins.
         """
         self.app = app
         self.max_bytes = max_bytes
+        self.path_overrides = [(re.compile(pattern), limit) for pattern, limit in path_overrides or []]
+
+    def limit_for(self, path: str) -> int:
+        """Body limit that applies to ``path``."""
+        for pattern, limit in self.path_overrides:
+            if pattern.search(path):
+                return limit
+        return self.max_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Enforce the limit on HTTP requests; pass everything else through."""
@@ -39,13 +56,14 @@ class BodySizeLimitMiddleware:
             await self.app(scope, receive, send)
             return
 
+        max_bytes = self.limit_for(scope.get("path", ""))
         declared = _content_length(scope)
         if declared == -1:
             await JSONResponse({"detail": "Invalid Content-Length header"}, status_code=400)(
                 scope, receive, send
             )
             return
-        if declared is not None and declared > self.max_bytes:
+        if declared is not None and declared > max_bytes:
             await JSONResponse({"detail": _TOO_LARGE_DETAIL}, status_code=413)(
                 scope, receive, send
             )
@@ -58,7 +76,7 @@ class BodySizeLimitMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
-                if received > self.max_bytes:
+                if received > max_bytes:
                     raise HTTPException(status_code=413, detail=_TOO_LARGE_DETAIL)
             return message
 
