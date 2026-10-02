@@ -413,8 +413,8 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 
 ### Frontend Tests
 
-- No framework configured yet (no Jest/Vitest in `package.json`)
-- UI property validation done via example-based tests or manual verification
+- **Vitest** (`npm test` / `vitest run`, config in `vitest.config.ts`) for **pure utilities only**: tests live in `src/**/__tests__/*.test.ts` (e.g. `sketchToMermaid`). Node environment, no DOM rendering.
+- UI behaviour is verified with example-based checks or manual/Playwright runs against the dev stack
 
 ---
 

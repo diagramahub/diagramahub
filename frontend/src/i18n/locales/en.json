@@ -385,6 +385,7 @@
     "advancedDescription": "Advanced options for expert users"
   },
   "editor": {
+    "transparentBackground": "Transparent background",
     "structure": "Explorer",
     "fullscreen": "Present",
     "exitFullscreen": "Exit",
@@ -1119,6 +1120,17 @@
     "contact": "Contact email"
   },
   "conversion": {
+    "sketchToMermaid": "Sketch → Mermaid",
+    "sketchToMermaidHint": "Shapes with text → nodes; connected arrows → links. Creates a new diagram.",
+    "sketchNothing": "The sketch has no connected shapes with text to convert.",
+    "sketchError": "Unable to create the Mermaid diagram. Please try again.",
+    "sketchGenerated": "Generated from the sketch “{{title}}” (Diagramahub)",
+    "sketchSkipped": {
+      "skipped_freehand": "{{count}} freehand strokes skipped",
+      "skipped_text": "{{count}} loose texts skipped",
+      "skipped_unbound_arrow": "{{count}} unconnected arrows skipped",
+      "skipped_untitled_shape": "{{count}} shapes without text skipped"
+    },
     "convertType": "Convert diagram type",
     "convertTo": "Convert to",
     "converting": "Converting...",
@@ -1139,6 +1151,8 @@
     }
   },
   "freehand": {
+    "lock": "Lock",
+    "unlock": "Unlock",
     "enterText": "Enter text:",
     "style": "Element style",
     "stroke": "Stroke",

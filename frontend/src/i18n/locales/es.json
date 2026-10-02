@@ -385,6 +385,7 @@
     "advancedDescription": "Opciones avanzadas para usuarios expertos"
   },
   "editor": {
+    "transparentBackground": "Fondo transparente",
     "structure": "Explorador",
     "fullscreen": "Presentar",
     "exitFullscreen": "Salir",
@@ -1238,6 +1239,17 @@
     "contact": "Correo de contacto"
   },
   "conversion": {
+    "sketchToMermaid": "Boceto → Mermaid",
+    "sketchToMermaidHint": "Formas con texto → nodos; flechas conectadas → relaciones. Crea un diagrama nuevo.",
+    "sketchNothing": "El boceto no tiene formas con texto conectadas que convertir.",
+    "sketchError": "No fue posible crear el diagrama Mermaid. Inténtalo de nuevo.",
+    "sketchGenerated": "Generado desde el boceto “{{title}}” (Diagramahub)",
+    "sketchSkipped": {
+      "skipped_freehand": "{{count}} trazos a mano alzada omitidos",
+      "skipped_text": "{{count}} textos sueltos omitidos",
+      "skipped_unbound_arrow": "{{count}} flechas sin conectar omitidas",
+      "skipped_untitled_shape": "{{count}} formas sin texto omitidas"
+    },
     "convertType": "Convertir tipo de diagrama",
     "convertTo": "Convertir a",
     "converting": "Convirtiendo...",
@@ -1258,6 +1270,8 @@
     }
   },
   "freehand": {
+    "lock": "Bloquear",
+    "unlock": "Desbloquear",
     "enterText": "Ingresa el texto:",
     "style": "Estilo del elemento",
     "stroke": "Trazo",

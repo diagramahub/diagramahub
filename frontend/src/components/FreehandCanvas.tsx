@@ -19,6 +19,7 @@ import type {
   SketchRoughness,
   SketchFillStyle,
   FreehandFontFamily,
+  FreehandCanvasHandle,
 } from "../types/freehand";
 import {
   DEFAULT_CANVAS_STATE,
@@ -234,6 +235,8 @@ function computeAlignGuides(bbox: { x: number; y: number; width: number; height:
 interface FreehandCanvasProps {
   initialState: string;
   onChange?: (state: string) => void;
+  /** Receives the imperative handle (exports) once the canvas is mounted. */
+  handleRef?: React.MutableRefObject<FreehandCanvasHandle | null>;
   /** Zoom level controlled by the parent editor toolbar. */
   zoom?: number;
   /** Called when the canvas requests a zoom change (Ctrl+scroll). */
@@ -245,7 +248,7 @@ interface FreehandCanvasProps {
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 type InteractionMode = "idle" | "drawing" | "dragging" | "resizing" | "marquee" | "endpoint" | "erasing" | "rotating";
 
-export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoomChange, readOnly = false }: FreehandCanvasProps) {
+export default function FreehandCanvas({ initialState, onChange, handleRef, zoom = 1, onZoomChange, readOnly = false }: FreehandCanvasProps) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -546,7 +549,15 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       renderElement(ctx, el);
 
       // Selection UI
-      if (selectedIds.has(el.id)) {
+      if (selectedIds.has(el.id) && el.locked) {
+        // Locked: outline only, no handles (it can't be moved/resized), plus a padlock
+        ctx.setLineDash([3, 3]); ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1.5;
+        ctx.strokeRect(el.x - 3, el.y - 3, el.width + 6, el.height + 6);
+        ctx.setLineDash([]);
+        const lx = el.x + el.width + 6, ly = el.y - 14;
+        ctx.fillStyle = "#9ca3af"; ctx.fillRect(lx, ly + 4, 8, 6);
+        ctx.beginPath(); ctx.arc(lx + 4, ly + 4, 2.5, Math.PI, 0); ctx.strokeStyle = "#9ca3af"; ctx.lineWidth = 1.5; ctx.stroke();
+      } else if (selectedIds.has(el.id)) {
         const isArrowOrLine = el.type === "arrow" || el.type === "line";
 
         if (isArrowOrLine) {
@@ -674,11 +685,46 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
 
     // Restore pan transform
     ctx.restore();
-  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides]);
+  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides]);
 
   useEffect(() => { draw(); }, [draw]);
 
-  function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement) {
+  // ─── PNG export (used by the editor's export dialog) ───
+  const exportPng = useCallback(async ({ scale, transparent }: { scale: 1 | 2 | 3; transparent: boolean }): Promise<Blob | null> => {
+    if (elements.length === 0) return null;
+    const PAD = 24;
+    const xs: number[] = [], ys: number[] = [];
+    for (const el of elements) {
+      const pts = el.points && el.points.length ? el.points : [{ x: el.x, y: el.y }, { x: el.x + el.width, y: el.y + el.height }];
+      for (const p of pts) { xs.push(p.x); ys.push(p.y); }
+    }
+    const minX = Math.min(...xs) - PAD, minY = Math.min(...ys) - PAD;
+    const width = Math.max(...xs) - Math.min(...xs) + PAD * 2, height = Math.max(...ys) - Math.min(...ys) + PAD * 2;
+    const off = document.createElement("canvas");
+    off.width = Math.max(1, Math.round(width * scale)); off.height = Math.max(1, Math.round(height * scale));
+    const ctx = off.getContext("2d");
+    if (!ctx) return null;
+    if (!transparent) { ctx.fillStyle = background; ctx.fillRect(0, 0, off.width, off.height); }
+    ctx.scale(scale, scale); ctx.translate(-minX, -minY);
+    for (const el of elements) {
+      ctx.save();
+      ctx.globalAlpha = el.opacity ?? 1;
+      ctx.strokeStyle = el.strokeColor || "#1e1e1e"; ctx.fillStyle = el.fillColor || "transparent";
+      ctx.lineWidth = el.strokeWidth || 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      if (el.rotation) { const cx = el.x + el.width / 2, cy = el.y + el.height / 2; ctx.translate(cx, cy); ctx.rotate((el.rotation * Math.PI) / 180); ctx.translate(-cx, -cy); }
+      renderElement(ctx, el, off);
+      ctx.restore();
+    }
+    return new Promise((resolve) => off.toBlob(resolve, "image/png"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elements, background]);
+  useEffect(() => {
+    if (!handleRef) return;
+    handleRef.current = { exportPng };
+    return () => { handleRef.current = null; };
+  }, [handleRef, exportPng]);
+
+  function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement, roughTarget?: HTMLCanvasElement) {
     // Hand-drawn elements (0.8.0+): roughjs for shapes/lines, perfect-freehand for strokes.
     // Elements without `roughness` keep the clean rendering below.
     const sketchy = el.roughness !== undefined && el.type !== "text";
@@ -686,7 +732,8 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       const pts = el.points || [];
       if (pts.length >= 2) drawStrokeOutline(ctx, strokeOutline(pts, el.strokeWidth || 2), el.strokeColor || "#1e1e1e");
     } else if (sketchy) {
-      const rc = canvasRef.current ? roughCanvasFor(canvasRef.current) : null;
+      const target = roughTarget ?? canvasRef.current;
+      const rc = target ? roughCanvasFor(target) : null;
       if (rc) drawSketchy(rc, el);
     }
     switch (sketchy ? "__sketched__" : el.type) {
@@ -776,7 +823,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   // ─── Eraser: remove the element under the cursor (used on click and while dragging) ───
   const eraseAt = (pos: FreehandPoint) => {
     const current = erasingElementsRef.current;
-    const hit = [...current].reverse().find((el) => hitTest(pos, el));
+    const hit = [...current].reverse().find((el) => !el.locked && hitTest(pos, el));
     if (!hit) return;
     erasingDidEraseRef.current = true;
     const next = current.filter((el) => el.id !== hit.id && el.startBinding?.elementId !== hit.id && el.endBinding?.elementId !== hit.id);
@@ -864,7 +911,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
           }
         }
         // 3) Check resize handles on shapes (not arrows/lines, not rotated)
-        if (selEl && selEl.type !== "arrow" && selEl.type !== "line" && !selEl.rotation) {
+        if (selEl && !selEl.locked && selEl.type !== "arrow" && selEl.type !== "line" && !selEl.rotation) {
           const h = getHandle(pos, selEl);
           if (h) {
             setMode("resizing"); setResizeHandle(h);
@@ -887,6 +934,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
             setSelectedIds(new Set([hit.id]));
           }
         }
+        if (hit.locked) return; // selectable (to unlock it), never dragged
         setMode("dragging"); setDragOffset({ x: pos.x, y: pos.y }); dragBBoxRef.current = null;
       } else {
         // 3) Start marquee on empty space
@@ -1181,6 +1229,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
     if (readOnly) return;
     const pos = getPos(e);
     const hit = [...elements].reverse().find((el) => hitTest(pos, el));
+    if (hit?.locked) return;
     if (hit) {
       setEditingId(hit.id);
       setEditingText(hit.text || "");
@@ -1406,8 +1455,19 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   // ─── Delete ───
   const handleDelete = useCallback(() => {
     if (selectedIds.size === 0) return;
-    const updated = elements.filter((el) => !selectedIds.has(el.id) && (!el.startBinding || !selectedIds.has(el.startBinding.elementId)) && (!el.endBinding || !selectedIds.has(el.endBinding.elementId)));
+    const removable = new Set([...selectedIds].filter((id) => !elements.find((el) => el.id === id)?.locked));
+    if (removable.size === 0) return;
+    const updated = elements.filter((el) => !removable.has(el.id) && (!el.startBinding || !removable.has(el.startBinding.elementId)) && (!el.endBinding || !removable.has(el.endBinding.elementId)));
     setElements(updated); emit(updated); setSelectedIds(new Set());
+  }, [elements, selectedIds, emit]);
+
+  // ─── Lock / unlock selection (Ctrl/Cmd+Shift+L) ───
+  const toggleLockSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const selected = elements.filter((el) => selectedIds.has(el.id));
+    const lock = !selected.every((el) => el.locked); // mixed selection -> lock all
+    const updated = elements.map((el) => (selectedIds.has(el.id) ? { ...el, locked: lock || undefined } : el));
+    setElements(updated); emit(updated);
   }, [elements, selectedIds, emit]);
 
   // ─── Fit content to viewport (F) ───
@@ -1523,6 +1583,9 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
         return;
       }
 
+      // Lock / unlock selection
+      if (mod && e.shiftKey && key === "l") { e.preventDefault(); toggleLockSelected(); return; }
+
       // Fit content to viewport
       if (key === "f" && !mod && !e.altKey) { e.preventDefault(); fitToContent(); return; }
 
@@ -1537,7 +1600,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readOnly, editingId, selectedIds, handleDelete, elements, activeTool, emit, undo, redo, duplicateSelected, moveElements, fitToContent, groupSelected, ungroupSelected]);
+  }, [readOnly, editingId, selectedIds, handleDelete, elements, activeTool, emit, undo, redo, duplicateSelected, moveElements, fitToContent, groupSelected, ungroupSelected, toggleLockSelected]);
 
   // ─── Space key = temporary pan ───
   useEffect(() => {
@@ -1758,6 +1821,19 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
             </div>
           </div>
 
+          {/* Lock / unlock */}
+          {(() => {
+            const selected = elements.filter((el) => selectedIds.has(el.id));
+            const allLocked = selected.length > 0 && selected.every((el) => el.locked);
+            return (
+              <button onClick={toggleLockSelected} aria-pressed={allLocked} title={`${allLocked ? t("freehand.unlock") : t("freehand.lock")} (⌘⇧L)`}
+                className={`mb-2 w-full flex items-center gap-2 px-2 py-1 text-xs rounded ${allLocked ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d={allLocked ? "M8 11V7a4 4 0 018 0v4" : "M8 11V7a4 4 0 017.5-2"}/></svg>
+                {allLocked ? t("freehand.unlock") : t("freehand.lock")}
+              </button>
+            );
+          })()}
+
           {/* Hand-drawn stroke style (everything but text) */}
           {!(selectedIds.size === 1 && isTextEl) && (
             <div className="mb-2">
@@ -1959,6 +2035,10 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
             <button onClick={() => { duplicateSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
               {t("freehand.duplicate")}
+            </button>
+            <button onClick={() => { toggleLockSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+              {elements.filter((el) => selectedIds.has(el.id)).every((el) => el.locked) ? t("freehand.unlock") : t("freehand.lock")}<span className="ml-auto text-[10px] text-gray-400">⌘⇧L</span>
             </button>
             <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
             <button onClick={() => { bringToFront(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">

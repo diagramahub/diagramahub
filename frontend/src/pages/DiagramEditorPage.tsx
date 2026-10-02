@@ -36,8 +36,10 @@ import MarkdownEditor from "../components/MarkdownEditor";
 import { DiagramDiffView } from "../components/DiagramDiffView";
 import { DiagramConversionModal } from "../components/DiagramConversionModal";
 import FreehandCanvas from "../components/FreehandCanvas";
+import type { FreehandCanvasHandle } from "../types/freehand";
+import { sketchToMermaid } from "../utils/sketchToMermaid";
 import ShareDiagramModal from "../components/ShareDiagramModal";
-import ExportDiagramModal from "../components/ExportDiagramModal";
+import ExportDiagramModal, { type ExportContentOptions } from "../components/ExportDiagramModal";
 import ExportProjectModal from "../components/ExportProjectModal";
 import ImportProjectModal from "../components/ImportProjectModal";
 import type { ProjectImportResult } from "../services/api";
@@ -232,10 +234,13 @@ export default function DiagramEditorPage() {
   // Export options state
   const [showExportModal, setShowExportModal] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(false);
-  const [exportOptions, setExportOptions] = useState({
+  const [exportOptions, setExportOptions] = useState<ExportContentOptions>({
     includeDescription: true,
     includeProjectInfo: true,
+    transparentBackground: false,
   });
+  // Imperative API of the freehand canvas (PNG export)
+  const freehandHandleRef = useRef<FreehandCanvasHandle | null>(null);
   const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | 'svg' | null>(null);
   // PNG export resolution: 1x = screen, 2x = standard (default), 3x = print/high
   const [pngScale, setPngScale] = useState<1 | 2 | 3>(2);
@@ -2119,6 +2124,41 @@ export default function DiagramEditorPage() {
   };
 
   // Conversion handlers
+  // Freehand sketch -> Mermaid flowchart (deterministic, no AI): creates a new diagram next to the sketch
+  const handleSketchToMermaid = async () => {
+    if (!currentDiagram || !projectId) return;
+    setShowConvertMenu(false);
+    const result = sketchToMermaid(diagramCode);
+    if (result.nodeCount === 0) {
+      setError(t("conversion.sketchNothing"));
+      return;
+    }
+    // What was left out goes into the code as Mermaid comments, so it is visible and editable.
+    const notes = Object.entries(result.skipped).map(
+      ([reason, count]) => `%% ${t(`conversion.sketchSkipped.${reason}`, { count })}`,
+    );
+    const header = [`%% ${t("conversion.sketchGenerated", { title: diagramTitle })}`, ...notes, ""].join("\n");
+    try {
+      setIsConverting(true);
+      const created = await api.createDiagram(projectId, {
+        title: `${diagramTitle} (Mermaid)`.slice(0, 100),
+        content: header + result.code,
+        diagram_type: "mermaid",
+        description: diagramDescription || undefined,
+        folder_id: selectedFolderId,
+      });
+      const fresh = await api.getProject(projectId);
+      setProject(fresh);
+      fitOnNextRender.current = true;
+      navigate(`/projects/${projectId}/diagrams/${created.id}`);
+    } catch (err) {
+      console.error("Error converting sketch to Mermaid:", err);
+      setError(t("conversion.sketchError"));
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
   const handleConvertDiagram = async (targetType: string) => {
     setShowConvertMenu(false);
     if (!validateAIConfiguration()) return;
@@ -2279,6 +2319,27 @@ export default function DiagramEditorPage() {
     try {
       setExportingFormat('png');
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      // Freehand sketches render themselves (optionally without background)
+      if (isFreehandDiagram) {
+        const blob = await freehandHandleRef.current?.exportPng({
+          scale: pngScale,
+          transparent: !!exportOptions.transparentBackground,
+        });
+        if (!blob) throw new Error("Canvas produced empty PNG blob");
+        const sketchUrl = URL.createObjectURL(blob);
+        try {
+          const link = document.createElement("a");
+          link.download = `${diagramTitle.replace(/\s+/g, "_")}.png`;
+          link.href = sketchUrl;
+          link.click();
+        } finally {
+          setTimeout(() => URL.revokeObjectURL(sketchUrl), 1000);
+        }
+        setExportingFormat(null);
+        setShowExportModal(false);
+        return;
+      }
 
       const data = buildExportData();
       const options: ExportOptions = {
@@ -2484,7 +2545,11 @@ export default function DiagramEditorPage() {
         ? ".puml"
         : diagramTypeValue === "d2"
           ? ".d2"
-          : ".mmd";
+          : diagramTypeValue === "dbml"
+            ? ".dbml"
+            : diagramTypeValue === "freehand"
+              ? ".freehand.json"
+              : ".mmd";
     const mimeType = "text/plain;charset=utf-8";
     const filename = `${diagramTitle.replace(/\s+/g, "_")}${extension}`;
 
@@ -3139,8 +3204,7 @@ export default function DiagramEditorPage() {
             {/* Separator */}
             <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
 
-            {/* Export button — hidden for freehand */}
-            {currentDiagram?.diagram_type !== "freehand" && (
+            {/* Export button (sketches export as PNG, see ExportDiagramModal) */}
             <Tooltip content={t("editor.exportDiagram")} position="bottom">
               <button
                 onClick={() => setShowExportModal(true)}
@@ -3162,7 +3226,6 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             </Tooltip>
-            )}
 
             {/* Share button */}
             <Tooltip
@@ -3252,8 +3315,8 @@ export default function DiagramEditorPage() {
               >
                 <button
                   onClick={() => setShowConvertMenu(!showConvertMenu)}
-                  disabled={!currentDiagram || isConverting || currentDiagram?.diagram_type === "freehand"}
-                  className={`p-1.5 rounded-md transition-colors ${!currentDiagram || isConverting || currentDiagram?.diagram_type === "freehand" ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                  disabled={!currentDiagram || isConverting}
+                  className={`p-1.5 rounded-md transition-colors ${!currentDiagram || isConverting ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
                   aria-label={t("conversion.convertType")}
                 >
                   {isConverting ? (
@@ -3299,7 +3362,16 @@ export default function DiagramEditorPage() {
                   <p className="px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     {t("conversion.convertTo")}
                   </p>
-                  {["mermaid", "plantuml", "d2", "dbml"]
+                  {currentDiagram.diagram_type === "freehand" && (
+                    <button
+                      onClick={handleSketchToMermaid}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+                    >
+                      {t("conversion.sketchToMermaid")}
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">{t("conversion.sketchToMermaidHint")}</span>
+                    </button>
+                  )}
+                  {(currentDiagram.diagram_type === "freehand" ? [] : ["mermaid", "plantuml", "d2", "dbml"])
                     .filter((type) => type !== currentDiagram.diagram_type)
                     .map((type) => (
                       <button
@@ -4124,6 +4196,7 @@ export default function DiagramEditorPage() {
                           <FreehandCanvas
                             key={currentDiagram?.id}
                             initialState={diagramCode}
+                            handleRef={freehandHandleRef}
                             onChange={(state) => setDiagramCode(state)}
                             zoom={zoom}
                             onZoomChange={setZoom}

@@ -49,6 +49,8 @@ export interface FreehandElement {
   borderRadius?: number;
   rotation?: number;
   groupId?: string;
+  /** Locked elements can be selected (to unlock) but not moved, resized, edited or erased. */
+  locked?: boolean;
   // Hand-drawn style (see SketchRoughness); undefined = clean rendering
   roughness?: SketchRoughness;
   fillStyle?: SketchFillStyle;
@@ -98,6 +100,12 @@ export const DEFAULT_CANVAS_STATE: FreehandCanvasState = {
   },
   background: "#ffffff",
 };
+
+/** Imperative API the editor uses for exports (set through the `handleRef` prop). */
+export interface FreehandCanvasHandle {
+  /** Render the drawing (no selection UI) to a PNG blob; `transparent` skips the background. */
+  exportPng: (options: { scale: 1 | 2 | 3; transparent: boolean }) => Promise<Blob | null>;
+}
 
 export const FREEHAND_COLORS = [
   "#1e1e1e", // Black

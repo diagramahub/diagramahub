@@ -93,16 +93,16 @@ Ambas librerías son MIT y livianas. **Camino propio** (no incrustar Excalidraw)
 | W1 | **`roughjs`**: estilo de trazo (Arquitecto / Artista / Caricatura) y relleno (sólido / rayado / cruzado), con *seed* estable por elemento para que no "tiemble" al redibujar. Atributos nuevos opcionales: **sin migración** | M | ✅ `utils/sketchRenderer.ts` (roughjs, caché por elemento, seed estable); panel: Limpio/Arquitecto/Artista/Caricatura + relleno sólido/rayado/cruzado |
 | W2 | **`perfect-freehand`**: trazo suave con presión del lápiz/stylus (`PointerEvent.pressure`) | S | ✅ perfect-freehand + presión desde `pointermove` (lápiz/stylus) |
 | W3 | **Fuente manuscrita Virgil empaquetada** (servida localmente, OFL-1.1, con su `OFL.txt`) + selector (manuscrita / normal / código) + texto que se ajusta dentro de las formas | S | ✅ **Caveat** (OFL-1.1, repo y metadatos coinciden; Virgil descartada por metadatos contradictorios) en `public/fonts/caveat/` + selector manuscrita/normal/código |
-| W4 | **Rendimiento**: caché del dibujo por elemento; medir con 1.000 elementos antes/después | S/M | ✅ 1.000 elementos a mano: 121 fps, pan 281 ms vs 307 ms limpio (caché de drawables) |
-| W5 | **Pulido de uso**: atajos por herramienta, "ajustar a pantalla", exportar PNG/SVG con fondo transparente, lienzo oscuro, bloquear elementos. (Pegar imágenes queda fuera: inflaría el contenido por encima del límite de 5 MB) | M | 🎯 |
+| W4 | **Rendimiento**: caché del dibujo por elemento; medir con 1.000 elementos antes/después | S/M | ✅ caché de drawables por elemento. Medición rigurosa (mediana de 3 pans de 30 pasos, 1.000 formas con relleno rayado): a mano ≈18 ms/cuadro (~55 fps) vs limpio ≈10 ms/cuadro; 121 fps en reposo en ambos. Suficiente; una caché de bitmaps por elemento queda como mejora futura |
+| W5 | **Pulido de uso** | M | ✅ atajos por herramienta y ajustar a pantalla (F) ya existían; nuevo: **bloquear elementos** (panel, menú contextual, ⌘⇧L; no se mueven/redimensionan/editan/borran), **exportar PNG del pizarrón** (estaba oculto para bocetos) con **fondo transparente** y escala 1x/2x/3x, descarga de fuente `.freehand.json` (y `.dbml`, que bajaba como `.mmd`). Lienzo oscuro = color de fondo por diagrama (ya existía). Pegar imágenes fuera (límite de 5 MB) |
 
 ### Diferenciación
 
 | # | Tarea | Esfuerzo | Estado |
 |---|-------|----------|--------|
-| D1a | **Pizarrón → Mermaid** (diagrama de flujo), **determinista**: formas con texto → nodos (rectángulo `[ ]`, rombo `{ }`, elipse `( )`), flechas ancladas → conexiones (con su texto como etiqueta; punteada → `-.->`). Trazos libres y flechas sueltas se omiten con aviso. Crea un diagrama nuevo; el original no cambia. IA opcional (BYOK) solo para completar lo que no es estructurado | M | 🎯 |
-| D1b | **Mermaid → pizarrón** (diagrama de flujo): se dibuja con Mermaid, se toma la geometría de nodos y conexiones del SVG y se crean formas "a mano" con sus flechas ancladas | M | 🎯 (si hay tiempo tras D1a) |
-| D4 | **Pizarrón de primera clase**: incluido en exportar/importar; revisión del modo presentación y de la vista compartida con el nuevo renderizado | S | 🎯 |
+| D1a | **Pizarrón → Mermaid** (diagrama de flujo), determinista | M | ✅ `utils/sketchToMermaid.ts` (6 pruebas Vitest) + acción "Boceto → Mermaid" en el menú de conversión: crea un diagrama nuevo junto al boceto; lo omitido va como comentarios `%%` al inicio del código |
+| D1b | **Mermaid → pizarrón** (diagrama de flujo) | M | 🚫 → 0.9 (el tiempo se dedicó a W5 completo: bloqueo + exportación de bocetos, que no existía) |
+| D4 | **Pizarrón de primera clase** | S | ✅ incluido en exportar (`.freehand.json` en ZIP, textos en Markdown) e importar (propio y `.excalidraw`); vista compartida (solo lectura) verificada con el nuevo renderizado; presentación usa el mismo lienzo |
 
 **Compatibilidad**: los dibujos existentes no tienen los atributos nuevos. Ver decisión 1.
 
