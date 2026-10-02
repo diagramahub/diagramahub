@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.8.0](0.8.0.md) | 2026-10-02 | Exportar proyecto/carpeta (ZIP o Markdown para IA), importar archivos/ZIP/Excalidraw, pizarrón a mano con bloqueo, PNG y boceto → Mermaid |
 | [0.7.1](0.7.1.md) | 2026-09-30 | Dependencias sin vulnerabilidades, backend sin root, autoguardado confiable y carga hasta 71% más ligera |
 | [0.7.0](0.7.0.md) | 2026-09-29 | Explorador de archivos renovado, cambio de diagrama suave, imagen de producción del frontend y backend por capas |
 | [0.6.2](0.6.2.md) | 2026-09-26 | Endurecimiento de seguridad, límites de peticiones, auditoría completa y versionado consistente |

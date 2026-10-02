@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-10-02
+
+### Added
+- Export a whole project or a single folder: `GET /projects/{id}/export?format=zip|markdown&variant=ai|standard&descriptions&folder_id` plus `/export/summary`. ZIP with one subfolder per folder, one source file per diagram (`.mmd/.puml/.d2/.dbml/.freehand.json`), `.md` description siblings, `README.md` index and `manifest.json`; single-file Markdown in an AI-context variant (preamble, path index, per-diagram metadata, token estimate) or a standard variant. Export dialog in the explorer (header and folder menu) and the projects list, with a live summary.
+- Import into a project or folder: `POST /projects/{id}/import` (multipart, `dry_run`) accepting diagram files, Markdown with a code block, `.freehand.json`, `.excalidraw` (converted to a sketch: shapes, labels, bound arrows, strokes, text; images/frames skipped and reported), Diagramahub export archives (restore folders and colours) and arbitrary ZIPs. Preview before creating, plan-quota check up front (whole import rejected when over quota), all-or-nothing with rollback, "(2)" suffixes for duplicate titles, folder reuse by name, zip-bomb limits (`MAX_IMPORT_UPLOAD_BYTES` 20 MB, `MAX_IMPORT_FILES`, `MAX_IMPORT_UNCOMPRESSED_BYTES`). Import dialog with drop zone, file picker and OS drag & drop onto the explorer.
+- Freehand canvas: hand-drawn rendering with roughjs (stroke style Clean/Architect/Artist/Cartoonist, fill Solid/Hachure/Cross-hatch, stable per-element seed, cached drawables), smooth pressure-aware strokes with perfect-freehand, bundled Caveat handwriting font (SIL OFL 1.1) with a font selector, element locking (panel, context menu, Ctrl/Cmd+Shift+L), PNG export with 1x/2x/3x and transparent background, `.freehand.json` source download, and a deterministic "Sketch → Mermaid" conversion that creates a flowchart diagram next to the sketch.
+- `THIRD_PARTY_NOTICES.md` for bundled third-party components.
+- Vitest for pure frontend utilities (`npm test`), starting with `sketchToMermaid`.
+- Backend: `BodySizeLimitMiddleware` path overrides; `(project_id, …)` import/export services and pure builders/parsers with 69 tests.
+
+### Changed
+- Existing drawings keep their clean rendering; only new elements use the hand-drawn style (switchable per element).
+- CORS exposes `Content-Disposition` and `Retry-After` so browser downloads keep the server file name.
+- Export dialog offers PNG only for sketches (no SVG/PDF/Markdown pipeline for canvas drawings).
+
+### Fixed
+- Canvas text tool: the inline editor lost focus right after creation (default mousedown action) and the new element vanished.
+- The export button was hidden for freehand diagrams, so sketches could not be exported.
+- DBML source downloads used the `.mmd` extension.
+- Canvas live preview ignored fill colour changes.
+
 ## [0.7.1] - 2026-09-30
 
 ### Security
