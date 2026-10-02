@@ -92,7 +92,7 @@ Ambas librerías son MIT y livianas. **Camino propio** (no incrustar Excalidraw)
 |---|-------|----------|--------|
 | W1 | **`roughjs`**: estilo de trazo (Arquitecto / Artista / Caricatura) y relleno (sólido / rayado / cruzado), con *seed* estable por elemento para que no "tiemble" al redibujar. Atributos nuevos opcionales: **sin migración** | M | 🎯 |
 | W2 | **`perfect-freehand`**: trazo suave con presión del lápiz/stylus (`PointerEvent.pressure`) | S | 🎯 |
-| W3 | **Fuente manuscrita empaquetada** (servida localmente, licencia OFL) + selector (manuscrita / normal / código) + texto que se ajusta dentro de las formas | S | 🎯 |
+| W3 | **Fuente manuscrita Virgil empaquetada** (servida localmente, OFL-1.1, con su `OFL.txt`) + selector (manuscrita / normal / código) + texto que se ajusta dentro de las formas | S | 🎯 |
 | W4 | **Rendimiento**: caché del dibujo por elemento; medir con 1.000 elementos antes/después | S/M | 🎯 |
 | W5 | **Pulido de uso**: atajos por herramienta, "ajustar a pantalla", exportar PNG/SVG con fondo transparente, lienzo oscuro, bloquear elementos. (Pegar imágenes queda fuera: inflaría el contenido por encima del límite de 5 MB) | M | 🎯 |
 
@@ -122,17 +122,35 @@ Ambas librerías son MIT y livianas. **Camino propio** (no incrustar Excalidraw)
 4. **D1a** pizarrón → Mermaid; **D1b** si hay tiempo.
 5. **D4** y cierre del release (notas, CHANGELOG, badge, `check-version.sh`, borrar este archivo).
 
-## Decisiones abiertas
+## Decisiones tomadas (2026-10-01)
 
-1. **Dibujos existentes**: ¿conservan su aspecto actual (limpio) y solo los nuevos elementos usan el estilo "a mano"? (recomendado: sí, para no cambiarle el aspecto a nadie sin avisar; cualquiera puede cambiar el estilo de sus elementos)
-2. **Importar por encima del cupo del plan**: ¿rechazar todo con un mensaje claro, o importar hasta el límite? (recomendado: rechazar todo — es predecible)
-3. **Tamaño máximo de subida para importar**: ¿20 MB? (recomendado)
-4. **Fuente manuscrita**: Excalifont, Virgil o una de Google Fonts (Caveat/Kalam) — todas con licencia OFL; se verifica la licencia antes de empaquetar (recomendado: Excalifont, diseñada para este uso)
-5. **Vitest** solo para las funciones puras nuevas (recomendado: sí)
+1. **Dibujos existentes**: conservan su aspecto actual (limpio); solo los elementos nuevos usan el estilo "a mano". Cada usuario puede cambiar el estilo de sus elementos.
+2. **Importar por encima del cupo del plan**: se rechaza todo, con un mensaje claro (cuántos diagramas trae, cuántos permite el plan).
+3. **Tamaño máximo de subida para importar**: 20 MB (configurable).
+4. **Fuente manuscrita**: **Virgil** (OFL-1.1). **Excalifont descartada**: verificado en sus metadatos — "Copyright (c) 2024 by Excalidraw. All rights reserved.", sin licencia; no se puede empaquetar en un proyecto Apache-2.0. Alternativas verificadas también OFL-1.1: Caveat y Kalam (Google Fonts).
+5. **Vitest** solo para las funciones puras nuevas.
+
+## Licencias (todo open source y compatible con Apache-2.0)
+
+Diagramahub es **Apache-2.0** (`LICENSE`, `pyproject.toml`). Lo que se agrega en 0.8.0, verificado:
+
+| Componente | Uso | Licencia | Compatible | Obligación |
+|---|---|---|---|---|
+| `roughjs` 4.6.x | estilo "a mano" (W1) | MIT | ✅ | conservar el aviso de copyright |
+| `perfect-freehand` 1.2.x | trazo suave (W2) | MIT | ✅ | conservar el aviso de copyright |
+| **Virgil** (fuente) | texto manuscrito (W3) | OFL-1.1 (repo `excalidraw/virgil` + metadatos de la fuente) | ✅ | distribuir `OFL.txt` junto al `.woff2`; no venderla sola; si se modificara, no usar el nombre reservado |
+| `vitest` 5.x (+ `jsdom`) | pruebas del frontend, solo desarrollo | MIT | ✅ | no se distribuye en la app |
+| `python-multipart` (ya presente) | subida de archivos (I1–I3) | Apache-2.0 | ✅ | — |
+| `zipfile` | ZIP de exportar/importar | librería estándar de Python (PSF) | ✅ | — |
+
+- **Formato `.excalidraw` (I3)**: se lee con un parser propio, escrito desde cero (no se copia código de Excalidraw); leer un formato de archivo no impone obligaciones de licencia.
+- **Nuevo `THIRD_PARTY_NOTICES.md`** en la raíz con los componentes de terceros que se distribuyen en la app (roughjs, perfect-freehand, Virgil) y sus licencias, y `OFL.txt` junto a la fuente en `frontend/public/fonts/`.
+- **Excalifont**: no se usa (ver decisión 4).
 
 ## Cierre
 
 - [ ] Release notes `docs/{es,en}/release-notes/0.8.0.md`, índices, nav de mkdocs, CHANGELOG
 - [ ] Badge de cobertura del README actualizado
+- [ ] `THIRD_PARTY_NOTICES.md` al día con lo que se distribuye
 - [ ] `bash scripts/check-version.sh 0.8.0` → OK
 - [ ] **Eliminar este archivo** antes de abrir el PR
