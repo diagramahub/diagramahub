@@ -3,7 +3,7 @@
 - **Inicio**: 2026-10-01 · **Rama**: `release/0.8.0` (desde `main` = tag `0.7.1`)
 - **Tipo**: MINOR — admite funcionalidad nueva compatible; cambios con migración van con notas de actualización
 - **Regla**: archivo interno de la rama; **se elimina antes del merge a `main`**
-- **Estados**: ✅ hecho · 🔨 en curso · ⬜ pendiente · 🚫 descartado/diferido con criterio · ❓ por decidir
+- **Estados**: 🎯 en alcance · ✅ hecho · 🔨 en curso · 🚫 descartado/diferido con criterio · ❓ por decidir
 
 ---
 
@@ -29,14 +29,14 @@
 
 | # | Feature | Valor | Esfuerzo | Notas | Estado |
 |---|---------|-------|----------|-------|--------|
-| F1 | **Historial de versiones** (snapshot al guardar con política de retención, listar, restaurar, comparar) | Alto: red de seguridad ante errores/IA; diferencia clara en el nicho | M/L | Reusa `DiagramDiffView`; nueva colección + límites por plan | ❓ |
-| F2 | **Importar archivos** (.mmd/.puml/.d2/.dbml/.txt, arrastrar o seleccionar) | Migración desde archivos locales | S | Solo frontend + endpoint de creación existente; detectar tipo por extensión/contenido | ❓ |
-| F3 | **Galería de templates** al crear diagrama (flujo, secuencia, ER, gantt, estados, clases + PlantUML/D2/DBML) | Elimina la página en blanco; onboarding | S/M | El modal de nuevo diagrama ya está traducido (0.7.1) | ❓ |
-| F4 | **Exportar desde link compartido** (PNG/SVG para quien ve, sin login) | El link pasa de vitrina a entregable | S/M | Reusa `exportService` (ya carga html2canvas bajo demanda) | ❓ |
-| F5 | **Búsqueda global** de diagramas (título + contenido) | Encontrar en proyectos grandes | M | Índice `$text` en Mongo + endpoint paginado + UI en dashboard | ❓ |
-| F6 | **Modo embed** (`?embed=1` + "copiar código embed") | Diagramas vivos en READMEs/Notion/wikis | M | Requiere permitir *framing* solo en esa ruta (hoy `X-Frame-Options`/CSP lo impiden): decisión de seguridad | ❓ |
-| F7 | **Tokens personales de API** (export/render vía curl en CI) | Automatización | M/L | Sensible: scopes, hash del token, auditoría, revocación | ❓ |
-| F8 | **Exportación masiva de proyecto o carpeta**, en dos formatos (detalle abajo) | Respaldo, migrar entre instancias, compartir con un modelo de IA en un solo archivo | M | Backend genera el archivo; reutiliza el mapeo de tipos a bloques de código de `MarkdownExporter` | ❓ |
+| F1 | **Historial de versiones** (snapshot al guardar con política de retención, listar, restaurar, comparar) | Alto: red de seguridad ante errores/IA; diferencia clara en el nicho | M/L | Reusa `DiagramDiffView`; nueva colección + límites por plan | 🎯 en alcance |
+| F2 | **Importar archivos** (.mmd/.puml/.d2/.dbml/.txt, arrastrar o seleccionar) | Migración desde archivos locales | S | Solo frontend + endpoint de creación existente; detectar tipo por extensión/contenido | 🎯 en alcance |
+| F3 | **Galería de templates** al crear diagrama (flujo, secuencia, ER, gantt, estados, clases + PlantUML/D2/DBML) | Elimina la página en blanco; onboarding | S/M | El modal de nuevo diagrama ya está traducido (0.7.1) | 🎯 en alcance |
+| F4 | **Exportar desde link compartido** (PNG/SVG para quien ve, sin login) | El link pasa de vitrina a entregable | S/M | Reusa `exportService` (ya carga html2canvas bajo demanda) | 🚫 → 0.9 |
+| F5 | **Búsqueda global** de diagramas (título + contenido) | Encontrar en proyectos grandes | M | Índice `$text` en Mongo + endpoint paginado + UI en dashboard | 🚫 → 0.9 |
+| F6 | **Modo embed** (`?embed=1` + "copiar código embed") | Diagramas vivos en READMEs/Notion/wikis | M | Requiere permitir *framing* solo en esa ruta (hoy `X-Frame-Options`/CSP lo impiden): decisión de seguridad | 🚫 → 0.9 |
+| F7 | **Tokens personales de API** (export/render vía curl en CI) | Automatización | M/L | Sensible: scopes, hash del token, auditoría, revocación | 🚫 → 0.9 |
+| F8 | **Exportación masiva de proyecto o carpeta**, en dos formatos (detalle abajo) | Respaldo, migrar entre instancias, compartir con un modelo de IA en un solo archivo | M | Backend genera el archivo; reutiliza el mapeo de tipos a bloques de código de `MarkdownExporter` | 🎯 en alcance |
 
 #### F8 — Exportación masiva (diseño propuesto)
 
@@ -127,10 +127,10 @@ graph TD
 
 | # | Ítem | Por qué | Esfuerzo | Estado |
 |---|------|---------|----------|--------|
-| Q1 | **CI en GitHub Actions**: backend (ruff + pytest con umbral), frontend (`tsc` + build + lint sin regresión), `check-version.sh` en ramas `release/*`, auditoría semanal (`pnpm audit`, `pip-audit`) | Nada valida hoy un PR automáticamente | M | ❓ |
-| Q2 | **Pruebas de contrato por endpoint** (cada `GET` con datos devuelve su esquema) + **cobertura de caminos críticos**: webhooks de Stripe (idempotencia), chat, links compartidos, OAuth. Subir umbral 45% → 55% | Las regresiones de 0.7.0 y las invariantes de billing/auth sin red | M | ❓ |
-| Q3 | **Vitest en el frontend** para utilidades puras (`configInitBlockManager`, `sanitize`, `lazyWithPreload`, `dateLocale`, exportadores) | Primer piso de pruebas del frontend | S | ❓ |
-| Q4 | **Extraer del editor** hooks probables: `useAutosave`, `useViewportSave`, `useDiagramSwitch` | 5,632 líneas; la lógica de 0.7.1 (línea base, en vuelo, serialización) merece pruebas unitarias | M | ❓ |
+| Q1 | **CI en GitHub Actions**: backend (ruff + pytest con umbral), frontend (`tsc` + build + lint sin regresión), `check-version.sh` en ramas `release/*`, auditoría semanal (`pnpm audit`, `pip-audit`) | Nada valida hoy un PR automáticamente | M | 🎯 en alcance (por defecto, confirmar) |
+| Q2 | **Pruebas de contrato por endpoint** (cada `GET` con datos devuelve su esquema) + **cobertura de caminos críticos**: webhooks de Stripe (idempotencia), chat, links compartidos, OAuth. Subir umbral 45% → 55% | Las regresiones de 0.7.0 y las invariantes de billing/auth sin red | M | 🎯 en alcance (por defecto, confirmar) |
+| Q3 | **Vitest en el frontend** para utilidades puras (`configInitBlockManager`, `sanitize`, `lazyWithPreload`, `dateLocale`, exportadores) | Primer piso de pruebas del frontend | S | 🎯 en alcance (por defecto, confirmar) |
+| Q4 | **Extraer del editor** hooks probables: `useAutosave`, `useViewportSave`, `useDiagramSwitch` | 5,632 líneas; la lógica de 0.7.1 (línea base, en vuelo, serialización) merece pruebas unitarias | M | 🎯 en alcance (por defecto, confirmar) |
 
 **Recomendación**: Q1 + Q2 sí o sí (son la lección de 0.7.0); Q3 + Q4 juntos si entra F1 (el historial toca el autosave).
 
@@ -138,13 +138,13 @@ graph TD
 
 | # | Ítem | Impacto de actualización | Esfuerzo | Estado |
 |---|------|--------------------------|----------|--------|
-| H1 | **Índice único `users.email`** + script de migración (detecta duplicados, elimina `email_1`, deja que Beanie cree el único) | Correr la migración **antes** de desplegar | S/M | ❓ |
-| H2 | **Clave propia para TOTP** (`TOTP_ENCRYPTION_KEY`) con re-cifrado atómico de secretos existentes | Nueva variable + migración | M | ❓ |
-| H3 | **MongoDB con credenciales en `local-full`** y sin exponer `27017` al host | Cambia la instalación local: documentar | S | ❓ |
-| H4 | **`python-jose` → PyJWT** (elimina `ecdsa`) | Sin cambio visible (mismos tokens HS256) | S/M | ❓ |
-| H5 | **Monaco empaquetado** (sin CDN) | Self-host sin internet funciona; habilita CSP estricta | M | ❓ |
-| H6 | pytest 9 + pytest-asyncio actual (solo desarrollo) | Ninguno | S | ❓ |
-| H7 | Rate limiting con Redis (opcional, `REDIS_URL` con fallback en memoria) | Solo útil con varias réplicas | M | ❓ |
+| H1 | **Índice único `users.email`** + script de migración (detecta duplicados, elimina `email_1`, deja que Beanie cree el único) | Correr la migración **antes** de desplegar | S/M | 🎯 en alcance (por defecto, confirmar) |
+| H2 | **Clave propia para TOTP** (`TOTP_ENCRYPTION_KEY`) con re-cifrado atómico de secretos existentes | Nueva variable + migración | M | 🎯 en alcance (por defecto, confirmar) |
+| H3 | **MongoDB con credenciales en `local-full`** y sin exponer `27017` al host | Cambia la instalación local: documentar | S | 🚫 fuera (cambia la instalación local) |
+| H4 | **`python-jose` → PyJWT** (elimina `ecdsa`) | Sin cambio visible (mismos tokens HS256) | S/M | 🎯 en alcance (por defecto, confirmar) |
+| H5 | **Monaco empaquetado** (sin CDN) | Self-host sin internet funciona; habilita CSP estricta | M | 🎯 en alcance (por defecto, confirmar) |
+| H6 | pytest 9 + pytest-asyncio actual (solo desarrollo) | Ninguno | S | 🎯 en alcance (por defecto, confirmar) |
+| H7 | Rate limiting con Redis (opcional, `REDIS_URL` con fallback en memoria) | Solo útil con varias réplicas | M | 🚫 → 0.9 |
 
 **Recomendación**: H1 + H2 + H4 + H5 (+ H6 por ser trivial). H3 si aceptas el cambio en la instalación local. H7 a cuando alguien despliegue con réplicas.
 
@@ -169,20 +169,20 @@ Competir con Excalidraw *en dibujar* es perder: es un producto enfocado y muy pu
 
 | # | Ítem | Esfuerzo | Estado |
 |---|------|----------|--------|
-| W1 | **Estilo "a mano" con `roughjs`**: control de *trazo* (arquitecto / artista / caricatura) y relleno (sólido / rayado / cruzado); sin cambiar el formato guardado (atributos nuevos opcionales, *seed* estable por elemento para que no "tiemble" al redibujar) | M | ❓ |
-| W2 | **Trazo libre con `perfect-freehand`** (suavizado, presión del lápiz/stylus, puntas) | S | ❓ |
-| W3 | **Fuente manuscrita empaquetada** (OFL, servida localmente) + texto que se ajusta dentro de las formas | S | ❓ |
-| W4 | **Rendimiento**: caché del dibujo por elemento (roughjs es costoso) para no redibujar todo en cada cuadro | S/M | ❓ |
-| W5 | **Lo que se nota al usarlo**: pegar imágenes, atajos de teclado por herramienta (1–9), exportar PNG/SVG con fondo transparente, bloquear elementos, "ajustar a pantalla", lienzo oscuro | M | ❓ |
+| W1 | **Estilo "a mano" con `roughjs`**: control de *trazo* (arquitecto / artista / caricatura) y relleno (sólido / rayado / cruzado); sin cambiar el formato guardado (atributos nuevos opcionales, *seed* estable por elemento para que no "tiemble" al redibujar) | M | 🎯 en alcance |
+| W2 | **Trazo libre con `perfect-freehand`** (suavizado, presión del lápiz/stylus, puntas) | S | 🎯 en alcance |
+| W3 | **Fuente manuscrita empaquetada** (OFL, servida localmente) + texto que se ajusta dentro de las formas | S | 🎯 en alcance |
+| W4 | **Rendimiento**: caché del dibujo por elemento (roughjs es costoso) para no redibujar todo en cada cuadro | S/M | 🎯 en alcance |
+| W5 | **Lo que se nota al usarlo**: pegar imágenes, atajos de teclado por herramienta (1–9), exportar PNG/SVG con fondo transparente, bloquear elementos, "ajustar a pantalla", lienzo oscuro | M | 🎯 por partes |
 
 **Diferenciación (lo que Excalidraw no tiene o cobra)**
 
 | # | Ítem | Por qué gana usuarios | Esfuerzo | Estado |
 |---|------|-----------------------|----------|--------|
-| D1 | **Boceto ↔ código**: convertir un pizarrón a Mermaid/PlantUML con IA (para versionarlo, documentarlo, ponerlo en un README) y Mermaid → pizarrón "a mano" (para presentarlo con look informal). Hoy la conversión excluye freehand | Nadie une boceto y diagrama-como-código en ambos sentidos | M/L | ❓ |
-| D2 | **Bloques de diagrama vivos dentro del pizarrón**: un elemento con código Mermaid/PlantUML/D2 que se renderiza y se edita ahí mismo | Pizarrón libre + diagramas precisos en el mismo lienzo | M | ❓ |
-| D3 | **"Dibuja esto" con IA (BYOK)**: genera un boceto editable en el lienzo desde un prompt, con el proveedor del usuario | En Excalidraw la IA es de pago/limitada; aquí es tu key, self-hosted | M | ❓ |
-| D4 | **Lo que ya existe, puesto en valor para el pizarrón**: proyectos/carpetas, historial de versiones (F1), links con código y expiración, modo presentación con anotaciones, descripción en Markdown | Excalidraw gratis no organiza ni versiona (Excalidraw+ es de pago) | S (mensaje + pulido) | ❓ |
+| D1 | **Boceto ↔ código**: convertir un pizarrón a Mermaid/PlantUML con IA (para versionarlo, documentarlo, ponerlo en un README) y Mermaid → pizarrón "a mano" (para presentarlo con look informal). Hoy la conversión excluye freehand | Nadie une boceto y diagrama-como-código en ambos sentidos | M/L | 🎯 en alcance |
+| D2 | **Bloques de diagrama vivos dentro del pizarrón**: un elemento con código Mermaid/PlantUML/D2 que se renderiza y se edita ahí mismo | Pizarrón libre + diagramas precisos en el mismo lienzo | M | 🚫 → 0.9 |
+| D3 | **"Dibuja esto" con IA (BYOK)**: genera un boceto editable en el lienzo desde un prompt, con el proveedor del usuario | En Excalidraw la IA es de pago/limitada; aquí es tu key, self-hosted | M | 🚫 → 0.9 |
+| D4 | **Lo que ya existe, puesto en valor para el pizarrón**: proyectos/carpetas, historial de versiones (F1), links con código y expiración, modo presentación con anotaciones, descripción en Markdown | Excalidraw gratis no organiza ni versiona (Excalidraw+ es de pago) | S (mensaje + pulido) | 🎯 en alcance |
 
 **Fuera de alcance de 0.8**: colaboración en tiempo real (la gran fortaleza de Excalidraw; requiere CRDT/WebSockets — apuesta mayor).
 
@@ -195,14 +195,23 @@ Competir con Excalidraw *en dibujar* es perder: es un producto enfocado y muy pu
 - `ChatSessionService` (1,336 líneas, send/stream casi duplicados): dividir **después** de Q2, que le da red de pruebas.
 - `ai_providers/prompts.py` (2,061 líneas): revisar duplicación entre idiomas/proveedores.
 
-## 5. Decisiones abiertas
+## 5. Alcance acordado (2026-10-01)
 
-1. ¿Qué features entran? (recomendado: F1–F4 + F8) ¿F2 debe importar también el ZIP de F8 (respaldo/migración)? ¿Imágenes en el ZIP desde ya (agrega el contenedor `kroki-mermaid`) o en una segunda fase?
-2. ¿Pizarrón: camino propio (`roughjs` + `perfect-freehand`) o incrustar Excalidraw? (recomendado: propio) ¿Qué diferenciadores entran? (recomendado: D1 + D4)
-3. ¿Q4 (extraer hooks del editor) entra con F1?
-4. ¿H3 cambia la instalación local por defecto o queda como opción documentada?
-5. ¿Modo embed (F6): se acepta permitir *framing* en la ruta pública de embed?
-6. ¿Umbral de cobertura objetivo: 55%?
+- **Producto**: historial de versiones (F1), importar archivos (F2, incluido el ZIP de F8 si el tiempo da), galería de templates (F3), exportación masiva (F8: ZIP o Markdown; el Markdown se descarga como un `.md`). Extras F4–F7 → 0.9.
+- **Pizarrón**: camino propio — paridad visual (W1–W4, W5 por partes) + boceto ↔ código (D1) + puesta en valor de organización/historial/compartir (D4). Bloques vivos (D2) y "dibuja esto" (D3) → 0.9. Excalidraw incrustado descartado.
+- **Calidad y seguridad — por defecto (recomendación), pendiente de confirmar**: CI + pruebas de contrato con umbral 55% (Q1–Q2), Vitest + hooks del editor (Q3–Q4), hardening H1/H2/H4/H5/H6. MongoDB con credenciales en `local-full` (H3) queda fuera. Redis (H7) → cuando haya despliegues con réplicas.
+
+### Orden de ejecución propuesto
+
+1. **Q1 CI** — todo lo demás se valida solo desde el primer PR.
+2. **Q2 pruebas de contrato + caminos críticos** — red antes de tocar autosave/chat.
+3. **Q3/Q4 Vitest + hooks del editor** — prepara el terreno de F1.
+4. **F8 exportación** y **F2 importar** (comparten formato: `manifest.json`).
+5. **F1 historial de versiones** (sobre los hooks ya probados).
+6. **F3 templates**.
+7. **Pizarrón W1–W4**, luego **D1** (boceto ↔ código) y **D4**.
+8. **Hardening H1/H2/H4/H5/H6** (H1 y H2 con migración y notas de actualización).
+9. Cierre del release.
 
 ## 6. Cierre
 
