@@ -39,6 +39,8 @@ import FreehandCanvas from "../components/FreehandCanvas";
 import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal from "../components/ExportDiagramModal";
 import ExportProjectModal from "../components/ExportProjectModal";
+import ImportProjectModal from "../components/ImportProjectModal";
+import type { ProjectImportResult } from "../services/api";
 import DiagramCodePanel from "../components/DiagramCodePanel";
 import DiagramFileBrowser from "../components/DiagramFileBrowser";
 import { LiveClock } from "../components/LiveClock";
@@ -303,6 +305,14 @@ export default function DiagramEditorPage() {
     isOpen: boolean;
     folderId: string | null;
   }>({ isOpen: false, folderId: null });
+  // Import dialog: files come from a drop (or null to pick them), into a folder or the root
+  const [importModal, setImportModal] = useState<{
+    isOpen: boolean;
+    folderId: string | null;
+    files: File[] | null;
+  }>({ isOpen: false, folderId: null, files: null });
+  const openImport = (files: File[] | null, folderId: string | null) =>
+    setImportModal({ isOpen: true, folderId, files });
   const [showFloatingSidebar, setShowFloatingSidebar] = useState(
     () => isFileBrowserPinned && !isMobile,
   );
@@ -2488,6 +2498,24 @@ export default function DiagramEditorPage() {
     setShowExportModal(false);
   };
 
+  // After an import, reload the tree in place (no skeleton) and open the folders that received diagrams
+  const handleImported = async (result: ProjectImportResult) => {
+    if (!projectId) return;
+    try {
+      const fresh = await api.getProject(projectId);
+      setProject(fresh);
+      const touched = new Set(
+        fresh.folders
+          .filter((f) => result.folders.includes(f.name) || f.name === result.target_folder)
+          .map((f) => f.id),
+      );
+      if (touched.size > 0) setExpandedFolders((prev) => new Set([...prev, ...touched]));
+      setShowFloatingSidebar(true);
+    } catch (err) {
+      console.error("Error refreshing project after import:", err);
+    }
+  };
+
   // Folder functions
   const toggleFolder = (folderId: string) => {
     setExpandedFolders((prev) => {
@@ -3477,6 +3505,7 @@ export default function DiagramEditorPage() {
                   onEditFolder={handleEditFolder}
                   onExportProject={() => setExportProjectModal({ isOpen: true, folderId: null })}
                   onExportFolder={(id) => setExportProjectModal({ isOpen: true, folderId: id })}
+                  onImportFiles={openImport}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -4610,6 +4639,18 @@ export default function DiagramEditorPage() {
 
       {/* Export Modal */}
       {project && (
+        <ImportProjectModal
+          isOpen={importModal.isOpen}
+          onClose={() => setImportModal({ isOpen: false, folderId: null, files: null })}
+          projectId={project.id}
+          folderId={importModal.folderId}
+          folderName={project.folders.find((f) => f.id === importModal.folderId)?.name ?? null}
+          initialFiles={importModal.files}
+          onImported={handleImported}
+        />
+      )}
+
+      {project && (
         <ExportProjectModal
           isOpen={exportProjectModal.isOpen}
           onClose={() => setExportProjectModal({ isOpen: false, folderId: null })}
@@ -5563,6 +5604,10 @@ export default function DiagramEditorPage() {
               onExportFolder={(id) => {
                 setShowFloatingSidebar(false);
                 setExportProjectModal({ isOpen: true, folderId: id });
+              }}
+              onImportFiles={(files, folderId) => {
+                setShowFloatingSidebar(false);
+                openImport(files, folderId);
               }}
               onDragStart={(id) => setDraggedDiagramId(id)}
               onDragOver={handleDragOver}

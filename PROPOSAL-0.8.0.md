@@ -54,9 +54,9 @@ Exportar
 
 | # | Tarea | Esfuerzo | Estado |
 |---|-------|----------|--------|
-| I1 | **Archivos sueltos** (arrastrar al explorador o seleccionar): `.mmd/.mermaid`, `.puml/.plantuml/.pu`, `.d2`, `.dbml`, `.freehand.json`, `.md` con un bloque de código | S/M | 🔨 backend ✅ (`import_parsers.py` + `import_service.py` + `POST /projects/{id}/import`); UI ⬜ |
-| I2 | **ZIP**: el de E1 (con `manifest.json`, restaura carpetas y colores) y también un ZIP cualquiera (carpetas desde las rutas, tipo por extensión, descripción desde el `.md` hermano) | M | 🔨 backend ✅ (manifest + ZIP arbitrario, límites anti zip-bomb, 20 MB propios); UI ⬜ |
-| I3 | **Importar de Excalidraw** (`.excalidraw` → pizarrón): rectángulo, rombo, elipse, flecha, línea, texto, trazo libre; lo no soportado (imágenes, *frames*) se omite y se informa | M | 🔨 backend ✅ (`excalidraw_to_freehand`: formas, etiquetas, flechas ancladas, trazos; omite imágenes/frames); UI ⬜ |
+| I1 | **Archivos sueltos** (arrastrar al explorador o seleccionar): `.mmd/.mermaid`, `.puml/.plantuml/.pu`, `.d2`, `.dbml`, `.freehand.json`, `.md` con un bloque de código | S/M | ✅ backend + `ImportProjectModal` (picker, arrastre, vista previa, cupo); botón en explorador y arrastre de archivos del SO sobre raíz/carpeta; e2e 20/20 |
+| I2 | **ZIP**: el de E1 (con `manifest.json`, restaura carpetas y colores) y también un ZIP cualquiera (carpetas desde las rutas, tipo por extensión, descripción desde el `.md` hermano) | M | ✅ backend + UI (ZIP en el mismo diálogo; manifest restaura carpetas/colores) |
+| I3 | **Importar de Excalidraw** (`.excalidraw` → pizarrón): rectángulo, rombo, elipse, flecha, línea, texto, trazo libre; lo no soportado (imágenes, *frames*) se omite y se informa | M | ✅ backend + UI (`.excalidraw` en el mismo diálogo; lo omitido se marca como "parcial") |
 
 **Flujo**: subir → **vista previa** ("se crearán 2 carpetas y 14 diagramas; 1 archivo omitido: `foto.png`") → confirmar → crear. Destino: la carpeta o raíz desde donde se importa.
 

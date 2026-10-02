@@ -141,6 +141,39 @@ function filenameFromDisposition(header: string | undefined): string | null {
   return ascii ? ascii[1] : null;
 }
 
+export interface ProjectImportDiagramPreview {
+  title: string;
+  diagram_type: string;
+  folder: string | null;
+  source: string;
+  has_description: boolean;
+  warnings: string[];
+}
+
+export interface ProjectImportPreview {
+  diagram_count: number;
+  folder_count: number;
+  folders: string[];
+  diagrams: ProjectImportDiagramPreview[];
+  skipped: { source: string; reason: string }[];
+  current_usage: number;
+  limit: number | null;
+  allowed: boolean;
+  target_folder: string | null;
+}
+
+export interface ProjectImportResult extends ProjectImportPreview {
+  created_diagram_ids: string[];
+  created_folder_ids: string[];
+}
+
+function importForm(files: File[], folderId: string | null): FormData {
+  const form = new FormData();
+  files.forEach((file) => form.append('files', file, file.name));
+  if (folderId) form.append('folder_id', folderId);
+  return form;
+}
+
 /** Keepalive body budget: below the ~64 KiB browser quota, leaving room for headers. */
 const KEEPALIVE_MAX_BODY_BYTES = 60_000;
 
@@ -843,6 +876,28 @@ class ApiService {
       blob: response.data,
       filename: filenameFromDisposition(response.headers['content-disposition']) ?? fallback,
     };
+  }
+
+  // ============================================================================
+  // Project import
+  // ============================================================================
+
+  async previewProjectImport(projectId: string, files: File[], folderId: string | null): Promise<ProjectImportPreview> {
+    const response = await this.api.post<ProjectImportPreview>(
+      `/api/v1/projects/${projectId}/import`,
+      importForm(files, folderId),
+      { params: { dry_run: 'true' }, headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return response.data;
+  }
+
+  async runProjectImport(projectId: string, files: File[], folderId: string | null): Promise<ProjectImportResult> {
+    const response = await this.api.post<ProjectImportResult>(
+      `/api/v1/projects/${projectId}/import`,
+      importForm(files, folderId),
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return response.data;
   }
 
   async adminExportUsersExcel(): Promise<Blob> {

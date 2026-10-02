@@ -38,6 +38,8 @@ interface DiagramFileBrowserProps {
   onExportProject?: () => void;
   /** Export one folder (folder menu). */
   onExportFolder?: (id: string) => void;
+  /** Import files into a folder (null = root); `files` is null when the user should pick them. */
+  onImportFiles?: (files: File[] | null, folderId: string | null) => void;
   onDragStart: (id: string) => void;
   onDragOver: (e: React.DragEvent, folderId: string | null) => void;
   onDragLeave: () => void;
@@ -104,6 +106,7 @@ const ICONS = {
   newFolder: 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
   download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+  upload: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
 };
 
 /**
@@ -137,6 +140,7 @@ export default function DiagramFileBrowser({
   onEditFolder,
   onExportProject,
   onExportFolder,
+  onImportFiles,
   onDragStart,
   onDragOver,
   onDragLeave,
@@ -162,6 +166,10 @@ export default function DiagramFileBrowser({
   const [renamingDiagramId, setRenamingDiagramId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+  // Folder (or 'root') currently hovered by an external file drag.
+  const [fileDropTarget, setFileDropTarget] = useState<string | null>(null);
+
+  const isFileDrag = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
 
   const query = searchQuery.toLowerCase().trim();
   const isSearching = query.length > 0;
@@ -324,20 +332,39 @@ export default function DiagramFileBrowser({
   };
 
   // Drag handlers that stop bubbling, so a drop on a folder never also fires the root drop.
+  // External files (from the OS) are routed to the importer instead of the diagram move.
   const folderDragOver = (e: React.DragEvent, folderId: string | null) => {
     e.stopPropagation();
+    if (isFileDrag(e)) {
+      e.preventDefault();
+      if (onImportFiles) {
+        e.dataTransfer.dropEffect = 'copy';
+        setFileDropTarget(folderId ?? 'root');
+      }
+      return;
+    }
     onDragOver(e, folderId);
   };
   const folderDragLeave = (e: React.DragEvent) => {
     e.stopPropagation();
     // Ignore leave events fired when moving between children of the same drop zone.
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+    setFileDropTarget(null);
     onDragLeave();
   };
   const folderDrop = (e: React.DragEvent, folderId: string | null) => {
     e.stopPropagation();
+    if (isFileDrag(e)) {
+      e.preventDefault();
+      setFileDropTarget(null);
+      const files = Array.from(e.dataTransfer.files);
+      if (onImportFiles && files.length > 0) onImportFiles(files, folderId);
+      return;
+    }
     onDrop(e, folderId);
   };
+  const rootDragOver = (e: React.DragEvent) => folderDragOver(e, null);
+  const rootDrop = (e: React.DragEvent) => folderDrop(e, null);
 
   const renderDiagramRow = (diagram: DiagramItem, level: 1 | 2) => {
     const isCurrent = diagram.id === currentDiagramId;
@@ -524,6 +551,12 @@ export default function DiagramFileBrowser({
             <Icon d={ICONS.rename} />
             {t('fileBrowser.rename')}
           </button>
+          {onImportFiles && (
+            <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onImportFiles(null, folder.id); }}>
+              <Icon d={ICONS.upload} />
+              {t('projectImport.importHere')}
+            </button>
+          )}
           {onExportFolder && (
             <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onExportFolder(folder.id); }}>
               <Icon d={ICONS.download} />
@@ -573,6 +606,11 @@ export default function DiagramFileBrowser({
           <button onClick={onNewFolder} className={rowActionClass} aria-label={t('editor.newFolder')} title={t('editor.newFolder')}>
             <Icon d={ICONS.newFolder} className="w-4 h-4" />
           </button>
+          {onImportFiles && (
+            <button onClick={() => onImportFiles(null, null)} className={rowActionClass} aria-label={t('projectImport.importFiles')} title={t('projectImport.importFiles')}>
+              <Icon d={ICONS.upload} className="w-4 h-4" />
+            </button>
+          )}
           {onExportProject && (
             <button onClick={onExportProject} className={rowActionClass} aria-label={t('projectExport.exportProject')} title={t('projectExport.exportProject')}>
               <Icon d={ICONS.download} className="w-4 h-4" />
@@ -632,11 +670,18 @@ export default function DiagramFileBrowser({
         role="tree"
         aria-label={projectName}
         onKeyDown={handleTreeKeyDown}
-        className="flex-1 overflow-y-auto py-1 text-xs"
-        onDragOver={(e) => onDragOver(e, null)}
+        className={`flex-1 overflow-y-auto py-1 text-xs transition-colors ${
+          fileDropTarget === 'root' ? 'bg-purple-50/60 dark:bg-purple-900/20 ring-2 ring-inset ring-purple-400 dark:ring-purple-600' : ''
+        }`}
+        onDragOver={rootDragOver}
         onDragLeave={folderDragLeave}
-        onDrop={(e) => onDrop(e, null)}
+        onDrop={rootDrop}
       >
+        {fileDropTarget === 'root' && (
+          <div className="mx-2 mb-1 px-2 py-2 border border-dashed border-purple-300 dark:border-purple-700 rounded text-[10px] text-center text-purple-600 dark:text-purple-300 bg-purple-50/60 dark:bg-purple-900/20 pointer-events-none">
+            {t('projectImport.dropToImportRoot')}
+          </div>
+        )}
         {showRootDropZone && (
           <div
             onDragOver={(e) => folderDragOver(e, null)}
@@ -651,7 +696,7 @@ export default function DiagramFileBrowser({
         {filteredData.folders.map(folder => {
           const open = isFolderOpen(folder.id);
           const menuOpen = menu?.kind === 'folder' && menu.id === folder.id;
-          const isDropTarget = dropTargetFolderId === folder.id && !!draggedDiagramId;
+          const isDropTarget = (dropTargetFolderId === folder.id && !!draggedDiagramId) || fileDropTarget === folder.id;
           return (
             <div
               key={folder.id}
