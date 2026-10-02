@@ -208,7 +208,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # Global body size limit (413). Registered before SecurityHeadersMiddleware and
 # CORS so both wrap it: the 413 keeps security headers and stays readable by
 # the browser (CORS headers present).
-app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
+app.add_middleware(
+    BodySizeLimitMiddleware,
+    max_bytes=settings.MAX_REQUEST_BODY_BYTES,
+    # Project imports upload ZIP archives: their own, larger budget.
+    path_overrides=[(r"^/api/v1/projects/[^/]+/import$", settings.MAX_IMPORT_UPLOAD_BYTES)],
+)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ---------------------------------------------------------------------------

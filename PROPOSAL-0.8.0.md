@@ -54,9 +54,9 @@ Exportar
 
 | # | Tarea | Esfuerzo | Estado |
 |---|-------|----------|--------|
-| I1 | **Archivos sueltos** (arrastrar al explorador o seleccionar): `.mmd/.mermaid`, `.puml/.plantuml/.pu`, `.d2`, `.dbml`, `.freehand.json`, `.md` con un bloque de código | S/M | 🎯 |
-| I2 | **ZIP**: el de E1 (con `manifest.json`, restaura carpetas y colores) y también un ZIP cualquiera (carpetas desde las rutas, tipo por extensión, descripción desde el `.md` hermano) | M | 🎯 |
-| I3 | **Importar de Excalidraw** (`.excalidraw` → pizarrón): rectángulo, rombo, elipse, flecha, línea, texto, trazo libre; lo no soportado (imágenes, *frames*) se omite y se informa | M | 🎯 |
+| I1 | **Archivos sueltos** (arrastrar al explorador o seleccionar): `.mmd/.mermaid`, `.puml/.plantuml/.pu`, `.d2`, `.dbml`, `.freehand.json`, `.md` con un bloque de código | S/M | 🔨 backend ✅ (`import_parsers.py` + `import_service.py` + `POST /projects/{id}/import`); UI ⬜ |
+| I2 | **ZIP**: el de E1 (con `manifest.json`, restaura carpetas y colores) y también un ZIP cualquiera (carpetas desde las rutas, tipo por extensión, descripción desde el `.md` hermano) | M | 🔨 backend ✅ (manifest + ZIP arbitrario, límites anti zip-bomb, 20 MB propios); UI ⬜ |
+| I3 | **Importar de Excalidraw** (`.excalidraw` → pizarrón): rectángulo, rombo, elipse, flecha, línea, texto, trazo libre; lo no soportado (imágenes, *frames*) se omite y se informa | M | 🔨 backend ✅ (`excalidraw_to_freehand`: formas, etiquetas, flechas ancladas, trazos; omite imágenes/frames); UI ⬜ |
 
 **Flujo**: subir → **vista previa** ("se crearán 2 carpetas y 14 diagramas; 1 archivo omitido: `foto.png`") → confirmar → crear. Destino: la carpeta o raíz desde donde se importa.
 

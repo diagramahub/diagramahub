@@ -5,7 +5,7 @@ FastAPI routes for projects.
 from typing import Literal, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 from app.api.deps import get_current_user_id
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.diagrams.repository import DiagramRepository
@@ -16,6 +16,7 @@ from app.api.v1.subscriptions.plan_repository import PlanRepository
 from .repository import ProjectRepository
 from .services import ProjectService
 from .export_service import ExportSummary, ProjectExportService
+from .import_service import ImportPreview, ImportResult, ProjectImportService, UploadedFile
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithDiagramsResponse
 
 router = APIRouter()
@@ -37,6 +38,16 @@ def get_export_service() -> ProjectExportService:
         project_repository=ProjectRepository(),
         folder_repository=FolderRepository(),
         diagram_repository=DiagramRepository(),
+    )
+
+
+def get_import_service() -> ProjectImportService:
+    """Get project import service instance."""
+    return ProjectImportService(
+        project_repository=ProjectRepository(),
+        folder_repository=FolderRepository(),
+        diagram_repository=DiagramRepository(),
+        usage_limiter=get_usage_limiter(),
     )
 
 
@@ -123,6 +134,28 @@ async def export_project(
             "Cache-Control": "no-store",
         },
     )
+
+
+@router.post("/projects/{project_id}/import", response_model=ImportResult | ImportPreview)
+async def import_into_project(
+    project_id: str,
+    files: list[UploadFile] = File(..., description="Diagram files, Markdown, .excalidraw or ZIP archives"),
+    folder_id: Optional[str] = Form(None),
+    dry_run: bool = Query(False, description="Preview only: nothing is created"),
+    user_id: str = Depends(get_current_user_id),
+    service: ProjectImportService = Depends(get_import_service),
+):
+    """
+    Import diagrams into the project root or into ``folder_id``.
+
+    Accepts loose files (.mmd/.puml/.d2/.dbml/.freehand.json/.excalidraw/.md),
+    Diagramahub export archives (restores folders and colours) or any ZIP
+    (folders from its paths). With ``dry_run=true`` returns the preview only.
+    """
+    uploads = [UploadedFile(filename=f.filename or "file", data=await f.read()) for f in files]
+    if dry_run:
+        return await service.preview(project_id, user_id, uploads, folder_id or None)
+    return await service.execute(project_id, user_id, uploads, folder_id or None)
 
 
 @router.get("/projects/{project_id}", response_model=ProjectWithDiagramsResponse)

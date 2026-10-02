@@ -82,3 +82,15 @@ async def test_cors_exposes_content_disposition(client: AsyncClient) -> None:
     response = await client.get("/health", headers={"Origin": origin})
     exposed = response.headers.get("access-control-expose-headers", "").lower()
     assert "content-disposition" in exposed
+
+
+@pytest.mark.unit
+def test_path_overrides_pick_the_first_matching_limit() -> None:
+    middleware = BodySizeLimitMiddleware(
+        app=lambda *_: None,  # type: ignore[arg-type]
+        max_bytes=100,
+        path_overrides=[(r"^/api/v1/projects/[^/]+/import$", 5000), (r"^/api/v1/projects", 200)],
+    )
+    assert middleware.limit_for("/api/v1/projects/abc/import") == 5000
+    assert middleware.limit_for("/api/v1/projects/abc") == 200
+    assert middleware.limit_for("/api/v1/diagrams") == 100
