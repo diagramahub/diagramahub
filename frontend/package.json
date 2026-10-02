@@ -23,6 +23,7 @@
     "i18next-browser-languagedetector": "^8.2.1",
     "jspdf": "^4.2.1",
     "mermaid": "^11.17.2",
+    "perfect-freehand": "^1.2.3",
     "react": "^19.2.7",
     "react-color": "^2.19.3",
     "react-dom": "^19.2.7",
@@ -30,7 +31,8 @@
     "react-markdown": "^9.1.0",
     "react-router-dom": "^7.18.4",
     "react-simplemde-editor": "^5.2.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "roughjs": "^4.6.6"
   },
   "pnpm": {
     "overrides": {

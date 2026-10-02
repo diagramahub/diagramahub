@@ -1,3 +1,12 @@
+/* Handwriting font for freehand sketches: Caveat (SIL OFL 1.1), bundled locally — see public/fonts/caveat/OFL.txt. */
+@font-face {
+  font-family: "Caveat";
+  src: url("/fonts/caveat/Caveat.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

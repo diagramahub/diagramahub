@@ -9,17 +9,25 @@
  */
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { drawSketchy, drawStrokeOutline, roughCanvasFor, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
 import type {
   FreehandCanvasState,
   FreehandElement,
   FreehandTool,
   FreehandPoint,
   ConnectionBinding,
+  SketchRoughness,
+  SketchFillStyle,
+  FreehandFontFamily,
 } from "../types/freehand";
 import {
   DEFAULT_CANVAS_STATE,
   FREEHAND_COLORS,
   FREEHAND_STROKE_WIDTHS,
+  DEFAULT_SKETCH_STYLE,
+  FREEHAND_FONT_FAMILIES,
+  fontStackFor,
+  randomSeed,
 } from "../types/freehand";
 
 // ─── Utilities ───
@@ -104,7 +112,7 @@ function measureTextWidth(text: string, fontSize: number, fontFamily?: string): 
   if (!text) return 0;
   const ctx = getMeasureCtx();
   if (!ctx) return text.length * fontSize * 0.6;
-  ctx.font = `${fontSize}px ${fontFamily || "sans-serif"}`;
+  ctx.font = `${fontSize}px ${fontStackFor(fontFamily)}`;
   let w = 0;
   for (const line of text.split("\n")) w = Math.max(w, ctx.measureText(line).width);
   return w;
@@ -274,6 +282,8 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   const [drawStart, setDrawStart] = useState<FreehandPoint | null>(null);
   const [drawCurrent, setDrawCurrent] = useState<FreehandPoint | null>(null);
   const [freehandPoints, setFreehandPoints] = useState<FreehandPoint[]>([]);
+  // Pen/stylus pressure from pointer events (undefined for mouse), read when a freehand point is added
+  const penPressureRef = useRef<number | undefined>(undefined);
   const [dragOffset, setDragOffset] = useState<FreehandPoint>({ x: 0, y: 0 });
   const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null);
   const [resizeOrigin, setResizeOrigin] = useState<{ x: number; y: number; elX: number; elY: number; elW: number; elH: number; elPoints?: FreehandPoint[] } | null>(null);
@@ -442,12 +452,24 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   }, [readOnly, elements, canvasSize, onZoomChange]);
 
   // ─── Style editing: update all selected elements ───
-  const updateStyle = useCallback((prop: keyof Pick<FreehandElement, "strokeColor" | "fillColor" | "strokeWidth">, value: string | number) => {
+  const updateStyle = useCallback((prop: keyof Pick<FreehandElement, "strokeColor" | "fillColor" | "strokeWidth" | "roughness" | "fillStyle" | "fontFamily">, value: string | number | undefined) => {
     if (selectedIds.size === 0) return;
-    const updated = elements.map((el) => selectedIds.has(el.id) ? { ...el, [prop]: value } : el);
+    const updated = elements.map((el) => {
+      if (!selectedIds.has(el.id)) return el;
+      const next = { ...el, [prop]: value };
+      // Switching to a sketchy style needs a stable seed; "clean" drops the sketch attributes.
+      if (prop === "roughness") {
+        if (value === undefined) { delete next.roughness; delete next.fillStyle; }
+        else if (next.seed === undefined) next.seed = randomSeed();
+      }
+      return next;
+    });
     setElements(updated);
     emit(updated);
   }, [selectedIds, elements, emit]);
+  const onSketchStyle = (r: SketchRoughness | undefined) => updateStyle("roughness", r);
+  const onFillStyle = (f: SketchFillStyle) => updateStyle("fillStyle", f);
+  const onFontFamily = (f: FreehandFontFamily) => updateStyle("fontFamily", f);
 
   const onStrokeColor = (c: string) => { setStrokeColor(c); updateStyle("strokeColor", c); };
   const onFillColor = (c: string) => { setFillColor(c); updateStyle("fillColor", c); };
@@ -629,23 +651,25 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       ctx.restore();
     }
 
-    // Drawing preview
-    if (mode === "drawing" && drawStart && drawCurrent) {
-      ctx.save(); ctx.strokeStyle = strokeColor; ctx.lineWidth = strokeWidth; ctx.setLineDash([4, 4]);
+    // Drawing preview (sketchy, like the element that will be created)
+    if (mode === "drawing" && drawStart && drawCurrent && activeTool !== "freehand") {
       const x = Math.min(drawStart.x, drawCurrent.x), y = Math.min(drawStart.y, drawCurrent.y);
       const w = Math.abs(drawCurrent.x - drawStart.x), h = Math.abs(drawCurrent.y - drawStart.y);
-      if (activeTool === "rectangle") ctx.strokeRect(x, y, w, h);
-      else if (activeTool === "ellipse") { ctx.beginPath(); ctx.ellipse(x + w / 2, y + h / 2, Math.max(w / 2, 1), Math.max(h / 2, 1), 0, 0, Math.PI * 2); ctx.stroke(); }
-      else if (activeTool === "diamond") { ctx.beginPath(); ctx.moveTo(x + w / 2, y); ctx.lineTo(x + w, y + h / 2); ctx.lineTo(x + w / 2, y + h); ctx.lineTo(x, y + h / 2); ctx.closePath(); ctx.stroke(); }
-      else if (activeTool === "arrow" || activeTool === "line") { ctx.beginPath(); ctx.moveTo(drawStart.x, drawStart.y); ctx.lineTo(drawCurrent.x, drawCurrent.y); ctx.stroke(); if (activeTool === "arrow") { const angle = Math.atan2(drawCurrent.y - drawStart.y, drawCurrent.x - drawStart.x); ctx.beginPath(); ctx.moveTo(drawCurrent.x, drawCurrent.y); ctx.lineTo(drawCurrent.x - 12 * Math.cos(angle - Math.PI / 6), drawCurrent.y - 12 * Math.sin(angle - Math.PI / 6)); ctx.moveTo(drawCurrent.x, drawCurrent.y); ctx.lineTo(drawCurrent.x - 12 * Math.cos(angle + Math.PI / 6), drawCurrent.y - 12 * Math.sin(angle + Math.PI / 6)); ctx.stroke(); } }
-      ctx.restore();
+      const rc = canvasRef.current ? roughCanvasFor(canvasRef.current) : null;
+      if (rc && (w > 1 || h > 1)) {
+        const isLine = activeTool === "arrow" || activeTool === "line";
+        const preview: FreehandElement = {
+          id: "__preview__", type: activeTool as FreehandElement["type"], x, y, width: Math.max(w, 1), height: Math.max(h, 1),
+          strokeColor, fillColor: isLine ? "transparent" : fillColor, strokeWidth, opacity: 1,
+          ...DEFAULT_SKETCH_STYLE, seed: PREVIEW_SEED,
+          ...(isLine ? { points: [drawStart, drawCurrent], endArrowhead: activeTool === "arrow" } : {}),
+        };
+        ctx.save(); ctx.globalAlpha = 0.9; drawSketchy(rc, preview); ctx.restore();
+      }
     }
-    // Freehand preview
+    // Freehand preview (same smoothed outline as the committed stroke)
     if (mode === "drawing" && activeTool === "freehand" && freehandPoints.length > 1) {
-      ctx.save(); ctx.strokeStyle = strokeColor; ctx.lineWidth = strokeWidth; ctx.lineCap = "round"; ctx.lineJoin = "round";
-      ctx.beginPath(); ctx.moveTo(freehandPoints[0].x, freehandPoints[0].y);
-      for (let i = 1; i < freehandPoints.length; i++) ctx.lineTo(freehandPoints[i].x, freehandPoints[i].y);
-      ctx.stroke(); ctx.restore();
+      drawStrokeOutline(ctx, strokeOutline(freehandPoints, strokeWidth), strokeColor);
     }
 
     // Restore pan transform
@@ -655,7 +679,17 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
   useEffect(() => { draw(); }, [draw]);
 
   function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement) {
-    switch (el.type) {
+    // Hand-drawn elements (0.8.0+): roughjs for shapes/lines, perfect-freehand for strokes.
+    // Elements without `roughness` keep the clean rendering below.
+    const sketchy = el.roughness !== undefined && el.type !== "text";
+    if (sketchy && el.type === "freehand") {
+      const pts = el.points || [];
+      if (pts.length >= 2) drawStrokeOutline(ctx, strokeOutline(pts, el.strokeWidth || 2), el.strokeColor || "#1e1e1e");
+    } else if (sketchy) {
+      const rc = canvasRef.current ? roughCanvasFor(canvasRef.current) : null;
+      if (rc) drawSketchy(rc, el);
+    }
+    switch (sketchy ? "__sketched__" : el.type) {
       case "rectangle":
         if (el.borderRadius) {
           if (el.fillColor && el.fillColor !== "transparent") { roundedRectPath(ctx, el.x, el.y, el.width, el.height, el.borderRadius); ctx.fill(); }
@@ -698,7 +732,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       }
       case "text": {
         if (el.id === editingId) break; // Don't render text while editing
-        ctx.font = `${el.fontSize || 16}px ${el.fontFamily || "sans-serif"}`;
+        ctx.font = `${el.fontSize || 16}px ${fontStackFor(el.fontFamily)}`;
         ctx.fillStyle = el.strokeColor || "#1e1e1e"; ctx.textBaseline = "top";
         (el.text || "").split("\n").forEach((line, i) => ctx.fillText(line, el.x, el.y + i * (el.fontSize || 16) * 1.2));
         break;
@@ -715,7 +749,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
     if (el.type !== "text" && el.text && el.id !== editingId) {
       ctx.save();
       const fs = el.fontSize || 14;
-      ctx.font = `${fs}px ${el.fontFamily || "sans-serif"}`;
+      ctx.font = `${fs}px ${fontStackFor(el.fontFamily)}`;
       ctx.fillStyle = el.strokeColor || "#1e1e1e";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -871,8 +905,12 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
     }
 
     if (activeTool === "text") {
-      // Create an empty text element and start editing it inline (Excalidraw-style)
-      const nel: FreehandElement = { id: generateId(), type: "text", x: pos.x, y: pos.y, width: 120, height: 24, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, text: "", fontSize: 16, fontFamily: "sans-serif" };
+      // Create an empty text element and start editing it inline (Excalidraw-style).
+      // The editor is focused while this mousedown is dispatched; without this the
+      // browser's default mousedown action moves focus to the canvas afterwards,
+      // the editor blurs, commits empty text and the element disappears.
+      e.preventDefault();
+      const nel: FreehandElement = { id: generateId(), type: "text", x: pos.x, y: pos.y, width: 120, height: 24, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, text: "", fontSize: 16, fontFamily: "hand" };
       const updated = [...elements, nel];
       // Don't push history for the intermediate creation — only the committed text matters
       skipHistoryRef.current = true;
@@ -1013,7 +1051,10 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
         if (!guidesEqual(res.guides, guides)) setGuides(res.guides);
       }
       setDrawCurrent(cur);
-      if (activeTool === "freehand") setFreehandPoints((prev) => [...prev, pos]);
+      if (activeTool === "freehand") {
+        const pressure = penPressureRef.current;
+        setFreehandPoints((prev) => [...prev, pressure === undefined ? pos : { ...pos, pressure }]);
+      }
       // Arrow anchor snapping
       if (activeTool === "arrow" || activeTool === "line") {
         const near = [...elements].reverse().find((el) => isShape(el) && hitTest(cur, el));
@@ -1107,7 +1148,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       const pts = freehandPoints;
       if (pts.length >= 2) {
         const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-        newEl = { id: generateId(), type: "freehand", x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: pts };
+        newEl = { id: generateId(), type: "freehand", x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: pts, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
       }
     } else if (activeTool === "arrow" || activeTool === "line") {
       let startBinding: ConnectionBinding | undefined, endBinding: ConnectionBinding | undefined;
@@ -1116,11 +1157,11 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       const endShape = hoveredAnchor ? elements.find((el) => el.id === hoveredAnchor.elementId) : elements.find((el) => isShape(el) && hitTest(endPt, el));
       if (startShape) { const side = closestAnchorSide(startShape, drawStart); startBinding = { elementId: startShape.id, anchorSide: side }; sp = getRotatedAnchor(startShape, side); }
       if (endShape && endShape.id !== startShape?.id) { const side = hoveredAnchor?.elementId === endShape.id ? hoveredAnchor.side : closestAnchorSide(endShape, endPt); endBinding = { elementId: endShape.id, anchorSide: side }; ep = getRotatedAnchor(endShape, side); }
-      newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding };
+      newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
     } else {
       const x = Math.min(drawStart.x, endPt.x), y = Math.min(drawStart.y, endPt.y);
       const w = Math.abs(endPt.x - drawStart.x), h = Math.abs(endPt.y - drawStart.y);
-      if (w > 3 || h > 3) newEl = { id: generateId(), type: activeTool as any, x, y, width: w, height: h, strokeColor, fillColor, strokeWidth, opacity: 1 };
+      if (w > 3 || h > 3) newEl = { id: generateId(), type: activeTool as any, x, y, width: w, height: h, strokeColor, fillColor, strokeWidth, opacity: 1, fontFamily: "hand", ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
     }
 
     if (newEl) {
@@ -1147,7 +1188,7 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
       editingOriginalRef.current = hit.text || "";
     } else if (activeTool === "select") {
       // Double-click on empty canvas creates a text element (Excalidraw-style)
-      const nel: FreehandElement = { id: generateId(), type: "text", x: pos.x, y: pos.y, width: 120, height: 24, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, text: "", fontSize: 16, fontFamily: "sans-serif" };
+      const nel: FreehandElement = { id: generateId(), type: "text", x: pos.x, y: pos.y, width: 120, height: 24, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, text: "", fontSize: 16, fontFamily: "hand" };
       const updated = [...elements, nel];
       skipHistoryRef.current = true;
       setElements(updated); emit(updated);
@@ -1717,6 +1758,25 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
             </div>
           </div>
 
+          {/* Hand-drawn stroke style (everything but text) */}
+          {!(selectedIds.size === 1 && isTextEl) && (
+            <div className="mb-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.sketchStyle")}</span>
+              <div className="flex gap-1" role="radiogroup" aria-label={t("freehand.sketchStyle")}>
+                {([["clean", undefined], ["architect", 0], ["artist", 1], ["cartoonist", 2]] as const).map(([key, value]) => {
+                  const active = single ? single.roughness === value : false;
+                  const label = t(`freehand.sketch${key.charAt(0).toUpperCase()}${key.slice(1)}`);
+                  return (
+                    <button key={key} onClick={() => onSketchStyle(value)} role="radio" aria-checked={active} title={label}
+                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Fill (shapes only) */}
           {showFill && (
             <div className="mb-2">
@@ -1730,6 +1790,44 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
                     className={`w-5 h-5 rounded-full border-2 ${fillColor === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-600"}`}
                     style={{ backgroundColor: c }} aria-label={c} />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fill pattern (sketchy, filled shapes) */}
+          {showFill && fillColor !== "transparent" && !!single && single.roughness !== undefined && (
+            <div className="mb-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.fillStyle")}</span>
+              <div className="flex gap-1" role="radiogroup" aria-label={t("freehand.fillStyle")}>
+                {([["solid", "fillSolid"], ["hachure", "fillHachure"], ["cross-hatch", "fillCrossHatch"]] as const).map(([value, key]) => {
+                  const active = (single.fillStyle ?? "hachure") === value;
+                  return (
+                    <button key={value} onClick={() => onFillStyle(value)} role="radio" aria-checked={active}
+                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                      {t(`freehand.${key}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Font (text elements and labelled shapes) */}
+          {!!single && (isTextEl || !!single.text) && (
+            <div className="mb-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.font")}</span>
+              <div className="flex gap-1" role="radiogroup" aria-label={t("freehand.font")}>
+                {(Object.keys(FREEHAND_FONT_FAMILIES) as FreehandFontFamily[]).map((family) => {
+                  const active = (single.fontFamily ?? "sans-serif") === family || (!single.fontFamily && family === "sans-serif");
+                  const label = t(family === "hand" ? "freehand.fontHand" : family === "monospace" ? "freehand.fontMono" : "freehand.fontSans");
+                  return (
+                    <button key={family} onClick={() => onFontFamily(family)} role="radio" aria-checked={active} title={label}
+                      style={{ fontFamily: FREEHAND_FONT_FAMILIES[family] }}
+                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1794,6 +1892,9 @@ export default function FreehandCanvas({ initialState, onChange, zoom = 1, onZoo
           style={{ width: canvasSize.width, height: canvasSize.height }}
           className="absolute inset-0"
           onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp}
+          onPointerDown={(e) => { penPressureRef.current = e.pointerType === "mouse" ? undefined : e.pressure; }}
+          onPointerMove={(e) => { if (e.pointerType !== "mouse" && e.buttons) penPressureRef.current = e.pressure; }}
+          onPointerUp={() => { penPressureRef.current = undefined; }}
           onDoubleClick={handleDoubleClick}
           onContextMenu={handleContextMenu}
           onMouseLeave={() => { setHoveredId(null); setGuides([]); if (isPanning) setIsPanning(false); if (mode === "dragging") { setMode("idle"); dragBBoxRef.current = null; emit(elements); } if (mode === "endpoint") { setMode("idle"); setDraggingEndpointIdx(null); emit(elements); } if (mode === "drawing") { setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); } if (mode === "marquee") { setMode("idle"); setMarqueeRect(null); } if (mode === "erasing") { setMode("idle"); if (erasingDidEraseRef.current) emit(erasingElementsRef.current); erasingElementsRef.current = []; erasingDidEraseRef.current = false; } if (mode === "rotating") { setMode("idle"); rotationStartRef.current = null; emit(elements); } }}

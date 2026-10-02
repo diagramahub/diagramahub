@@ -15,7 +15,18 @@ export type FreehandElementType =
 export interface FreehandPoint {
   x: number;
   y: number;
+  /** Pen/stylus pressure 0..1 for freehand strokes (absent for mouse input). */
+  pressure?: number;
 }
+
+/**
+ * Hand-drawn look. Elements without `roughness` render with clean geometry
+ * (every drawing made before 0.8.0); new elements get the sketchy style.
+ * 0 = architect (precise), 1 = artist, 2 = cartoonist.
+ */
+export type SketchRoughness = 0 | 1 | 2;
+export type SketchFillStyle = "solid" | "hachure" | "cross-hatch";
+export type FreehandFontFamily = "hand" | "sans-serif" | "monospace";
 
 export interface FreehandElement {
   id: string;
@@ -38,6 +49,11 @@ export interface FreehandElement {
   borderRadius?: number;
   rotation?: number;
   groupId?: string;
+  // Hand-drawn style (see SketchRoughness); undefined = clean rendering
+  roughness?: SketchRoughness;
+  fillStyle?: SketchFillStyle;
+  /** Stable seed so the sketchy strokes don't change on every redraw. */
+  seed?: number;
   // Connection bindings (for arrows/lines)
   startBinding?: ConnectionBinding;
   endBinding?: ConnectionBinding;
@@ -96,3 +112,23 @@ export const FREEHAND_COLORS = [
 ];
 
 export const FREEHAND_STROKE_WIDTHS = [1, 2, 3, 5, 8];
+
+/** CSS font stacks for the text font selector. "hand" is the bundled handwriting font. */
+export const FREEHAND_FONT_FAMILIES: Record<FreehandFontFamily, string> = {
+  hand: '"Caveat", "Segoe Print", "Bradley Hand", cursive',
+  "sans-serif": "sans-serif",
+  monospace: '"Source Code Pro", Menlo, Consolas, monospace',
+};
+
+/** Resolve a stored fontFamily (new key or legacy CSS value) to a CSS font stack. */
+export function fontStackFor(fontFamily: string | undefined): string {
+  if (!fontFamily) return FREEHAND_FONT_FAMILIES["sans-serif"];
+  return (FREEHAND_FONT_FAMILIES as Record<string, string>)[fontFamily] ?? fontFamily;
+}
+
+/** Default style of newly created elements (existing drawings keep their look). */
+export const DEFAULT_SKETCH_STYLE = { roughness: 1 as SketchRoughness, fillStyle: "hachure" as SketchFillStyle };
+
+export function randomSeed(): number {
+  return Math.floor(Math.random() * 2 ** 31);
+}
