@@ -31,12 +31,12 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 |---|---|---|---|
 | B1 | **El paneo con rueda o trackpad nunca se guarda**: cada evento recrea el callback y cancela el guardado pendiente. Toca la invariante del viewport. | ✔︎ Tras desplazar, la vista guardada no cambió | S ✅ |
 | B2 | La vista guardada (pan y zoom) probablemente no se restaura al abrir el pizarrón. | ✔︎ Confirmado con la e2e nueva: se abría siempre en 0,0 | S ✅ |
-| B3 | Hacer clic (sin arrastrar) en el extremo de una flecha la **desconecta** de su forma. | 📖 `:883` | S |
-| B4 | Mover, duplicar, pegar o redimensionar un trazo **pierde la presión del lápiz** y cambia su forma. | 📖 5 sitios | S |
-| B5 | Pegar conserva `groupId` (la copia se agrupa con el original) y `locked`; duplicar copia `locked`. | 📖 `:1557`, `:1362` | S |
-| B6 | Borrar una forma **borra flechas bloqueadas** conectadas a ella; "Cortar" del menú contextual incluye bloqueados (el atajo de teclado no). | 📖 `:831`, `:1464`, `:2042` | S |
+| B3 | Hacer clic (sin arrastrar) en el extremo de una flecha la **desconecta** de su forma. | 📖 `:883` | S ✅ |
+| B4 | Mover, duplicar, pegar o redimensionar un trazo **pierde la presión del lápiz** y cambia su forma. | 📖 5 sitios | S ✅ |
+| B5 | Pegar conserva `groupId` (la copia se agrupa con el original) y `locked`; duplicar copia `locked`. | 📖 `:1557`, `:1362` | S ✅ |
+| B6 | Borrar una forma **borra flechas bloqueadas** conectadas a ella; "Cortar" del menú contextual incluye bloqueados (el atajo de teclado no). | 📖 `:831`, `:1464`, `:2042` | S ✅ |
 | B7 | La selección y el borrado **ignoran la rotación**: se hace clic sobre la caja sin rotar. | 📖 `:72-86` | M |
-| B8 | **Entradas vacías en el historial**: un clic sin mover crea un paso de deshacer; los sliders crean uno por cada movimiento y llenan el historial (100). | 📖 `:1160`, `:1959` | S |
+| B8 | **Entradas vacías en el historial**: un clic sin mover crea un paso de deshacer; los sliders crean uno por cada movimiento y llenan el historial (100). | 📖 `:1160`, `:1959` | S ✅ |
 | B9 | Redimensionar se queda "pegado" si el puntero sale del lienzo. | 📖 `:1987` | S |
 | B10 | La fuente Caveat no se espera: el lienzo no se redibuja al cargarla y los anchos de texto se miden con la fuente de reserva. | 📖 sin `document.fonts` | S |
 | B11 | El editor de texto usa otra fuente e interlineado que el lienzo (el texto "salta" al confirmar); un toque de un solo punto con el lápiz no deja marca. | 📖 `:2026`, `:1199` | S |

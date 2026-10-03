@@ -139,11 +139,28 @@ function shiftElement(el: FreehandElement, dx: number, dy: number): FreehandElem
     ...el,
     x: el.x + dx,
     y: el.y + dy,
-    points: el.points ? el.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) : undefined,
+    points: el.points ? el.points.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy })) : undefined,
   };
 }
 
 /** Recomputes arrow/line endpoints bound to any element in movedIds (honors rotation). */
+/**
+ * Remove `ids` and the arrows bound to them. A LOCKED bound arrow is kept
+ * (only the binding to the removed element is dropped): locking means it
+ * can't be deleted, not even as a side effect.
+ */
+function removeWithBoundArrows(els: FreehandElement[], ids: Set<string>): FreehandElement[] {
+  const out: FreehandElement[] = [];
+  for (const el of els) {
+    if (ids.has(el.id)) continue;
+    const startGone = !!el.startBinding && ids.has(el.startBinding.elementId);
+    const endGone = !!el.endBinding && ids.has(el.endBinding.elementId);
+    if (!startGone && !endGone) { out.push(el); continue; }
+    if (el.locked) out.push({ ...el, startBinding: startGone ? undefined : el.startBinding, endBinding: endGone ? undefined : el.endBinding });
+  }
+  return out;
+}
+
 function updateBoundArrows(els: FreehandElement[], movedIds: Set<string>): FreehandElement[] {
   return els.map((e) => {
     if (e.type !== "arrow" && e.type !== "line") return e;
@@ -317,6 +334,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const erasingDidEraseRef = useRef(false);
   // Wheel-pan persistence: emit after the user stops scrolling
   const wheelEmitTimeoutRef = useRef<number | null>(null);
+  // Whether the arrow endpoint being dragged actually moved (a plain click changes nothing)
+  const endpointMovedRef = useRef(false);
   // Alignment-guide drag origin: bbox captured on first move so snapping uses
   // the accumulated pointer delta (per-event deltas stick the selection to a guide)
   const dragBBoxRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
@@ -347,7 +366,18 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // ─── Undo/redo history ───
-  const pushHistory = useCallback((els: FreehandElement[]) => {
+  const lastCoalesceRef = useRef<{ key: string; at: number } | null>(null);
+  const pushHistory = useCallback((els: FreehandElement[], coalesceKey?: string) => {
+    // Nothing changed (a click without moving, a no-op nudge): no new undo step
+    const top = historyRef.current[historyIndexRef.current];
+    if (top && JSON.stringify(top) === JSON.stringify(els)) return;
+    // Continuous edits (a slider being dragged) replace their own last step
+    const now = Date.now();
+    const last = lastCoalesceRef.current;
+    const coalesce = !!coalesceKey && !!last && last.key === coalesceKey && now - last.at < 1000
+      && historyIndexRef.current === historyRef.current.length - 1 && historyIndexRef.current > 0;
+    lastCoalesceRef.current = coalesceKey ? { key: coalesceKey, at: now } : null;
+    if (coalesce) historyIndexRef.current -= 1;
     historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
     historyRef.current.push(
       els.map((el) => ({ ...el, points: el.points ? el.points.map((p) => ({ ...p })) : undefined })),
@@ -357,13 +387,13 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   }, []);
 
   // ─── Emit changes ───
-  const emit = useCallback((els: FreehandElement[]) => {
+  const emit = useCallback((els: FreehandElement[], coalesceKey?: string) => {
     // Serialize the live viewport so pan position survives reloads and diagram switches.
     const pan = panOffsetRef.current;
     const json = JSON.stringify({ version: 1, elements: els, viewport: { zoom: zoomRef.current, scrollX: pan.x, scrollY: pan.y }, background });
     lastEmittedRef.current = json;
     onChange?.(json);
-    if (!skipHistoryRef.current) pushHistory(els);
+    if (!skipHistoryRef.current) pushHistory(els, coalesceKey);
   }, [onChange, background, pushHistory]);
 
   const undo = useCallback(() => {
@@ -503,7 +533,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       const m = { ...e, x: e.x + dx, y: e.y + dy };
       // Always move points for elements that have them
       if (e.points) {
-        m.points = e.points.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+        m.points = e.points.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy }));
       }
       // If dragging a connected arrow directly, detach it
       if ((e.type === "arrow" || e.type === "line") && (e.startBinding || e.endBinding)) {
@@ -841,7 +871,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     const hit = [...current].reverse().find((el) => !el.locked && hitTest(pos, el));
     if (!hit) return;
     erasingDidEraseRef.current = true;
-    const next = current.filter((el) => el.id !== hit.id && el.startBinding?.elementId !== hit.id && el.endBinding?.elementId !== hit.id);
+    const next = removeWithBoundArrows(current, new Set([hit.id]));
     erasingElementsRef.current = next;
     setElements(next);
     setSelectedIds((prev) => { const s = new Set(prev); s.delete(hit.id); return s; });
@@ -891,20 +921,13 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           const pts = selEl.points || [{ x: selEl.x, y: selEl.y }, { x: selEl.x + selEl.width, y: selEl.y + selEl.height }];
           // Check start point
           if (Math.hypot(pos.x - pts[0].x, pos.y - pts[0].y) <= 8) {
-            setMode("endpoint"); setDraggingEndpointIdx(0);
-            // Disconnect start binding
-            if (selEl.startBinding) {
-              setElements(elements.map((el) => el.id === selEl.id ? { ...el, startBinding: undefined } : el));
-            }
+            // The binding is dropped on the first real move, not here (a click keeps it)
+            setMode("endpoint"); setDraggingEndpointIdx(0); endpointMovedRef.current = false;
             return;
           }
           // Check end point
           if (Math.hypot(pos.x - pts[pts.length - 1].x, pos.y - pts[pts.length - 1].y) <= 8) {
-            setMode("endpoint"); setDraggingEndpointIdx(pts.length - 1);
-            // Disconnect end binding
-            if (selEl.endBinding) {
-              setElements(elements.map((el) => el.id === selEl.id ? { ...el, endBinding: undefined } : el));
-            }
+            setMode("endpoint"); setDraggingEndpointIdx(pts.length - 1); endpointMovedRef.current = false;
             return;
           }
         }
@@ -1054,12 +1077,18 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Endpoint dragging for arrows/lines
     if (mode === "endpoint" && draggingEndpointIdx !== null && selectedIds.size === 1) {
       const elId = [...selectedIds][0];
+      endpointMovedRef.current = true;
       setElements(elements.map((el) => {
         if (el.id !== elId) return el;
         const pts = [...(el.points || [])];
         pts[draggingEndpointIdx] = pos;
         const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-        return { ...el, points: pts, x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1 };
+        // Dragging an endpoint detaches it from its shape (re-attached on drop over an anchor)
+        const isStart = draggingEndpointIdx === 0;
+        return {
+          ...el, points: pts, x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1,
+          startBinding: isStart ? undefined : el.startBinding, endBinding: isStart ? el.endBinding : undefined,
+        };
       }));
       // Show anchor hint if near a shape
       const near = [...elements].reverse().find((el) => el.id !== elId && isShape(el) && hitTest(pos, el));
@@ -1084,6 +1113,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           const scaleX = nw / resizeOrigin.elW;
           const scaleY = nh / resizeOrigin.elH;
           updated.points = resizeOrigin.elPoints.map((p) => ({
+            ...p,
             x: nx + (p.x - resizeOrigin.elX) * scaleX,
             y: ny + (p.y - resizeOrigin.elY) * scaleY,
           }));
@@ -1172,6 +1202,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
     if (mode === "dragging") { setMode("idle"); setGuides([]); dragBBoxRef.current = null; emit(elements); return; }
     if (mode === "resizing") { setMode("idle"); setResizeHandle(null); setResizeOrigin(null); setGuides([]); emit(elements); return; }
+    if (mode === "endpoint" && !endpointMovedRef.current) {
+      // A click on the handle without dragging: nothing changed
+      setMode("idle"); setDraggingEndpointIdx(null); setHoveredAnchor(null); setGuides([]);
+      return;
+    }
     if (mode === "endpoint") {
       // Snap endpoint to anchor if hovering one
       if (hoveredAnchor && draggingEndpointIdx !== null && selectedIds.size === 1) {
@@ -1374,7 +1409,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     const duped = elements.filter((el) => selectedIds.has(el.id)).map((el) => {
       const nid = generateId();
       newIds.add(nid);
-      return { ...el, id: nid, x: el.x + 20, y: el.y + 20, points: el.points?.map((p) => ({ x: p.x + 20, y: p.y + 20 })), startBinding: undefined, endBinding: undefined, groupId: anyGrouped ? newGroupId : undefined };
+      return { ...el, id: nid, x: el.x + 20, y: el.y + 20, points: el.points?.map((p) => ({ ...p, x: p.x + 20, y: p.y + 20 })), startBinding: undefined, endBinding: undefined, groupId: anyGrouped ? newGroupId : undefined, locked: undefined };
     });
     const updated = [...elements, ...duped];
     setElements(updated); emit(updated); setSelectedIds(newIds);
@@ -1458,7 +1493,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   // ─── Rectangle border radius (single selected) ───
   const onBorderRadius = (r: number) => {
     const updated = elements.map((el) => (isEditable(el) && el.type === "rectangle" ? { ...el, borderRadius: r } : el));
-    setElements(updated); emit(updated);
+    setElements(updated); emit(updated, "borderRadius");
   };
 
   // ─── Text font size (single selected) ───
@@ -1468,7 +1503,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       const lines = (el.text || "").split("\n").length;
       return { ...el, fontSize: fs, width: Math.max(20, measureTextWidth(el.text || "", fs, el.fontFamily) + 12), height: lines * fs * 1.25 + 4 };
     });
-    setElements(updated); emit(updated);
+    setElements(updated); emit(updated, "fontSize");
   };
 
   // ─── Delete ───
@@ -1476,7 +1511,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (selectedIds.size === 0) return;
     const removable = new Set([...selectedIds].filter((id) => !elements.find((el) => el.id === id)?.locked));
     if (removable.size === 0) return;
-    const updated = elements.filter((el) => !removable.has(el.id) && (!el.startBinding || !removable.has(el.startBinding.elementId)) && (!el.endBinding || !removable.has(el.endBinding.elementId)));
+    const updated = removeWithBoundArrows(elements, removable);
     setElements(updated); emit(updated); setSelectedIds(new Set());
   }, [elements, selectedIds, emit]);
 
@@ -1566,15 +1601,20 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const dx = mousePosRef.current.x - cx;
         const dy = mousePosRef.current.y - cy;
         const newIds = new Set<string>();
+        // Pasted copies keep their grouping among themselves, never with the originals
+        const groupMap = new Map<string, string>();
         const pasted: FreehandElement[] = copied.map((el) => {
           const newId = generateId();
           newIds.add(newId);
+          if (el.groupId && !groupMap.has(el.groupId)) groupMap.set(el.groupId, generateId());
           return {
             ...el,
             id: newId,
+            groupId: el.groupId ? groupMap.get(el.groupId) : undefined,
+            locked: undefined,
             x: el.x + dx,
             y: el.y + dy,
-            points: el.points ? el.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) : undefined,
+            points: el.points ? el.points.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy })) : undefined,
             startBinding: undefined,
             endBinding: undefined,
           };
@@ -2056,7 +2096,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               {t("common.copy")}<span className="ml-auto text-[10px] text-gray-400">⌘C</span>
             </button>
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el })); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M6 3v2M18 3v2M6 19v2M18 19v2M3 6h2M3 18h2M19 6h2M19 18h2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
               {t("common.cut")}<span className="ml-auto text-[10px] text-gray-400">⌘X</span>
             </button>
