@@ -7,8 +7,9 @@ import time
 
 from google import genai
 from google.genai import types
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 
+from ..model_catalog import recommended_model
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
@@ -24,9 +25,9 @@ class GeminiClient(BaseAIClient):
     """Client for Google Gemini AI."""
 
     def __init__(
-        self, api_key: str, model: str = "gemini-2.0-flash-lite", parameters: Dict[str, Any] = None
+        self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("gemini"), parameters or {})
         self.client = genai.Client(api_key=self.api_key)
 
     def _gen_config(

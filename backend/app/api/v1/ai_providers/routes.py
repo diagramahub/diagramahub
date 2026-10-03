@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, status, Body
 from app.api.deps import get_current_user_id
 from .repository import AIProviderRepository
 from .services import AIProviderService
+from .model_catalog import recommended_model
 from .schemas import (
     CreateProviderRequest,
     UpdateProviderRequest,
@@ -68,7 +69,7 @@ async def add_provider(
     provider_config = AIProviderConfig(
         provider=request.provider,
         api_key=request.api_key,
-        model=request.model,
+        model=request.model or recommended_model(request.provider.value),
         is_default=request.is_default,
         parameters=request.parameters,
         display_name=request.display_name,
@@ -225,5 +226,7 @@ async def test_provider(
     Useful for validating keys before adding them to settings.
     """
     return await service.test_provider(
-        provider=request.provider, api_key=request.api_key, model=request.model
+        provider=request.provider,
+        api_key=request.api_key,
+        model=request.model or recommended_model(request.provider.value),
     )

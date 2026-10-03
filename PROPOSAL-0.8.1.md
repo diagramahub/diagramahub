@@ -92,10 +92,10 @@ Actualizar la lista de modelos de los proveedores que ya existen es PATCH (dato 
 
 | ID | Tema | Dato | Tam. |
 |---|---|---|---|
-| F1 | Actualizar los modelos de los 5 proveedores **contra la documentación oficial de cada uno** (no de memoria), con un recomendado por proveedor. Claude va atrasado: hoy ofrecemos Haiku 4.5 y Sonnet 4.6; los actuales son Opus 5.5, Sonnet 5.5, Fable 5.1 y Haiku 4.5. | `frontend/src/types/ai.ts` | S |
-| F2 | **Una sola fuente de verdad.** El catálogo vive en tres sitios que ya divergen: lista del frontend, tabla de ventana de contexto del chat (`chat_sessions/services.py`; un modelo sin entrada recibe un valor por defecto que puede recortar el historial antes de tiempo) y valores por defecto del backend (`gemini-2.5-flash` en los schemas, `gemini-2.0-flash-lite` en el cliente, que ya ni está en la lista). | 3 sitios | M |
-| F3 | Etiqueta "(retirado)" fija en español; el modelo guardado que salga de la lista debe seguir funcionando y avisar. | `AIIntegrationsSection.tsx:202` | S |
-| F4 | Prueba que falle si un modelo de la lista no tiene ventana de contexto definida. | — | S |
+| F1 | Actualizar los modelos de los 5 proveedores **contra la documentación oficial de cada uno** (no de memoria), con un recomendado por proveedor. Claude va atrasado: hoy ofrecemos Haiku 4.5 y Sonnet 4.6; los actuales son Opus 5.5, Sonnet 5.5, Fable 5.1 y Haiku 4.5. | `frontend/src/types/ai.ts` | S ✅ |
+| F2 | **Una sola fuente de verdad.** El catálogo vive en tres sitios que ya divergen: lista del frontend, tabla de ventana de contexto del chat (`chat_sessions/services.py`; un modelo sin entrada recibe un valor por defecto que puede recortar el historial antes de tiempo) y valores por defecto del backend (`gemini-2.5-flash` en los schemas, `gemini-2.0-flash-lite` en el cliente, que ya ni está en la lista). | 3 sitios | M ✅ |
+| F3 | Etiqueta "(retirado)" fija en español; el modelo guardado que salga de la lista debe seguir funcionando y avisar. | `AIIntegrationsSection.tsx:202` | S ✅ |
+| F4 | Prueba que falle si un modelo de la lista no tiene ventana de contexto definida. | — | S ✅ |
 | F5 | **"Sin créditos" se muestra como "Rate limit, intenta en unos momentos".** Todo 429 se traduce igual, aunque OpenAI distingue `insufficient_quota` / `credit_balance_exhausted` (no se arregla esperando). Revisar el mismo mapeo en los 5 clientes. | ✔︎ Llave de OpenAI de alexdzul@me.com: 429 `credit_balance_exhausted` en todos los modelos; la app dice "rate limit" | S |
 | F6 | **"Probar conexión" da OK con una llave que no puede generar nada**: `validate_api_key` solo lista modelos (OpenAI, Claude) y no prueba el modelo elegido ni el saldo. Propuesta: una llamada mínima (1–5 tokens) con el **modelo seleccionado** y mensajes claros: llave inválida / sin créditos / modelo no disponible para esta llave. | ✔︎ Misma llave: validación `True`, generación imposible | S |
 

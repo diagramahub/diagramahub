@@ -6,8 +6,9 @@ import json
 import time
 
 import httpx
-from typing import AsyncGenerator, Dict, Any, List
+from typing import AsyncGenerator, Dict, Any, List, Optional
 
+from ..model_catalog import recommended_model
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
@@ -28,9 +29,9 @@ class DeepSeekClient(BaseAIClient):
     BASE_URL = "https://api.deepseek.com"
 
     def __init__(
-        self, api_key: str, model: str = "deepseek-chat", parameters: Dict[str, Any] = None
+        self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("deepseek"), parameters or {})
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",

@@ -25,6 +25,7 @@ from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
 from ..diagrams.syntax_validator import SyntaxValidator
+from app.api.v1.ai_providers.model_catalog import context_window as model_context_window
 
 logger = logging.getLogger(__name__)
 
@@ -34,38 +35,6 @@ MAX_RETRIES = 2
 # --- Context compaction constants ---
 CHARS_PER_TOKEN = 4
 CONTEXT_THRESHOLD = 0.80
-
-MODEL_TOKEN_LIMITS = {
-    "gpt-4o": 128000,
-    "gpt-4o-mini": 128000,
-    "gpt-5.4": 128000,
-    "gpt-5.4-mini": 128000,
-    "gpt-5.4-nano": 128000,
-    "gpt-4.1": 128000,
-    "gpt-4.1-mini": 128000,
-    "gpt-4.1-nano": 128000,
-    "claude-sonnet-4-6": 1000000,
-    "claude-haiku-4-5-20251001": 200000,
-    "gemini-3.1-pro-preview": 1000000,
-    "gemini-3-flash-preview": 1000000,
-    "gemini-3.1-flash-lite-preview": 1000000,
-    "gemini-2.5-flash": 1000000,
-    "gemini-2.5-pro": 1000000,
-    "gemini-2.0-flash": 1000000,
-    "gemini-1.5-pro": 1000000,
-    "deepseek-chat": 64000,
-    "deepseek-coder": 64000,
-    "deepseek-v4-flash": 1000000,
-    "deepseek-v4-pro": 1000000,
-    "minimax-01": 1000000,
-    "MiniMax-Text-01": 1000000,
-    "MiniMax-M2.5": 1000000,
-    "MiniMax-M2.7": 1000000,
-    "MiniMax-Text-01-128k": 128000,
-    "abab6.5s-chat": 32000,
-}
-
-DEFAULT_TOKEN_LIMIT = 64000
 
 
 class ChatSessionService:
@@ -988,7 +957,7 @@ class ChatSessionService:
 
     def _get_model_token_limit(self, model: str) -> int:
         """Return the token limit for a model, falling back to a safe default."""
-        return MODEL_TOKEN_LIMITS.get(model, DEFAULT_TOKEN_LIMIT)
+        return model_context_window(model)
 
     async def _maybe_compact_context(
         self,

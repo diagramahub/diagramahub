@@ -899,7 +899,10 @@
       "isActive": "Active",
       "temperature": "Temperature",
       "maxTokens": "Max tokens",
-      "advancedSettings": "Advanced settings"
+      "advancedSettings": "Advanced settings",
+      "recommended": "Recommended",
+      "retired": "retired",
+      "retiredHint": "This model is no longer listed; it keeps working while the provider offers it. You can change it when editing."
     },
     "settings": {
       "autoGenerate": "Auto-generate descriptions",

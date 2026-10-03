@@ -6,8 +6,9 @@ import json
 import time
 
 import httpx
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 
+from ..model_catalog import recommended_model
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
@@ -27,9 +28,9 @@ class OpenAIClient(BaseAIClient):
     """Client for OpenAI GPT."""
 
     def __init__(
-        self, api_key: str, model: str = "gpt-4.1-mini", parameters: Dict[str, Any] = None
+        self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("openai"), parameters or {})
         self.base_url = "https://api.openai.com/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",

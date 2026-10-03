@@ -6,9 +6,10 @@ import json
 import time
 
 import httpx
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 
 from .base import BaseAIClient
+from ..model_catalog import recommended_model, supports_temperature
 from ..prompts import (
     build_description_prompt,
     build_generate_diagram_prompt,
@@ -26,10 +27,10 @@ class ClaudeClient(BaseAIClient):
     def __init__(
         self,
         api_key: str,
-        model: str = "claude-haiku-4-5-20251001",
+        model: Optional[str] = None,
         parameters: Dict[str, Any] = None,
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("claude"), parameters or {})
         self.base_url = "https://api.anthropic.com/v1"
         self.headers = {
             "x-api-key": self.api_key,
@@ -69,9 +70,13 @@ class ClaudeClient(BaseAIClient):
         payload: dict[str, Any] = {
             "model": self.model,
             "max_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
-            "temperature": temperature or self.parameters.get("temperature", 0.7),
             "messages": messages,
         }
+        # Claude 5.x rejects `temperature` (400 "deprecated for this model")
+        if supports_temperature(self.model):
+            payload["temperature"] = (
+                temperature if temperature is not None else self.parameters.get("temperature", 0.7)
+            )
         if system:
             payload["system"] = system
 
@@ -81,6 +86,18 @@ class ClaudeClient(BaseAIClient):
                 headers=self.headers,
                 json=payload,
             )
+            # A model the catalog doesn't know yet may reject it too: retry once without
+            if (
+                response.status_code == 400
+                and "temperature" in payload
+                and "temperature" in response.text
+            ):
+                payload = {k: v for k, v in payload.items() if k != "temperature"}
+                response = await client.post(
+                    f"{self.base_url}/messages",
+                    headers=self.headers,
+                    json=payload,
+                )
 
             if response.status_code == 429:
                 raise ValueError(
@@ -261,11 +278,12 @@ class ClaudeClient(BaseAIClient):
         payload: dict = {
             "model": self.model,
             "max_tokens": self.parameters.get("max_tokens", 4096),
-            "temperature": self.parameters.get("temperature", 0.7),
             "system": system_content,
             "messages": api_messages,
             "stream": True,
         }
+        if supports_temperature(self.model):
+            payload["temperature"] = self.parameters.get("temperature", 0.7)
 
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:

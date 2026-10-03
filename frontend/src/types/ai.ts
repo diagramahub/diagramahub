@@ -137,36 +137,41 @@ export interface ModelOption {
   recommended?: boolean;
 }
 
+/**
+ * Models offered in the pickers. Must match the `listed` models of
+ * backend/app/api/v1/ai_providers/model_catalog.json (checked by a Vitest test).
+ */
 export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
   [AIProviderType.GEMINI]: [
-    { id: 'gemini-3.1-pro-preview', recommended: true },
-    { id: 'gemini-3-flash-preview' },
-    { id: 'gemini-3.1-flash-lite-preview' },
-    { id: 'gemini-2.5-flash' },
-    { id: 'gemini-2.5-pro' },
+    { id: 'gemini-3.8-flash', recommended: true },
+    { id: 'gemini-3.7-flash' },
+    { id: 'gemini-3.5-flash' },
+    { id: 'gemini-3.5-flash-lite' },
+    { id: 'gemini-3.1-pro-preview' },
   ],
   [AIProviderType.OPENAI]: [
-    { id: 'gpt-4.1-mini', recommended: true },
-    { id: 'gpt-4.1-nano' },
-    { id: 'gpt-4.1' },
-    { id: 'gpt-4o-mini' },
-    { id: 'gpt-4o' },
+    { id: 'gpt-6-luna', recommended: true },
+    { id: 'gpt-6.1-sol' },
+    { id: 'gpt-6-astra' },
+    { id: 'gpt-5.5' },
     { id: 'gpt-5.4-mini' },
     { id: 'gpt-5.4-nano' },
-    { id: 'gpt-5.4' },
+    { id: 'gpt-4.1-mini' },
   ],
   [AIProviderType.CLAUDE]: [
-    { id: 'claude-haiku-4-5-20251001', recommended: true },
-    { id: 'claude-sonnet-4-6' },
+    { id: 'claude-sonnet-5-5', recommended: true },
+    { id: 'claude-opus-5-5' },
+    { id: 'claude-fable-5-1' },
+    { id: 'claude-haiku-4-5-20251001' },
   ],
   [AIProviderType.DEEPSEEK]: [
-    { id: 'deepseek-v4-flash', recommended: true },
+    { id: 'deepseek-flash', recommended: true },
     { id: 'deepseek-v4-pro' },
-    { id: 'deepseek-chat' },
   ],
   [AIProviderType.MINIMAX]: [
     { id: 'MiniMax-M2.7', recommended: true },
-    { id: 'MiniMax-M2.5' },
+    { id: 'MiniMax-M3' },
+    { id: 'MiniMax-M2.7-highspeed' },
   ],
 };
 

@@ -199,7 +199,7 @@ export default function AIIntegrationsSection() {
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             <span className="font-medium">{t('ai.form.model')}:</span> {provider.model}
                             {!AI_PROVIDER_MODELS[provider.provider]?.some(m => m.id === provider.model) && (
-                              <span className="ml-1 text-xs text-amber-600 dark:text-amber-400">(retirado)</span>
+                              <span className="ml-1 text-xs text-amber-600 dark:text-amber-400" title={t('ai.form.retiredHint')}>({t('ai.form.retired')})</span>
                             )}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">

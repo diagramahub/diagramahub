@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "node"]
+  },
+  /* Vitest unit tests for pure utilities (they may read repo files with node:fs) */
+  "include": ["src"],
+  "exclude": []
+}

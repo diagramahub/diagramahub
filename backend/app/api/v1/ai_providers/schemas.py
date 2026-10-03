@@ -60,7 +60,9 @@ class CreateProviderRequest(BaseModel):
 
     provider: AIProviderType
     api_key: str = Field(..., min_length=10, description="API key from the provider")
-    model: str = Field(default="gemini-2.5-flash", description="Model to use")
+    model: Optional[str] = Field(
+        default=None, description="Model to use (default: the provider's recommended model)"
+    )
     display_name: Optional[str] = None
     parameters: Dict[str, Any] = Field(default_factory=dict)
     is_default: bool = False
@@ -100,7 +102,7 @@ class TestProviderRequest(BaseModel):
 
     provider: AIProviderType
     api_key: str
-    model: str = Field(default="gemini-2.5-flash")
+    model: Optional[str] = Field(default=None, description="Default: the recommended model")
 
 
 class TestProviderResponse(BaseModel):

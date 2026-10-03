@@ -277,6 +277,7 @@ When creating a new module, you MUST:
 - Capabilities: generation, improvement, auto-fix, description generation, chat refinement
 - API keys stored Fernet-encrypted, returned masked in responses
 - `max_tokens`: 4096 across all providers
+- Model catalog: `ai_providers/model_catalog.json` is the single source of truth (offered models, context windows used for chat compaction, default model per provider, whether `temperature` is accepted — Claude 5.x rejects it). Verify new models against the provider's docs and a live call
 - Auto-fix retry disabled for PlantUML and DBML (false positives)
 - AI content respects `language` parameter (`es`/`en`)
 - Code markers: `<<<DIAGRAM>>>`/`<<<END_DIAGRAM>>>` (English), `<<<DIAGRAMA>>>`/`<<<END_DIAGRAMA>>>` (Spanish)
@@ -446,7 +447,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 2. Register in `factory.py` → `_clients_map`
 3. Add frontend UI in provider configuration
 4. Add provider type to `AIProviderType` enum (backend + frontend)
-5. Add models to `AI_PROVIDER_MODELS` in frontend types
+5. Add its models to `backend/app/api/v1/ai_providers/model_catalog.json` (context window, `listed`, one `recommended`, `supports_temperature`) and the same `listed` models to `AI_PROVIDER_MODELS` in `frontend/src/types/ai.ts` — a Vitest test fails if they differ
 6. Add translations in `es.json` + `en.json`
 
 ### Adding a Frontend Page

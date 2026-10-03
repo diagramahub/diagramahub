@@ -1001,7 +1001,10 @@
       "isActive": "Activo",
       "temperature": "Temperatura",
       "maxTokens": "Tokens máximos",
-      "advancedSettings": "Configuración avanzada"
+      "advancedSettings": "Configuración avanzada",
+      "recommended": "Recomendado",
+      "retired": "retirado",
+      "retiredHint": "Este modelo ya no está en la lista; sigue funcionando mientras el proveedor lo ofrezca. Puedes cambiarlo al editar."
     },
     "settings": {
       "autoGenerate": "Generar descripciones automáticamente",
