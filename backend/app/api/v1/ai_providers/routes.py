@@ -117,6 +117,23 @@ async def remove_provider(
 
 
 @router.put(
+    "/settings/auto-fix",
+    response_model=UserAISettingsResponse,
+    summary="Turn the automatic fix of generated diagrams on or off",
+)
+async def set_auto_fix(
+    enabled: bool = Body(..., embed=True),
+    user_id: str = Depends(get_current_user_id),
+    service: AIProviderService = Depends(get_ai_provider_service),
+):
+    """
+    When enabled (default), generated or improved Mermaid/D2 code that doesn't
+    render is sent back once to the model with the error to fix it.
+    """
+    return await service.set_auto_fix(user_id, enabled)
+
+
+@router.put(
     "/settings/default-provider",
     response_model=UserAISettingsResponse,
     summary="Set default provider",

@@ -430,6 +430,11 @@ class ApiService {
     return response.data;
   }
 
+  async setAutoFixGenerated(enabled: boolean): Promise<UserAISettings> {
+    const response = await this.api.put<UserAISettings>('/api/v1/ai/settings/auto-fix', { enabled });
+    return response.data;
+  }
+
   async addAIProvider(data: CreateProviderRequest): Promise<UserAISettings> {
     const response = await this.api.post<UserAISettings>('/api/v1/ai/providers', data);
     return response.data;

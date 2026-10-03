@@ -6,7 +6,7 @@ const fs = require('fs');
 (async () => {
   const file = process.argv[2];
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-  const mermaidCases = data.results.filter((r) => r.type === 'mermaid' && r.ok_call);
+  const mermaidCases = data.results.filter((r) => r.type === 'mermaid' && r.ok_call && r.code);
   const b = await chromium.launch(); const p = await b.newPage();
   await p.goto('http://localhost:5173/login'); await p.waitForTimeout(1500);
   const verdicts = await p.evaluate(async (codes) => {
@@ -28,6 +28,7 @@ const fs = require('fs');
     const m = (byModel[r.model] ??= { total: 0, valid: 0, failedCall: 0, preamble: 0, perType: {} });
     m.total++;
     if (!r.ok_call) m.failedCall++;
+    if (r.mode === 'text') m.textMode = (m.textMode || 0) + 1;
     if (r.valid) m.valid++;
     const firstLine = (r.code || '').trim().split('\n')[0] || '';
     if (r.ok_call && /^(aqu[ií]|here|claro|sure|este diagrama|```)/i.test(firstLine)) m.preamble++;
@@ -35,12 +36,12 @@ const fs = require('fs');
     t.total++; if (r.valid) t.valid++;
   }
   console.log(`\n${data.label}`);
-  console.log('model'.padEnd(28), 'valid', '  mermaid plantuml d2   dbml   call-errors preamble');
+  console.log('model'.padEnd(28), 'valid', '  mermaid plantuml d2   dbml   call-errors preamble text-mode');
   let all = 0, allValid = 0;
   for (const [model, m] of Object.entries(byModel)) {
     all += m.total; allValid += m.valid;
     const pt = (k) => `${m.perType[k]?.valid ?? 0}/${m.perType[k]?.total ?? 0}`.padEnd(7);
-    console.log(model.padEnd(28), `${Math.round((100 * m.valid) / m.total)}%`.padEnd(6), ' ', pt('mermaid'), pt('plantuml'), pt('d2'), pt('dbml'), String(m.failedCall).padEnd(11), m.preamble);
+    console.log(model.padEnd(28), `${Math.round((100 * m.valid) / m.total)}%`.padEnd(6), ' ', pt('mermaid'), pt('plantuml'), pt('d2'), pt('dbml'), String(m.failedCall).padEnd(11), String(m.preamble).padEnd(8), m.textMode || 0);
   }
   console.log('TOTAL'.padEnd(28), `${Math.round((100 * allValid) / all)}% (${allValid}/${all})`);
 })().catch((e) => { console.error('ERR', e.message.split('\n')[0]); process.exit(1); });

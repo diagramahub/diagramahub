@@ -110,13 +110,15 @@ Validación real del catálogo con las llaves locales (2026-10-02, cuenta alexdz
 
 ## G. Calidad de los prompts — menos diagramas inválidos
 
-**Resultado (G9, 160 casos, mismos modelos):** prompts 0.8.0 → **72 %** válidos al primer intento; prompts 0.8.1 → **98 %** (gpt-5.4-mini 85→100, claude-haiku-4.5 75→98, deepseek-flash 35→100, gemini-3.5-flash-lite 93→93). Causa principal: respuestas vacías o cortadas por el límite de 2048–4096 tokens en modelos con razonamiento.
+**Hallazgo:** los diálogos "Crear/Mejorar con IA" no se usaban; los usuarios generan **solo desde el chat**, cuyo streaming recibía un prompt mínimo sin marcadores ni reglas. Se midió también el chat (mismo banco de pruebas pasando por `stream_message` real): **88 % → 99 %**. Los diálogos se eliminaron.
+
+**Resultado del endpoint `/ai/generate-diagram` (G9, 160 casos, mismos modelos):** prompts 0.8.0 → **72 %** válidos al primer intento; prompts 0.8.1 → **98 %** (gpt-5.4-mini 85→100, claude-haiku-4.5 75→98, deepseek-flash 35→100, gemini-3.5-flash-lite 93→93). Causa principal: respuestas vacías o cortadas por el límite de 2048–4096 tokens en modelos con razonamiento.
 
 Causas concretas encontradas en `prompts.py`, los 5 clientes y el flujo de generación:
 
 | ID | Problema | Por qué confunde al modelo | Tam. |
 |---|---|---|---|
-| G1 | **Generar y mejorar no validan el resultado.** El código vuelve tal cual; si no renderiza, el usuario tiene que pulsar "Arreglar con IA". | El error se descubre tarde y cuesta una acción manual. Propuesta: validar (Mermaid con `mermaid.parse` en el navegador, D2 con Kroki) y, si falla, **un solo reintento automático** con el mensaje de error real al endpoint de arreglo existente. Se respeta la invariante: sin reintento automático para PlantUML y DBML. | M |
+| G1 | **Generar y mejorar no validan el resultado.** El código vuelve tal cual; si no renderiza, el usuario tiene que pulsar "Arreglar con IA". | El error se descubre tarde y cuesta una acción manual. Propuesta: validar (Mermaid con `mermaid.parse` en el navegador, D2 con Kroki) y, si falla, **un solo reintento automático** con el mensaje de error real al endpoint de arreglo existente. Se respeta la invariante: sin reintento automático para PlantUML y DBML. | M ✅ |
 | G2 | **Respuestas cortadas sin aviso.** `max_tokens` = 4096 y no se revisa `finish_reason`/`stop_reason`. Los modelos con razonamiento (GPT-5.x, DeepSeek V4, Gemini 3) gastan parte de ese presupuesto pensando, así que los diagramas grandes llegan truncados y rotos. | Detectar el corte y mostrar "el diagrama es demasiado grande, simplifica o divide"; subir el límite solo para generar (implica actualizar la regla de AGENTS.md). | S ✅ |
 | G3 | **Extracción frágil del código.** Generar pide "solo código" y limpia fences solo si la respuesta *empieza* con ```` ``` ````. Un preámbulo ("Aquí está tu diagrama:") o una nota final se cuela al editor. | Usar los mismos marcadores que el chat (`<<<DIAGRAM>>>` / `<<<END_DIAGRAM>>>`) o extraer el primer bloque de código en cualquier posición; quitar texto suelto antes de la palabra clave del diagrama. | S ✅ |
 | G4 | **El prompt empuja a decorar.** "Sé generoso con el diseño: haz que se vea espectacular" y colores obligatorios. `classDef`, `class` y `style` son justo donde la propia guía documenta los errores más frecuentes. | Estilo moderado y solo donde el tipo lo soporta; la corrección primero. | S ✅ |

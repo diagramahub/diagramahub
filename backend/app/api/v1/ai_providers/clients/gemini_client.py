@@ -171,6 +171,8 @@ class GeminiClient(BaseAIClient):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response token by token using Gemini async streaming API.
 
@@ -181,6 +183,8 @@ class GeminiClient(BaseAIClient):
             diagram_code: Current diagram code
             diagram_type: Diagram type (mermaid, plantuml, etc.)
             language: Response language (es, en)
+            system_prompt: System prompt to use (default: the basic chat prompt)
+            max_tokens: Output budget for this reply (default: provider settings)
 
         Yields:
             String chunks as they arrive from Gemini
@@ -188,7 +192,10 @@ class GeminiClient(BaseAIClient):
         Raises:
             ValueError: If streaming fails or times out
         """
-        system_prompt = build_chat_system_prompt(diagram_code, diagram_type, language)
+        self.last_truncated = False
+        system_prompt = system_prompt or build_chat_system_prompt(
+            diagram_code, diagram_type, language
+        )
 
         # Build concatenated prompt (same pattern as chat_with_context)
         conversation_parts = [system_prompt, ""]
@@ -210,8 +217,13 @@ class GeminiClient(BaseAIClient):
             async for chunk in await self.client.aio.models.generate_content_stream(
                 model=self.model,
                 contents=full_prompt,
-                config=self._gen_config(),
+                config=self._gen_config(max_tokens=max_tokens),
             ):
+                candidates = getattr(chunk, "candidates", None) or []
+                if candidates and str(getattr(candidates[0], "finish_reason", "") or "").endswith(
+                    "MAX_TOKENS"
+                ):
+                    self.last_truncated = True
                 if time.time() - last_token_time > 60:
                     raise ValueError(
                         f"{self.provider_name} stream timeout: no token received in 60s"

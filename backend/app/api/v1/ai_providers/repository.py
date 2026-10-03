@@ -119,6 +119,16 @@ class AIProviderRepository(IAIProviderRepository):
 
         return settings
 
+    async def set_auto_fix(self, user_id: str, enabled: bool) -> UserAISettingsInDB:
+        """Turn the automatic fix of generated diagrams on or off."""
+        settings = await self.get_user_settings(user_id)
+        if not settings:
+            raise ValueError("User settings not found")
+        settings.auto_fix_generated = enabled
+        settings.updated_at = datetime.utcnow()
+        await settings.save()
+        return settings
+
     async def set_default_provider(
         self, user_id: str, provider: AIProviderType
     ) -> UserAISettingsInDB:

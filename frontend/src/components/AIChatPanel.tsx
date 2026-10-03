@@ -1,3 +1,4 @@
+import { autoFixRequest, mermaidSyntaxError } from '../utils/mermaidCheck';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
@@ -70,6 +71,8 @@ export default function AIChatPanel({
   const currentStreamModeRef = useRef<'text' | 'code' | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
   const lastSendParamsRef = useRef<{ content: string; presetAction?: ChatPresetAction } | null>(null);
+  // The automatic fix runs at most once per user request (never on its own result)
+  const autoFixPendingRef = useRef(false);
   const lastStreamTextRef = useRef('');
 
   // Mobile keyboard handling — adjust height when virtual keyboard opens
@@ -225,8 +228,13 @@ export default function AIChatPanel({
   };
 
   // Enviar mensaje (streaming)
-  const handleSendMessage = async (content: string, presetAction?: ChatPresetAction) => {
+  const handleSendMessage = async (
+    content: string,
+    presetAction?: ChatPresetAction,
+    options?: { isAutoFix?: boolean },
+  ) => {
     if (!activeSessionId || isFinalized) return;
+    autoFixPendingRef.current = !!options?.isAutoFix;
 
     // Save params for retry
     lastSendParamsRef.current = { content, presetAction };
@@ -337,6 +345,19 @@ export default function AIChatPanel({
             loadMessages(activeSessionId);
           }
           loadSessions();
+
+          // Mermaid code that doesn't render: ask the model to fix it, once
+          // (the server can only check Mermaid's structure; this is the real parser).
+          const generated = event.improved_code;
+          const wasAutoFix = autoFixPendingRef.current;
+          autoFixPendingRef.current = false;
+          if (generated && diagramType === 'mermaid' && !wasAutoFix && aiSettings?.auto_fix_generated !== false) {
+            void mermaidSyntaxError(generated).then((syntaxError) => {
+              if (!syntaxError) return;
+              const language = i18n.language?.startsWith('en') ? 'en' : 'es';
+              handleSendMessage(autoFixRequest(generated, syntaxError, language), 'fix', { isAutoFix: true });
+            });
+          }
         },
         onError: (message: string) => {
           setStreaming((prev) => ({

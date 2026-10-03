@@ -279,7 +279,8 @@ When creating a new module, you MUST:
 - `max_tokens`: 4096 for chat and descriptions; **8192 for generate/improve** (reasoning models spend part of the budget thinking). A reply cut at the limit is never returned as code: the API answers 422 `response_truncated` (empty reply: 502 `empty_response`)
 - Generate/improve live once in `BaseAIClient` (same prompt for every provider): English instructions, labels in the user's language, syntax reference + rules verified against the renderers in the system prompt, output as one Markdown code block, temperature 0.2. Measure prompt changes with `scripts/ai-benchmark/`
 - Model catalog: `ai_providers/model_catalog.json` is the single source of truth (offered models, context windows used for chat compaction, default model per provider, whether `temperature` is accepted — Claude 5.x rejects it). Verify new models against the provider's docs and a live call
-- Auto-fix retry disabled for PlantUML and DBML (false positives)
+- Auto-fix retry disabled for PlantUML and DBML (false positives). The chat retries Mermaid/D2 when the code doesn't validate (D2 with Kroki on the server; Mermaid with the real parser in the browser, which asks the model once to fix it). Both obey the per-user `auto_fix_generated` setting (default on)
+- The AI chat is the only UI entry point for generating/modifying diagrams; streaming and non-streaming use the same unified system prompt, a code request gets the 8192-token budget, and a reply cut at the limit is never applied (the user gets a notice)
 - AI content respects `language` parameter (`es`/`en`)
 - Chat code markers: `<<<DIAGRAM>>>`/`<<<END_DIAGRAM>>>` (English), `<<<DIAGRAMA>>>`/`<<<END_DIAGRAMA>>>` (Spanish); `extract_diagram_code` also tolerates malformed markers and code fences
 - Strip `<think>` tags from AI responses

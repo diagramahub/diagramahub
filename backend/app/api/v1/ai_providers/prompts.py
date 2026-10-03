@@ -1096,6 +1096,10 @@ def build_unified_chat_prompt(
     """System prompt unificado que detecta intencion automaticamente."""
     context = get_diagram_context(diagram_type, language)
     common_errors = get_common_errors_section(diagram_type, language)
+    # Rules checked against the real renderers (also used by generate/improve)
+    verified_rules = (
+        f"{_VERIFIED_RULES[diagram_type]}\n\n" if diagram_type in _VERIFIED_RULES else ""
+    )
     action_instruction = _get_chat_action_instruction(preset_action, language)
 
     # Add Kroki rendering context for server-rendered types
@@ -1184,6 +1188,7 @@ def build_unified_chat_prompt(
             f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
+            f"{verified_rules}"
             f"{action_instruction}"
             f"{complete_code_instruction}"
             f"{lang_instruction}"
@@ -1236,6 +1241,7 @@ def build_unified_chat_prompt(
             f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
+            f"{verified_rules}"
             f"{action_instruction}"
             f"{complete_code_instruction}"
             f"{lang_instruction}"

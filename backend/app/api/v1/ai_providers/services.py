@@ -71,6 +71,7 @@ class AIProviderService:
             user_id=settings.user_id,
             providers=masked_providers,
             auto_generate_on_save=settings.auto_generate_on_save,
+            auto_fix_generated=settings.auto_fix_generated,
             default_provider=settings.default_provider,
             created_at=settings.created_at,
             updated_at=settings.updated_at,
@@ -236,6 +237,21 @@ class AIProviderService:
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+        return await self.get_user_settings(user_id)
+
+    async def set_auto_fix(self, user_id: str, enabled: bool) -> UserAISettingsResponse:
+        """
+        Turn the automatic fix of generated diagrams on or off.
+
+        Args:
+            user_id: User ID
+            enabled: Whether to retry once when generated code doesn't render
+
+        Returns:
+            Updated user settings
+        """
+        await self.get_user_settings(user_id)  # creates defaults on first use
+        await self.repository.set_auto_fix(user_id, enabled)
         return await self.get_user_settings(user_id)
 
     async def set_default_provider(

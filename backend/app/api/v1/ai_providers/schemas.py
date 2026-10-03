@@ -46,6 +46,9 @@ class UserAISettingsInDB(Document):
     user_id: str
     providers: List[AIProviderConfig] = []
     auto_generate_on_save: bool = False
+    # Retry once (asking the model to fix it) when generated Mermaid/D2 code
+    # doesn't render. Never for PlantUML/DBML (validator false positives).
+    auto_fix_generated: bool = True
     default_provider: Optional[AIProviderType] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
@@ -176,6 +179,7 @@ class UserAISettingsResponse(BaseModel):
     user_id: str
     providers: List[AIProviderResponse]
     auto_generate_on_save: bool
+    auto_fix_generated: bool = True
     default_provider: Optional[AIProviderType]
     created_at: datetime
     updated_at: datetime

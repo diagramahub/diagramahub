@@ -1,7 +1,12 @@
 # AI prompt benchmark
 
-Measures how often the "generate diagram" prompt produces code that renders on
-the first try. Use it before and after changing prompts or adding models.
+Measures how often AI-generated diagram code renders on the first try. Use it
+before and after changing prompts, the chat flow or the model catalog.
+
+- `chat.py` — **the AI chat, what users actually use**: runs the real
+  `ChatSessionService.stream_message` (streaming, marker parsing, response-mode
+  detection, auto-retry) with in-memory chat repositories (nothing is written).
+- `generate.py` — the `/ai/generate-diagram` endpoint (API only, no UI uses it).
 
 - 10 descriptions × 4 diagram types (Mermaid, PlantUML, D2, DBML) per model, in Spanish.
 - Generation goes through the app's own AI clients (same prompts and code extraction as production).
@@ -23,4 +28,12 @@ docker exec -u 0 diagramahub-backend rm -f /tmp/generate.py
 node scripts/ai-benchmark/validate_mermaid.js results.json
 ```
 
-Results for 0.8.1 (same 160 cases): prompts 0.8.0 → 72 % valid; prompts 0.8.1 → 98 %.
+For the chat, copy both `generate.py` and `chat.py` to `/tmp` and run `chat.py` with the
+same arguments (`/tmp/chat.py you@example.com "label" provider:model ...`).
+
+Results for 0.8.1 (same 160 cases, 4 cheap models):
+
+| Path | 0.8.0 | 0.8.1 |
+|---|---|---|
+| AI chat (streaming) | 88 % | 99 % |
+| `/ai/generate-diagram` | 72 % | 98 % |

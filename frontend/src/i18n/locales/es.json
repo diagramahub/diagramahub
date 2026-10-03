@@ -1021,36 +1021,6 @@
       "regenerate": "Regenerar",
       "useDescription": "Usar esta descripción"
     },
-    "createDiagram": {
-      "title": "Crear Diagrama con IA",
-      "subtitle": "Describe lo que quieres diagramar y la IA lo creará por ti",
-      "description": "Descripción del diagrama",
-      "descriptionPlaceholder": "Ej: Un diagrama de flujo que muestre el proceso de registro de usuarios, incluyendo validación de email y creación de perfil",
-      "diagramType": "Tipo de diagrama",
-      "selectType": "Selecciona el tipo",
-      "mermaid": "Mermaid",
-      "plantuml": "PlantUML",
-      "generating": "Generando diagrama...",
-      "success": "Diagrama generado exitosamente",
-      "error": "Error al generar diagrama",
-      "button": "Generar Diagrama",
-      "createButton": "Crear Diagrama con IA"
-    },
-    "improveDiagram": {
-      "title": "Mejorar Diagrama con IA",
-      "subtitle": "La IA mejorará tu diagrama según tus instrucciones",
-      "improvementRequest": "¿Qué quieres mejorar?",
-      "improvementPlaceholder": "Ej: Agrega más detalles al flujo de error, usa colores para diferenciar tipos de nodos, simplifica la estructura",
-      "explainBlocked": "Esta acción es para mejorar diagramas, no para explicarlos. Usa la acción rápida 'Explicar' en el chat de IA.",
-      "generating": "Mejorando diagrama...",
-      "success": "Diagrama mejorado exitosamente",
-      "error": "Error al mejorar diagrama",
-      "button": "Mejorar con IA",
-      "preview": "Vista Previa",
-      "acceptButton": "Aceptar Mejora",
-      "rejectButton": "Rechazar",
-      "tryAgain": "Intentar de Nuevo"
-    },
     "messages": {
       "addSuccess": "Proveedor agregado exitosamente",
       "updateSuccess": "Proveedor actualizado exitosamente",
@@ -1083,23 +1053,6 @@
       "clickToChangeApiKey": "Haz clic en el campo o en 'Cambiar' para actualizar la clave API",
       "getApiKey": "Obtener clave API"
     },
-    "promptHistory": {
-      "title": "Historial de prompts",
-      "searchPlaceholder": "Buscar en el historial...",
-      "emptyMessage": "No hay prompts anteriores",
-      "noResults": "No se encontraron coincidencias",
-      "confirmDelete": "¿Estás seguro de que deseas eliminar este prompt del historial?",
-      "copy": "Copiar",
-      "copied": "Copiado",
-      "load": "Usar este prompt",
-      "delete": "Eliminar",
-      "creation": "Creación",
-      "improvement": "Mejora",
-      "page": "Página",
-      "of": "de",
-      "showHistory": "Historial",
-      "hideHistory": "Ocultar historial"
-    },
     "description": {
       "modalTitle": "Descripción con IA",
       "modalSubtitle": "Revisa la descripción. Puedes refinarla con instrucciones antes de aceptarla.",
@@ -1123,9 +1076,10 @@
       "errorPersistence": "Error al guardar el mensaje",
       "errorTryLater": "Demasiados intentos fallidos. Intenta de nuevo más tarde."
     },
-    "errors": {
-      "truncated": "El diagrama resultó demasiado grande y la respuesta se cortó. Pide un diagrama más pequeño o divídelo en partes.",
-      "empty": "El modelo no devolvió ningún diagrama. Inténtalo de nuevo o elige otro modelo."
+    "autoFix": {
+      "label": "Corregir automáticamente los diagramas generados",
+      "hint": "Si el código que genera la IA (Mermaid o D2) no se puede renderizar, se le pide una corrección una vez antes de mostrártelo. Usa una llamada extra de tu llave. No aplica a PlantUML ni DBML.",
+      "error": "No se pudo guardar la preferencia. Inténtalo de nuevo."
     }
   },
   "oauth": {

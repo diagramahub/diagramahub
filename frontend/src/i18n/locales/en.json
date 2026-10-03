@@ -919,36 +919,6 @@
       "regenerate": "Regenerate",
       "useDescription": "Use this description"
     },
-    "createDiagram": {
-      "title": "Create Diagram with AI",
-      "subtitle": "Describe what you want to diagram and AI will create it for you",
-      "description": "Diagram description",
-      "descriptionPlaceholder": "E.g: A flowchart showing the user registration process, including email validation and profile creation",
-      "diagramType": "Diagram type",
-      "selectType": "Select type",
-      "mermaid": "Mermaid",
-      "plantuml": "PlantUML",
-      "generating": "Generating diagram...",
-      "success": "Diagram generated successfully",
-      "error": "Error generating diagram",
-      "button": "Generate Diagram",
-      "createButton": "Create Diagram with AI"
-    },
-    "improveDiagram": {
-      "title": "Improve Diagram with AI",
-      "subtitle": "AI will improve your diagram according to your instructions",
-      "improvementRequest": "What do you want to improve?",
-      "improvementPlaceholder": "E.g: Add more details to error flow, use colors to differentiate node types, simplify structure",
-      "explainBlocked": "This action is for improving diagrams, not explaining them. Use the 'Explain' quick action in the AI chat.",
-      "generating": "Improving diagram...",
-      "success": "Diagram improved successfully",
-      "error": "Error improving diagram",
-      "button": "Improve with AI",
-      "preview": "Preview",
-      "acceptButton": "Accept Improvement",
-      "rejectButton": "Reject",
-      "tryAgain": "Try Again"
-    },
     "messages": {
       "addSuccess": "Provider added successfully",
       "updateSuccess": "Provider updated successfully",
@@ -1004,9 +974,10 @@
       "errorPersistence": "Error saving message",
       "errorTryLater": "Too many failed attempts. Please try again later."
     },
-    "errors": {
-      "truncated": "The diagram was too large and the response was cut off. Ask for a smaller diagram or split it into parts.",
-      "empty": "The model returned no diagram. Try again or choose another model."
+    "autoFix": {
+      "label": "Fix generated diagrams automatically",
+      "hint": "If the code the AI generates (Mermaid or D2) doesn't render, it's asked once to fix it before you see it. Uses one extra call of your key. Doesn't apply to PlantUML or DBML.",
+      "error": "Couldn't save the preference. Please try again."
     }
   },
   "oauth": {

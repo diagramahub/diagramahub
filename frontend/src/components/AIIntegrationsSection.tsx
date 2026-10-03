@@ -17,6 +17,19 @@ export default function AIIntegrationsSection() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [removeIndex, setRemoveIndex] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // "Fix generated diagrams automatically" (saved per user, default on)
+  const handleAutoFixChange = async (enabled: boolean) => {
+    // Optimistic: the checkbox reacts at once; reverted if saving fails
+    setSettings((prev) => (prev ? { ...prev, auto_fix_generated: enabled } : prev));
+    setActionError(null);
+    try {
+      setSettings(await apiService.setAutoFixGenerated(enabled));
+    } catch {
+      setSettings((prev) => (prev ? { ...prev, auto_fix_generated: !enabled } : prev));
+      setActionError(t('ai.autoFix.error'));
+    }
+  };
   const clearActionError = useCallback(() => setActionError(null), []);
 
   useEffect(() => {
@@ -276,6 +289,22 @@ export default function AIIntegrationsSection() {
               })}
             </div>
           )}
+        </div>
+        {/* Preferences */}
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+              checked={settings?.auto_fix_generated !== false}
+              disabled={!settings}
+              onChange={(e) => handleAutoFixChange(e.target.checked)}
+            />
+            <span>
+              <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">{t('ai.autoFix.label')}</span>
+              <span className="block text-xs text-gray-600 dark:text-gray-400 mt-0.5">{t('ai.autoFix.hint')}</span>
+            </span>
+          </label>
         </div>
       </div>
 

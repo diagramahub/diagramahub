@@ -235,6 +235,8 @@ class ClaudeClient(BaseAIClient):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response token by token using Anthropic streaming API.
 
@@ -248,6 +250,8 @@ class ClaudeClient(BaseAIClient):
             diagram_code: Current diagram code
             diagram_type: Diagram type (mermaid, plantuml, etc.)
             language: Response language (es, en)
+            system_prompt: System prompt to use (default: the basic chat prompt)
+            max_tokens: Output budget for this reply (default: provider settings)
 
         Yields:
             String chunks as they arrive from Claude
@@ -255,12 +259,15 @@ class ClaudeClient(BaseAIClient):
         Raises:
             ValueError: If streaming fails or times out
         """
-        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
+        self.last_truncated = False
+        system_content = system_prompt or build_chat_system_prompt(
+            diagram_code, diagram_type, language
+        )
         api_messages = [{"role": msg["role"], "content": msg["content"]} for msg in messages]
 
         payload: dict = {
             "model": self.model,
-            "max_tokens": self.parameters.get("max_tokens", 4096),
+            "max_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
             "system": system_content,
             "messages": api_messages,
             "stream": True,
@@ -305,6 +312,9 @@ class ClaudeClient(BaseAIClient):
                             if text:
                                 last_token_time = time.time()
                                 yield text
+                        elif event_type == "message_delta":
+                            if event_data.get("delta", {}).get("stop_reason") == "max_tokens":
+                                self.last_truncated = True
                         elif event_type == "message_stop":
                             return
                         elif event_type == "error":

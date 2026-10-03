@@ -26,6 +26,8 @@ export interface UserAISettings {
   user_id: string;
   providers: AIProviderConfig[];
   auto_generate_on_save: boolean;
+  /** Ask the model to fix generated Mermaid/D2 code that doesn't render (default on). */
+  auto_fix_generated?: boolean;
   default_provider: AIProviderType | null;
   created_at: string;
   updated_at: string;

@@ -224,6 +224,8 @@ class MinimaxClient(BaseAIClient):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response token by token using MiniMax streaming API.
 
@@ -234,6 +236,8 @@ class MinimaxClient(BaseAIClient):
             diagram_code: Current diagram code
             diagram_type: Diagram type (mermaid, plantuml, etc.)
             language: Response language (es, en)
+            system_prompt: System prompt to use (default: the basic chat prompt)
+            max_tokens: Output budget for this reply (default: provider settings)
 
         Yields:
             String chunks as they arrive from MiniMax
@@ -241,7 +245,10 @@ class MinimaxClient(BaseAIClient):
         Raises:
             ValueError: If streaming fails or times out
         """
-        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
+        self.last_truncated = False
+        system_content = system_prompt or build_chat_system_prompt(
+            diagram_code, diagram_type, language
+        )
         api_messages = [{"role": "system", "content": system_content}]
         for msg in messages:
             api_messages.append({"role": msg["role"], "content": msg["content"]})
@@ -250,7 +257,7 @@ class MinimaxClient(BaseAIClient):
             "model": self.model,
             "messages": api_messages,
             "temperature": self.parameters.get("temperature", 0.7),
-            "max_tokens": self.parameters.get("max_output_tokens", 4096),
+            "max_tokens": max_tokens or self.parameters.get("max_output_tokens", 4096),
             "top_p": self.parameters.get("top_p", 1.0),
             "stream": True,
         }
@@ -292,6 +299,8 @@ class MinimaxClient(BaseAIClient):
                         if not choices:
                             continue
 
+                        if choices[0].get("finish_reason") == "length":
+                            self.last_truncated = True
                         delta = choices[0].get("delta", {})
                         content = delta.get("content")
                         if content:

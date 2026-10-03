@@ -290,6 +290,8 @@ class BaseAIClient(ABC):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream chat response token by token.

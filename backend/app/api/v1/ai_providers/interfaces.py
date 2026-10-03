@@ -89,6 +89,11 @@ class IAIProviderRepository(ABC):
         pass
 
     @abstractmethod
+    async def set_auto_fix(self, user_id: str, enabled: bool) -> UserAISettingsInDB:
+        """Turn the automatic fix of generated diagrams on or off."""
+        pass
+
+    @abstractmethod
     async def set_default_provider(
         self, user_id: str, provider: AIProviderType
     ) -> UserAISettingsInDB:
