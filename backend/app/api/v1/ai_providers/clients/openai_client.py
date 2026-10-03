@@ -12,15 +12,11 @@ from ..model_catalog import recommended_model
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
     DESCRIPTION_SYSTEM_PROMPT,
     SUMMARIZE_SYSTEM_PROMPT,
-    get_generate_diagram_system_prompt,
-    get_improve_diagram_system_prompt,
 )
 
 
@@ -37,13 +33,21 @@ class OpenAIClient(BaseAIClient):
             "Content-Type": "application/json",
         }
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """Complete a chat request with system and user messages."""
         return await self._chat_completion(
             [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
-            ]
+            ],
+            max_tokens=max_tokens,
         )
 
     async def complete_chat(
@@ -55,13 +59,16 @@ class OpenAIClient(BaseAIClient):
         )
 
     async def _chat_completion(
-        self, messages: list[dict], response_format: dict | None = None
+        self,
+        messages: list[dict],
+        response_format: dict | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         """Llamada genérica al endpoint chat/completions de OpenAI."""
         payload: dict = {
             "model": self.model,
             "messages": messages,
-            "max_completion_tokens": self.parameters.get("max_tokens", 4096),
+            "max_completion_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
         }
         if response_format:
             payload["response_format"] = response_format
@@ -84,7 +91,9 @@ class OpenAIClient(BaseAIClient):
             if not result.get("choices") or len(result["choices"]) == 0:
                 raise ValueError("OpenAI returned empty response")
 
-            return result["choices"][0]["message"]["content"].strip()
+            choice = result["choices"][0]
+            self.last_truncated = choice.get("finish_reason") == "length"
+            return (choice.get("message", {}).get("content") or "").strip()
 
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"
@@ -114,23 +123,6 @@ class OpenAIClient(BaseAIClient):
         except Exception as e:
             print(f"OpenAI API key validation failed: {str(e)}")
             return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            response = await self._chat_completion(
-                [
-                    {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-            return clean_code_response(response)
-        except httpx.TimeoutException:
-            raise ValueError("OpenAI API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with OpenAI: {str(e)}")
 
     async def fix_diagram(
         self,
@@ -178,36 +170,6 @@ class OpenAIClient(BaseAIClient):
             raise ValueError("OpenAI API request timed out")
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con OpenAI: {str(e)}")
-
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            response = await self._chat_completion(
-                [
-                    {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-            cleaned = clean_code_response(response)
-            if not cleaned:
-                raise ValueError(
-                    f"El modelo {self.model} no devolvió código de diagrama. "
-                    "Si querías solo una explicación, usa la acción 'Explicar' del chat. "
-                    "Si querías mejorar el diagrama, prueba con un modelo más capaz."
-                )
-            return cleaned
-        except httpx.TimeoutException:
-            raise ValueError("OpenAI API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with OpenAI: {str(e)}")
 
     async def chat_with_context(
         self,

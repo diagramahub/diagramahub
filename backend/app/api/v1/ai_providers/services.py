@@ -21,6 +21,7 @@ from .schemas import (
     UpdateProviderRequest,
     TestProviderResponse,
 )
+from .clients.base import EmptyResponseError, TruncatedResponseError
 from .clients.factory import AIClientFactory
 from .clients.base import BaseAIClient
 from app.core.security import mask_api_key
@@ -509,6 +510,17 @@ class AIProviderService:
                 generation_time=generation_time,
             )
 
+        except TruncatedResponseError:
+            # The code hit the output limit: incomplete code would not render
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": "response_truncated"},
+            )
+        except EmptyResponseError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={"error": "empty_response"},
+            )
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -583,6 +595,17 @@ class AIProviderService:
                 generation_time=generation_time,
             )
 
+        except TruncatedResponseError:
+            # The code hit the output limit: incomplete code would not render
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": "response_truncated"},
+            )
+        except EmptyResponseError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={"error": "empty_response"},
+            )
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

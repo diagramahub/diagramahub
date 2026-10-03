@@ -13,14 +13,10 @@ from ..model_catalog import recommended_model
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
     SUMMARIZE_SYSTEM_PROMPT,
-    get_generate_diagram_system_prompt,
-    get_improve_diagram_system_prompt,
 )
 
 
@@ -38,13 +34,22 @@ class MinimaxClient(BaseAIClient):
             "Content-Type": "application/json",
         }
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """Complete a chat request with system and user messages."""
         return await self._make_request(
             [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
-            ]
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     async def complete_chat(
@@ -65,7 +70,9 @@ class MinimaxClient(BaseAIClient):
         data = {
             "model": self.model,
             "messages": messages,
-            "temperature": temperature or self.parameters.get("temperature", 0.7),
+            "temperature": (
+                temperature if temperature is not None else self.parameters.get("temperature", 0.7)
+            ),
             "max_tokens": max_tokens or self.parameters.get("max_output_tokens", 4096),
             "top_p": self.parameters.get("top_p", 1.0),
             "stream": False,
@@ -93,7 +100,9 @@ class MinimaxClient(BaseAIClient):
                     raise ValueError(f"Minimax API error ({response.status_code}): {error_detail}")
 
                 result = response.json()
-                return result["choices"][0]["message"]["content"]
+                choice = result["choices"][0]
+                self.last_truncated = choice.get("finish_reason") == "length"
+                return choice["message"].get("content") or ""
 
             except httpx.RequestError as e:
                 raise ValueError(f"Network error connecting to Minimax: {str(e)}")
@@ -134,42 +143,6 @@ class MinimaxClient(BaseAIClient):
                 return response.status_code == 200
             except Exception:
                 return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            response = await self._make_request(
-                [
-                    {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-            return clean_code_response(response)
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with Minimax: {str(e)}")
-
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            response = await self._make_request(
-                [
-                    {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-            return clean_code_response(response)
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with Minimax: {str(e)}")
 
     async def fix_diagram(
         self,

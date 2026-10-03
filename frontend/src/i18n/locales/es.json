@@ -1122,6 +1122,10 @@
       "errorTimeout": "Tiempo de espera agotado",
       "errorPersistence": "Error al guardar el mensaje",
       "errorTryLater": "Demasiados intentos fallidos. Intenta de nuevo más tarde."
+    },
+    "errors": {
+      "truncated": "El diagrama resultó demasiado grande y la respuesta se cortó. Pide un diagrama más pequeño o divídelo en partes.",
+      "empty": "El modelo no devolvió ningún diagrama. Inténtalo de nuevo o elige otro modelo."
     }
   },
   "oauth": {

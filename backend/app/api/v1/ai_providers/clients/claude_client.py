@@ -12,8 +12,6 @@ from .base import BaseAIClient
 from ..model_catalog import recommended_model, supports_temperature
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
@@ -38,7 +36,14 @@ class ClaudeClient(BaseAIClient):
             "Content-Type": "application/json",
         }
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """
         Complete a chat request.
 
@@ -48,6 +53,8 @@ class ClaudeClient(BaseAIClient):
         return await self._messages_request(
             [{"role": "user", "content": user_prompt}],
             system=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     async def complete_chat(
@@ -107,10 +114,16 @@ class ClaudeClient(BaseAIClient):
                 raise ValueError(f"Claude API error: {response.status_code} - {response.text}")
 
             result = response.json()
-            if not result.get("content") or len(result["content"]) == 0:
+            self.last_truncated = result.get("stop_reason") == "max_tokens"
+            # Models with adaptive thinking may send thinking blocks before the text
+            text = "".join(
+                block.get("text", "")
+                for block in result.get("content") or []
+                if block.get("type") == "text"
+            )
+            if not text and not self.last_truncated:
                 raise ValueError("Claude returned empty response")
-
-            return result["content"][0]["text"].strip()
+            return text.strip()
 
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"
@@ -141,18 +154,6 @@ class ClaudeClient(BaseAIClient):
         except Exception as e:
             print(f"Claude API key validation failed: {str(e)}")
             return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            response = await self._messages_request([{"role": "user", "content": prompt}])
-            return clean_code_response(response)
-        except httpx.TimeoutException:
-            raise ValueError("Claude API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with Claude: {str(e)}")
 
     async def fix_diagram(
         self,
@@ -196,24 +197,6 @@ class ClaudeClient(BaseAIClient):
             raise ValueError("Claude API request timed out")
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con Claude: {str(e)}")
-
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            response = await self._messages_request([{"role": "user", "content": prompt}])
-            return clean_code_response(response)
-        except httpx.TimeoutException:
-            raise ValueError("Claude API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with Claude: {str(e)}")
 
     async def chat_with_context(
         self,

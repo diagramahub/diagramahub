@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { aiErrorMessage } from '../utils/aiErrors';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -73,7 +74,7 @@ export default function ImproveDiagramWithAIModal({
       if (err.response?.status === 404) {
         setError(t('ai.messages.noProvidersError'));
       } else {
-        setError(err.response?.data?.detail || t('ai.improveDiagram.error'));
+        setError(aiErrorMessage(err, t, 'ai.improveDiagram.error'));
       }
     } finally {
       setGenerating(false);

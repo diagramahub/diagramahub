@@ -13,8 +13,6 @@ from ..model_catalog import recommended_model
 from .base import BaseAIClient
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
@@ -38,13 +36,22 @@ class GeminiClient(BaseAIClient):
     ) -> types.GenerateContentConfig:
         """Configuracion de generacion reutilizable."""
         return types.GenerateContentConfig(
-            temperature=temperature or self.parameters.get("temperature", 0.7),
+            temperature=(
+                temperature if temperature is not None else self.parameters.get("temperature", 0.7)
+            ),
             top_p=self.parameters.get("top_p", 0.95),
             max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 4096),
             system_instruction=system_instruction or None,
         )
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """
         Complete a request with separate system and user prompts.
 
@@ -53,7 +60,12 @@ class GeminiClient(BaseAIClient):
         the ``system`` role the other providers receive. Dropping it left the
         chat without the diagram context, so replies could not be parsed.
         """
-        return await self._generate(user_prompt, system_instruction=system_prompt)
+        return await self._generate(
+            user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_instruction=system_prompt,
+        )
 
     async def _generate(
         self,
@@ -68,9 +80,13 @@ class GeminiClient(BaseAIClient):
             contents=prompt,
             config=self._gen_config(temperature, max_tokens, system_instruction),
         )
-        if not response or not response.text:
+        candidates = getattr(response, "candidates", None) or []
+        finish = str(getattr(candidates[0], "finish_reason", "") or "") if candidates else ""
+        self.last_truncated = finish.endswith("MAX_TOKENS")
+        text = (response.text if response else None) or ""
+        if not text and not self.last_truncated:
             raise ValueError("Gemini returned empty response")
-        return response.text.strip()
+        return text.strip()
 
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"
@@ -88,15 +104,6 @@ class GeminiClient(BaseAIClient):
         except Exception as e:
             print(f"Gemini API key validation failed: {str(e)}")
             return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            return clean_code_response(await self._generate(prompt))
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with Gemini: {str(e)}")
 
     async def fix_diagram(
         self,
@@ -121,21 +128,6 @@ class GeminiClient(BaseAIClient):
 
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con Gemini: {str(e)}")
-
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            return clean_code_response(await self._generate(prompt))
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with Gemini: {str(e)}")
 
     async def chat_with_context(
         self,

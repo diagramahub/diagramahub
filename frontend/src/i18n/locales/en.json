@@ -1003,6 +1003,10 @@
       "errorTimeout": "Request timed out",
       "errorPersistence": "Error saving message",
       "errorTryLater": "Too many failed attempts. Please try again later."
+    },
+    "errors": {
+      "truncated": "The diagram was too large and the response was cut off. Ask for a smaller diagram or split it into parts.",
+      "empty": "The model returned no diagram. Try again or choose another model."
     }
   },
   "oauth": {
