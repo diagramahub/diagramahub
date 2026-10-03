@@ -21,9 +21,9 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 | A1 | **Un usuario puede meter diagramas en la carpeta de otro.** Crear o actualizar un diagrama acepta cualquier `folder_id` sin comprobar que la carpeta sea del proyecto, y `get_by_folder_id` filtra solo por carpeta. El diagrama aparece en el explorador del otro usuario y en su exportación por carpeta (incluido el Markdown para IA: inyección de prompt). | ✔︎ El usuario B creó "inyectado" y apareció en la carpeta de A | M ✅ |
 | A2 | **Duplicar un diagrama no respeta la cuota del plan** (`/diagrams/{id}/duplicate` no llama a `enforce_diagram_limit`). | 📖 `diagrams/routes.py:258` | S ✅ |
 | A3 | **12 vulnerabilidades en axios 1.18.1** (7 altas, 5 moderadas). Todas se corrigen subiendo a 1.20. En 0.7.1 dejamos el audit en cero. | ✔︎ `pnpm audit --prod` | S ✅ |
-| A4 | **Los límites de importación se aplican por ZIP, no por petición.** 20 MB de ZIPs pequeños muy comprimibles pueden descomprimirse a varios GB en memoria, incluso en vista previa. | 📖 `import_service.py:132`, `import_parsers.py:620` | M |
-| A5 | **La vista previa de importación no tiene límite de frecuencia**, lo que abarata repetir A4. | 📖 `import_service.py:201` | S |
-| A6 | **La vista compartida (solo lectura) se puede "editar" con clic derecho.** El menú contextual no revisa `readOnly`: el visitante puede borrar, cortar o bloquear elementos en su pantalla. No se guarda, pero confunde. | 📖 `FreehandCanvas.tsx:1305` | S |
+| A4 | **Los límites de importación se aplican por ZIP, no por petición.** 20 MB de ZIPs pequeños muy comprimibles pueden descomprimirse a varios GB en memoria, incluso en vista previa. | 📖 `import_service.py:132`, `import_parsers.py:620` | M ✅ |
+| A5 | **La vista previa de importación no tiene límite de frecuencia**, lo que abarata repetir A4. | 📖 `import_service.py:201` | S ✅ |
+| A6 | **La vista compartida (solo lectura) se puede "editar" con clic derecho.** El menú contextual no revisa `readOnly`: el visitante puede borrar, cortar o bloquear elementos en su pantalla. No se guarda, pero confunde. | 📖 `FreehandCanvas.tsx:1305` | S ✅ |
 
 ## B. Pizarrón — correcciones
 

@@ -9,14 +9,16 @@ import pytest
 from httpx import AsyncClient
 
 from app.api.v1.projects import import_service as import_module
-from app.api.v1.projects.import_service import import_rate_limiter
+from app.api.v1.projects.import_service import import_preview_rate_limiter, import_rate_limiter
 
 
 @pytest.fixture(autouse=True)
 def _reset_rate_limiter():
     import_rate_limiter.reset()
+    import_preview_rate_limiter.reset()
     yield
     import_rate_limiter.reset()
+    import_preview_rate_limiter.reset()
 
 
 def _zip(files: dict[str, str]) -> bytes:
@@ -191,3 +193,49 @@ async def test_import_upload_budget_is_larger_than_the_global_body_limit(authent
     assert response.status_code == 200
     # ...but a single diagram bigger than the per-file cap is skipped, not stored.
     assert response.json()["skipped"] == [{"source": "big.mmd", "reason": "too_large"}]
+
+
+@pytest.mark.integration
+async def test_archive_limits_apply_to_the_whole_request(authenticated_client: AsyncClient) -> None:
+    """Many small ZIPs can't add up to more than one archive may expand to."""
+    pid = await _project(authenticated_client)
+    service = import_module.ProjectImportService
+    limits = import_module.ImportLimits(max_files=10, max_total_bytes=3000, max_file_bytes=3000)
+    archive = _zip({f"d{i}.mmd": "graph TD\n" + "A-->B\n" * 100 for i in range(3)})  # ~1.8 KB uncompressed
+
+    with patch.object(service, "__init__", _with_limits(service.__init__, limits)):
+        one = await authenticated_client.post(f"/api/v1/projects/{pid}/import?dry_run=true", files=_files(("a.zip", archive)))
+        two = await authenticated_client.post(
+            f"/api/v1/projects/{pid}/import?dry_run=true", files=_files(("a.zip", archive), ("b.zip", archive))
+        )
+        many = await authenticated_client.post(
+            f"/api/v1/projects/{pid}/import", files=_files(*[(f"f{i}.mmd", b"graph TD") for i in range(11)])
+        )
+
+    assert one.status_code == 200 and one.json()["diagram_count"] == 3
+    assert two.status_code == 400
+    assert two.json()["detail"] == {"error": "invalid_upload", "file": "b.zip", "reason": "too_large_uncompressed"}
+    assert many.status_code == 400 and many.json()["detail"]["reason"] == "too_many_files"
+    assert (await authenticated_client.get(f"/api/v1/projects/{pid}")).json()["diagrams"] == []
+
+
+@pytest.mark.integration
+async def test_preview_is_rate_limited_separately(authenticated_client: AsyncClient) -> None:
+    pid = await _project(authenticated_client)
+    url = f"/api/v1/projects/{pid}/import?dry_run=true"
+    for _ in range(import_preview_rate_limiter.max_requests):
+        assert (await authenticated_client.post(url, files=_files(("a.mmd", b"graph TD")))).status_code == 200
+
+    limited = await authenticated_client.post(url, files=_files(("a.mmd", b"graph TD")))
+    real = await authenticated_client.post(f"/api/v1/projects/{pid}/import", files=_files(("a.mmd", b"graph TD")))
+
+    assert limited.status_code == 429 and "retry-after" in limited.headers
+    assert real.status_code == 200  # importing has its own budget
+
+
+def _with_limits(original_init, limits):  # noqa: ANN001, ANN202
+    def init(self, *args, **kwargs):  # noqa: ANN001, ANN202
+        original_init(self, *args, **kwargs)
+        self.limits = limits
+
+    return init

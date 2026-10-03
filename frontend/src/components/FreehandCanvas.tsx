@@ -1304,6 +1304,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   // ─── Context Menu ───
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    // Read-only viewers (shared links) get no editing menu at all
+    if (readOnly) return;
     const pos = getPos(e);
     const screenPos = getScreenPos(e);
     // Select element under cursor if not already selected

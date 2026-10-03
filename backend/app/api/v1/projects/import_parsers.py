@@ -743,6 +743,23 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
     return plan
 
 
+def upload_footprint(filename: str, data: bytes) -> tuple[int, int]:
+    """(entries, uncompressed bytes) an upload would expand to, without decompressing.
+
+    Lets the caller enforce the import limits across ALL the files of a request:
+    a ZIP is measured from its central directory; anything else counts as one
+    file of its own size. An unreadable ZIP counts as one file (its parse fails).
+    """
+    if is_zip(data) or filename.lower().endswith(".zip"):
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                entries = [i for i in archive.infolist() if not i.is_dir()]
+                return len(entries), sum(i.file_size for i in entries)
+        except zipfile.BadZipFile:
+            return 1, len(data)
+    return 1, len(data)
+
+
 def plan_upload(filename: str, data: bytes, limits: ImportLimits) -> ImportPlan:
     """Plan for one uploaded file: a ZIP archive or a loose diagram file."""
     if is_zip(data) or filename.lower().endswith(".zip"):

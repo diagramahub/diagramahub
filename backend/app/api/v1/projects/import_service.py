@@ -27,10 +27,24 @@ from ..subscriptions.constants import RESOURCE_TYPE_DIAGRAM
 from ..subscriptions.exceptions import ResourceLimitError
 from ..subscriptions.usage_limiter import UsageLimiter
 from .export_builders import unique_name
-from .import_parsers import ImportError_, ImportLimits, ImportPlan, plan_upload
+from .import_parsers import ImportError_, ImportLimits, ImportPlan, plan_upload, upload_footprint
 from .interfaces import IProjectRepository
 
 import_rate_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=60)
+# The import dialog previews on every file change, so the dry run gets its own,
+# more generous ceiling; it parses everything, so it can't be unlimited either.
+import_preview_rate_limiter = SlidingWindowRateLimiter(max_requests=60, window_seconds=60)
+
+
+def _check_rate_limit(limiter: SlidingWindowRateLimiter, user_id: str) -> None:
+    """Raise 429 (with Retry-After) when the user exceeded the limiter's ceiling."""
+    allowed, retry_after = limiter.is_allowed(user_id)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many imports. Please wait a moment and try again.",
+            headers={"Retry-After": str(retry_after)},
+        )
 
 
 @dataclass
@@ -135,6 +149,23 @@ class ProjectImportService:
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail="Upload too large",
             )
+        # The archive limits apply to the whole request, not to each archive:
+        # many small ZIPs must not add up to more than one big one may hold.
+        files_seen, bytes_seen = 0, 0
+        for upload in uploads:
+            entries, size = upload_footprint(upload.filename, upload.data)
+            files_seen += entries
+            bytes_seen += size
+            reason = None
+            if files_seen > self.limits.max_files:
+                reason = "too_many_files"
+            elif bytes_seen > self.limits.max_total_bytes:
+                reason = "too_large_uncompressed"
+            if reason:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail={"error": "invalid_upload", "file": upload.filename, "reason": reason},
+                )
         plan = ImportPlan()
         for upload in uploads:
             try:
@@ -202,6 +233,7 @@ class ProjectImportService:
         self, project_id: str, user_id: str, uploads: list[UploadedFile], folder_id: Optional[str]
     ) -> ImportPreview:
         """Dry run: what would be created, and whether the plan quota allows it."""
+        _check_rate_limit(import_preview_rate_limiter, user_id)
         _, folder = await self._authorize(project_id, user_id, folder_id)
         plan = self.build_plan(uploads, into_folder=folder is not None)
         current, limit, allowed = await self._quota(user_id, plan.diagram_count)
@@ -211,13 +243,7 @@ class ProjectImportService:
         self, project_id: str, user_id: str, uploads: list[UploadedFile], folder_id: Optional[str]
     ) -> ImportResult:
         """Create folders and diagrams; all or nothing."""
-        allowed_now, retry_after = import_rate_limiter.is_allowed(user_id)
-        if not allowed_now:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many imports. Please wait a moment and try again.",
-                headers={"Retry-After": str(retry_after)},
-            )
+        _check_rate_limit(import_rate_limiter, user_id)
         project, folder = await self._authorize(project_id, user_id, folder_id)
         plan = self.build_plan(uploads, into_folder=folder is not None)
         if plan.diagram_count == 0:
