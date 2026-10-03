@@ -1205,5 +1205,107 @@
       "freehand": "Freehand",
       "eraser": "Eraser"
     }
+  },
+  "subscription": {
+    "title": "My Subscription",
+    "currentPlan": "Current Plan",
+    "planDetails": "Your subscription details and status",
+    "planFeatures": "Plan Features",
+    "billingInformation": "Billing Information",
+    "started": "Started",
+    "nextBillingDate": "Next billing date",
+    "cancelledOn": "Cancelled on",
+    "cancelSubscription": "Cancel Subscription",
+    "updatePaymentMethod": "Change payment method",
+    "changePlan": "Change Plan",
+    "selectNewPlan": "Select New Plan",
+    "cancelSelection": "Cancel",
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "payment_failed": "Payment Failed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "features": {
+      "unlimitedProjects": "Unlimited projects",
+      "unlimitedDiagrams": "Unlimited diagrams",
+      "upToProjects": "Up to {{count}} project",
+      "upToProjects_plural": "Up to {{count}} projects",
+      "upToDiagrams": "Up to {{count}} diagram",
+      "upToDiagrams_plural": "Up to {{count}} diagrams",
+      "premiumBadge": "Premium badge on your profile",
+      "prioritySupport": "Priority support"
+    },
+    "cancellation": {
+      "title": "Subscription Cancelled",
+      "message": "Your subscription has been cancelled. You'll keep access to your current plan until {{date}}. After that, you'll be moved to the FREE plan automatically.",
+      "keepAccessUntil": "You'll keep access until {{date}}",
+      "confirmTitle": "Cancel Subscription",
+      "confirmMessage": "Are you sure you want to cancel your {{planName}} subscription? You'll keep access until {{date}}, then you'll be moved to the FREE plan.",
+      "confirmButton": "Cancel Subscription",
+      "cancelButton": "Keep Subscription",
+      "cancelling": "Cancelling...",
+      "whenToCancel": "When should your subscription end?",
+      "endOfPeriod": "At the end of the period ({{date}})",
+      "endOfPeriodDescription": "Recommended - keep access for what you paid",
+      "immediately": "Immediately",
+      "immediatelyDescription": "Switch to the FREE plan right now (no refund)",
+      "immediateWarning": "You'll lose premium access immediately and there's no refund for the remaining time."
+    },
+    "usage": {
+      "title": "Resource Usage",
+      "subtitle": "Your current project and diagram usage",
+      "projects": "Projects",
+      "diagrams": "Diagrams",
+      "of": "of",
+      "unlimited": "Unlimited",
+      "warning": "You're close to the limit",
+      "limitReached": "Limit reached",
+      "upgradePrompt": "Upgrade your plan to create more resources"
+    },
+    "upgradePlan": {
+      "title": "Plan limit reached",
+      "message": "You've reached your current plan's {{resource}} limit. Upgrade your plan to keep creating.",
+      "action": "See available plans"
+    },
+    "plans": {
+      "title": "Available Plans",
+      "selectPlan": "Select Plan",
+      "currentPlan": "Current Plan",
+      "free": "FREE",
+      "premium": "PREMIUM",
+      "perMonth": "/month",
+      "mostPopular": "Most Popular",
+      "recommended": "Recommended"
+    },
+    "billing": {
+      "title": "Billing History",
+      "subtitle": "Your previous invoices and payments",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "status": "Status",
+      "download": "Download",
+      "noHistory": "No billing history",
+      "noHistoryDescription": "Your invoices will appear here once you make a payment",
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed",
+      "loading": "Loading history...",
+      "error": "Error loading billing history"
+    },
+    "celebration": {
+      "title": "Congratulations! 🎉",
+      "subtitle": "Your subscription has been activated successfully",
+      "newBenefits": "Your new benefits:",
+      "startUsing": "Start using my plan!"
+    },
+    "errors": {
+      "loadingSubscription": "Error loading subscription",
+      "cancellingSubscription": "Error cancelling subscription",
+      "updatePaymentMethod": "Error updating payment method",
+      "noSubscription": "No subscription found"
+    }
   }
 }
