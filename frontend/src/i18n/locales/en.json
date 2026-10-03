@@ -1163,8 +1163,6 @@
     "width": "Width",
     "undo": "Undo",
     "redo": "Redo",
-    "undoShortcut": "Ctrl+Z",
-    "redoShortcut": "Ctrl+Shift+Z",
     "clearAll": "Clear all",
     "elements": "elements",
     "elementsSelected": "elements selected",
@@ -1212,7 +1210,9 @@
       "text": "Text",
       "freehand": "Freehand",
       "eraser": "Eraser"
-    }
+    },
+    "clearAllConfirmTitle": "Clear the whole canvas?",
+    "clearAllConfirmMessage": "Every element on the canvas will be removed. You can undo it with Undo."
   },
   "subscription": {
     "title": "My Subscription",

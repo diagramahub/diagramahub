@@ -11,6 +11,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { drawSketchy, drawStrokeOutline, roughCanvasFor, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
 import { exportBounds, fitExportScale } from "../utils/freehandExport";
+import ConfirmModal from "./ConfirmModal";
 import type {
   FreehandCanvasState,
   FreehandElement,
@@ -69,6 +70,15 @@ function closestAnchorSide(el: FreehandElement, point: FreehandPoint): Connectio
   return best;
 }
 
+/** Line height of multi-line text, on the canvas and in the inline editor alike. */
+const TEXT_LINE_HEIGHT = 1.25;
+
+/** Platform-aware shortcut label: "⌘⇧L" on Apple devices, "Ctrl+Shift+L" elsewhere. */
+const IS_APPLE = typeof navigator !== "undefined" && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+function shortcutLabel(key: string, shift = false): string {
+  return IS_APPLE ? `⌘${shift ? "⇧" : ""}${key}` : `Ctrl+${shift ? "Shift+" : ""}${key}`;
+}
+
 function hitTest(pos: FreehandPoint, el: FreehandElement): boolean {
   // For arrows/lines, test distance to the line segment (not bounding box)
   if ((el.type === "arrow" || el.type === "line") && el.points && el.points.length >= 2) {
@@ -80,9 +90,13 @@ function hitTest(pos: FreehandPoint, el: FreehandElement): boolean {
     }
     return false;
   }
+  // Rotated shapes/text: test the point in the element's own (unrotated) frame
+  const p = el.rotation
+    ? rotatePoint(pos, el.x + el.width / 2, el.y + el.height / 2, (-el.rotation * Math.PI) / 180)
+    : pos;
   const pad = 4;
-  return pos.x >= el.x - pad && pos.x <= el.x + el.width + pad &&
-         pos.y >= el.y - pad && pos.y <= el.y + el.height + pad;
+  return p.x >= el.x - pad && p.x <= el.x + el.width + pad &&
+         p.y >= el.y - pad && p.y <= el.y + el.height + pad;
 }
 
 /** Distance from point to line segment. */
@@ -326,6 +340,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const rotationStartRef = useRef<{ cx: number; cy: number; angle: number; rotation: number } | null>(null);
   // Space key for temporary panning
   const spaceDownRef = useRef(false);
+  // Whether the pointer is over the drawing area (Space pans only there)
+  const pointerOverCanvasRef = useRef(false);
   // Inline text editing originals (for cancel/revert)
   const editingOriginalRef = useRef("");
   const editingIsNewRef = useRef(false);
@@ -666,6 +682,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         ctx.setLineDash([3, 3]);
         ctx.strokeStyle = "rgba(124,58,237,0.5)";
         ctx.lineWidth = 1;
+        if (hel.rotation) {
+          // Outline follows the element's rotation
+          const hcx = hel.x + hel.width / 2, hcy = hel.y + hel.height / 2;
+          ctx.translate(hcx, hcy); ctx.rotate((hel.rotation * Math.PI) / 180); ctx.translate(-hcx, -hcy);
+        }
         ctx.strokeRect(hel.x - 3, hel.y - 3, hel.width + 6, hel.height + 6);
         ctx.restore();
       }
@@ -826,7 +847,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         if (el.id === editingId) break; // Don't render text while editing
         ctx.font = `${el.fontSize || 16}px ${fontStackFor(el.fontFamily)}`;
         ctx.fillStyle = el.strokeColor || "#1e1e1e"; ctx.textBaseline = "top";
-        (el.text || "").split("\n").forEach((line, i) => ctx.fillText(line, el.x, el.y + i * (el.fontSize || 16) * 1.2));
+        (el.text || "").split("\n").forEach((line, i) => ctx.fillText(line, el.x, el.y + i * (el.fontSize || 16) * TEXT_LINE_HEIGHT));
         break;
       }
       case "freehand": {
@@ -846,7 +867,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const shapeLines = el.text.split("\n");
-      const lineHeight = fs * 1.25;
+      const lineHeight = fs * TEXT_LINE_HEIGHT;
       const startY = el.y + el.height / 2 - ((shapeLines.length - 1) * lineHeight) / 2;
       shapeLines.forEach((line, i) => ctx.fillText(line, el.x + el.width / 2, startY + i * lineHeight));
       ctx.restore();
@@ -1243,7 +1264,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     const endPt = drawCurrent || pos;
     let newEl: FreehandElement | null = null;
     if (activeTool === "freehand") {
-      const pts = freehandPoints;
+      // A single tap leaves a dot: duplicate the point so it has an outline
+      const pts = freehandPoints.length === 1 ? [freehandPoints[0], { ...freehandPoints[0], x: freehandPoints[0].x + 0.5 }] : freehandPoints;
       if (pts.length >= 2) {
         const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
         newEl = { id: generateId(), type: "freehand", x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: pts, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
@@ -1662,20 +1684,43 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     return () => window.removeEventListener("keydown", onKey);
   }, [readOnly, editingId, selectedIds, handleDelete, elements, activeTool, emit, undo, redo, duplicateSelected, moveElements, fitToContent, groupSelected, ungroupSelected, toggleLockSelected]);
 
+  // ─── Handwriting font (Caveat) loads asynchronously ───
+  // Text measured before it arrives used the fallback font's metrics, and the canvas
+  // isn't repainted by the browser: re-measure handwritten text and redraw once loaded.
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.fonts?.load) return;
+    let cancelled = false;
+    document.fonts.load('16px "Caveat"').then(() => {
+      if (cancelled) return;
+      setElements((prev) => prev.map((el) =>
+        el.type === "text" && el.fontFamily === "hand"
+          ? { ...el, width: Math.max(20, measureTextWidth(el.text || "", el.fontSize || 16, el.fontFamily) + 12) }
+          : el,
+      ));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // ─── Space key = temporary pan ───
   useEffect(() => {
+    const isTyping = (el: Element | null) =>
+      !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || (el as HTMLElement).isContentEditable);
     const down = (e: KeyboardEvent) => {
-      if (e.code === "Space" && document.activeElement === document.body) {
+      if (e.code !== "Space" || isTyping(document.activeElement)) return;
+      if (document.activeElement === document.body || pointerOverCanvasRef.current) {
         spaceDownRef.current = true;
-        e.preventDefault();
+        e.preventDefault(); // also keeps Space from "clicking" a focused toolbar button
       }
     };
     const up = (e: KeyboardEvent) => { if (e.code === "Space") spaceDownRef.current = false; };
+    const blur = () => { spaceDownRef.current = false; };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
+    window.addEventListener("blur", blur);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", blur);
     };
   }, []);
 
@@ -1732,7 +1777,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
   }, []);
 
-  const handleClear = () => { setElements([]); emit([]); setSelectedIds(new Set()); };
+  const [confirmClear, setConfirmClear] = useState(false);
+  const handleClear = () => { setElements([]); emit([]); setSelectedIds(new Set()); setConfirmClear(false); };
 
   // ─── Cursor ───
   const getCursor = (): string => {
@@ -1770,11 +1816,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       {!readOnly && (
       <div className="flex items-center gap-1 px-3 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <div className="flex items-center gap-0.5">
-          <button onClick={undo} disabled={!canUndo} title={`${t("freehand.undo")} (${t("freehand.undoShortcut")})`} aria-label={t("freehand.undo")}
+          <button onClick={undo} disabled={!canUndo} title={`${t("freehand.undo")} (${shortcutLabel("Z")})`} aria-label={t("freehand.undo")}
             className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
           </button>
-          <button onClick={redo} disabled={!canRedo} title={`${t("freehand.redo")} (${t("freehand.redoShortcut")})`} aria-label={t("freehand.redo")}
+          <button onClick={redo} disabled={!canRedo} title={`${t("freehand.redo")} (${shortcutLabel("Z", true)})`} aria-label={t("freehand.redo")}
             className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
           </button>
@@ -1788,7 +1834,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           ))}
         </div>
         <div className="flex-1" />
-        <button onClick={handleClear} className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md" aria-label={t("freehand.clearAll")}>{t("freehand.clearAll")}</button>
+        <button onClick={() => setConfirmClear(true)} disabled={elements.length === 0} className="disabled:opacity-40 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md" aria-label={t("freehand.clearAll")}>{t("freehand.clearAll")}</button>
         <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">{elements.length} {t("freehand.elements")}</span>
       </div>
       )}
@@ -1849,7 +1895,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             const selected = elements.filter((el) => selectedIds.has(el.id));
             const allLocked = selected.length > 0 && selected.every((el) => el.locked);
             return (
-              <button onClick={toggleLockSelected} aria-pressed={allLocked} title={`${allLocked ? t("freehand.unlock") : t("freehand.lock")} (⌘⇧L)`}
+              <button onClick={toggleLockSelected} aria-pressed={allLocked} title={`${allLocked ? t("freehand.unlock") : t("freehand.lock")} (${shortcutLabel("L", true)})`}
                 className={`mb-2 w-full flex items-center gap-2 px-2 py-1 text-xs rounded ${allLocked ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d={allLocked ? "M8 11V7a4 4 0 018 0v4" : "M8 11V7a4 4 0 017.5-2"}/></svg>
                 {allLocked ? t("freehand.unlock") : t("freehand.lock")}
@@ -2030,7 +2076,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       })()}
 
       {/* Canvas */}
-      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ cursor: getCursor() }}>
+      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ cursor: getCursor() }} onMouseEnter={() => { pointerOverCanvasRef.current = true; }}>
         <canvas ref={canvasRef}
           width={canvasSize.width * dpr} height={canvasSize.height * dpr}
           style={{ width: canvasSize.width, height: canvasSize.height }}
@@ -2041,7 +2087,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           onPointerUp={() => { penPressureRef.current = undefined; }}
           onDoubleClick={handleDoubleClick}
           onContextMenu={handleContextMenu}
-          onMouseLeave={() => { setHoveredId(null); setGuides([]); if (isPanning) setIsPanning(false); if (mode === "dragging") { setMode("idle"); dragBBoxRef.current = null; emit(elements); } if (mode === "endpoint") { setMode("idle"); setDraggingEndpointIdx(null); emit(elements); } if (mode === "drawing") { setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); } if (mode === "marquee") { setMode("idle"); setMarqueeRect(null); } if (mode === "erasing") { setMode("idle"); if (erasingDidEraseRef.current) emit(erasingElementsRef.current); erasingElementsRef.current = []; erasingDidEraseRef.current = false; } if (mode === "rotating") { setMode("idle"); rotationStartRef.current = null; emit(elements); } }}
+          onMouseLeave={() => { setHoveredId(null); setGuides([]); if (isPanning) setIsPanning(false); if (mode === "dragging") { setMode("idle"); dragBBoxRef.current = null; emit(elements); } if (mode === "endpoint") { setMode("idle"); setDraggingEndpointIdx(null); emit(elements); } if (mode === "drawing") { setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); } if (mode === "marquee") { setMode("idle"); setMarqueeRect(null); } if (mode === "erasing") { setMode("idle"); if (erasingDidEraseRef.current) emit(erasingElementsRef.current); erasingElementsRef.current = []; erasingDidEraseRef.current = false; } if (mode === "rotating") { setMode("idle"); rotationStartRef.current = null; emit(elements); } if (mode === "resizing") { setMode("idle"); setResizeHandle(null); setResizeOrigin(null); setGuides([]); emit(elements); } pointerOverCanvasRef.current = false; }}
         />
         {/* Inline text editor overlay */}
         {editingId && (() => {
@@ -2079,8 +2125,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
                   if (e.key === "Escape") { e.preventDefault(); cancelTextEdit(); }
                 }}
                 rows={lines}
-                className="bg-transparent text-center font-medium border-none outline-none resize-none overflow-hidden pointer-events-auto leading-snug"
-                style={{ color: el.strokeColor || "#1e1e1e", fontSize: fs * zoom, width: textW * zoom, height: textH * zoom }}
+                className="bg-transparent text-center font-medium border-none outline-none resize-none overflow-hidden pointer-events-auto"
+                style={{ color: el.strokeColor || "#1e1e1e", fontSize: fs * zoom, fontFamily: fontStackFor(el.fontFamily), lineHeight: TEXT_LINE_HEIGHT, width: textW * zoom, height: textH * zoom }}
               />
             </div>
           );
@@ -2094,11 +2140,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           >
             <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-              {t("common.copy")}<span className="ml-auto text-[10px] text-gray-400">⌘C</span>
+              {t("common.copy")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("C")}</span>
             </button>
             <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el })); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M6 3v2M18 3v2M6 19v2M18 19v2M3 6h2M3 18h2M19 6h2M19 18h2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
-              {t("common.cut")}<span className="ml-auto text-[10px] text-gray-400">⌘X</span>
+              {t("common.cut")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("X")}</span>
             </button>
             <button onClick={() => { duplicateSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
@@ -2106,7 +2152,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             </button>
             <button onClick={() => { toggleLockSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
-              {elements.filter((el) => selectedIds.has(el.id)).every((el) => el.locked) ? t("freehand.unlock") : t("freehand.lock")}<span className="ml-auto text-[10px] text-gray-400">⌘⇧L</span>
+              {elements.filter((el) => selectedIds.has(el.id)).every((el) => el.locked) ? t("freehand.unlock") : t("freehand.lock")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("L", true)}</span>
             </button>
             <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
             <button onClick={() => { bringToFront(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -2133,6 +2179,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           </div>
         )}
       </div>
+      <ConfirmModal
+        isOpen={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={handleClear}
+        title={t("freehand.clearAllConfirmTitle")}
+        message={t("freehand.clearAllConfirmMessage")}
+        confirmText={t("freehand.clearAll")}
+        isDangerous
+      />
     </div>
   );
 }

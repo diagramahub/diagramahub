@@ -1265,8 +1265,6 @@
     "width": "Grosor",
     "undo": "Deshacer",
     "redo": "Rehacer",
-    "undoShortcut": "Ctrl+Z",
-    "redoShortcut": "Ctrl+Shift+Z",
     "clearAll": "Limpiar todo",
     "elements": "elementos",
     "elementsSelected": "elementos seleccionados",
@@ -1314,6 +1312,8 @@
       "text": "Texto",
       "freehand": "Mano alzada",
       "eraser": "Borrador"
-    }
+    },
+    "clearAllConfirmTitle": "¿Limpiar todo el pizarrón?",
+    "clearAllConfirmMessage": "Se borrarán todos los elementos del pizarrón. Puedes deshacerlo con Deshacer."
   }
 }
