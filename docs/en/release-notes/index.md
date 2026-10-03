@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.8.1](0.8.1.md) | 2026-10-03 | Stabilisation: security, reliable AI chat (88% → 99%), updated models, polished canvas and import |
 | [0.8.0](0.8.0.md) | 2026-10-02 | Export project/folder (ZIP or AI-ready Markdown), import files/ZIP/Excalidraw, hand-drawn canvas with locking, PNG and sketch → Mermaid |
 | [0.7.1](0.7.1.md) | 2026-09-30 | Vulnerability-free dependencies, non-root backend, reliable autosave and up to 71% lighter loading |
 | [0.7.0](0.7.0.md) | 2026-09-29 | Redesigned file explorer, smooth diagram switching, frontend production image and layered backend |

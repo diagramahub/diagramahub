@@ -5,6 +5,36 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.1] - 2026-10-03
+
+### Security
+- Diagrams can only be filed under folders of their own project (create/update returned no error for another user's folder id, and the diagram showed up in that folder's tree and export). Folder queries are scoped by project; `scripts/fix_misfiled_diagrams.py` repairs existing data (dry run by default).
+- Duplicating a diagram enforces the plan diagram limit.
+- axios 1.20 (12 production advisories); patched build tooling; `pnpm audit --prod` clean.
+- Import limits (file count, uncompressed size) apply per request, not per ZIP; the import preview is rate limited.
+- The read-only shared view no longer opens the canvas editing context menu.
+- Rate limiters drop idle keys (no unbounded growth under rotating IPs).
+
+### Fixed
+- AI chat: streaming used a minimal system prompt (no markers, no rules); code replies used the saved 2048/4096-token budget and were cut or empty; truncated replies were applied; "Create … (¿…?)" requests were classified as questions; code extraction missed fence tags and bare code. Valid diagrams on the first try: 88% → 99% (scripts/ai-benchmark). `/ai/generate-diagram`: 72% → 98%.
+- Provider errors are classified (no credits, rate limited, invalid key, model unavailable) instead of "rate limit" for everything; "Test connection" makes a real call with the selected model.
+- Claude 5.x models reject `temperature`; it is only sent to models that accept it.
+- Freehand canvas: wheel pans were never saved and the saved pan was ignored on open; rotated elements were hit-tested unrotated; clicking an arrow endpoint unbound it; moving strokes dropped pen pressure; paste kept group/lock; deleting a shape deleted locked arrows; no-op undo steps; resize stuck after leaving the canvas; Caveat metrics before the font loaded; editor font/line height mismatch; one-tap strokes; Space-to-pan with a focused button; sketch → Mermaid keywords, lines, self-loops.
+- Import: malformed Excalidraw, corrupt ZIP entries, nested JSON and NaN no longer return 500; 100-character duplicate titles; case-insensitive folder matching; rollback on cancellation and honest `rolled_back`; UTF-16 files; orphan diagrams listed and exported.
+- Frontend: `Accept-Language` always sent `es`; export dialog state, stuck import preview, object error details crashing the editor, deferred download URL revocation, plurals (`_plural` keys ignored by i18next 21+), missing English subscription strings, files dropped outside drop zones opened by the browser.
+
+### Changed
+- AI model catalog (`ai_providers/model_catalog.json`) is the single source of truth for offered models, context windows, defaults and temperature support; current models of the five providers, verified live.
+- Optional automatic fix of generated diagrams (per-user setting, default on): server-side retry for D2 with Kroki validation, one browser-side fix request for Mermaid; never for PlantUML/DBML.
+- Generate/improve and the chat share one English prompt template with verified syntax rules and 8192-token code budget.
+- Export summary is rate limited and measures ZIPs uncompressed; export builders run off the event loop; diagram counts use database aggregation.
+- Faster hand-drawn rendering (cached Path2D in local coordinates).
+- Export/import dialogs: Escape, focus trap and focus restore.
+
+### Removed
+- Unused "Create/Improve with AI" dialogs and prompt-history panel (backend endpoints remain).
+- `datetime.utcnow()` and Pydantic v1 `class Config` usages.
+
 ## [0.8.0] - 2026-10-02
 
 ### Added
