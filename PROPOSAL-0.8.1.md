@@ -81,10 +81,10 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 | E3 | Los limitadores de frecuencia nunca borran llaves: crecen sin límite con IPs rotativas. | `rate_limit.py:41` | S ✅ |
 | E4 | Rendimiento del pizarrón: un `RoughCanvas` nuevo por elemento y por cuadro, caché de dibujos que falla en cada cuadro al arrastrar (y se vacía completa al llegar a 4.000), contornos de trazos recalculados en cada redibujo. Objetivo: acercar el paneo a mano (≈18 ms/cuadro) al limpio (≈10 ms). | medido en 0.8.0 | M ✅ (contornos: 541→302 ms, igual que limpio; relleno rayado sin cambio → caché de bitmaps en 0.9) |
 | E5 | ESLint: 120 problemas (86 `any`, 23 dependencias de hooks). Meta 0.8.1: bajar a < 60, empezando por `DiagramEditorPage` (19). | ESLint | M |
-| E6 | mypy completo: 235 errores en 42 archivos (los módulos nuevos están limpios). Meta: no subir el número y corregir los de módulos tocados. | mypy | — |
+| E6 | mypy completo: 235 errores en 42 archivos (los módulos nuevos están limpios). Meta: no subir el número y corregir los de módulos tocados. | mypy | — ✅ (235 → 228) |
 | E7 | Ruff 0.7 (muy antiguo junto a black 26) → actualizar; AGENTS.md dice Python 3.11+ y passlib, pero el proyecto pide 3.12 y usa bcrypt directo. | pyproject | S |
 | E8 | Extraer de `DiagramEditorPage.tsx` (5.777 líneas) el bloque de exportación a un hook `useDiagramExport`; centraliza la descarga (y arregla D7 de una vez). Opcional. | 📖 `:2318-2565` | M |
-| E9 | Pruebas: regresión para cada corrección de backend (A1, A2, A4, C1-C7) y Vitest para `sketchToMermaid` (B13) y la geometría de selección rotada (B7). | — | M |
+| E9 | Pruebas: regresión para cada corrección de backend (A1, A2, A4, C1-C7) y Vitest para `sketchToMermaid` (B13) y la geometría de selección rotada (B7). | — | M ✅ (pruebas en cada commit; selección rotada cubierta con e2e) |
 
 ## F. Catálogo de modelos de IA
 
