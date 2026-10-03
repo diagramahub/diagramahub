@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from beanie import Document
 from ..diagrams.schemas import DiagramResponse
 from ..folders.schemas import FolderWithDiagramsResponse
+from app.core.clock import utcnow
 
 
 class ProjectBase(BaseModel):
@@ -41,8 +42,8 @@ class ProjectInDB(Document):
     description: Optional[str] = None
     emoji: str = "📊"
     user_id: str  # Owner of the project
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "projects"

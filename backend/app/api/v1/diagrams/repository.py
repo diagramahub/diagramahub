@@ -2,12 +2,12 @@
 Concrete implementation of diagram repository.
 """
 
-from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from beanie.operators import In
 from .interfaces import IDiagramRepository
 from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
+from app.core.clock import utcnow
 
 
 # Fields that only describe how a diagram is being viewed, not its content.
@@ -27,8 +27,8 @@ class DiagramRepository(IDiagramRepository):
             config=diagram_data.config,
             project_id=project_id,
             folder_id=diagram_data.folder_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await diagram.insert()
         return diagram
@@ -51,8 +51,8 @@ class DiagramRepository(IDiagramRepository):
             viewport_zoom=1.0,
             viewport_x=0.0,
             viewport_y=0.0,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await diagram.insert()
         return diagram
@@ -145,7 +145,7 @@ class DiagramRepository(IDiagramRepository):
             {
                 "project_id": target_project_id,
                 "folder_id": None,
-                "updated_at": datetime.utcnow(),
+                "updated_at": utcnow(),
             }
         )
         return diagram
@@ -171,7 +171,7 @@ class DiagramRepository(IDiagramRepository):
             if field not in PRESENTATION_FIELDS
         )
         if edited:
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = utcnow()
         await diagram.set(update_data)
 
         return diagram
@@ -202,6 +202,6 @@ class DiagramRepository(IDiagramRepository):
         result = await DiagramInDB.find(
             DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
         ).update(
-            {"$set": {"folder_id": None, "updated_at": datetime.utcnow()}}
+            {"$set": {"folder_id": None, "updated_at": utcnow()}}
         )
         return result.modified_count if result else 0

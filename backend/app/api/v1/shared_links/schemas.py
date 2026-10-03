@@ -7,6 +7,7 @@ from typing import Optional
 from beanie import Document
 from pydantic import BaseModel, Field
 from pymongo import ASCENDING, DESCENDING, IndexModel
+from app.core.clock import utcnow
 
 
 class SharedLinkInDB(Document):
@@ -19,8 +20,8 @@ class SharedLinkInDB(Document):
     allow_copy_code: bool = False
     expires_at: Optional[datetime] = None
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "shared_links"
@@ -36,7 +37,7 @@ class AccessLogInDB(Document):
     token: str
     ip_hash: str
     result: str  # "success" | "expired" | "invalid_code" | "blocked" | "not_found"
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "shared_link_access_logs"

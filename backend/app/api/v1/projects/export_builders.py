@@ -26,6 +26,7 @@ import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Optional, TypeVar
+from app.core.clock import utcnow
 
 EXPORT_FORMAT_VERSION = 1
 MANIFEST_FILENAME = "manifest.json"
@@ -108,7 +109,7 @@ class ExportTree:
     project_description: Optional[str]
     root_diagrams: list[ExportDiagram] = field(default_factory=list)
     folders: list[ExportFolder] = field(default_factory=list)
-    exported_at: datetime = field(default_factory=datetime.utcnow)
+    exported_at: datetime = field(default_factory=utcnow)
     # Set when the export is scoped to one folder (the tree then holds only it).
     scope_folder_name: Optional[str] = None
 

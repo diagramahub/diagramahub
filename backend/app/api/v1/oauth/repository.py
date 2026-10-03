@@ -6,6 +6,7 @@ from typing import Optional
 
 from app.api.v1.oauth.interfaces import IOAuthStateRepository
 from app.api.v1.oauth.schemas import OAuthStateToken
+from app.core.clock import utcnow
 
 
 class OAuthStateRepository(IOAuthStateRepository):
@@ -15,7 +16,7 @@ class OAuthStateRepository(IOAuthStateRepository):
         self, state: str, provider: str, expires_at: datetime
     ) -> OAuthStateToken:
         """Persist a new OAuth state token for CSRF protection."""
-        now = datetime.utcnow()
+        now = utcnow()
         oauth_state = OAuthStateToken(
             state=state,
             provider=provider,

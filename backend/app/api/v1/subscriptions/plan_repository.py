@@ -2,12 +2,12 @@
 Plan repository implementation.
 """
 
-from datetime import datetime
 from typing import Optional, Union
 from beanie import PydanticObjectId
 
 from .interfaces import IPlanRepository
 from .schemas import PlanInDB, PlanCreate, PlanUpdate, SubscriptionInDB
+from app.core.clock import utcnow
 
 
 class PlanRepository(IPlanRepository):
@@ -22,8 +22,8 @@ class PlanRepository(IPlanRepository):
             max_projects=plan_data.max_projects,
             max_diagrams=plan_data.max_diagrams,
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await plan.insert()
         return plan
@@ -68,7 +68,7 @@ class PlanRepository(IPlanRepository):
             update_data = plan_data
 
         if update_data:
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = utcnow()
             await plan.set(update_data)
 
         return plan
@@ -79,7 +79,7 @@ class PlanRepository(IPlanRepository):
         if not plan:
             return None
 
-        await plan.set({"is_active": False, "updated_at": datetime.utcnow()})
+        await plan.set({"is_active": False, "updated_at": utcnow()})
 
         return plan
 

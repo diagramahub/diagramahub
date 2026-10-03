@@ -31,6 +31,7 @@ from .schemas import (
     UpdateSharedLinkRequest,
     VerifyAccessCodeRequest,
 )
+from app.core.clock import utcnow
 
 # Constants for brute-force protection
 MAX_FAILED_ATTEMPTS = 5
@@ -65,7 +66,7 @@ def _calculate_expiration(expiration_days: Optional[int]) -> Optional[datetime]:
     """Calculate expiration datetime from days. Returns None for unlimited."""
     if expiration_days is None:
         return None
-    return datetime.utcnow() + timedelta(days=expiration_days)
+    return utcnow() + timedelta(days=expiration_days)
 
 
 def _anonymize_ip(ip: str) -> str:
@@ -306,7 +307,7 @@ class SharedLinkService:
             )
 
         # Check expiration
-        is_expired = link.expires_at is not None and link.expires_at < datetime.utcnow()
+        is_expired = link.expires_at is not None and link.expires_at < utcnow()
 
         # Get diagram title
         diagram = await self.diagram_repository.get_by_id(link.diagram_id)
@@ -348,7 +349,7 @@ class SharedLinkService:
             )
 
         # Check expiration
-        if link.expires_at is not None and link.expires_at < datetime.utcnow():
+        if link.expires_at is not None and link.expires_at < utcnow():
             await self._log_access(token, client_ip, "expired")
             raise HTTPException(
                 status_code=status.HTTP_410_GONE,

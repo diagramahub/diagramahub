@@ -76,7 +76,7 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 
 | ID | Tema | Dato | Tam. |
 |---|---|---|---|
-| E1 | `datetime.utcnow()` (obsoleto; fechas sin zona horaria, incluso en el manifest) → helper `utcnow()` con UTC. | 63 usos | M |
+| E1 | `datetime.utcnow()` (obsoleto; fechas sin zona horaria, incluso en el manifest) → helper `utcnow()` con UTC. | 63 usos | M ✅ |
 | E2 | `class Config` estilo Pydantic v1 → `model_config = ConfigDict(...)`. | ~15 modelos | S |
 | E3 | Los limitadores de frecuencia nunca borran llaves: crecen sin límite con IPs rotativas. | `rate_limit.py:41` | S |
 | E4 | Rendimiento del pizarrón: un `RoughCanvas` nuevo por elemento y por cuadro, caché de dibujos que falla en cada cuadro al arrastrar (y se vacía completa al llegar a 4.000), contornos de trazos recalculados en cada redibujo. Objetivo: acercar el paneo a mano (≈18 ms/cuadro) al limpio (≈10 ms). | medido en 0.8.0 | M |

@@ -2,12 +2,12 @@
 Subscription repository implementation.
 """
 
-from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 
 from .interfaces import ISubscriptionRepository
 from .schemas import SubscriptionInDB, SubscriptionCreate
+from app.core.clock import utcnow
 
 
 class SubscriptionRepository(ISubscriptionRepository):
@@ -19,8 +19,8 @@ class SubscriptionRepository(ISubscriptionRepository):
             user_id=subscription_data.user_id,
             plan_id=subscription_data.plan_id,
             status="active",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await subscription.insert()
         return subscription
@@ -50,7 +50,7 @@ class SubscriptionRepository(ISubscriptionRepository):
         if not subscription:
             return None
 
-        await subscription.set({"status": status, "updated_at": datetime.utcnow()})
+        await subscription.set({"status": status, "updated_at": utcnow()})
 
         return subscription
 
@@ -60,7 +60,7 @@ class SubscriptionRepository(ISubscriptionRepository):
         if not subscription:
             return None
 
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = utcnow()
         await subscription.set(update_data)
 
         return subscription

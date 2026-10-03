@@ -3,10 +3,10 @@ MongoDB repository implementation for AI providers using Beanie.
 """
 
 from typing import Optional
-from datetime import datetime
 from .interfaces import IAIProviderRepository
 from .schemas import AIProviderConfig, UserAISettingsInDB, AIProviderType
 from app.core.security import encrypt_api_key, decrypt_api_key
+from app.core.clock import utcnow
 
 
 class AIProviderRepository(IAIProviderRepository):
@@ -24,8 +24,8 @@ class AIProviderRepository(IAIProviderRepository):
             providers=[],
             auto_generate_on_save=False,
             default_provider=None,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await settings.insert()
         return settings
@@ -59,7 +59,7 @@ class AIProviderRepository(IAIProviderRepository):
                 p.is_default = False
             settings.providers[-1].is_default = True
 
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = utcnow()
         await settings.save()
 
         return settings
@@ -94,7 +94,7 @@ class AIProviderRepository(IAIProviderRepository):
                 if i != provider_index:
                     p.is_default = False
 
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = utcnow()
         await settings.save()
 
         return settings
@@ -114,7 +114,7 @@ class AIProviderRepository(IAIProviderRepository):
         elif len(settings.providers) == 0:
             settings.default_provider = None
 
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = utcnow()
         await settings.save()
 
         return settings
@@ -125,7 +125,7 @@ class AIProviderRepository(IAIProviderRepository):
         if not settings:
             raise ValueError("User settings not found")
         settings.auto_fix_generated = enabled
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = utcnow()
         await settings.save()
         return settings
 
@@ -150,7 +150,7 @@ class AIProviderRepository(IAIProviderRepository):
             raise ValueError(f"Provider {provider} not configured for user")
 
         settings.default_provider = provider
-        settings.updated_at = datetime.utcnow()
+        settings.updated_at = utcnow()
         await settings.save()
 
         return settings

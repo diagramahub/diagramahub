@@ -7,6 +7,7 @@ from typing import Optional
 from beanie import Document
 from pydantic import BaseModel, EmailStr, Field
 from pymongo import IndexModel
+from app.core.clock import utcnow
 
 
 class ProviderUserInfo(BaseModel):
@@ -46,7 +47,7 @@ class OAuthStateToken(Document):
 
     state: str
     provider: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     expires_at: datetime
     consumed: bool = False
 

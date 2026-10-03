@@ -10,6 +10,7 @@ from typing import Optional
 from beanie import Document
 from pydantic import Field
 from pymongo import IndexModel
+from app.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ AUDIT_LOG_TTL_SECONDS = 90 * 24 * 60 * 60
 class AuditLogEntry(Document):
     """Security audit log entry stored in MongoDB."""
 
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=utcnow)
     event: str  # e.g. "login_success", "login_failed", "password_changed"
     user_email: str
     user_id: Optional[str] = None

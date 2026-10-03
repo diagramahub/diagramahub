@@ -2,7 +2,7 @@
 Concrete implementation of shared link repository.
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 
 from beanie import PydanticObjectId
@@ -15,6 +15,7 @@ from .schemas import (
     SharedLinkInDB,
     SharedLinkUpdate,
 )
+from app.core.clock import utcnow
 
 
 class SharedLinkRepository(ISharedLinkRepository):
@@ -31,8 +32,8 @@ class SharedLinkRepository(ISharedLinkRepository):
             allow_copy_code=link_data.allow_copy_code,
             expires_at=link_data.expires_at,
             is_active=True,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await link.insert()
         return link
@@ -69,7 +70,7 @@ class SharedLinkRepository(ISharedLinkRepository):
 
         data = update_data.model_dump(exclude_unset=True)
         if data:
-            data["updated_at"] = datetime.utcnow()
+            data["updated_at"] = utcnow()
             await link.set(data)
 
         return link
@@ -84,7 +85,7 @@ class SharedLinkRepository(ISharedLinkRepository):
         if not link:
             return False
 
-        await link.set({"is_active": False, "updated_at": datetime.utcnow()})
+        await link.set({"is_active": False, "updated_at": utcnow()})
         return True
 
     async def log_access(self, log_data: AccessLogCreate) -> AccessLogInDB:
@@ -93,14 +94,14 @@ class SharedLinkRepository(ISharedLinkRepository):
             token=log_data.token,
             ip_hash=log_data.ip_hash,
             result=log_data.result,
-            created_at=datetime.utcnow(),
+            created_at=utcnow(),
         )
         await log.insert()
         return log
 
     async def count_failed_attempts(self, ip_hash: str, token: str, minutes: int) -> int:
         """Count failed access attempts by IP hash and token within a time window."""
-        cutoff = datetime.utcnow() - timedelta(minutes=minutes)
+        cutoff = utcnow() - timedelta(minutes=minutes)
         return await AccessLogInDB.find(
             AccessLogInDB.ip_hash == ip_hash,
             AccessLogInDB.token == token,

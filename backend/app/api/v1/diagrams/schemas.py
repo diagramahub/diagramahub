@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
 from pymongo import ASCENDING, DESCENDING, IndexModel
+from app.core.clock import utcnow
 
 
 class MermaidConfig(BaseModel):
@@ -151,8 +152,8 @@ class DiagramInDB(Document):
     viewport_zoom: Optional[float] = 1.0
     viewport_x: Optional[float] = 0.0
     viewport_y: Optional[float] = 0.0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "diagrams"

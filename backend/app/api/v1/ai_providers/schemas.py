@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from beanie import Document
+from app.core.clock import utcnow
 
 
 class AIProviderType(str, Enum):
@@ -36,8 +37,8 @@ class AIProviderConfig(BaseModel):
 
     # Optional metadata
     display_name: Optional[str] = Field(None, description="User-friendly name for this config")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
 
 class UserAISettingsInDB(Document):
@@ -50,8 +51,8 @@ class UserAISettingsInDB(Document):
     # doesn't render. Never for PlantUML/DBML (validator false positives).
     auto_fix_generated: bool = True
     default_provider: Optional[AIProviderType] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "user_ai_settings"

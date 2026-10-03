@@ -7,6 +7,7 @@ from typing import Optional
 
 from beanie import Document
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from app.core.clock import utcnow
 
 
 # Set of allowed special characters for password policy
@@ -97,7 +98,7 @@ class OAuthProviderEntry(BaseModel):
     """Linked OAuth provider identity."""
     provider: str  # e.g., "google", "github"
     provider_user_id: str  # Provider's unique user ID
-    linked_at: datetime = Field(default_factory=datetime.utcnow)
+    linked_at: datetime = Field(default_factory=utcnow)
 
 
 class UserInDB(Document):
@@ -109,8 +110,8 @@ class UserInDB(Document):
     timezone: str = 'UTC'  # User's preferred timezone (default UTC)
     role: UserRole = UserRole.USER  # User role (admin or user)
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
     last_login_at: Optional[datetime] = None
 
     # Password reset fields

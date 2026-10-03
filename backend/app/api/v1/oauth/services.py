@@ -7,7 +7,7 @@ and JWT issuance.
 
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -34,6 +34,7 @@ from app.api.v1.users.interfaces import IUserRepository
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import OAuthProviderEntry, UserInDB
 from app.core.security import create_access_token, get_password_hash
+from app.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class OAuthService:
         state_token = secrets.token_urlsafe(32)
 
         # Store state token with 10-minute TTL
-        now = datetime.utcnow()
+        now = utcnow()
         await self.state_repository.create(
             state=state_token,
             provider=provider,
@@ -188,7 +189,7 @@ class OAuthService:
                 detail="Invalid or expired OAuth state token",
             )
 
-        if state_doc.expires_at < datetime.utcnow():
+        if state_doc.expires_at < utcnow():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="OAuth authentication session has expired",
@@ -365,7 +366,7 @@ class OAuthService:
                 provider_user_id=user_info.provider_user_id,
             )
             existing_user.oauth_providers.append(provider_entry)
-            existing_user.updated_at = datetime.utcnow()
+            existing_user.updated_at = utcnow()
             await existing_user.save()
 
             await log_event(
