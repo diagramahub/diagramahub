@@ -127,7 +127,9 @@ class ProjectService:
         folders = await self.folder_repository.get_by_project_id(project_id)
         folder_responses = []
         for folder in folders:
-            folder_diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
+            folder_diagrams = await self.diagram_repository.get_by_folder_id(
+                str(folder.id), project_id
+            )
             folder_diagram_responses = [diagram_to_response(d) for d in folder_diagrams]
             folder_responses.append(
                 {

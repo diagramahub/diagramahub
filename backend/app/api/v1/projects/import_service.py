@@ -263,7 +263,9 @@ class ProjectImportService:
                     if target is None:
                         current = await self.diagram_repository.get_without_folder(str(project.id))
                     else:
-                        current = await self.diagram_repository.get_by_folder_id(target)
+                        current = await self.diagram_repository.get_by_folder_id(
+                            target, str(project.id)
+                        )
                     taken[target] = {d.title.lower() for d in current}
                 return taken[target]
 

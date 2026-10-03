@@ -39,8 +39,8 @@ class IDiagramRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_folder_id(self, folder_id: str) -> list[DiagramInDB]:
-        """Get all diagrams for a folder."""
+    async def get_by_folder_id(self, folder_id: str, project_id: str) -> list[DiagramInDB]:
+        """Get the diagrams of a folder, scoped to the folder's project."""
         pass
 
     @abstractmethod
@@ -69,11 +69,11 @@ class IDiagramRepository(ABC):
         pass
 
     @abstractmethod
-    async def delete_by_folder_id(self, folder_id: str) -> int:
-        """Delete all diagrams in a folder."""
+    async def delete_by_folder_id(self, folder_id: str, project_id: str) -> int:
+        """Delete the diagrams of a folder, scoped to the folder's project."""
         pass
 
     @abstractmethod
-    async def clear_folder(self, folder_id: str) -> int:
-        """Remove folder assignment from all diagrams in a folder."""
+    async def clear_folder(self, folder_id: str, project_id: str) -> int:
+        """Move the diagrams of a folder to the project root, scoped to the folder's project."""
         pass

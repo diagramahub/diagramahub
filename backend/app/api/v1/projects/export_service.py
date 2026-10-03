@@ -123,7 +123,7 @@ class ProjectExportService:
             # A folder of another project is reported as not found: it isn't in this one.
             if not folder or folder.project_id != str(project.id):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
-            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
+            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id), str(project.id))
             tree.scope_folder_name = folder.name
             tree.folders = [
                 ExportFolder(
@@ -138,7 +138,7 @@ class ProjectExportService:
         root = await self.diagram_repository.get_without_folder(str(project.id))
         tree.root_diagrams = [_to_export_diagram(d) for d in root]
         for folder in await self.folder_repository.get_by_project_id(str(project.id)):
-            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
+            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id), str(project.id))
             tree.folders.append(
                 ExportFolder(
                     id=str(folder.id),

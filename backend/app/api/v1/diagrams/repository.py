@@ -90,10 +90,15 @@ class DiagramRepository(IDiagramRepository):
             .to_list()
         )
 
-    async def get_by_folder_id(self, folder_id: str) -> list[DiagramInDB]:
-        """Get all diagrams for a folder."""
-        diagrams = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).to_list()
-        return diagrams
+    async def get_by_folder_id(self, folder_id: str, project_id: str) -> list[DiagramInDB]:
+        """Get the diagrams of a folder, scoped to the folder's project.
+
+        The project filter keeps a diagram of another project out even if its
+        ``folder_id`` points here (defense in depth for cross-project ids).
+        """
+        return await DiagramInDB.find(
+            DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
+        ).to_list()
 
     async def get_without_folder(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams without a folder for a project."""
@@ -160,14 +165,18 @@ class DiagramRepository(IDiagramRepository):
         result = await DiagramInDB.find(DiagramInDB.project_id == project_id).delete()
         return result.deleted_count if result else 0
 
-    async def delete_by_folder_id(self, folder_id: str) -> int:
-        """Delete all diagrams in a folder."""
-        result = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).delete()
+    async def delete_by_folder_id(self, folder_id: str, project_id: str) -> int:
+        """Delete the diagrams of a folder, scoped to the folder's project."""
+        result = await DiagramInDB.find(
+            DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
+        ).delete()
         return result.deleted_count if result else 0
 
-    async def clear_folder(self, folder_id: str) -> int:
-        """Remove folder assignment from all diagrams in a folder."""
-        result = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).update(
+    async def clear_folder(self, folder_id: str, project_id: str) -> int:
+        """Move the diagrams of a folder to the project root, scoped to the folder's project."""
+        result = await DiagramInDB.find(
+            DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
+        ).update(
             {"$set": {"folder_id": None, "updated_at": datetime.utcnow()}}
         )
         return result.modified_count if result else 0
