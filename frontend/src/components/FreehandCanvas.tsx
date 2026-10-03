@@ -9,7 +9,7 @@
  */
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { drawSketchy, drawStrokeOutline, roughCanvasFor, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
+import { drawSketchy, drawStrokeElement, drawStrokeOutline, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
 import { exportBounds, fitExportScale } from "../utils/freehandExport";
 import ConfirmModal from "./ConfirmModal";
 import type {
@@ -735,8 +735,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (mode === "drawing" && drawStart && drawCurrent && activeTool !== "freehand") {
       const x = Math.min(drawStart.x, drawCurrent.x), y = Math.min(drawStart.y, drawCurrent.y);
       const w = Math.abs(drawCurrent.x - drawStart.x), h = Math.abs(drawCurrent.y - drawStart.y);
-      const rc = canvasRef.current ? roughCanvasFor(canvasRef.current) : null;
-      if (rc && (w > 1 || h > 1)) {
+      if (w > 1 || h > 1) {
         const isLine = activeTool === "arrow" || activeTool === "line";
         const preview: FreehandElement = {
           id: "__preview__", type: activeTool as FreehandElement["type"], x, y, width: Math.max(w, 1), height: Math.max(h, 1),
@@ -744,7 +743,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           ...DEFAULT_SKETCH_STYLE, seed: PREVIEW_SEED,
           ...(isLine ? { points: [drawStart, drawCurrent], endArrowhead: activeTool === "arrow" } : {}),
         };
-        ctx.save(); ctx.globalAlpha = 0.9; drawSketchy(rc, preview); ctx.restore();
+        ctx.save(); ctx.globalAlpha = 0.9; drawSketchy(ctx, preview); ctx.restore();
       }
     }
     // Freehand preview (same smoothed outline as the committed stroke)
@@ -778,7 +777,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       ctx.strokeStyle = el.strokeColor || "#1e1e1e"; ctx.fillStyle = el.fillColor || "transparent";
       ctx.lineWidth = el.strokeWidth || 2; ctx.lineJoin = "round"; ctx.lineCap = "round";
       if (el.rotation) { const cx = el.x + el.width / 2, cy = el.y + el.height / 2; ctx.translate(cx, cy); ctx.rotate((el.rotation * Math.PI) / 180); ctx.translate(-cx, -cy); }
-      renderElement(ctx, el, off);
+      renderElement(ctx, el);
       ctx.restore();
     }
     return new Promise((resolve) => off.toBlob(resolve, "image/png"));
@@ -790,17 +789,14 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     return () => { handleRef.current = null; };
   }, [handleRef, exportPng]);
 
-  function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement, roughTarget?: HTMLCanvasElement) {
+  function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement) {
     // Hand-drawn elements (0.8.0+): roughjs for shapes/lines, perfect-freehand for strokes.
     // Elements without `roughness` keep the clean rendering below.
     const sketchy = el.roughness !== undefined && el.type !== "text";
     if (sketchy && el.type === "freehand") {
-      const pts = el.points || [];
-      if (pts.length >= 2) drawStrokeOutline(ctx, strokeOutline(pts, el.strokeWidth || 2), el.strokeColor || "#1e1e1e");
+      drawStrokeElement(ctx, el);
     } else if (sketchy) {
-      const target = roughTarget ?? canvasRef.current;
-      const rc = target ? roughCanvasFor(target) : null;
-      if (rc) drawSketchy(rc, el);
+      drawSketchy(ctx, el);
     }
     switch (sketchy ? "__sketched__" : el.type) {
       case "rectangle":
