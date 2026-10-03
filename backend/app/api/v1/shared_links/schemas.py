@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 from beanie import Document
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from pymongo import ASCENDING, DESCENDING, IndexModel
 from app.core.clock import utcnow
 
@@ -124,8 +124,7 @@ class SharedLinkResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SharedLinkInfoResponse(BaseModel):

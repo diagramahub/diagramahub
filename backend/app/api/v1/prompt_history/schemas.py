@@ -5,7 +5,7 @@ Pydantic models for prompt history module.
 from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from beanie import Document
 
 
@@ -47,8 +47,7 @@ class PromptHistoryResponse(BaseModel):
     created_at: datetime
     used_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PaginatedPromptHistoryResponse(BaseModel):

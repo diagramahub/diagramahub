@@ -3,7 +3,7 @@ Pydantic models for subscription and plan management.
 """
 from datetime import datetime
 from typing import Optional, Union, Literal
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from beanie import Document
 from pymongo import IndexModel, ASCENDING
 from app.core.clock import utcnow
@@ -164,8 +164,7 @@ class PlanResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================================
@@ -229,8 +228,7 @@ class SubscriptionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubscriptionWithUsage(SubscriptionResponse):
@@ -277,8 +275,7 @@ class StripeConfigResponse(BaseModel):
     is_configured: bool
     validated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================================
@@ -361,8 +358,7 @@ class InvoiceResponse(BaseModel):
     created_at: datetime
     paid_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BillingHistoryResponse(BaseModel):
