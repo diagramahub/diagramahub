@@ -60,3 +60,109 @@ async def test_d2_validation_uses_the_real_renderer() -> None:
     good = await SyntaxValidator.validate("db: {shape: cylinder}\napi -> db", "d2")
     assert good.is_valid is True
     assert bad.is_valid is False and "database" in (bad.error_message or "")
+
+
+# ---------------------------------------------------------------- truncated retries (Codex review)
+
+from types import SimpleNamespace  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+
+from app.api.v1.ai_providers.clients.base import BaseAIClient  # noqa: E402
+
+BROKEN = "<<<DIAGRAM>>>\nflowchart TD\n  subgraph a\n  A-->B\n<<<END_DIAGRAM>>>"  # unbalanced subgraph
+CUT_FIX = "<<<DIAGRAM>>>\nflowchart TD\n  subgraph a\n  A-->B\n  end\n  B-->"  # cut mid-reply
+
+
+class _RetryClient(BaseAIClient):
+    """First reply invalid; the corrective (retry) reply is cut at the output limit."""
+
+    def __init__(self):
+        super().__init__("k" * 20, "fake", {})
+
+    async def complete(self, system_prompt, user_prompt, *, max_tokens=None, temperature=None):  # noqa: ANN001, ANN201
+        return BROKEN
+
+    async def complete_chat(self, system_prompt, messages, language="es"):  # noqa: ANN001, ANN201
+        self.last_truncated = len(messages) > 1  # the retry carries the error message
+        return CUT_FIX if self.last_truncated else BROKEN
+
+    async def chat_with_context_stream(self, messages, diagram_code, diagram_type, language="es", system_prompt=None, max_tokens=None):  # noqa: ANN001, ANN201
+        self.last_truncated = False
+        yield BROKEN
+
+    generate_description = fix_diagram = chat_with_context = summarize_conversation = complete
+
+    async def validate_api_key(self) -> bool:
+        return True
+
+    @property
+    def provider_name(self) -> str:
+        return "Fake"
+
+
+class _Sessions:
+    session = SimpleNamespace(id="s1", status="active", summary=None, title="t", user_id="u", diagram_id="d")
+
+    async def get_session_by_id(self, _sid):  # noqa: ANN001, ANN201
+        return self.session
+
+    async def update_session_last_provider(self, *a, **k):  # noqa: ANN002, ANN003, ANN201
+        return self.session
+
+    update_session_summary = update_session_title = update_session_status = update_session_last_provider
+
+
+class _Messages:
+    def __init__(self):
+        self.items = []
+
+    async def create_message(self, session_id, role, content, **extra):  # noqa: ANN001, ANN003, ANN201
+        msg = SimpleNamespace(id=f"m{len(self.items)}", session_id=session_id, role=role, content=content,
+                              created_at=None, **{"improved_code": None, "improvement_status": None, **extra})
+        self.items.append(msg)
+        return msg
+
+    async def get_recent_messages(self, _sid, limit=4):  # noqa: ANN001, ANN201
+        return self.items[-limit:]
+
+    async def count_messages_by_session(self, _sid):  # noqa: ANN001, ANN201
+        return len(self.items)
+
+
+class _AIService:
+    async def get_active_provider_config(self, *_a):  # noqa: ANN002, ANN201
+        return SimpleNamespace(provider=SimpleNamespace(value="openai"), api_key="k", model="fake", parameters={})
+
+    async def get_user_settings(self, _uid):  # noqa: ANN001, ANN201
+        return SimpleNamespace(auto_fix_generated=True)
+
+
+def _service():  # noqa: ANN202
+    return ChatSessionService(_Sessions(), _Messages(), _AIService())
+
+
+async def test_streaming_never_offers_a_truncated_retry_as_the_new_diagram() -> None:
+    import json
+
+    service = _service()
+    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=_RetryClient()):
+        events = [
+            json.loads(line[6:])
+            async for raw in service.stream_message("s1", "u", "Crea un flujo", "flowchart TD", "mermaid")
+            for line in raw.splitlines() if line.startswith("data: ")
+        ]
+    done = next(e for e in events if e["type"] == "done")
+    saved = service.message_repo.items[-1]
+    assert done.get("improved_code") is None
+    assert saved.improved_code is None and saved.improvement_status is None
+    assert "se cortó" in saved.content
+
+
+async def test_send_message_never_offers_a_truncated_retry_as_the_new_diagram() -> None:
+    service = _service()
+    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=_RetryClient()), patch.object(
+        ChatSessionService, "_message_to_response", lambda self, msg: msg
+    ):
+        saved = await service.send_message("s1", "u", "Crea un flujo", "flowchart TD", "mermaid")
+    assert saved.improved_code is None and saved.improvement_status is None
+    assert "se cortó" in saved.content

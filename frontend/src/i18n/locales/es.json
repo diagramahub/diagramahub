@@ -158,7 +158,8 @@
       "improveUiPrompt": "Mejora la UI del diagrama, haciéndolo más claro, ordenado y legible.",
       "improveProcessPrompt": "Mejora el proceso del diagrama para que sea más eficiente y claro.",
       "fixPrompt": "Corrige errores de sintaxis, estructura o renderizado del diagrama actual. Mantén la intención original y devuelve el diagrama completo corregido."
-    }
+    },
+    "panelTitle": "Chat con IA"
   },
   "installation": {
     "title": "Bienvenido a DiagramaHub",

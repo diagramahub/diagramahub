@@ -158,7 +158,8 @@
       "improveUiPrompt": "Improve the diagram UI so it is clearer, cleaner, and easier to read.",
       "improveProcessPrompt": "Improve the process represented by the diagram to make it more efficient and clear.",
       "fixPrompt": "Fix any syntax, structure, or rendering issues in the current diagram. Keep the original intent and return the complete corrected diagram."
-    }
+    },
+    "panelTitle": "AI chat"
   },
   "installation": {
     "title": "Welcome to DiagramaHub",

@@ -415,12 +415,21 @@ class ChatSessionService:
 
                     # Re-parse the retry response
                     improved_code, code_display = self._split_reply(ai_text, diagram_type)
+                    if client.last_truncated:
+                        # A corrective reply cut at the output limit is as incomplete
+                        # as a cut first reply: never offer it as the new diagram.
+                        improved_code = None
+                        display_text = self._truncated_notice(language)
+                        break
                     if not improved_code:
                         break
 
-                # Text the model wrote around the code (the code itself is shown apart)
-                display_text = code_display
-                improvement_status = ImprovementStatus.PENDING
+                if improved_code:
+                    # Text the model wrote around the code (the code itself is shown apart)
+                    display_text = code_display
+                    improvement_status = ImprovementStatus.PENDING
+                elif not client.last_truncated:
+                    display_text = code_display
 
             ai_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
@@ -779,10 +788,16 @@ class ChatSessionService:
 
                     # Re-parse the retry response
                     improved_code, code_display = self._split_reply(ai_text, diagram_type)
+                    if client.last_truncated:
+                        # A corrective reply cut at the output limit is as incomplete
+                        # as a cut first reply: never offer it as the new diagram.
+                        improved_code = None
+                        display_text = self._truncated_notice(language)
+                        break
                     if not improved_code:
                         break
 
-                if response_mode == "code":
+                if response_mode == "code" and not (improved_code is None and client.last_truncated):
                     # Text the model wrote around the code (the code itself is shown apart)
                     display_text = code_display
                     if not display_text:
@@ -799,7 +814,8 @@ class ChatSessionService:
                             display_text = summary.strip()
                         else:
                             display_text = ""
-                improvement_status = ImprovementStatus.PENDING
+                if improved_code:
+                    improvement_status = ImprovementStatus.PENDING
 
             # Persist the AI message
             ai_msg = await self.message_repo.create_message(
