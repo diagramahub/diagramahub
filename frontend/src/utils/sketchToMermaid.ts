@@ -4,6 +4,8 @@
  * No AI involved: shapes with text become nodes (rectangle `[ ]`, diamond
  * `{ }`, ellipse `( )`), and arrows bound to two shapes become edges, with
  * the arrow's own text as the edge label and dashed arrows as `-.->`.
+ * Lines without heads become `---`, double-headed arrows `<-->`, and an
+ * arrow bound twice to the same shape is a self-loop.
  * Anything that has no structural meaning (free strokes, unbound arrows,
  * loose text, shapes without text that nothing points to) is left out and
  * reported, so the caller can tell the user what was not converted.
@@ -28,7 +30,17 @@ const SHAPE_BRACKETS: Record<Shape, [string, string]> = {
   ellipse: ["(", ")"],
 };
 
-/** Mermaid node ids: letters/digits/underscore, must not start with a digit. */
+/**
+ * Words Mermaid reads as keywords when used as a node id (`end` closes a
+ * subgraph, `style`/`class`/`click` start statements…): ids that match are
+ * prefixed. Compared case-insensitively to be safe across Mermaid versions.
+ */
+const RESERVED_IDS = new Set([
+  "end", "graph", "flowchart", "subgraph", "direction", "style", "linkstyle", "class", "classdef",
+  "click", "call", "callback", "href", "default", "interpolate", "td", "tb", "bt", "lr", "rl",
+]);
+
+/** Mermaid node ids: letters/digits/underscore, not starting with a digit, not a keyword. */
 function makeIdFactory(): (hint: string) => string {
   const used = new Set<string>();
   return (hint: string) => {
@@ -39,6 +51,7 @@ function makeIdFactory(): (hint: string) => string {
       .replace(/^_+|_+$/g, "")
       .slice(0, 24);
     if (!base || /^\d/.test(base)) base = `n${base}`;
+    if (RESERVED_IDS.has(base.toLowerCase())) base = `n_${base}`;
     let id = base;
     let counter = 2;
     while (used.has(id)) id = `${base}_${counter++}`;
@@ -97,23 +110,29 @@ export function sketchToMermaid(content: string): SketchConversion {
     else if (el.type === "text") skip("skipped_text");
   }
 
-  // Edges: arrows (or lines) bound at both ends to known shapes.
-  const edges: { from: FreehandElement; to: FreehandElement; label?: string; dashed: boolean }[] = [];
+  // Edges: arrows (or lines) bound at both ends to known shapes (a shape to
+  // itself is a valid self-loop). Arrowheads follow the canvas renderer's
+  // defaults: an arrow shows its end head unless `endArrowhead === false`,
+  // a line shows a head only when explicitly set.
+  const edges: { from: FreehandElement; to: FreehandElement; label?: string; dashed: boolean; heads: "one" | "both" | "none" }[] = [];
   for (const el of elements) {
     if (el.type !== "arrow" && el.type !== "line") continue;
     const from = el.startBinding && shapesById.get(el.startBinding.elementId);
     const to = el.endBinding && shapesById.get(el.endBinding.elementId);
-    if (!from || !to || from.id === to.id) {
+    if (!from || !to) {
       skip("skipped_unbound_arrow");
       continue;
     }
-    // A line with an arrowhead only at the start points the other way.
-    const reversed = !!el.startArrowhead && !el.endArrowhead;
+    const startHead = !!el.startArrowhead;
+    const endHead = el.type === "arrow" ? el.endArrowhead !== false : !!el.endArrowhead;
+    // Only a start head: the edge points the other way.
+    const reversed = startHead && !endHead;
     edges.push({
       from: reversed ? to : from,
       to: reversed ? from : to,
       label: el.text?.trim() || undefined,
       dashed: !!el.dashed,
+      heads: startHead && endHead ? "both" : startHead || endHead ? "one" : "none",
     });
   }
 
@@ -136,14 +155,19 @@ export function sketchToMermaid(content: string): SketchConversion {
   const lines: string[] = [`flowchart ${direction(edges)}`];
   for (const node of nodes) {
     const label = node.text?.trim() || "";
-    const id = makeId(label || node.type);
+    const id = makeId(label || "node");
     ids.set(node.id, id);
     const [open, close] = SHAPE_BRACKETS[node.type as Shape];
-    lines.push(`    ${id}${open}${quote(label || id)}${close}`);
+    // An untitled shape that takes part in an edge is drawn without text
+    lines.push(`    ${id}${open}${label ? quote(label) : '" "'}${close}`);
   }
   if (edges.length > 0) lines.push("");
   for (const edge of edges) {
-    const arrow = edge.dashed ? "-.->" : "-->";
+    const arrow = {
+      one: edge.dashed ? "-.->" : "-->",
+      both: edge.dashed ? "<-.->" : "<-->",
+      none: edge.dashed ? "-.-" : "---",
+    }[edge.heads];
     const label = edge.label ? `|${quote(edge.label)}|` : "";
     lines.push(`    ${ids.get(edge.from.id)} ${arrow}${label} ${ids.get(edge.to.id)}`);
   }

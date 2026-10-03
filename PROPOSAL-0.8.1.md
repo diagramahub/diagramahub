@@ -41,7 +41,7 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 | B10 | La fuente Caveat no se espera: el lienzo no se redibuja al cargarla y los anchos de texto se miden con la fuente de reserva. | 📖 sin `document.fonts` | S |
 | B11 | El editor de texto usa otra fuente e interlineado que el lienzo (el texto "salta" al confirmar); un toque de un solo punto con el lápiz no deja marca. | 📖 `:2026`, `:1199` | S |
 | B12 | Espacio para paneo solo funciona con el foco en `body`: tras usar la barra, Espacio pulsa el botón enfocado (incluido "Borrar todo", que no pide confirmación). | 📖 `:1613`, `:1678` | S |
-| B13 | **Boceto → Mermaid**: un nodo llamado `end`, `style`, `class`, `click`… rompe el diagrama; las líneas sin punta salen como flechas; los autoenlaces se descartan; las flechas antiguas pueden invertir su sentido; las formas sin texto conectadas salen como "rectangle". | 📖 `sketchToMermaid.ts` | S |
+| B13 | **Boceto → Mermaid**: un nodo llamado `end`, `style`, `class`, `click`… rompe el diagrama; las líneas sin punta salen como flechas; los autoenlaces se descartan; las flechas antiguas pueden invertir su sentido; las formas sin texto conectadas salen como "rectangle". | 📖 `sketchToMermaid.ts` | S ✅ |
 | B14 | Atajos mostrados como ⌘ también en Windows/Linux. | 📖 tooltips | S |
 
 ## C. Export/import — robustez
