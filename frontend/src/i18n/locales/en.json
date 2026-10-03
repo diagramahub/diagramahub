@@ -30,7 +30,13 @@
     "language": "Language",
     "profile": "Profile",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "counts": {
+      "diagrams_one": "{{count}} diagram",
+      "diagrams_other": "{{count}} diagrams",
+      "folders_one": "{{count}} folder",
+      "folders_other": "{{count}} folders"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -544,16 +550,14 @@
     "selectedFiles": "Selected files",
     "removeFile": "Remove {{file}}",
     "preview": "Preview",
-    "willCreate": "{{diagrams}} diagrams and {{folders}} folders will be created",
+    "willCreate": "Will create: {{diagrams}} and {{folders}}",
     "foldersList": "Folders: {{folders}}",
     "diagramsList": "Diagrams to be created",
     "withDescription": "with description",
     "partial": "partial",
-    "skipped": "{{count}} files skipped:",
     "quotaOk": "You will be at {{after}} of {{limit}} diagrams of your plan",
     "quotaUnlimited": "Your plan does not limit the number of diagrams",
     "import": "Import",
-    "importCount": "Import {{count}} diagrams",
     "importing": "Importing…",
     "dropToImportRoot": "Drop here to import into the root",
     "errors": {
@@ -580,7 +584,11 @@
       "invalid_zip": "corrupt ZIP",
       "too_many_files": "too many files",
       "too_large_uncompressed": "too large when uncompressed"
-    }
+    },
+    "importCount_one": "Import {{count}} diagram",
+    "importCount_other": "Import {{count}} diagrams",
+    "skipped_one": "{{count}} file skipped:",
+    "skipped_other": "{{count}} files skipped:"
   },
   "projectExport": {
     "title": "Export",
@@ -603,7 +611,7 @@
     "variantStandardHint": "Clean document: title, sections, descriptions and code.",
     "includeDescriptions": "Include descriptions",
     "summary": "Will download",
-    "summaryLine": "{{diagrams}} diagrams · {{folders}} folders · {{size}}",
+    "summaryLine": "{{diagrams}} · {{folders}} · {{size}}",
     "sizeUpTo": "up to {{size}}",
     "tokens": "≈ {{tokens}} tokens",
     "empty": "There are no diagrams in this scope.",
@@ -1230,10 +1238,10 @@
     "features": {
       "unlimitedProjects": "Unlimited projects",
       "unlimitedDiagrams": "Unlimited diagrams",
-      "upToProjects": "Up to {{count}} project",
-      "upToProjects_plural": "Up to {{count}} projects",
-      "upToDiagrams": "Up to {{count}} diagram",
-      "upToDiagrams_plural": "Up to {{count}} diagrams",
+      "upToProjects_one": "Up to {{count}} project",
+      "upToProjects_other": "Up to {{count}} projects",
+      "upToDiagrams_one": "Up to {{count}} diagram",
+      "upToDiagrams_other": "Up to {{count}} diagrams",
       "premiumBadge": "Premium badge on your profile",
       "prioritySupport": "Priority support"
     },

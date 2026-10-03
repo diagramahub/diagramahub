@@ -28,3 +28,21 @@ describe("i18n parity", () => {
     expect(mismatched).toEqual([]);
   });
 });
+
+describe("i18n plurals (i18next v4 format: _one / _other)", () => {
+  it("no key uses the legacy `_plural` suffix (ignored by i18next 21+)", () => {
+    expect(Object.keys(esKeys).filter((k) => k.endsWith("_plural"))).toEqual([]);
+  });
+
+  it("counts agree in both languages", async () => {
+    const i18next = (await import("i18next")).default.createInstance();
+    await i18next.init({ lng: "es", resources: { es: { translation: es }, en: { translation: en } } });
+    const t = (key: string, count: number, lng: string) => i18next.t(key, { count, lng });
+    expect(t("projectImport.importCount", 1, "es")).toBe("Importar 1 diagrama");
+    expect(t("projectImport.importCount", 3, "es")).toBe("Importar 3 diagramas");
+    expect(t("projectImport.skipped", 1, "en")).toBe("1 file skipped:");
+    expect(t("common.counts.folders", 1, "es")).toBe("1 carpeta");
+    expect(t("subscription.features.upToProjects", 5, "es")).toBe("Hasta 5 proyectos");
+    expect(t("subscription.features.upToProjects", 1, "en")).toBe("Up to 1 project");
+  });
+});

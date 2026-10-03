@@ -176,7 +176,10 @@ export default function ImportProjectModal({
           {/* Drop zone / picker */}
           <div
             onDragOver={(e) => { e.preventDefault(); if (!busy) setDragging(true); }}
-            onDragLeave={() => setDragging(false)}
+            onDragLeave={(e) => {
+              // Moving onto a child also fires dragleave: only reset when leaving the zone
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+            }}
             onDrop={(e) => { e.preventDefault(); setDragging(false); if (!busy) addFiles(e.dataTransfer.files); }}
             className={`rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
               dragging ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-300 dark:border-gray-600'
@@ -224,7 +227,10 @@ export default function ImportProjectModal({
               ) : (
                 <>
                   <p className="text-gray-800 dark:text-gray-200">
-                    {t('projectImport.willCreate', { diagrams: preview.diagram_count, folders: preview.folder_count })}
+                    {t('projectImport.willCreate', {
+                      diagrams: t('common.counts.diagrams', { count: preview.diagram_count }),
+                      folders: t('common.counts.folders', { count: preview.folder_count }),
+                    })}
                     {preview.folders.length > 0 && (
                       <span className="block text-xs text-gray-500 dark:text-gray-400">{t('projectImport.foldersList', { folders: preview.folders.join(', ') })}</span>
                     )}
@@ -233,7 +239,7 @@ export default function ImportProjectModal({
                     <ul className="max-h-40 overflow-y-auto space-y-1" aria-label={t('projectImport.diagramsList')}>
                       {preview.diagrams.map((d) => (
                         <li key={d.source} className="flex items-center gap-2 text-xs">
-                          <span className={`w-9 text-center rounded text-[9px] font-bold leading-4 flex-shrink-0 ${TYPE_BADGES[d.diagram_type] ?? 'bg-gray-100 text-gray-600'}`}>{TYPE_LABELS[d.diagram_type] ?? d.diagram_type}</span>
+                          <span className={`w-9 text-center rounded text-[9px] font-bold leading-4 flex-shrink-0 ${TYPE_BADGES[d.diagram_type] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{TYPE_LABELS[d.diagram_type] ?? d.diagram_type}</span>
                           <span className="truncate text-gray-800 dark:text-gray-200" title={d.source}>{d.folder ? `${d.folder}/` : ''}{d.title}</span>
                           {d.has_description && <span className="text-gray-400 flex-shrink-0">{t('projectImport.withDescription')}</span>}
                           {d.warnings.length > 0 && (

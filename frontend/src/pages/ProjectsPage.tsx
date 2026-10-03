@@ -20,8 +20,11 @@ const ProjectsPage: React.FC = () => {
     folders: { id: string; name: string }[];
   }>({ isOpen: false, project: null, folders: [] });
 
+  const [exportLoadingId, setExportLoadingId] = useState<string | null>(null);
   const handleExportProject = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
+    if (exportLoadingId) return; // one load at a time (double clicks)
+    setExportLoadingId(project.id);
     // The dialog needs the folder list for the "single folder" scope.
     let folders: { id: string; name: string }[] = [];
     try {
@@ -29,6 +32,8 @@ const ProjectsPage: React.FC = () => {
       folders = full.folders.map((f) => ({ id: f.id, name: f.name }));
     } catch (err) {
       console.error('Error loading folders for export:', err);
+    } finally {
+      setExportLoadingId(null);
     }
     setExportModal({ isOpen: true, project, folders });
   };
@@ -211,6 +216,8 @@ const ProjectsPage: React.FC = () => {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={(e) => handleExportProject(e, project)}
+                            disabled={exportLoadingId === project.id}
+                            aria-busy={exportLoadingId === project.id}
                             className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:text-purple-400 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
                             aria-label={t('projectExport.exportProject')}
                             title={t('projectExport.exportProject')}
@@ -248,7 +255,7 @@ const ProjectsPage: React.FC = () => {
         )}
       </main>
 
-      {/* Create Project Modal */}
+      {/* Export Project Modal */}
       {exportModal.project && (
         <ExportProjectModal
           isOpen={exportModal.isOpen}
@@ -259,6 +266,7 @@ const ProjectsPage: React.FC = () => {
         />
       )}
 
+      {/* Create Project Modal */}
       <CreateProjectModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

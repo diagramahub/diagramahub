@@ -2553,16 +2553,35 @@ export default function DiagramEditorPage() {
   };
 
   // After an import, reload the tree in place (no skeleton) and open the folders that received diagrams
+  // A file dropped outside a drop zone (canvas, editor…) would make the browser open
+  // it and leave the editor. Zones that accept files call preventDefault themselves.
+  useEffect(() => {
+    const isFileDrag = (e: DragEvent) => Array.from(e.dataTransfer?.types ?? []).includes("Files");
+    const onDragOver = (e: DragEvent) => {
+      if (!isFileDrag(e) || e.defaultPrevented) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "none";
+    };
+    const onDrop = (e: DragEvent) => {
+      if (isFileDrag(e) && !e.defaultPrevented) e.preventDefault();
+    };
+    window.addEventListener("dragover", onDragOver);
+    window.addEventListener("drop", onDrop);
+    return () => {
+      window.removeEventListener("dragover", onDragOver);
+      window.removeEventListener("drop", onDrop);
+    };
+  }, []);
+
   const handleImported = async (result: ProjectImportResult) => {
     if (!projectId) return;
     try {
       const fresh = await api.getProject(projectId);
       setProject(fresh);
-      const touched = new Set(
-        fresh.folders
-          .filter((f) => result.folders.includes(f.name) || f.name === result.target_folder)
-          .map((f) => f.id),
-      );
+      // Folders are matched by name, case-insensitively, like the server does when
+      // it reuses an existing folder — so reused folders open too, not only new ones.
+      const names = new Set([...result.folders, result.target_folder ?? ""].map((n) => n.toLowerCase()));
+      const touched = new Set(fresh.folders.filter((f) => names.has(f.name.toLowerCase())).map((f) => f.id));
       if (touched.size > 0) setExpandedFolders((prev) => new Set([...prev, ...touched]));
       setShowFloatingSidebar(true);
     } catch (err) {
@@ -4699,7 +4718,7 @@ export default function DiagramEditorPage() {
         )}
       </div>
 
-      {/* Export Modal */}
+      {/* Import Modal */}
       {project && (
         <ImportProjectModal
           isOpen={importModal.isOpen}

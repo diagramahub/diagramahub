@@ -245,8 +245,8 @@ export default function ExportProjectModal({
             ) : summary ? (
               <span className="text-gray-800 dark:text-gray-200">
                 {t('projectExport.summaryLine', {
-                  diagrams: summary.diagram_count,
-                  folders: summary.folder_count,
+                  diagrams: t('common.counts.diagrams', { count: summary.diagram_count }),
+                  folders: t('common.counts.folders', { count: summary.folder_count }),
                   size: summary.size_is_upper_bound
                     ? t('projectExport.sizeUpTo', { size: formatBytes(summary.size_bytes) })
                     : formatBytes(summary.size_bytes),

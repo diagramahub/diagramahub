@@ -30,7 +30,13 @@
     "language": "Idioma",
     "profile": "Perfil",
     "settings": "Ajustes",
-    "logout": "Salir"
+    "logout": "Salir",
+    "counts": {
+      "diagrams_one": "{{count}} diagrama",
+      "diagrams_other": "{{count}} diagramas",
+      "folders_one": "{{count}} carpeta",
+      "folders_other": "{{count}} carpetas"
+    }
   },
   "nav": {
     "dashboard": "Panel de control",
@@ -544,16 +550,14 @@
     "selectedFiles": "Archivos seleccionados",
     "removeFile": "Quitar {{file}}",
     "preview": "Vista previa",
-    "willCreate": "Se crearán {{diagrams}} diagramas y {{folders}} carpetas",
+    "willCreate": "Se crearán: {{diagrams}} y {{folders}}",
     "foldersList": "Carpetas: {{folders}}",
     "diagramsList": "Diagramas que se crearán",
     "withDescription": "con descripción",
     "partial": "parcial",
-    "skipped": "{{count}} archivos omitidos:",
     "quotaOk": "Quedarás en {{after}} de {{limit}} diagramas de tu plan",
     "quotaUnlimited": "Tu plan no limita el número de diagramas",
     "import": "Importar",
-    "importCount": "Importar {{count}} diagramas",
     "importing": "Importando…",
     "dropToImportRoot": "Suelta aquí para importar en la raíz",
     "errors": {
@@ -580,7 +584,11 @@
       "invalid_zip": "ZIP dañado",
       "too_many_files": "demasiados archivos",
       "too_large_uncompressed": "demasiado grande al descomprimir"
-    }
+    },
+    "importCount_one": "Importar {{count}} diagrama",
+    "importCount_other": "Importar {{count}} diagramas",
+    "skipped_one": "{{count}} archivo omitido:",
+    "skipped_other": "{{count}} archivos omitidos:"
   },
   "projectExport": {
     "title": "Exportar",
@@ -603,7 +611,7 @@
     "variantStandardHint": "Documento limpio: título, secciones, descripciones y código.",
     "includeDescriptions": "Incluir descripciones",
     "summary": "Se descargará",
-    "summaryLine": "{{diagrams}} diagramas · {{folders}} carpetas · {{size}}",
+    "summaryLine": "{{diagrams}} · {{folders}} · {{size}}",
     "sizeUpTo": "hasta {{size}}",
     "tokens": "≈ {{tokens}} tokens",
     "empty": "No hay diagramas en este alcance.",
@@ -672,10 +680,10 @@
     "features": {
       "unlimitedProjects": "Proyectos ilimitados",
       "unlimitedDiagrams": "Diagramas ilimitados",
-      "upToProjects": "Hasta {{count}} proyecto",
-      "upToProjects_plural": "Hasta {{count}} proyectos",
-      "upToDiagrams": "Hasta {{count}} diagrama",
-      "upToDiagrams_plural": "Hasta {{count}} diagramas",
+      "upToProjects_one": "Hasta {{count}} proyecto",
+      "upToProjects_other": "Hasta {{count}} proyectos",
+      "upToDiagrams_one": "Hasta {{count}} diagrama",
+      "upToDiagrams_other": "Hasta {{count}} diagramas",
       "premiumBadge": "Insignia premium en tu perfil",
       "prioritySupport": "Soporte prioritario"
     },

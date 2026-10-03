@@ -69,7 +69,7 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 | D5 | Mensajes de error: `import_failed` y 429 sin "intenta en N s" (se ignora `Retry-After`). | 📖 | S ✅ |
 | D6 | Accesibilidad de diálogos: "Exportar diagrama" no cierra con Escape ni tiene `role="dialog"`; ningún diálogo atrapa el foco (DESIGN.md lo exige). | 📖 | M ✅ |
 | D7 | Las URL de descarga se revocan justo después del clic (Firefox/Safari pueden cancelar la descarga de ZIPs grandes). | 📖 3 sitios; ❓ en navegador | S ✅ |
-| D8 | Plurales ("Importar 1 diagramas"), variantes `dark:` faltantes, parpadeo de la zona de soltar, expansión de carpetas tras importar por nombre (en vez de por id), soltar un archivo fuera del explorador abre el archivo en el navegador, doble clic en "Exportar" de la lista de proyectos. | 📖 | M |
+| D8 | Plurales ("Importar 1 diagramas"), variantes `dark:` faltantes, parpadeo de la zona de soltar, expansión de carpetas tras importar por nombre (en vez de por id), soltar un archivo fuera del explorador abre el archivo en el navegador, doble clic en "Exportar" de la lista de proyectos. | 📖 | M ✅ |
 | D9 | **Faltan 97 claves en `en.json`** (historial de prompts, facturación, cancelación, uso y planes): esas pantallas muestran la clave cruda en inglés. | ✔︎ comparación de llaves | M ✅ |
 
 ## E. Deuda interna y rendimiento
