@@ -269,6 +269,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     historyIndexRef.current = 0;
     return els;
   });
+  const elementsRef = useRef(elements);
+  elementsRef.current = elements;
   const [background] = useState("#ffffff");
   const [activeTool, setActiveTool] = useState<FreehandTool>("select");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -324,7 +326,17 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const mousePosRef = useRef<FreehandPoint>({ x: 100, y: 100 });
 
   // Infinite canvas: viewport pan offset
-  const [panOffset, setPanOffset] = useState<FreehandPoint>({ x: 0, y: 0 });
+  // Start from the persisted pan: the reset effect below skips the first mount
+  // (initialState === lastEmittedRef), so it can't restore it there.
+  const [panOffset, setPanOffset] = useState<FreehandPoint>(() => {
+    const viewport = parseCanvasState(initialState).viewport;
+    return { x: viewport?.scrollX ?? 0, y: viewport?.scrollY ?? 0 };
+  });
+  // Live values for callbacks that must stay stable (emit, deferred wheel save)
+  const panOffsetRef = useRef(panOffset);
+  panOffsetRef.current = panOffset;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<FreehandPoint>({ x: 0, y: 0 });
   // Zoom anchoring: keeps the point under the cursor fixed while zooming
@@ -347,11 +359,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   // ─── Emit changes ───
   const emit = useCallback((els: FreehandElement[]) => {
     // Serialize the live viewport so pan position survives reloads and diagram switches.
-    const json = JSON.stringify({ version: 1, elements: els, viewport: { zoom, scrollX: panOffset.x, scrollY: panOffset.y }, background });
+    const pan = panOffsetRef.current;
+    const json = JSON.stringify({ version: 1, elements: els, viewport: { zoom: zoomRef.current, scrollX: pan.x, scrollY: pan.y }, background });
     lastEmittedRef.current = json;
     onChange?.(json);
     if (!skipHistoryRef.current) pushHistory(els);
-  }, [onChange, background, pushHistory, zoom, panOffset]);
+  }, [onChange, background, pushHistory]);
 
   const undo = useCallback(() => {
     if (historyIndexRef.current <= 0) return;
@@ -1659,23 +1672,25 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       if (!readOnly) {
         if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
         wheelEmitTimeoutRef.current = window.setTimeout(() => {
+          wheelEmitTimeoutRef.current = null;
           skipHistoryRef.current = true;
-          emit(elements);
+          emit(elementsRef.current);
           skipHistoryRef.current = false;
         }, 400);
       }
     }
-  }, [zoom, onZoomChange, readOnly, emit, elements]);
+  }, [zoom, onZoomChange, readOnly, emit]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-      if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
-    };
+    return () => container.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
+  // A pending wheel save is only dropped when the canvas goes away
+  useEffect(() => () => {
+    if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
+  }, []);
 
   const handleClear = () => { setElements([]); emit([]); setSelectedIds(new Set()); };
 

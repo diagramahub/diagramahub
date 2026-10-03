@@ -29,8 +29,8 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 
 | ID | Problema | Evidencia | Tam. |
 |---|---|---|---|
-| B1 | **El paneo con rueda o trackpad nunca se guarda**: cada evento recrea el callback y cancela el guardado pendiente. Toca la invariante del viewport. | ✔︎ Tras desplazar, la vista guardada no cambió | S |
-| B2 | La vista guardada (pan y zoom) probablemente no se restaura al abrir el pizarrón. | ❓ Prueba no concluyente | S |
+| B1 | **El paneo con rueda o trackpad nunca se guarda**: cada evento recrea el callback y cancela el guardado pendiente. Toca la invariante del viewport. | ✔︎ Tras desplazar, la vista guardada no cambió | S ✅ |
+| B2 | La vista guardada (pan y zoom) probablemente no se restaura al abrir el pizarrón. | ✔︎ Confirmado con la e2e nueva: se abría siempre en 0,0 | S ✅ |
 | B3 | Hacer clic (sin arrastrar) en el extremo de una flecha la **desconecta** de su forma. | 📖 `:883` | S |
 | B4 | Mover, duplicar, pegar o redimensionar un trazo **pierde la presión del lápiz** y cambia su forma. | 📖 5 sitios | S |
 | B5 | Pegar conserva `groupId` (la copia se agrupa con el original) y `locked`; duplicar copia `locked`. | 📖 `:1557`, `:1362` | S |
