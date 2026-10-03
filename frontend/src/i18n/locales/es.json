@@ -139,7 +139,7 @@
       "noAiModels": "Sin modelos conectados"
     }
   },
-    "chat": {
+  "chat": {
     "sendMessage": "Enviar mensaje",
     "model": "Modelo",
     "recommended": "Recomendado",
@@ -321,7 +321,7 @@
     "changePassword": "Cambiar contraseña",
     "profileInformation": "Información Personal",
     "accountSecurity": "Seguridad",
-    "currentPassword": "Contraseña Actual",
+    "currentPassword": "Contraseña actual",
     "newPassword": "Nueva Contraseña",
     "confirmNewPassword": "Confirmar Nueva Contraseña",
     "updateProfile": "Actualizar perfil",
@@ -354,7 +354,6 @@
     "profileUpdateError": "Error al actualizar el perfil",
     "passwordChangeError": "Error al cambiar la contraseña",
     "passwordMinLength": "Mínimo 12 caracteres",
-    "currentPassword": "Contraseña actual",
     "currentPasswordRequired": "Introduce tu contraseña actual para confirmar el cambio",
     "oauthOnlyPasswordNotice": "Tu cuenta inicia sesión con un proveedor externo, así que no hay una contraseña que confirmar. Si quieres crear una para entrar con email y contraseña, pídela por correo.",
     "sendPasswordSetupEmail": "Crear contraseña por correo",
@@ -563,7 +562,10 @@
       "tooMany": "Demasiadas importaciones seguidas. Espera un momento e inténtalo de nuevo.",
       "quota": "Superaría el límite de tu plan: {{current}} de {{limit}} diagramas. No se importó nada.",
       "invalidUpload": "No se pudo leer {{file}}: {{reason}}",
-      "nothing": "No hay nada que importar en esos archivos."
+      "nothing": "No hay nada que importar en esos archivos.",
+      "tooManyRetry": "Demasiadas importaciones seguidas. Inténtalo de nuevo en {{seconds}} s.",
+      "importFailed": "La importación falló y no se creó nada. Inténtalo de nuevo.",
+      "importFailedPartial": "La importación falló y algunos elementos no se pudieron deshacer. Revisa el proyecto."
     },
     "reasons": {
       "unreadable": "archivo dañado o ilegible",
@@ -609,7 +611,8 @@
     "export": "Exportar",
     "exporting": "Exportando…",
     "error": "No fue posible exportar. Inténtalo de nuevo.",
-    "tooMany": "Demasiadas exportaciones seguidas. Espera un momento e inténtalo de nuevo."
+    "tooMany": "Demasiadas exportaciones seguidas. Espera un momento e inténtalo de nuevo.",
+    "tooManyRetry": "Demasiadas exportaciones seguidas. Inténtalo de nuevo en {{seconds}} s."
   },
   "fileBrowser": {
     "actionsFor": "Acciones de {{name}}",
@@ -1269,7 +1272,10 @@
       "lines": "líneas",
       "applyConversion": "Aplicar conversión",
       "footerNote": "Al aplicar, el contenido y tipo del diagrama se actualizarán al formato destino."
-    }
+    },
+    "error": "No fue posible convertir el diagrama. Inténtalo de nuevo.",
+    "applyError": "No fue posible aplicar la conversión. Inténtalo de nuevo.",
+    "limitError": "Alcanzaste el límite de tu plan ({{current}} de {{limit}} diagramas)."
   },
   "freehand": {
     "lock": "Bloquear",

@@ -62,13 +62,13 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 
 | ID | Problema | Evidencia | Tam. |
 |---|---|---|---|
-| D1 | **El diálogo "Exportar proyecto" se reinicia solo** mientras está abierto: cualquier re-render del editor (autoguardado, temporizadores) devuelve alcance, formato y variante a los valores por defecto. | ✔︎ dependencias del efecto: `folders` es un arreglo nuevo en cada render | S |
-| D2 | El diálogo de importación puede quedarse en **"Cargando…" para siempre** (cerrar durante la vista previa y volver a abrir). | 📖 `ImportProjectModal.tsx:85` | S |
-| D3 | Un error de conversión con `detail` como objeto **rompe la pantalla** ("Objects are not valid as a React child"); el texto de reserva está en inglés fijo. | 📖 `DiagramEditorPage.tsx:2176` | S |
-| D4 | **`Accept-Language` siempre es `es`**: `api.ts` lee `i18nextLng`, pero i18n guarda el idioma en `language`. Los usuarios en inglés reciben respuestas del backend en español. | ✔︎ ninguna parte escribe `i18nextLng` | S |
-| D5 | Mensajes de error: `import_failed` y 429 sin "intenta en N s" (se ignora `Retry-After`). | 📖 | S |
+| D1 | **El diálogo "Exportar proyecto" se reinicia solo** mientras está abierto: cualquier re-render del editor (autoguardado, temporizadores) devuelve alcance, formato y variante a los valores por defecto. | ✔︎ dependencias del efecto: `folders` es un arreglo nuevo en cada render (no reproducido en e2e: el diálogo no se re-renderiza en el flujo probado; arreglo defensivo) | S ✅ |
+| D2 | El diálogo de importación puede quedarse en **"Cargando…" para siempre** (cerrar durante la vista previa y volver a abrir). | 📖 `ImportProjectModal.tsx:85` | S ✅ |
+| D3 | Un error de conversión con `detail` como objeto **rompe la pantalla** ("Objects are not valid as a React child"); el texto de reserva está en inglés fijo. | 📖 `DiagramEditorPage.tsx:2176` | S ✅ |
+| D4 | **`Accept-Language` siempre es `es`**: `api.ts` lee `i18nextLng`, pero i18n guarda el idioma en `language`. Los usuarios en inglés reciben respuestas del backend en español. | ✔︎ ninguna parte escribe `i18nextLng` (e2e: con la UI en inglés se enviaba `es`) | S ✅ |
+| D5 | Mensajes de error: `import_failed` y 429 sin "intenta en N s" (se ignora `Retry-After`). | 📖 | S ✅ |
 | D6 | Accesibilidad de diálogos: "Exportar diagrama" no cierra con Escape ni tiene `role="dialog"`; ningún diálogo atrapa el foco (DESIGN.md lo exige). | 📖 | M |
-| D7 | Las URL de descarga se revocan justo después del clic (Firefox/Safari pueden cancelar la descarga de ZIPs grandes). | 📖 3 sitios; ❓ en navegador | S |
+| D7 | Las URL de descarga se revocan justo después del clic (Firefox/Safari pueden cancelar la descarga de ZIPs grandes). | 📖 3 sitios; ❓ en navegador | S ✅ |
 | D8 | Plurales ("Importar 1 diagramas"), variantes `dark:` faltantes, parpadeo de la zona de soltar, expansión de carpetas tras importar por nombre (en vez de por id), soltar un archivo fuera del explorador abre el archivo en el navegador, doble clic en "Exportar" de la lista de proyectos. | 📖 | M |
 | D9 | **Faltan 97 claves en `en.json`** (historial de prompts, facturación, cancelación, uso y planes): esas pantallas muestran la clave cruda en inglés. | ✔︎ comparación de llaves | M |
 

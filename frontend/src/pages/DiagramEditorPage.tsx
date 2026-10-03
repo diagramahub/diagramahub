@@ -38,6 +38,7 @@ import { DiagramConversionModal } from "../components/DiagramConversionModal";
 import FreehandCanvas from "../components/FreehandCanvas";
 import type { FreehandCanvasHandle } from "../types/freehand";
 import { sketchToMermaid } from "../utils/sketchToMermaid";
+import { downloadBlob } from "../utils/download";
 import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal, { type ExportContentOptions } from "../components/ExportDiagramModal";
 import ExportProjectModal from "../components/ExportProjectModal";
@@ -2124,6 +2125,20 @@ export default function DiagramEditorPage() {
   };
 
   // Conversion handlers
+  // Conversion errors as a user-facing string: `detail` can be an object (e.g. a plan
+  // limit payload), which React can't render, so only known shapes are mapped.
+  const conversionErrorMessage = (err: unknown, fallbackKey: string): string => {
+    const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+    if (detail && typeof detail === "object") {
+      const payload = detail as { error?: string; current_usage?: number; current?: number; limit?: number };
+      if (payload.error === "resource_limit_exceeded") {
+        return t("conversion.limitError", { current: payload.current_usage ?? payload.current, limit: payload.limit });
+      }
+    }
+    if (typeof detail === "string" && detail.trim()) return detail;
+    return t(fallbackKey);
+  };
+
   // Freehand sketch -> Mermaid flowchart (deterministic, no AI): creates a new diagram next to the sketch
   const handleSketchToMermaid = async () => {
     if (!currentDiagram || !projectId) return;
@@ -2182,9 +2197,7 @@ export default function DiagramEditorPage() {
       setConversionResult(result);
       setShowConversionModal(true);
     } catch (err: any) {
-      const errorMsg =
-        err?.response?.data?.detail || err?.message || "Error converting diagram";
-      setFixError(errorMsg);
+      setFixError(conversionErrorMessage(err, "conversion.error"));
       setTimeout(() => setFixError(null), 5000);
     } finally {
       setIsConverting(false);
@@ -2231,9 +2244,7 @@ export default function DiagramEditorPage() {
       setConversionResult(null);
     } catch (err: any) {
       console.error("Error applying conversion:", err);
-      const errorMsg =
-        err?.response?.data?.detail || "Error applying conversion";
-      setFixError(errorMsg);
+      setFixError(conversionErrorMessage(err, "conversion.applyError"));
       setTimeout(() => setFixError(null), 5000);
     }
   };
@@ -2327,15 +2338,7 @@ export default function DiagramEditorPage() {
           transparent: !!exportOptions.transparentBackground,
         });
         if (!blob) throw new Error("Canvas produced empty PNG blob");
-        const sketchUrl = URL.createObjectURL(blob);
-        try {
-          const link = document.createElement("a");
-          link.download = `${diagramTitle.replace(/\s+/g, "_")}.png`;
-          link.href = sketchUrl;
-          link.click();
-        } finally {
-          setTimeout(() => URL.revokeObjectURL(sketchUrl), 1000);
-        }
+        downloadBlob(blob, `${diagramTitle.replace(/\s+/g, "_")}.png`);
         setExportingFormat(null);
         setShowExportModal(false);
         return;
@@ -2453,15 +2456,7 @@ export default function DiagramEditorPage() {
       if (!blob) {
         throw new Error("Canvas produced empty PNG blob");
       }
-      const url = URL.createObjectURL(blob);
-      try {
-        const link = document.createElement("a");
-        link.download = `${diagramTitle.replace(/\s+/g, "_")}.png`;
-        link.href = url;
-        link.click();
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+      downloadBlob(blob, `${diagramTitle.replace(/\s+/g, "_")}.png`);
 
       setShowExportModal(false);
     } catch (err) {
@@ -2553,13 +2548,7 @@ export default function DiagramEditorPage() {
     const mimeType = "text/plain;charset=utf-8";
     const filename = `${diagramTitle.replace(/\s+/g, "_")}${extension}`;
 
-    const blob = new Blob([diagramCode], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(new Blob([diagramCode], { type: mimeType }), filename);
     setShowExportModal(false);
   };
 

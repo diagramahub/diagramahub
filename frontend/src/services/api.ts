@@ -179,6 +179,20 @@ function importForm(files: File[], folderId: string | null): FormData {
 /** Keepalive body budget: below the ~64 KiB browser quota, leaving room for headers. */
 const KEEPALIVE_MAX_BODY_BYTES = 60_000;
 
+/**
+ * UI language for the Accept-Language header: i18n stores it under the
+ * `language` key (see i18n/config.ts). Only `es` / `en` are supported.
+ */
+function currentLanguage(): 'es' | 'en' {
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem('language');
+  } catch {
+    stored = null;
+  }
+  return stored?.toLowerCase().startsWith('en') ? 'en' : 'es';
+}
+
 class ApiService {
   private api: AxiosInstance;
   private publicApi: AxiosInstance;
@@ -206,8 +220,8 @@ class ApiService {
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-        // Send current i18n language so backend can localize emails
-        const lang = localStorage.getItem('i18nextLng') || 'es';
+        // Send the UI language so the backend localizes emails and AI output
+        const lang = currentLanguage();
         if (config.headers) {
           config.headers['Accept-Language'] = lang;
         }
@@ -219,7 +233,7 @@ class ApiService {
     // Public API also sends language header
     this.publicApi.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        const lang = localStorage.getItem('i18nextLng') || 'es';
+        const lang = currentLanguage();
         if (config.headers) {
           config.headers['Accept-Language'] = lang;
         }

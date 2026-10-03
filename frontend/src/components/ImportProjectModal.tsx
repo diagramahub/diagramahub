@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { retryAfterSeconds } from '../utils/download';
 import api, { type ProjectImportPreview, type ProjectImportResult } from '../services/api';
 
 interface ImportProjectModalProps {
@@ -64,13 +65,24 @@ export default function ImportProjectModal({
     setPreview(null);
     setError(null);
     setDragging(false);
+    // A preview cancelled by closing the dialog never reaches its `finally`
+    setLoadingPreview(false);
   }, [isOpen, initialFiles]);
 
   const describeError = useCallback((err: unknown): string => {
     const response = (err as { response?: { status?: number; data?: { detail?: unknown } } })?.response;
     const detail = response?.data?.detail as { error?: string; reason?: string; file?: string; limit?: number; current_usage?: number } | string | undefined;
     if (response?.status === 413) return t('projectImport.errors.tooLarge');
-    if (response?.status === 429) return t('projectImport.errors.tooMany');
+    if (response?.status === 429) {
+      const seconds = retryAfterSeconds(err);
+      return seconds ? t('projectImport.errors.tooManyRetry', { seconds }) : t('projectImport.errors.tooMany');
+    }
+    if (typeof detail === 'object' && detail?.error === 'import_failed') {
+      // Nothing (or not everything) could be undone: say which
+      return detail && (detail as { rolled_back?: boolean }).rolled_back === false
+        ? t('projectImport.errors.importFailedPartial')
+        : t('projectImport.errors.importFailed');
+    }
     if (typeof detail === 'object' && detail?.error === 'resource_limit_exceeded') {
       return t('projectImport.errors.quota', { current: detail.current_usage, limit: detail.limit });
     }
@@ -85,6 +97,7 @@ export default function ImportProjectModal({
   useEffect(() => {
     if (!isOpen || files.length === 0) {
       setPreview(null);
+      setLoadingPreview(false);
       return;
     }
     let cancelled = false;

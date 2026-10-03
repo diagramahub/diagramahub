@@ -321,7 +321,7 @@
     "changePassword": "Change Password",
     "profileInformation": "Personal Information",
     "accountSecurity": "Security",
-    "currentPassword": "Current Password",
+    "currentPassword": "Current password",
     "newPassword": "New Password",
     "confirmNewPassword": "Confirm New Password",
     "updateProfile": "Update profile",
@@ -354,7 +354,6 @@
     "profileUpdateError": "Error updating profile",
     "passwordChangeError": "Error changing password",
     "passwordMinLength": "Minimum 12 characters",
-    "currentPassword": "Current password",
     "currentPasswordRequired": "Enter your current password to confirm the change",
     "oauthOnlyPasswordNotice": "Your account signs in with an external provider, so there is no password to confirm. If you want to create one for email sign-in, request it by email.",
     "sendPasswordSetupEmail": "Create a password by email",
@@ -563,7 +562,10 @@
       "tooMany": "Too many imports in a row. Wait a moment and try again.",
       "quota": "It would exceed your plan's limit: {{current}} of {{limit}} diagrams. Nothing was imported.",
       "invalidUpload": "Could not read {{file}}: {{reason}}",
-      "nothing": "There is nothing to import in those files."
+      "nothing": "There is nothing to import in those files.",
+      "tooManyRetry": "Too many imports in a row. Try again in {{seconds}} s.",
+      "importFailed": "The import failed and nothing was created. Please try again.",
+      "importFailedPartial": "The import failed and some items could not be undone. Please check the project."
     },
     "reasons": {
       "unreadable": "damaged or unreadable file",
@@ -609,7 +611,8 @@
     "export": "Export",
     "exporting": "Exporting…",
     "error": "Unable to export. Please try again.",
-    "tooMany": "Too many exports in a row. Wait a moment and try again."
+    "tooMany": "Too many exports in a row. Wait a moment and try again.",
+    "tooManyRetry": "Too many exports in a row. Try again in {{seconds}} s."
   },
   "fileBrowser": {
     "actionsFor": "Actions for {{name}}",
@@ -1150,7 +1153,10 @@
       "lines": "lines",
       "applyConversion": "Apply conversion",
       "footerNote": "By applying, the diagram content and type will be updated to the target format."
-    }
+    },
+    "error": "Unable to convert the diagram. Please try again.",
+    "applyError": "Unable to apply the conversion. Please try again.",
+    "limitError": "You've reached your plan's limit ({{current}} of {{limit}} diagrams)."
   },
   "freehand": {
     "lock": "Lock",
