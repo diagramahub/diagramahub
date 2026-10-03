@@ -3,9 +3,10 @@ Pydantic models for subscription and plan management.
 """
 from datetime import datetime
 from typing import Optional, Union, Literal
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from beanie import Document
 from pymongo import IndexModel, ASCENDING
+from app.core.clock import utcnow
 
 
 # ============================================================================
@@ -117,8 +118,8 @@ class PlanInDB(Document):
     is_active: bool = True
     gateway_config: Optional[dict] = None
     prices: dict = {}
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     @property
     def is_free(self) -> bool:
@@ -163,8 +164,7 @@ class PlanResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================================
@@ -194,13 +194,13 @@ class SubscriptionInDB(Document):
     payment_provider: str = "stripe"
 
     # Dates
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=utcnow)
     current_period_start: Optional[datetime] = None
     current_period_end: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "subscriptions"
@@ -228,8 +228,7 @@ class SubscriptionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SubscriptionWithUsage(SubscriptionResponse):
@@ -261,8 +260,8 @@ class StripeConfigInDB(Document):
     is_test_mode: bool = False
     is_configured: bool = True
     validated_at: Optional[datetime] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "stripe_config"
@@ -276,8 +275,7 @@ class StripeConfigResponse(BaseModel):
     is_configured: bool
     validated_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================================
@@ -288,7 +286,7 @@ class WebhookEventInDB(Document):
     """Webhook event stored in MongoDB for idempotency."""
     event_id: str
     event_type: str
-    processed_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "webhook_events"
@@ -360,8 +358,7 @@ class InvoiceResponse(BaseModel):
     created_at: datetime
     paid_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BillingHistoryResponse(BaseModel):

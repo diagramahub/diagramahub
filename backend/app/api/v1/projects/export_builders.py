@@ -25,7 +25,8 @@ import re
 import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal, Optional, TypeVar
+from app.core.clock import utcnow
 
 EXPORT_FORMAT_VERSION = 1
 MANIFEST_FILENAME = "manifest.json"
@@ -71,6 +72,7 @@ _RESERVED_NAMES = {
     *(f"LPT{i}" for i in range(1, 10)),
 }
 _UNSAFE_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+_T = TypeVar("_T")
 _MAX_NAME_LENGTH = 100
 
 
@@ -107,7 +109,7 @@ class ExportTree:
     project_description: Optional[str]
     root_diagrams: list[ExportDiagram] = field(default_factory=list)
     folders: list[ExportFolder] = field(default_factory=list)
-    exported_at: datetime = field(default_factory=datetime.utcnow)
+    exported_at: datetime = field(default_factory=utcnow)
     # Set when the export is scoped to one folder (the tree then holds only it).
     scope_folder_name: Optional[str] = None
 
@@ -145,16 +147,43 @@ def sanitize_filename(name: str, fallback: str = "untitled") -> str:
     return cleaned
 
 
-def unique_name(name: str, taken: set[str]) -> str:
+def group_by_folder(
+    diagrams: list[_T], folder_ids: list[str]
+) -> tuple[list[_T], dict[str, list[_T]]]:
+    """Split a project's diagrams into (root, {folder_id: diagrams}).
+
+    A diagram whose ``folder_id`` is not one of ``folder_ids`` (its folder was
+    deleted, or it points outside the project) goes to the root, so it is
+    never silently missing from the tree or an export. Order is preserved.
+    """
+    known = set(folder_ids)
+    root: list[_T] = []
+    by_folder: dict[str, list[_T]] = {fid: [] for fid in folder_ids}
+    for diagram in diagrams:
+        folder_id = getattr(diagram, "folder_id", None)
+        if folder_id and folder_id in known:
+            by_folder[folder_id].append(diagram)
+        else:
+            root.append(diagram)
+    return root, by_folder
+
+
+def unique_name(name: str, taken: set[str], max_length: Optional[int] = None) -> str:
     """Return ``name`` or ``name (2)``, ``name (3)``… so it is not in ``taken``.
 
     Comparison is case-insensitive because macOS/Windows file systems are.
+    With ``max_length`` the base is shortened so name + suffix still fits
+    (e.g. a 100-character title stays within the 100-character title limit).
     The chosen name is added to ``taken``.
     """
+    if max_length is not None:
+        name = name[:max_length]
     candidate = name
     counter = 2
     while candidate.lower() in taken:
-        candidate = f"{name} ({counter})"
+        suffix = f" ({counter})"
+        base = name if max_length is None else name[: max(1, max_length - len(suffix))].rstrip()
+        candidate = f"{base}{suffix}"
         counter += 1
     taken.add(candidate.lower())
     return candidate

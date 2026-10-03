@@ -159,3 +159,23 @@ async def test_export_is_rate_limited_per_user(authenticated_client: AsyncClient
 
     assert response.status_code == 429
     assert "retry-after" in response.headers
+
+
+@pytest.mark.integration
+async def test_diagram_of_a_missing_folder_is_listed_and_exported_at_the_root(
+    authenticated_client: AsyncClient,
+) -> None:
+    """C6: a dangling folder_id (legacy data) must not hide the diagram."""
+    from app.api.v1.diagrams.schemas import DiagramInDB
+
+    seed = await _seed(authenticated_client)
+    await DiagramInDB(
+        title="Huérfano", content="graph TD", diagram_type="mermaid",
+        project_id=seed["id"], folder_id="000000000000000000000000",
+    ).insert()
+
+    tree = (await authenticated_client.get(f"/api/v1/projects/{seed['id']}")).json()
+    markdown = (await authenticated_client.get(f"/api/v1/projects/{seed['id']}/export?format=markdown&variant=standard")).text
+
+    assert "Huérfano" in [d["title"] for d in tree["diagrams"]]
+    assert "Huérfano" in markdown

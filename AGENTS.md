@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.8.0
+- **Current version**: 0.8.1
 - **Repo**: https://github.com/alexdzul/diagramahub
 
 ## Tech Stack
@@ -276,10 +276,13 @@ When creating a new module, you MUST:
 - Pattern: abstract `BaseAIClient` → concrete clients in `ai_providers/clients/` → registered in `factory.py`
 - Capabilities: generation, improvement, auto-fix, description generation, chat refinement
 - API keys stored Fernet-encrypted, returned masked in responses
-- `max_tokens`: 4096 across all providers
-- Auto-fix retry disabled for PlantUML and DBML (false positives)
+- `max_tokens`: 4096 for chat and descriptions; **8192 for generate/improve** (reasoning models spend part of the budget thinking). A reply cut at the limit is never returned as code: the API answers 422 `response_truncated` (empty reply: 502 `empty_response`)
+- Generate/improve live once in `BaseAIClient` (same prompt for every provider): English instructions, labels in the user's language, syntax reference + rules verified against the renderers in the system prompt, output as one Markdown code block, temperature 0.2. Measure prompt changes with `scripts/ai-benchmark/`
+- Model catalog: `ai_providers/model_catalog.json` is the single source of truth (offered models, context windows used for chat compaction, default model per provider, whether `temperature` is accepted — Claude 5.x rejects it). Verify new models against the provider's docs and a live call
+- Auto-fix retry disabled for PlantUML and DBML (false positives). The chat retries Mermaid/D2 when the code doesn't validate (D2 with Kroki on the server; Mermaid with the real parser in the browser, which asks the model once to fix it). Both obey the per-user `auto_fix_generated` setting (default on)
+- The AI chat is the only UI entry point for generating/modifying diagrams; streaming and non-streaming use the same unified system prompt, a code request gets the 8192-token budget, and a reply cut at the limit is never applied (the user gets a notice)
 - AI content respects `language` parameter (`es`/`en`)
-- Code markers: `<<<DIAGRAM>>>`/`<<<END_DIAGRAM>>>` (English), `<<<DIAGRAMA>>>`/`<<<END_DIAGRAMA>>>` (Spanish)
+- Chat code markers: `<<<DIAGRAM>>>`/`<<<END_DIAGRAM>>>` (English), `<<<DIAGRAMA>>>`/`<<<END_DIAGRAMA>>>` (Spanish); `extract_diagram_code` also tolerates malformed markers and code fences
 - Strip `<think>` tags from AI responses
 
 ### Auth & Security
@@ -381,7 +384,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.8.0
+VITE_APP_VERSION=0.8.1
 ```
 
 ---
@@ -446,7 +449,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 2. Register in `factory.py` → `_clients_map`
 3. Add frontend UI in provider configuration
 4. Add provider type to `AIProviderType` enum (backend + frontend)
-5. Add models to `AI_PROVIDER_MODELS` in frontend types
+5. Add its models to `backend/app/api/v1/ai_providers/model_catalog.json` (context window, `listed`, one `recommended`, `supports_temperature`) and the same `listed` models to `AI_PROVIDER_MODELS` in `frontend/src/types/ai.ts` — a Vitest test fails if they differ
 6. Add translations in `es.json` + `en.json`
 
 ### Adding a Frontend Page
@@ -461,7 +464,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.0**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.1**.
 
 | Bump | When |
 |------|------|

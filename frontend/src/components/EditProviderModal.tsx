@@ -85,7 +85,10 @@ export default function EditProviderModal({
 
       setTestResult({
         success: result.valid,
-        message: result.valid ? t('ai.messages.testSuccess') : t('ai.messages.testError')
+        // The real cause (no credits, wrong key, model not available…) instead of a generic error
+        message: result.valid
+          ? t('ai.messages.testSuccess')
+          : t(`ai.testErrors.${result.error_code || 'provider_error'}`, { defaultValue: t('ai.messages.testError') }),
       });
     } catch (error: any) {
       setTestResult({
@@ -286,9 +289,13 @@ export default function EditProviderModal({
                 errors.model ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
               }`}
             >
+              {/* A saved model that's no longer offered stays selectable (and visible) */}
+              {!AI_PROVIDER_MODELS[provider.provider].some((m) => m.id === provider.model) && (
+                <option value={provider.model}>{`${provider.model} (${t('ai.form.retired')})`}</option>
+              )}
               {AI_PROVIDER_MODELS[provider.provider].map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.id}{m.recommended ? ' ★ Recomendado' : ''}
+                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}
                 </option>
               ))}
             </select>

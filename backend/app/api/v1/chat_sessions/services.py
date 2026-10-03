@@ -5,6 +5,7 @@ Orchestrates session/message CRUD, AI interactions, context compaction, and titl
 
 import time
 import logging
+import re
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -25,8 +26,61 @@ from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
 from ..diagrams.syntax_validator import SyntaxValidator
+from app.api.v1.ai_providers.model_catalog import context_window as model_context_window
 
 logger = logging.getLogger(__name__)
+
+# Imperative verbs that open a request to create or change the diagram
+_LEADING_CODE_VERBS = {
+    "agrega",
+    "agregar",
+    "añade",
+    "añadir",
+    "crea",
+    "crear",
+    "genera",
+    "generar",
+    "haz",
+    "dibuja",
+    "diseña",
+    "modifica",
+    "modificar",
+    "cambia",
+    "cambiar",
+    "mejora",
+    "mejorar",
+    "corrige",
+    "corregir",
+    "actualiza",
+    "actualizar",
+    "elimina",
+    "eliminar",
+    "quita",
+    "quitar",
+    "renombra",
+    "mueve",
+    "reorganiza",
+    "refactoriza",
+    "convierte",
+    "add",
+    "create",
+    "generate",
+    "make",
+    "draw",
+    "design",
+    "modify",
+    "change",
+    "improve",
+    "fix",
+    "update",
+    "remove",
+    "delete",
+    "rename",
+    "move",
+    "reorganize",
+    "refactor",
+    "convert",
+}
 
 # --- Auto-retry constants ---
 MAX_RETRIES = 2
@@ -34,38 +88,6 @@ MAX_RETRIES = 2
 # --- Context compaction constants ---
 CHARS_PER_TOKEN = 4
 CONTEXT_THRESHOLD = 0.80
-
-MODEL_TOKEN_LIMITS = {
-    "gpt-4o": 128000,
-    "gpt-4o-mini": 128000,
-    "gpt-5.4": 128000,
-    "gpt-5.4-mini": 128000,
-    "gpt-5.4-nano": 128000,
-    "gpt-4.1": 128000,
-    "gpt-4.1-mini": 128000,
-    "gpt-4.1-nano": 128000,
-    "claude-sonnet-4-6": 1000000,
-    "claude-haiku-4-5-20251001": 200000,
-    "gemini-3.1-pro-preview": 1000000,
-    "gemini-3-flash-preview": 1000000,
-    "gemini-3.1-flash-lite-preview": 1000000,
-    "gemini-2.5-flash": 1000000,
-    "gemini-2.5-pro": 1000000,
-    "gemini-2.0-flash": 1000000,
-    "gemini-1.5-pro": 1000000,
-    "deepseek-chat": 64000,
-    "deepseek-coder": 64000,
-    "deepseek-v4-flash": 1000000,
-    "deepseek-v4-pro": 1000000,
-    "minimax-01": 1000000,
-    "MiniMax-Text-01": 1000000,
-    "MiniMax-M2.5": 1000000,
-    "MiniMax-M2.7": 1000000,
-    "MiniMax-Text-01-128k": 128000,
-    "abab6.5s-chat": 32000,
-}
-
-DEFAULT_TOKEN_LIMIT = 64000
 
 
 class ChatSessionService:
@@ -216,7 +238,6 @@ class ChatSessionService:
         """
         from app.api.v1.ai_providers.prompts import (
             build_unified_chat_prompt,
-            clean_code_response,
         )
 
         session = await self.session_repo.get_session_by_id(session_id)
@@ -303,6 +324,8 @@ class ChatSessionService:
             )
 
             response_mode = self._detect_response_mode(content, preset_action)
+            if response_mode == "code":
+                self._use_code_budget(client)
 
             start = time.time()
 
@@ -333,84 +356,23 @@ class ChatSessionService:
             display_text = ai_text
             improvement_status = None
 
+            code_display = ai_text
             if response_mode == "code":
-                if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                    end_idx = ai_text.index(self.DIAGRAM_END)
-                    raw_code = ai_text[start_idx:end_idx].strip()
-                    improved_code = clean_code_response(raw_code)
-                elif self.DIAGRAM_START in ai_text:
-                    # Fallback: DIAGRAM_START present but END marker missing (truncated response)
-                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                    raw_code = ai_text[start_idx:].strip()
-                    improved_code = clean_code_response(raw_code)
-                else:
-                    # Fallback: AI didn't use delimiters but may have included a code block
-                    import re
-
-                    # Try closed code block first
-                    code_block_match = re.search(
-                        r"```(?:"
-                        + re.escape(diagram_type)
-                        + r"|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```",
-                        ai_text,
-                        re.DOTALL,
-                    )
-                    if code_block_match:
-                        raw_code = code_block_match.group(1).strip()
-                        if raw_code and len(raw_code) > 20:
-                            improved_code = clean_code_response(raw_code)
-
-                    # If no closed code block, try unclosed (truncated response)
-                    if not improved_code:
-                        unclosed_match = re.search(
-                            r"```(?:"
-                            + re.escape(diagram_type)
-                            + r"|mermaid|plantuml|d2|dbml)?\s*\n(.+)",
-                            ai_text,
-                            re.DOTALL,
-                        )
-                        if unclosed_match:
-                            raw_code = unclosed_match.group(1).strip()
-                            # Remove trailing ``` if partially present
-                            raw_code = re.sub(r"`{1,2}$", "", raw_code).strip()
-                            if raw_code and len(raw_code) > 20:
-                                improved_code = clean_code_response(raw_code)
-
-                    # Fallback 3: detect raw diagram code without any wrappers
-                    if not improved_code:
-                        if diagram_type == "plantuml" or diagram_type == "uml":
-                            # PlantUML: detect @startuml...@enduml
-                            puml_match = re.search(r"(@startuml\b.*?@enduml\b)", ai_text, re.DOTALL)
-                            if puml_match:
-                                improved_code = puml_match.group(1).strip()
-                        elif diagram_type == "mermaid":
-                            # Mermaid: detect common diagram type keywords at start of a line
-                            mermaid_match = re.search(
-                                r"^((?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|journey|gitGraph)\b.+)",
-                                ai_text,
-                                re.MULTILINE | re.DOTALL,
-                            )
-                            if mermaid_match:
-                                raw_code = mermaid_match.group(1).strip()
-                                if len(raw_code) > 30:
-                                    improved_code = raw_code
-                        elif diagram_type == "dbml":
-                            # DBML: detect Table keyword followed by content
-                            dbml_match = re.search(r"(Table\s+\w+\s*\{.+)", ai_text, re.DOTALL)
-                            if dbml_match:
-                                raw_code = dbml_match.group(1).strip()
-                                if len(raw_code) > 30:
-                                    improved_code = raw_code
-            else:
-                display_text = ai_text
-
+                improved_code, code_display = self._split_reply(ai_text, diagram_type)
+                if client.last_truncated:
+                    # Cut at the output limit: half a diagram must not replace the user's
+                    improved_code = None
+                    display_text = self._truncated_notice(language)
             if improved_code:
 
                 # Auto-retry: validate syntax and retry if invalid
                 # Skip retry for PlantUML and DBML — their validators give false positives
                 # with skinparam blocks and complex syntax. Let Kroki be the final validator.
-                skip_retry = diagram_type in ("plantuml", "uml", "dbml")
+                skip_retry = diagram_type in (
+                    "plantuml",
+                    "uml",
+                    "dbml",
+                ) or not await self._auto_fix_enabled(user_id)
                 retries = 0
                 while improved_code and retries < MAX_RETRIES and not skip_retry:
                     validation = await SyntaxValidator.validate(improved_code, diagram_type)
@@ -452,40 +414,22 @@ class ChatSessionService:
                     generation_time += time.time() - retry_start
 
                     # Re-parse the retry response
-                    if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                        start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                        end_idx = ai_text.index(self.DIAGRAM_END)
-                        raw_code = ai_text[start_idx:end_idx].strip()
-                        improved_code = clean_code_response(raw_code)
-                    elif self.DIAGRAM_START in ai_text:
-                        # Fallback: truncated retry response
-                        start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                        raw_code = ai_text[start_idx:].strip()
-                        improved_code = clean_code_response(raw_code)
-                    else:
-                        # Retry response has no diagram code; stop retrying
+                    improved_code, code_display = self._split_reply(ai_text, diagram_type)
+                    if client.last_truncated:
+                        # A corrective reply cut at the output limit is as incomplete
+                        # as a cut first reply: never offer it as the new diagram.
                         improved_code = None
+                        display_text = self._truncated_notice(language)
+                        break
+                    if not improved_code:
                         break
 
-                # Extract display text: combine text BEFORE and AFTER the diagram block
-                before_text = ""
-                after_text = ""
-
-                if self.DIAGRAM_START in ai_text:
-                    before_text = ai_text[: ai_text.index(self.DIAGRAM_START)].strip()
-
-                if self.DIAGRAM_END in ai_text:
-                    end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
-                    after_text = ai_text[end_marker_pos:].strip()
-
-                # Combine both parts
-                parts = [p for p in [before_text, after_text] if p and len(p) > 3]
-                if parts:
-                    display_text = "\n\n".join(parts)
-                else:
-                    # No meaningful text before or after the diagram block
-                    display_text = ""
-                improvement_status = ImprovementStatus.PENDING
+                if improved_code:
+                    # Text the model wrote around the code (the code itself is shown apart)
+                    display_text = code_display
+                    improvement_status = ImprovementStatus.PENDING
+                elif not client.last_truncated:
+                    display_text = code_display
 
             ai_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
@@ -564,7 +508,6 @@ class ChatSessionService:
         import re
         from app.api.v1.ai_providers.prompts import (
             build_unified_chat_prompt,
-            clean_code_response,
         )
         from .sse_events import token_event, phase_event, done_event, error_event, mode_event
 
@@ -651,6 +594,8 @@ class ChatSessionService:
             )
 
             response_mode = self._detect_response_mode(content, preset_action)
+            if response_mode == "code":
+                self._use_code_budget(client)
 
             start = time.time()
             accumulated_text = ""
@@ -669,6 +614,10 @@ class ChatSessionService:
                         diagram_code=diagram_code,
                         diagram_type=diagram_type,
                         language=language,
+                        # The same unified prompt as the non-streaming path: it
+                        # explains the <<<DIAGRAM>>> markers and the syntax rules
+                        # (the stream used to get a minimal prompt without them).
+                        system_prompt=system_prompt,
                     )
 
                     async for chunk in stream_gen:
@@ -787,36 +736,20 @@ class ChatSessionService:
             display_text = ai_text
             improvement_status = None
 
+            code_display = ai_text
             if response_mode == "code":
-                if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                    end_idx = ai_text.index(self.DIAGRAM_END)
-                    raw_code = ai_text[start_idx:end_idx].strip()
-                    improved_code = clean_code_response(raw_code)
-                elif self.DIAGRAM_START in ai_text:
-                    start_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                    raw_code = ai_text[start_idx:].strip()
-                    improved_code = clean_code_response(raw_code)
-                else:
-                    # Fallback: fenced code block detection
-                    code_block_match = re.search(
-                        r"```(?:"
-                        + re.escape(diagram_type)
-                        + r"|mermaid|plantuml|d2|dbml)?\s*\n(.*?)```",
-                        ai_text,
-                        re.DOTALL,
-                    )
-                    if code_block_match:
-                        raw_code = code_block_match.group(1).strip()
-                        if raw_code and len(raw_code) > 20:
-                            improved_code = clean_code_response(raw_code)
-
-            else:
-                display_text = ai_text
-
+                improved_code, code_display = self._split_reply(ai_text, diagram_type)
+                if client.last_truncated:
+                    # Cut at the output limit: half a diagram must not replace the user's
+                    improved_code = None
+                    display_text = self._truncated_notice(language)
             if improved_code:
                 # Auto-retry: validate syntax (skip for plantuml/dbml)
-                skip_retry = diagram_type in ("plantuml", "uml", "dbml")
+                skip_retry = diagram_type in (
+                    "plantuml",
+                    "uml",
+                    "dbml",
+                ) or not await self._auto_fix_enabled(user_id)
                 retries = 0
                 while improved_code and retries < MAX_RETRIES and not skip_retry:
                     validation = await SyntaxValidator.validate(improved_code, diagram_type)
@@ -853,33 +786,21 @@ class ChatSessionService:
                     )
                     generation_time += time.time() - retry_start
 
-                    if self.DIAGRAM_START in ai_text and self.DIAGRAM_END in ai_text:
-                        s_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                        e_idx = ai_text.index(self.DIAGRAM_END)
-                        raw_code = ai_text[s_idx:e_idx].strip()
-                        improved_code = clean_code_response(raw_code)
-                    elif self.DIAGRAM_START in ai_text:
-                        s_idx = ai_text.index(self.DIAGRAM_START) + len(self.DIAGRAM_START)
-                        raw_code = ai_text[s_idx:].strip()
-                        improved_code = clean_code_response(raw_code)
-                    else:
+                    # Re-parse the retry response
+                    improved_code, code_display = self._split_reply(ai_text, diagram_type)
+                    if client.last_truncated:
+                        # A corrective reply cut at the output limit is as incomplete
+                        # as a cut first reply: never offer it as the new diagram.
                         improved_code = None
+                        display_text = self._truncated_notice(language)
+                        break
+                    if not improved_code:
                         break
 
-                if response_mode == "code":
-                    # Build display text for code responses only
-                    before_text = ""
-                    after_text = ""
-                    if self.DIAGRAM_START in ai_text:
-                        before_text = ai_text[: ai_text.index(self.DIAGRAM_START)].strip()
-                    if self.DIAGRAM_END in ai_text:
-                        end_marker_pos = ai_text.index(self.DIAGRAM_END) + len(self.DIAGRAM_END)
-                        after_text = ai_text[end_marker_pos:].strip()
-
-                    parts = [p for p in [before_text, after_text] if p and len(p) > 3]
-                    if parts:
-                        display_text = "\n\n".join(parts)
-                    else:
+                if response_mode == "code" and not (improved_code is None and client.last_truncated):
+                    # Text the model wrote around the code (the code itself is shown apart)
+                    display_text = code_display
+                    if not display_text:
                         # No explanation text outside diagram markers.
                         # Use thinking content as explanation if available.
                         thinking_text = "".join(think_content_parts).strip()
@@ -893,7 +814,8 @@ class ChatSessionService:
                             display_text = summary.strip()
                         else:
                             display_text = ""
-                improvement_status = ImprovementStatus.PENDING
+                if improved_code:
+                    improvement_status = ImprovementStatus.PENDING
 
             # Persist the AI message
             ai_msg = await self.message_repo.create_message(
@@ -988,7 +910,7 @@ class ChatSessionService:
 
     def _get_model_token_limit(self, model: str) -> int:
         """Return the token limit for a model, falling back to a safe default."""
-        return MODEL_TOKEN_LIMITS.get(model, DEFAULT_TOKEN_LIMIT)
+        return model_context_window(model)
 
     async def _maybe_compact_context(
         self,
@@ -1096,6 +1018,82 @@ class ChatSessionService:
         return truncated + "…"
 
     @staticmethod
+    def _use_code_budget(client) -> None:
+        """Give a code reply the larger output budget (reasoning models think first)."""
+        from app.api.v1.ai_providers.clients.base import CODE_MAX_TOKENS
+
+        client.parameters = {
+            **(client.parameters or {}),
+            "max_tokens": CODE_MAX_TOKENS,
+            "max_output_tokens": CODE_MAX_TOKENS,
+        }
+
+    @staticmethod
+    def _truncated_notice(language: str) -> str:
+        """Chat message shown instead of a diagram cut at the output limit."""
+        if language == "en":
+            return (
+                "The diagram was too large and the reply was cut off, so it wasn't applied. "
+                "Ask for a smaller diagram or build it in parts."
+            )
+        return (
+            "El diagrama resultó demasiado grande y la respuesta se cortó, así que no se aplicó. "
+            "Pide un diagrama más pequeño o constrúyelo por partes."
+        )
+
+    async def _auto_fix_enabled(self, user_id: str) -> bool:
+        """The user's "fix generated diagrams automatically" preference (default on)."""
+        try:
+            settings = await self.ai_service.get_user_settings(user_id)
+            return bool(getattr(settings, "auto_fix_generated", True))
+        except Exception:  # noqa: BLE001 - a settings hiccup must not break the chat
+            return True
+
+    @classmethod
+    def _split_reply(cls, ai_text: str, diagram_type: str) -> tuple[Optional[str], str]:
+        """Split a model reply into (diagram code, the text around it).
+
+        Accepts what models actually send: the <<<DIAGRAM>>> markers (with or
+        without the end marker, also malformed ones), a Markdown code block
+        with any language tag (closed or cut off), or bare code for the
+        diagram type (PlantUML @startuml…@enduml, Mermaid keywords, DBML
+        Table). Returns ``(None, text)`` when there is no code.
+        """
+        import re
+
+        from app.api.v1.ai_providers.prompts import extract_diagram_code
+
+        def around(before: str, after: str) -> str:
+            parts = [p.strip() for p in (before, after) if p and len(p.strip()) > 3]
+            return "\n\n".join(parts)
+
+        start = re.search(r"<{2,3}\s*DIAGRAMA?\s*>{1,3}", ai_text, re.IGNORECASE)
+        if start:
+            rest = ai_text[start.end() :]
+            end = re.search(r"<{2,3}\s*/?\s*(?:END|FIN)_DIAGRAMA?\s*>{1,3}", rest, re.IGNORECASE)
+            code_part, after = (rest[: end.start()], rest[end.end() :]) if end else (rest, "")
+            code = extract_diagram_code(code_part)
+            return (code or None), around(ai_text[: start.start()], after)
+
+        fence = re.search(r"```[^\n`]*\n(.*?)(?:```|$)", ai_text, re.DOTALL)
+        if fence and len(fence.group(1).strip()) > 20:
+            code = extract_diagram_code(fence.group(1))
+            return (code or None), around(ai_text[: fence.start()], ai_text[fence.end() :])
+
+        raw_patterns = {
+            "plantuml": r"@startuml\b.*?@enduml\b",
+            "uml": r"@startuml\b.*?@enduml\b",
+            "mermaid": r"^(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline)\b.+",
+            "dbml": r"^(?:Table|Enum|Project)\s+\S+\s*\{.+",
+        }
+        pattern = raw_patterns.get(diagram_type)
+        if pattern:
+            match = re.search(pattern, ai_text, re.MULTILINE | re.DOTALL)
+            if match and len(match.group(0).strip()) > 20:
+                return match.group(0).strip(), around(ai_text[: match.start()], "")
+        return None, ai_text.strip()
+
+    @staticmethod
     def _detect_response_mode(
         content: str,
         preset_action: Optional[ChatPresetAction] = None,
@@ -1115,6 +1113,13 @@ class ChatSessionService:
             return "code"
 
         lower = content.lower().strip()
+
+        # A request that STARTS with an action verb is a code request even if it
+        # contains a question inside ("Crea un flujo de urgencias (¿requiere
+        # cirugía? ¿hay camas?)"): checking "?" first sent those to text mode.
+        first_word = re.split(r"[\s:,.;!¡]+", lower, maxsplit=1)[0] if lower else ""
+        if first_word in _LEADING_CODE_VERBS:
+            return "code"
 
         # Question indicators → text mode
         question_markers = [

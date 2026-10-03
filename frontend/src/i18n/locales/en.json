@@ -30,7 +30,13 @@
     "language": "Language",
     "profile": "Profile",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "counts": {
+      "diagrams_one": "{{count}} diagram",
+      "diagrams_other": "{{count}} diagrams",
+      "folders_one": "{{count}} folder",
+      "folders_other": "{{count}} folders"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -152,7 +158,8 @@
       "improveUiPrompt": "Improve the diagram UI so it is clearer, cleaner, and easier to read.",
       "improveProcessPrompt": "Improve the process represented by the diagram to make it more efficient and clear.",
       "fixPrompt": "Fix any syntax, structure, or rendering issues in the current diagram. Keep the original intent and return the complete corrected diagram."
-    }
+    },
+    "panelTitle": "AI chat"
   },
   "installation": {
     "title": "Welcome to DiagramaHub",
@@ -321,7 +328,7 @@
     "changePassword": "Change Password",
     "profileInformation": "Personal Information",
     "accountSecurity": "Security",
-    "currentPassword": "Current Password",
+    "currentPassword": "Current password",
     "newPassword": "New Password",
     "confirmNewPassword": "Confirm New Password",
     "updateProfile": "Update profile",
@@ -354,7 +361,6 @@
     "profileUpdateError": "Error updating profile",
     "passwordChangeError": "Error changing password",
     "passwordMinLength": "Minimum 12 characters",
-    "currentPassword": "Current password",
     "currentPasswordRequired": "Enter your current password to confirm the change",
     "oauthOnlyPasswordNotice": "Your account signs in with an external provider, so there is no password to confirm. If you want to create one for email sign-in, request it by email.",
     "sendPasswordSetupEmail": "Create a password by email",
@@ -545,16 +551,14 @@
     "selectedFiles": "Selected files",
     "removeFile": "Remove {{file}}",
     "preview": "Preview",
-    "willCreate": "{{diagrams}} diagrams and {{folders}} folders will be created",
+    "willCreate": "Will create: {{diagrams}} and {{folders}}",
     "foldersList": "Folders: {{folders}}",
     "diagramsList": "Diagrams to be created",
     "withDescription": "with description",
     "partial": "partial",
-    "skipped": "{{count}} files skipped:",
     "quotaOk": "You will be at {{after}} of {{limit}} diagrams of your plan",
     "quotaUnlimited": "Your plan does not limit the number of diagrams",
     "import": "Import",
-    "importCount": "Import {{count}} diagrams",
     "importing": "Importing…",
     "dropToImportRoot": "Drop here to import into the root",
     "errors": {
@@ -563,9 +567,13 @@
       "tooMany": "Too many imports in a row. Wait a moment and try again.",
       "quota": "It would exceed your plan's limit: {{current}} of {{limit}} diagrams. Nothing was imported.",
       "invalidUpload": "Could not read {{file}}: {{reason}}",
-      "nothing": "There is nothing to import in those files."
+      "nothing": "There is nothing to import in those files.",
+      "tooManyRetry": "Too many imports in a row. Try again in {{seconds}} s.",
+      "importFailed": "The import failed and nothing was created. Please try again.",
+      "importFailedPartial": "The import failed and some items could not be undone. Please check the project."
     },
     "reasons": {
+      "unreadable": "damaged or unreadable file",
       "unsupported_type": "unrecognised type",
       "too_large": "too large",
       "nested_zip": "ZIP inside another ZIP",
@@ -577,7 +585,11 @@
       "invalid_zip": "corrupt ZIP",
       "too_many_files": "too many files",
       "too_large_uncompressed": "too large when uncompressed"
-    }
+    },
+    "importCount_one": "Import {{count}} diagram",
+    "importCount_other": "Import {{count}} diagrams",
+    "skipped_one": "{{count}} file skipped:",
+    "skipped_other": "{{count}} files skipped:"
   },
   "projectExport": {
     "title": "Export",
@@ -600,7 +612,7 @@
     "variantStandardHint": "Clean document: title, sections, descriptions and code.",
     "includeDescriptions": "Include descriptions",
     "summary": "Will download",
-    "summaryLine": "{{diagrams}} diagrams · {{folders}} folders · {{size}}",
+    "summaryLine": "{{diagrams}} · {{folders}} · {{size}}",
     "sizeUpTo": "up to {{size}}",
     "tokens": "≈ {{tokens}} tokens",
     "empty": "There are no diagrams in this scope.",
@@ -608,7 +620,8 @@
     "export": "Export",
     "exporting": "Exporting…",
     "error": "Unable to export. Please try again.",
-    "tooMany": "Too many exports in a row. Wait a moment and try again."
+    "tooMany": "Too many exports in a row. Wait a moment and try again.",
+    "tooManyRetry": "Too many exports in a row. Try again in {{seconds}} s."
   },
   "fileBrowser": {
     "actionsFor": "Actions for {{name}}",
@@ -895,7 +908,10 @@
       "isActive": "Active",
       "temperature": "Temperature",
       "maxTokens": "Max tokens",
-      "advancedSettings": "Advanced settings"
+      "advancedSettings": "Advanced settings",
+      "recommended": "Recommended",
+      "retired": "retired",
+      "retiredHint": "This model is no longer listed; it keeps working while the provider offers it. You can change it when editing."
     },
     "settings": {
       "autoGenerate": "Auto-generate descriptions",
@@ -911,36 +927,6 @@
       "selectProvider": "You must configure an AI provider first",
       "regenerate": "Regenerate",
       "useDescription": "Use this description"
-    },
-    "createDiagram": {
-      "title": "Create Diagram with AI",
-      "subtitle": "Describe what you want to diagram and AI will create it for you",
-      "description": "Diagram description",
-      "descriptionPlaceholder": "E.g: A flowchart showing the user registration process, including email validation and profile creation",
-      "diagramType": "Diagram type",
-      "selectType": "Select type",
-      "mermaid": "Mermaid",
-      "plantuml": "PlantUML",
-      "generating": "Generating diagram...",
-      "success": "Diagram generated successfully",
-      "error": "Error generating diagram",
-      "button": "Generate Diagram",
-      "createButton": "Create Diagram with AI"
-    },
-    "improveDiagram": {
-      "title": "Improve Diagram with AI",
-      "subtitle": "AI will improve your diagram according to your instructions",
-      "improvementRequest": "What do you want to improve?",
-      "improvementPlaceholder": "E.g: Add more details to error flow, use colors to differentiate node types, simplify structure",
-      "explainBlocked": "This action is for improving diagrams, not explaining them. Use the 'Explain' quick action in the AI chat.",
-      "generating": "Improving diagram...",
-      "success": "Diagram improved successfully",
-      "error": "Error improving diagram",
-      "button": "Improve with AI",
-      "preview": "Preview",
-      "acceptButton": "Accept Improvement",
-      "rejectButton": "Reject",
-      "tryAgain": "Try Again"
     },
     "messages": {
       "addSuccess": "Provider added successfully",
@@ -996,6 +982,18 @@
       "errorTimeout": "Request timed out",
       "errorPersistence": "Error saving message",
       "errorTryLater": "Too many failed attempts. Please try again later."
+    },
+    "autoFix": {
+      "label": "Fix generated diagrams automatically",
+      "hint": "If the code the AI generates (Mermaid or D2) doesn't render, it's asked once to fix it before you see it. Uses one extra call of your key. Doesn't apply to PlantUML or DBML.",
+      "error": "Couldn't save the preference. Please try again."
+    },
+    "testErrors": {
+      "no_credits": "The key is valid, but the provider account has no credits or balance. Top it up in the provider's console.",
+      "rate_limited": "The provider is rate-limiting requests right now. Try again in a moment.",
+      "invalid_key": "The API key is invalid or has no permissions.",
+      "model_unavailable": "The chosen model isn't available for this key. Choose another model.",
+      "provider_error": "The provider returned an error. Check the key and model and try again."
     }
   },
   "oauth": {
@@ -1149,7 +1147,10 @@
       "lines": "lines",
       "applyConversion": "Apply conversion",
       "footerNote": "By applying, the diagram content and type will be updated to the target format."
-    }
+    },
+    "error": "Unable to convert the diagram. Please try again.",
+    "applyError": "Unable to apply the conversion. Please try again.",
+    "limitError": "You've reached your plan's limit ({{current}} of {{limit}} diagrams)."
   },
   "freehand": {
     "lock": "Lock",
@@ -1163,8 +1164,6 @@
     "width": "Width",
     "undo": "Undo",
     "redo": "Redo",
-    "undoShortcut": "Ctrl+Z",
-    "redoShortcut": "Ctrl+Shift+Z",
     "clearAll": "Clear all",
     "elements": "elements",
     "elementsSelected": "elements selected",
@@ -1212,6 +1211,110 @@
       "text": "Text",
       "freehand": "Freehand",
       "eraser": "Eraser"
+    },
+    "clearAllConfirmTitle": "Clear the whole canvas?",
+    "clearAllConfirmMessage": "Every element on the canvas will be removed. You can undo it with Undo."
+  },
+  "subscription": {
+    "title": "My Subscription",
+    "currentPlan": "Current Plan",
+    "planDetails": "Your subscription details and status",
+    "planFeatures": "Plan Features",
+    "billingInformation": "Billing Information",
+    "started": "Started",
+    "nextBillingDate": "Next billing date",
+    "cancelledOn": "Cancelled on",
+    "cancelSubscription": "Cancel Subscription",
+    "updatePaymentMethod": "Change payment method",
+    "changePlan": "Change Plan",
+    "selectNewPlan": "Select New Plan",
+    "cancelSelection": "Cancel",
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "payment_failed": "Payment Failed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "features": {
+      "unlimitedProjects": "Unlimited projects",
+      "unlimitedDiagrams": "Unlimited diagrams",
+      "upToProjects_one": "Up to {{count}} project",
+      "upToProjects_other": "Up to {{count}} projects",
+      "upToDiagrams_one": "Up to {{count}} diagram",
+      "upToDiagrams_other": "Up to {{count}} diagrams",
+      "premiumBadge": "Premium badge on your profile",
+      "prioritySupport": "Priority support"
+    },
+    "cancellation": {
+      "title": "Subscription Cancelled",
+      "message": "Your subscription has been cancelled. You'll keep access to your current plan until {{date}}. After that, you'll be moved to the FREE plan automatically.",
+      "keepAccessUntil": "You'll keep access until {{date}}",
+      "confirmTitle": "Cancel Subscription",
+      "confirmMessage": "Are you sure you want to cancel your {{planName}} subscription? You'll keep access until {{date}}, then you'll be moved to the FREE plan.",
+      "confirmButton": "Cancel Subscription",
+      "cancelButton": "Keep Subscription",
+      "cancelling": "Cancelling...",
+      "whenToCancel": "When should your subscription end?",
+      "endOfPeriod": "At the end of the period ({{date}})",
+      "endOfPeriodDescription": "Recommended - keep access for what you paid",
+      "immediately": "Immediately",
+      "immediatelyDescription": "Switch to the FREE plan right now (no refund)",
+      "immediateWarning": "You'll lose premium access immediately and there's no refund for the remaining time."
+    },
+    "usage": {
+      "title": "Resource Usage",
+      "subtitle": "Your current project and diagram usage",
+      "projects": "Projects",
+      "diagrams": "Diagrams",
+      "of": "of",
+      "unlimited": "Unlimited",
+      "warning": "You're close to the limit",
+      "limitReached": "Limit reached",
+      "upgradePrompt": "Upgrade your plan to create more resources"
+    },
+    "upgradePlan": {
+      "title": "Plan limit reached",
+      "message": "You've reached your current plan's {{resource}} limit. Upgrade your plan to keep creating.",
+      "action": "See available plans"
+    },
+    "plans": {
+      "title": "Available Plans",
+      "selectPlan": "Select Plan",
+      "currentPlan": "Current Plan",
+      "free": "FREE",
+      "premium": "PREMIUM",
+      "perMonth": "/month",
+      "mostPopular": "Most Popular",
+      "recommended": "Recommended"
+    },
+    "billing": {
+      "title": "Billing History",
+      "subtitle": "Your previous invoices and payments",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "status": "Status",
+      "download": "Download",
+      "noHistory": "No billing history",
+      "noHistoryDescription": "Your invoices will appear here once you make a payment",
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed",
+      "loading": "Loading history...",
+      "error": "Error loading billing history"
+    },
+    "celebration": {
+      "title": "Congratulations! 🎉",
+      "subtitle": "Your subscription has been activated successfully",
+      "newBenefits": "Your new benefits:",
+      "startUsing": "Start using my plan!"
+    },
+    "errors": {
+      "loadingSubscription": "Error loading subscription",
+      "cancellingSubscription": "Error cancelling subscription",
+      "updatePaymentMethod": "Error updating payment method",
+      "noSubscription": "No subscription found"
     }
   }
 }

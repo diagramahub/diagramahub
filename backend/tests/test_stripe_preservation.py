@@ -10,7 +10,7 @@ Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
 
 import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from hypothesis import given, settings as hyp_settings, HealthCheck
 from hypothesis import strategies as st
 
@@ -23,10 +23,10 @@ from app.api.v1.subscriptions.schemas import (
     PlanCreate,
     PlanInDB,
     SubscriptionInDB,
-    SubscriptionCreate,
 )
-from app.api.v1.subscriptions.constants import FREE_PLAN_NAME, STATUS_ACTIVE
+from app.api.v1.subscriptions.constants import STATUS_ACTIVE
 from tests.utils.security import generate_test_secret
+from app.core.clock import utcnow
 
 
 # ---------------------------------------------------------------------------
@@ -92,8 +92,8 @@ def _make_plan_in_db(
     plan.gateway_config = None
     plan.parsed_gateway_config = None
     plan.prices = {}
-    plan.created_at = datetime.utcnow()
-    plan.updated_at = datetime.utcnow()
+    plan.created_at = utcnow()
+    plan.updated_at = utcnow()
     return plan
 
 
@@ -113,12 +113,12 @@ def _make_subscription_in_db(
     sub.stripe_subscription_id = stripe_sub_id
     sub.stripe_customer_id = stripe_cust_id
     sub.payment_provider = "stripe"
-    sub.started_at = datetime.utcnow()
+    sub.started_at = utcnow()
     sub.current_period_start = None
     sub.current_period_end = None
     sub.cancelled_at = None
-    sub.created_at = datetime.utcnow()
-    sub.updated_at = datetime.utcnow()
+    sub.created_at = utcnow()
+    sub.updated_at = utcnow()
     return sub
 
 

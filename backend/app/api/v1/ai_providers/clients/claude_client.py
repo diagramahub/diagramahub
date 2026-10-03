@@ -6,13 +6,12 @@ import json
 import time
 
 import httpx
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 
-from .base import BaseAIClient
+from .base import BaseAIClient, provider_error
+from ..model_catalog import recommended_model, supports_temperature
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
@@ -26,10 +25,10 @@ class ClaudeClient(BaseAIClient):
     def __init__(
         self,
         api_key: str,
-        model: str = "claude-haiku-4-5-20251001",
+        model: Optional[str] = None,
         parameters: Dict[str, Any] = None,
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("claude"), parameters or {})
         self.base_url = "https://api.anthropic.com/v1"
         self.headers = {
             "x-api-key": self.api_key,
@@ -37,7 +36,14 @@ class ClaudeClient(BaseAIClient):
             "Content-Type": "application/json",
         }
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """
         Complete a chat request.
 
@@ -47,6 +53,8 @@ class ClaudeClient(BaseAIClient):
         return await self._messages_request(
             [{"role": "user", "content": user_prompt}],
             system=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     async def complete_chat(
@@ -69,9 +77,13 @@ class ClaudeClient(BaseAIClient):
         payload: dict[str, Any] = {
             "model": self.model,
             "max_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
-            "temperature": temperature or self.parameters.get("temperature", 0.7),
             "messages": messages,
         }
+        # Claude 5.x rejects `temperature` (400 "deprecated for this model")
+        if supports_temperature(self.model):
+            payload["temperature"] = (
+                temperature if temperature is not None else self.parameters.get("temperature", 0.7)
+            )
         if system:
             payload["system"] = system
 
@@ -81,19 +93,33 @@ class ClaudeClient(BaseAIClient):
                 headers=self.headers,
                 json=payload,
             )
-
-            if response.status_code == 429:
-                raise ValueError(
-                    "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
+            # A model the catalog doesn't know yet may reject it too: retry once without
+            if (
+                response.status_code == 400
+                and "temperature" in payload
+                and "temperature" in response.text
+            ):
+                payload = {k: v for k, v in payload.items() if k != "temperature"}
+                response = await client.post(
+                    f"{self.base_url}/messages",
+                    headers=self.headers,
+                    json=payload,
                 )
+
             if response.status_code != 200:
-                raise ValueError(f"Claude API error: {response.status_code} - {response.text}")
+                raise provider_error(self.provider_name, response.status_code, response.text)
 
             result = response.json()
-            if not result.get("content") or len(result["content"]) == 0:
+            self.last_truncated = result.get("stop_reason") == "max_tokens"
+            # Models with adaptive thinking may send thinking blocks before the text
+            text = "".join(
+                block.get("text", "")
+                for block in result.get("content") or []
+                if block.get("type") == "text"
+            )
+            if not text and not self.last_truncated:
                 raise ValueError("Claude returned empty response")
-
-            return result["content"][0]["text"].strip()
+            return text.strip()
 
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"
@@ -124,18 +150,6 @@ class ClaudeClient(BaseAIClient):
         except Exception as e:
             print(f"Claude API key validation failed: {str(e)}")
             return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            response = await self._messages_request([{"role": "user", "content": prompt}])
-            return clean_code_response(response)
-        except httpx.TimeoutException:
-            raise ValueError("Claude API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with Claude: {str(e)}")
 
     async def fix_diagram(
         self,
@@ -180,24 +194,6 @@ class ClaudeClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con Claude: {str(e)}")
 
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            response = await self._messages_request([{"role": "user", "content": prompt}])
-            return clean_code_response(response)
-        except httpx.TimeoutException:
-            raise ValueError("Claude API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with Claude: {str(e)}")
-
     async def chat_with_context(
         self,
         messages: list[dict],
@@ -235,6 +231,8 @@ class ClaudeClient(BaseAIClient):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response token by token using Anthropic streaming API.
 
@@ -248,6 +246,8 @@ class ClaudeClient(BaseAIClient):
             diagram_code: Current diagram code
             diagram_type: Diagram type (mermaid, plantuml, etc.)
             language: Response language (es, en)
+            system_prompt: System prompt to use (default: the basic chat prompt)
+            max_tokens: Output budget for this reply (default: provider settings)
 
         Yields:
             String chunks as they arrive from Claude
@@ -255,17 +255,21 @@ class ClaudeClient(BaseAIClient):
         Raises:
             ValueError: If streaming fails or times out
         """
-        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
+        self.last_truncated = False
+        system_content = system_prompt or build_chat_system_prompt(
+            diagram_code, diagram_type, language
+        )
         api_messages = [{"role": msg["role"], "content": msg["content"]} for msg in messages]
 
         payload: dict = {
             "model": self.model,
-            "max_tokens": self.parameters.get("max_tokens", 4096),
-            "temperature": self.parameters.get("temperature", 0.7),
+            "max_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
             "system": system_content,
             "messages": api_messages,
             "stream": True,
         }
+        if supports_temperature(self.model):
+            payload["temperature"] = self.parameters.get("temperature", 0.7)
 
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=10.0)) as client:
@@ -275,12 +279,9 @@ class ClaudeClient(BaseAIClient):
                     headers=self.headers,
                     json=payload,
                 ) as response:
-                    if response.status_code == 429:
-                        raise ValueError(
-                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                        )
                     if response.status_code != 200:
-                        raise ValueError(f"Claude API error: {response.status_code}")
+                        body = (await response.aread()).decode("utf-8", errors="replace")
+                        raise provider_error(self.provider_name, response.status_code, body)
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():
@@ -304,6 +305,9 @@ class ClaudeClient(BaseAIClient):
                             if text:
                                 last_token_time = time.time()
                                 yield text
+                        elif event_type == "message_delta":
+                            if event_data.get("delta", {}).get("stop_reason") == "max_tokens":
+                                self.last_truncated = True
                         elif event_type == "message_stop":
                             return
                         elif event_type == "error":

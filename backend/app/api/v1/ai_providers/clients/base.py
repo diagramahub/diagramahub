@@ -3,7 +3,108 @@ Base abstract client for AI providers.
 """
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
+
+from ..prompts import (
+    build_code_system_prompt,
+    build_generate_user_prompt,
+    build_improve_user_prompt,
+    extract_diagram_code,
+)
+
+# Diagram code can be long, and reasoning models spend part of the output
+# budget thinking: generating/improving gets a larger budget than chat.
+CODE_MAX_TOKENS = 8192
+# Code must follow a strict syntax: low temperature (ignored by models that
+# don't accept it).
+CODE_TEMPERATURE = 0.2
+
+
+class TruncatedResponseError(ValueError):
+    """The provider stopped at the output-token limit: the code is incomplete."""
+
+
+class EmptyResponseError(ValueError):
+    """The provider answered without any diagram code."""
+
+
+class ProviderError(ValueError):
+    """A provider rejected the request, classified so users get the real reason.
+
+    ``code`` is one of: no_credits, rate_limited, invalid_key,
+    model_unavailable, provider_error.
+    """
+
+    def __init__(self, code: str, message: str, status_code: Optional[int] = None):
+        super().__init__(message)
+        self.code = code
+        self.status_code = status_code
+
+
+_NO_CREDIT_HINTS = (
+    "insufficient_quota",
+    "credit_balance",
+    "credit balance",
+    "insufficient balance",
+    "insufficient_balance",
+    "billing",
+    "payment required",
+)
+_MODEL_HINTS = (
+    "model_not_found",
+    "does not exist",
+    "not exist",  # DeepSeek: "Model Not Exist"
+    "not found",
+    "not_found",
+    "unknown model",
+)
+_KEY_HINTS = (
+    "invalid_api_key",
+    "invalid api key",
+    "incorrect api key",
+    "authentication",
+    "api key not valid",
+)
+
+
+def provider_error(provider: str, status_code: int, body: str) -> ProviderError:
+    """Classify a provider's HTTP error.
+
+    Each provider says "no credits" differently: OpenAI answers 429
+    ``insufficient_quota``, DeepSeek and MiniMax 402, Anthropic 400 "credit
+    balance is too low". Reporting all of them as "rate limit, try again"
+    sent users to wait for something that would never recover.
+    """
+    text = (body or "").lower()
+    detail = (body or "").strip().replace("\n", " ")[:300]
+    if status_code == 402 or any(hint in text for hint in _NO_CREDIT_HINTS):
+        return ProviderError(
+            "no_credits",
+            f"{provider}: la cuenta del proveedor no tiene créditos o saldo. "
+            "Recarga en el panel del proveedor e inténtalo de nuevo.",
+            status_code,
+        )
+    if status_code in (401, 403) or any(hint in text for hint in _KEY_HINTS):
+        return ProviderError(
+            "invalid_key",
+            f"{provider}: la llave de API no es válida o no tiene permisos.",
+            status_code,
+        )
+    if status_code == 404 or ("model" in text and any(hint in text for hint in _MODEL_HINTS)):
+        return ProviderError(
+            "model_unavailable",
+            f"{provider}: el modelo elegido no está disponible para esta llave.",
+            status_code,
+        )
+    if status_code == 429:
+        return ProviderError(
+            "rate_limited",
+            f"{provider}: se alcanzó el límite de solicitudes. Inténtalo de nuevo en unos momentos.",
+            status_code,
+        )
+    return ProviderError(
+        "provider_error", f"{provider} API error ({status_code}): {detail}", status_code
+    )
 
 
 class BaseAIClient(ABC):
@@ -21,18 +122,31 @@ class BaseAIClient(ABC):
         self.api_key = api_key
         self.model = model
         self.parameters = parameters
+        # Set by each provider's request method: True when the last reply was
+        # cut at the output-token limit (finish/stop reason "length").
+        self.last_truncated = False
 
     @abstractmethod
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """
         Complete a chat request with system and user prompts.
 
         Single public entry point for raw prompt completion; each client
-        maps this to its provider-specific request method.
+        maps this to its provider-specific request method and records
+        ``last_truncated``.
 
         Args:
             system_prompt: System-level instructions for the model
             user_prompt: User message content
+            max_tokens: Output budget for this call (default: provider settings)
+            temperature: Sampling temperature (skipped where unsupported)
 
         Returns:
             Plain text response from the provider
@@ -97,46 +211,87 @@ class BaseAIClient(ABC):
         """
         pass
 
-    @abstractmethod
+    async def check_connection(self) -> tuple[bool, Optional[str], str]:
+        """Make a minimal real call with the configured model.
+
+        Listing models (``validate_api_key``) succeeds for a key without
+        credits or without access to the chosen model; this doesn't.
+
+        Returns:
+            ``(ok, error_code, message)`` — error_code as in ``ProviderError``
+        """
+        try:
+            await self.complete("Reply with exactly: OK", "OK", max_tokens=64)
+            return True, None, "OK"
+        except ProviderError as error:
+            return False, error.code, str(error)
+        except Exception as error:  # noqa: BLE001 - reported to the user, not raised
+            return False, "provider_error", str(error)[:300]
+
+    async def _complete_code(self, system_prompt: str, user_prompt: str) -> str:
+        """Run a code request and return just the diagram code.
+
+        Raises:
+            TruncatedResponseError: the reply hit the output limit (code incomplete)
+            EmptyResponseError: the reply contains no code
+        """
+        self.last_truncated = False
+        reply = await self.complete(
+            system_prompt, user_prompt, max_tokens=CODE_MAX_TOKENS, temperature=CODE_TEMPERATURE
+        )
+        if self.last_truncated:
+            raise TruncatedResponseError("The diagram was cut off at the output limit")
+        code = extract_diagram_code(reply)
+        if not code.strip():
+            raise EmptyResponseError("The model returned no diagram code")
+        return code
+
     async def generate_diagram(
         self, description: str, diagram_type: str, language: str = "es"
     ) -> str:
         """
-        Generate diagram code from a description.
+        Generate diagram code from a description (same prompt for every provider).
 
         Args:
             description: User's description of what they want to diagram
-            diagram_type: Type of diagram (mermaid, plantuml)
-            language: User's language (es, en)
+            diagram_type: Type of diagram (mermaid, plantuml, d2, dbml)
+            language: User's language (es, en) for the labels
 
         Returns:
             Generated diagram code
 
         Raises:
-            ValueError: If generation fails
+            TruncatedResponseError / EmptyResponseError: see ``_complete_code``
+            ValueError: If the provider call fails
         """
-        pass
+        return await self._complete_code(
+            build_code_system_prompt(diagram_type, language),
+            build_generate_user_prompt(description),
+        )
 
-    @abstractmethod
     async def improve_diagram(
         self, diagram_code: str, improvement_request: str, diagram_type: str, language: str = "es"
     ) -> str:
         """
-        Improve an existing diagram based on user's request.
+        Improve an existing diagram based on the user's request.
 
         Args:
             diagram_code: Current diagram code
             improvement_request: User's improvement request
-            diagram_type: Type of diagram (mermaid, plantuml)
-            language: User's language (es, en)
+            diagram_type: Type of diagram (mermaid, plantuml, d2, dbml)
+            language: User's language (es, en) for the labels
 
         Returns:
             Improved diagram code
 
         Raises:
-            ValueError: If improvement fails
+            TruncatedResponseError / EmptyResponseError: see ``_complete_code``
+            ValueError: If the provider call fails
         """
-        pass
+        return await self._complete_code(
+            build_code_system_prompt(diagram_type, language),
+            build_improve_user_prompt(diagram_code, improvement_request),
+        )
 
     @abstractmethod
     async def fix_diagram(
@@ -231,6 +386,8 @@ class BaseAIClient(ABC):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream chat response token by token.

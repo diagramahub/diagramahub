@@ -1,7 +1,7 @@
 # ✏️ Diagramahub
 
 [![Known Vulnerabilities](https://snyk.io/test/github/diagramahub/diagramahub/badge.svg?targetFile=frontend/package.json)](https://snyk.io/test/github/diagramahub/diagramahub?targetFile=frontend/package.json)
-[![Backend coverage](https://img.shields.io/badge/backend%20coverage-57.01%25-yellow)](#-testing)
+[![Backend coverage](https://img.shields.io/badge/backend%20coverage-62.57%25-yellow)](#-testing)
 
 
 **Diagramahub** is an open-source platform for creating, organizing, and exporting diagrams using plain text markup. It combines the power of Mermaid, PlantUML, and D2 with a polished interface — ideal for developers and teams who want to diagram fast and stay in flow.

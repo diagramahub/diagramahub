@@ -6,20 +6,17 @@ import json
 import time
 
 import httpx
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 
-from .base import BaseAIClient
+from ..model_catalog import recommended_model
+from .base import BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
     DESCRIPTION_SYSTEM_PROMPT,
     SUMMARIZE_SYSTEM_PROMPT,
-    get_generate_diagram_system_prompt,
-    get_improve_diagram_system_prompt,
 )
 
 
@@ -27,22 +24,30 @@ class OpenAIClient(BaseAIClient):
     """Client for OpenAI GPT."""
 
     def __init__(
-        self, api_key: str, model: str = "gpt-4.1-mini", parameters: Dict[str, Any] = None
+        self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("openai"), parameters or {})
         self.base_url = "https://api.openai.com/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """Complete a chat request with system and user messages."""
         return await self._chat_completion(
             [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
-            ]
+            ],
+            max_tokens=max_tokens,
         )
 
     async def complete_chat(
@@ -54,13 +59,16 @@ class OpenAIClient(BaseAIClient):
         )
 
     async def _chat_completion(
-        self, messages: list[dict], response_format: dict | None = None
+        self,
+        messages: list[dict],
+        response_format: dict | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         """Llamada genérica al endpoint chat/completions de OpenAI."""
         payload: dict = {
             "model": self.model,
             "messages": messages,
-            "max_completion_tokens": self.parameters.get("max_tokens", 4096),
+            "max_completion_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
         }
         if response_format:
             payload["response_format"] = response_format
@@ -72,18 +80,16 @@ class OpenAIClient(BaseAIClient):
                 json=payload,
             )
 
-            if response.status_code == 429:
-                raise ValueError(
-                    "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                )
             if response.status_code != 200:
-                raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
+                raise provider_error(self.provider_name, response.status_code, response.text)
 
             result = response.json()
             if not result.get("choices") or len(result["choices"]) == 0:
                 raise ValueError("OpenAI returned empty response")
 
-            return result["choices"][0]["message"]["content"].strip()
+            choice = result["choices"][0]
+            self.last_truncated = choice.get("finish_reason") == "length"
+            return (choice.get("message", {}).get("content") or "").strip()
 
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"
@@ -113,23 +119,6 @@ class OpenAIClient(BaseAIClient):
         except Exception as e:
             print(f"OpenAI API key validation failed: {str(e)}")
             return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            response = await self._chat_completion(
-                [
-                    {"role": "system", "content": get_generate_diagram_system_prompt(diagram_type)},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-            return clean_code_response(response)
-        except httpx.TimeoutException:
-            raise ValueError("OpenAI API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with OpenAI: {str(e)}")
 
     async def fix_diagram(
         self,
@@ -178,36 +167,6 @@ class OpenAIClient(BaseAIClient):
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con OpenAI: {str(e)}")
 
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            response = await self._chat_completion(
-                [
-                    {"role": "system", "content": get_improve_diagram_system_prompt(diagram_type)},
-                    {"role": "user", "content": prompt},
-                ]
-            )
-            cleaned = clean_code_response(response)
-            if not cleaned:
-                raise ValueError(
-                    f"El modelo {self.model} no devolvió código de diagrama. "
-                    "Si querías solo una explicación, usa la acción 'Explicar' del chat. "
-                    "Si querías mejorar el diagrama, prueba con un modelo más capaz."
-                )
-            return cleaned
-        except httpx.TimeoutException:
-            raise ValueError("OpenAI API request timed out")
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with OpenAI: {str(e)}")
-
     async def chat_with_context(
         self,
         messages: list[dict],
@@ -247,6 +206,8 @@ class OpenAIClient(BaseAIClient):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response token by token using OpenAI streaming API.
 
@@ -255,6 +216,8 @@ class OpenAIClient(BaseAIClient):
             diagram_code: Current diagram code
             diagram_type: Diagram type (mermaid, plantuml, etc.)
             language: Response language (es, en)
+            system_prompt: System prompt to use (default: the basic chat prompt)
+            max_tokens: Output budget for this reply (default: provider settings)
 
         Yields:
             String chunks as they arrive from OpenAI
@@ -262,7 +225,10 @@ class OpenAIClient(BaseAIClient):
         Raises:
             ValueError: If streaming fails or times out
         """
-        system_content = build_chat_system_prompt(diagram_code, diagram_type, language)
+        self.last_truncated = False
+        system_content = system_prompt or build_chat_system_prompt(
+            diagram_code, diagram_type, language
+        )
         api_messages = [{"role": "system", "content": system_content}]
         for msg in messages:
             api_messages.append({"role": msg["role"], "content": msg["content"]})
@@ -270,7 +236,7 @@ class OpenAIClient(BaseAIClient):
         payload = {
             "model": self.model,
             "messages": api_messages,
-            "max_completion_tokens": self.parameters.get("max_tokens", 4096),
+            "max_completion_tokens": max_tokens or self.parameters.get("max_tokens", 4096),
             "stream": True,
         }
 
@@ -282,12 +248,9 @@ class OpenAIClient(BaseAIClient):
                     headers=self.headers,
                     json=payload,
                 ) as response:
-                    if response.status_code == 429:
-                        raise ValueError(
-                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                        )
                     if response.status_code != 200:
-                        raise ValueError(f"OpenAI API error: {response.status_code}")
+                        body = (await response.aread()).decode("utf-8", errors="replace")
+                        raise provider_error(self.provider_name, response.status_code, body)
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():
@@ -311,6 +274,8 @@ class OpenAIClient(BaseAIClient):
                         if not choices:
                             continue
 
+                        if choices[0].get("finish_reason") == "length":
+                            self.last_truncated = True
                         delta = choices[0].get("delta", {})
                         content = delta.get("content")
                         if content:

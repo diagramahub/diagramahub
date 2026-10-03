@@ -4,9 +4,10 @@ Pydantic models for folder module.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from beanie import Document
 from ..diagrams.schemas import DiagramResponse
+from app.core.clock import utcnow
 
 
 class FolderBase(BaseModel):
@@ -35,8 +36,8 @@ class FolderInDB(Document):
     name: str
     color: str = "#3B82F6"
     project_id: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "folders"
@@ -53,8 +54,7 @@ class FolderResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FolderWithDiagramsResponse(FolderResponse):

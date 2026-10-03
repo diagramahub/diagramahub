@@ -21,6 +21,7 @@ from .schemas import (
     UpdateProviderRequest,
     TestProviderResponse,
 )
+from .clients.base import EmptyResponseError, TruncatedResponseError
 from .clients.factory import AIClientFactory
 from .clients.base import BaseAIClient
 from app.core.security import mask_api_key
@@ -70,6 +71,7 @@ class AIProviderService:
             user_id=settings.user_id,
             providers=masked_providers,
             auto_generate_on_save=settings.auto_generate_on_save,
+            auto_fix_generated=settings.auto_fix_generated,
             default_provider=settings.default_provider,
             created_at=settings.created_at,
             updated_at=settings.updated_at,
@@ -235,6 +237,21 @@ class AIProviderService:
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+        return await self.get_user_settings(user_id)
+
+    async def set_auto_fix(self, user_id: str, enabled: bool) -> UserAISettingsResponse:
+        """
+        Turn the automatic fix of generated diagrams on or off.
+
+        Args:
+            user_id: User ID
+            enabled: Whether to retry once when generated code doesn't render
+
+        Returns:
+            Updated user settings
+        """
+        await self.get_user_settings(user_id)  # creates defaults on first use
+        await self.repository.set_auto_fix(user_id, enabled)
         return await self.get_user_settings(user_id)
 
     async def set_default_provider(
@@ -427,7 +444,9 @@ class AIProviderService:
             client = AIClientFactory.create_client(
                 provider=provider, api_key=api_key, model=model, parameters={}
             )
-            is_valid = await client.validate_api_key()
+            # A real (tiny) call with the chosen model: listing models said "valid"
+            # for keys without credits or without access to that model.
+            ok, error_code, message = await client.check_connection()
         except NotImplementedError:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -436,17 +455,18 @@ class AIProviderService:
         except HTTPException:
             # Never swallow HTTP errors raised during validation.
             raise
-        except Exception:
-            is_valid = False
+        except Exception as error:  # noqa: BLE001 - reported in the response
+            ok, error_code, message = False, "provider_error", str(error)[:300]
 
-        if is_valid:
+        if ok:
             return TestProviderResponse(
                 valid=True, message="API key is valid", provider_name=provider.value
             )
         return TestProviderResponse(
             valid=False,
-            message="API key is invalid or has no permissions",
+            message=message,
             provider_name=provider.value,
+            error_code=error_code,
         )
 
     async def generate_diagram(
@@ -509,6 +529,17 @@ class AIProviderService:
                 generation_time=generation_time,
             )
 
+        except TruncatedResponseError:
+            # The code hit the output limit: incomplete code would not render
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": "response_truncated"},
+            )
+        except EmptyResponseError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={"error": "empty_response"},
+            )
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -583,6 +614,17 @@ class AIProviderService:
                 generation_time=generation_time,
             )
 
+        except TruncatedResponseError:
+            # The code hit the output limit: incomplete code would not render
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error": "response_truncated"},
+            )
+        except EmptyResponseError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={"error": "empty_response"},
+            )
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -11,6 +11,7 @@ from app.api.deps import get_current_user_id
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.projects.repository import ProjectRepository
 from app.api.v1.ai_providers.repository import AIProviderRepository
+from app.api.v1.folders.repository import FolderRepository
 from app.api.v1.subscriptions.usage_limiter import UsageLimiter
 from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
 from app.api.v1.subscriptions.plan_repository import PlanRepository
@@ -50,6 +51,7 @@ def get_diagram_service() -> DiagramService:
         diagram_repository=DiagramRepository(),
         project_repository=ProjectRepository(),
         shared_link_repository=SharedLinkRepository(),
+        folder_repository=FolderRepository(),
     )
 
 
@@ -261,8 +263,12 @@ async def duplicate_diagram(
     duplicate_data: DiagramDuplicate,
     user_id: str = Depends(get_current_user_id),
     service: DiagramService = Depends(get_diagram_service),
+    usage_limiter: UsageLimiter = Depends(get_usage_limiter),
 ):
     """Duplicate a diagram in the same project with a new title."""
+    # A copy is a new diagram: it counts against the plan like any other.
+    await usage_limiter.enforce_diagram_limit(user_id)
+
     return await service.duplicate_diagram(diagram_id, duplicate_data, user_id)
 
 

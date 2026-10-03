@@ -62,3 +62,37 @@ class TestSlidingWindowRateLimiter:
         limiter.reset()
 
         assert limiter.is_allowed("10.0.0.1")[0] is True
+
+
+def test_idle_keys_are_dropped_once_their_window_has_passed(monkeypatch) -> None:  # noqa: ANN001
+    """Keys seen once (e.g. rotating client IPs) must not accumulate forever."""
+    from app.core import rate_limit
+
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(rate_limit.time, "monotonic", lambda: clock["now"])
+    limiter = rate_limit.SlidingWindowRateLimiter(max_requests=3, window_seconds=60)
+
+    for i in range(500):
+        limiter.is_allowed(f"10.0.{i // 250}.{i % 250}")
+    assert len(limiter._requests) == 500
+
+    clock["now"] += 61  # every one of those keys is now idle
+    limiter.is_allowed("10.9.9.9")
+
+    assert list(limiter._requests) == ["10.9.9.9"]
+
+
+def test_active_keys_keep_their_history_through_a_sweep(monkeypatch) -> None:  # noqa: ANN001
+    from app.core import rate_limit
+
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(rate_limit.time, "monotonic", lambda: clock["now"])
+    limiter = rate_limit.SlidingWindowRateLimiter(max_requests=2, window_seconds=60)
+
+    limiter.is_allowed("busy")
+    clock["now"] += 50
+    limiter.is_allowed("busy")
+    clock["now"] += 20  # sweep runs; "busy" still has one request inside the window
+
+    assert limiter.is_allowed("busy") == (True, 0)
+    assert limiter.is_allowed("busy")[0] is False

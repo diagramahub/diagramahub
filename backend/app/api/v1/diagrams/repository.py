@@ -2,12 +2,12 @@
 Concrete implementation of diagram repository.
 """
 
-from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from beanie.operators import In
 from .interfaces import IDiagramRepository
 from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
+from app.core.clock import utcnow
 
 
 # Fields that only describe how a diagram is being viewed, not its content.
@@ -27,8 +27,8 @@ class DiagramRepository(IDiagramRepository):
             config=diagram_data.config,
             project_id=project_id,
             folder_id=diagram_data.folder_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await diagram.insert()
         return diagram
@@ -51,8 +51,8 @@ class DiagramRepository(IDiagramRepository):
             viewport_zoom=1.0,
             viewport_x=0.0,
             viewport_y=0.0,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await diagram.insert()
         return diagram
@@ -68,6 +68,31 @@ class DiagramRepository(IDiagramRepository):
         """Get all diagrams for a project."""
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()
         return diagrams
+
+    async def count_by_project_ids(self, project_ids: list[str]) -> int:
+        """Number of diagrams across projects, counted by MongoDB (no documents loaded)."""
+        if not project_ids:
+            return 0
+        return await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).count()
+
+    async def type_counts_by_project(self, project_ids: list[str]) -> dict[str, dict[str, int]]:
+        """``{project_id: {diagram_type: count}}`` from one aggregation (no content loaded)."""
+        if not project_ids:
+            return {}
+        rows = await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).aggregate(
+            [
+                {
+                    "$group": {
+                        "_id": {"p": "$project_id", "t": {"$ifNull": ["$diagram_type", "mermaid"]}},
+                        "n": {"$sum": 1},
+                    }
+                }
+            ]
+        ).to_list()
+        counts: dict[str, dict[str, int]] = {}
+        for row in rows:
+            counts.setdefault(row["_id"]["p"], {})[row["_id"]["t"] or "mermaid"] = row["n"]
+        return counts
 
     async def get_recent_by_project_ids(
         self, project_ids: list[str], limit: int
@@ -90,10 +115,15 @@ class DiagramRepository(IDiagramRepository):
             .to_list()
         )
 
-    async def get_by_folder_id(self, folder_id: str) -> list[DiagramInDB]:
-        """Get all diagrams for a folder."""
-        diagrams = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).to_list()
-        return diagrams
+    async def get_by_folder_id(self, folder_id: str, project_id: str) -> list[DiagramInDB]:
+        """Get the diagrams of a folder, scoped to the folder's project.
+
+        The project filter keeps a diagram of another project out even if its
+        ``folder_id`` points here (defense in depth for cross-project ids).
+        """
+        return await DiagramInDB.find(
+            DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
+        ).to_list()
 
     async def get_without_folder(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams without a folder for a project."""
@@ -115,7 +145,7 @@ class DiagramRepository(IDiagramRepository):
             {
                 "project_id": target_project_id,
                 "folder_id": None,
-                "updated_at": datetime.utcnow(),
+                "updated_at": utcnow(),
             }
         )
         return diagram
@@ -141,7 +171,7 @@ class DiagramRepository(IDiagramRepository):
             if field not in PRESENTATION_FIELDS
         )
         if edited:
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = utcnow()
         await diagram.set(update_data)
 
         return diagram
@@ -160,14 +190,18 @@ class DiagramRepository(IDiagramRepository):
         result = await DiagramInDB.find(DiagramInDB.project_id == project_id).delete()
         return result.deleted_count if result else 0
 
-    async def delete_by_folder_id(self, folder_id: str) -> int:
-        """Delete all diagrams in a folder."""
-        result = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).delete()
+    async def delete_by_folder_id(self, folder_id: str, project_id: str) -> int:
+        """Delete the diagrams of a folder, scoped to the folder's project."""
+        result = await DiagramInDB.find(
+            DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
+        ).delete()
         return result.deleted_count if result else 0
 
-    async def clear_folder(self, folder_id: str) -> int:
-        """Remove folder assignment from all diagrams in a folder."""
-        result = await DiagramInDB.find(DiagramInDB.folder_id == folder_id).update(
-            {"$set": {"folder_id": None, "updated_at": datetime.utcnow()}}
+    async def clear_folder(self, folder_id: str, project_id: str) -> int:
+        """Move the diagrams of a folder to the project root, scoped to the folder's project."""
+        result = await DiagramInDB.find(
+            DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
+        ).update(
+            {"$set": {"folder_id": None, "updated_at": utcnow()}}
         )
         return result.modified_count if result else 0

@@ -2,11 +2,11 @@
 Concrete implementation of folder repository.
 """
 
-from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from .interfaces import IFolderRepository
 from .schemas import FolderInDB, FolderCreate, FolderUpdate
+from app.core.clock import utcnow
 
 
 class FolderRepository(IFolderRepository):
@@ -18,8 +18,8 @@ class FolderRepository(IFolderRepository):
             name=folder_data.name,
             color=folder_data.color or "#3B82F6",
             project_id=project_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await folder.insert()
         return folder
@@ -44,7 +44,7 @@ class FolderRepository(IFolderRepository):
 
         update_data = folder_data.model_dump(exclude_unset=True)
         if update_data:
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = utcnow()
             await folder.set(update_data)
 
         return folder

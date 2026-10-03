@@ -95,7 +95,7 @@ class FolderService:
             )
 
         # Get diagrams in folder
-        diagrams = await self.diagram_repository.get_by_folder_id(folder_id)
+        diagrams = await self.diagram_repository.get_by_folder_id(folder_id, folder.project_id)
         diagram_responses = [diagram_to_response(d) for d in diagrams]
 
         return FolderWithDiagramsResponse(
@@ -179,14 +179,14 @@ class FolderService:
             )
 
         # Get diagrams in folder
-        diagrams = await self.diagram_repository.get_by_folder_id(folder_id)
+        diagrams = await self.diagram_repository.get_by_folder_id(folder_id, folder.project_id)
 
         if delete_diagrams:
             # Delete all diagrams in the folder
-            await self.diagram_repository.delete_by_folder_id(folder_id)
+            await self.diagram_repository.delete_by_folder_id(folder_id, folder.project_id)
         else:
             # Move diagrams to root (set folder_id to None)
-            await self.diagram_repository.clear_folder(folder_id)
+            await self.diagram_repository.clear_folder(folder_id, folder.project_id)
 
         await self.folder_repository.delete(folder_id)
 

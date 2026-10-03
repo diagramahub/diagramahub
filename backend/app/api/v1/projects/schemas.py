@@ -4,10 +4,11 @@ Pydantic models for project module.
 
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from beanie import Document
 from ..diagrams.schemas import DiagramResponse
 from ..folders.schemas import FolderWithDiagramsResponse
+from app.core.clock import utcnow
 
 
 class ProjectBase(BaseModel):
@@ -41,8 +42,8 @@ class ProjectInDB(Document):
     description: Optional[str] = None
     emoji: str = "📊"
     user_id: str  # Owner of the project
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "projects"
@@ -62,8 +63,7 @@ class ProjectResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectWithDiagramsResponse(ProjectResponse):

@@ -13,6 +13,7 @@ from .payment_providers.interfaces import IPaymentProvider
 from .exceptions import NotFoundError, ValidationError
 from .constants import FREE_PLAN_NAME, STATUS_ACTIVE
 from .logger import SubscriptionLogger
+from app.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +166,7 @@ class SubscriptionService:
             "stripe_customer_id": stripe_customer_id,
             "stripe_subscription_id": stripe_subscription_id,
             "status": STATUS_ACTIVE,
-            "current_period_start": datetime.utcnow(),
+            "current_period_start": utcnow(),
         }
 
         if current_period_end:
@@ -236,7 +237,7 @@ class SubscriptionService:
 
             # Marcar suscripción actual como cancelada
             await self.repository.update(
-                str(subscription.id), {"cancelled_at": datetime.utcnow(), "status": "cancelled"}
+                str(subscription.id), {"cancelled_at": utcnow(), "status": "cancelled"}
             )
 
             # Cambiar a plan FREE inmediatamente
@@ -247,13 +248,13 @@ class SubscriptionService:
                 subscription_id=str(subscription.id),
                 user_id=user_id,
                 plan_name=plan.name if plan else "Unknown",
-                cancel_at=datetime.utcnow(),
+                cancel_at=utcnow(),
             )
 
             return {
                 "message": "Subscription cancelled immediately",
-                "cancel_at": datetime.utcnow(),
-                "access_until": datetime.utcnow(),
+                "cancel_at": utcnow(),
+                "access_until": utcnow(),
                 "immediate": True,
             }
         else:
@@ -266,7 +267,7 @@ class SubscriptionService:
             await self.repository.update(
                 str(subscription.id),
                 {
-                    "cancelled_at": datetime.utcnow(),
+                    "cancelled_at": utcnow(),
                     "current_period_end": cancel_result.get("cancel_at"),
                 },
             )

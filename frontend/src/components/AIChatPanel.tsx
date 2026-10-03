@@ -1,3 +1,4 @@
+import { autoFixRequest, mermaidSyntaxError } from '../utils/mermaidCheck';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
@@ -38,7 +39,7 @@ export default function AIChatPanel({
   onPreferredModelChange,
   panelWidth,
 }: AIChatPanelProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -70,6 +71,11 @@ export default function AIChatPanel({
   const currentStreamModeRef = useRef<'text' | 'code' | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
   const lastSendParamsRef = useRef<{ content: string; presetAction?: ChatPresetAction } | null>(null);
+  // The automatic fix runs at most once per user request (never on its own result)
+  const autoFixPendingRef = useRef(false);
+  // Generation counter: bumped on every send, panel close, diagram change and unmount.
+  // An automatic-fix check only acts if nothing newer happened while mermaid parsed.
+  const requestSeqRef = useRef(0);
   const lastStreamTextRef = useRef('');
 
   // Mobile keyboard handling — adjust height when virtual keyboard opens
@@ -225,8 +231,14 @@ export default function AIChatPanel({
   };
 
   // Enviar mensaje (streaming)
-  const handleSendMessage = async (content: string, presetAction?: ChatPresetAction) => {
+  const handleSendMessage = async (
+    content: string,
+    presetAction?: ChatPresetAction,
+    options?: { isAutoFix?: boolean },
+  ) => {
     if (!activeSessionId || isFinalized) return;
+    autoFixPendingRef.current = !!options?.isAutoFix;
+    const requestSeq = ++requestSeqRef.current;
 
     // Save params for retry
     lastSendParamsRef.current = { content, presetAction };
@@ -337,6 +349,20 @@ export default function AIChatPanel({
             loadMessages(activeSessionId);
           }
           loadSessions();
+
+          // Mermaid code that doesn't render: ask the model to fix it, once
+          // (the server can only check Mermaid's structure; this is the real parser).
+          const generated = event.improved_code;
+          const wasAutoFix = autoFixPendingRef.current;
+          autoFixPendingRef.current = false;
+          if (generated && diagramType === 'mermaid' && !wasAutoFix && aiSettings?.auto_fix_generated !== false) {
+            void mermaidSyntaxError(generated).then((syntaxError) => {
+              // Stale: the user sent something else, closed the panel or changed diagram meanwhile
+              if (!syntaxError || requestSeqRef.current !== requestSeq) return;
+              const language = i18n.language?.startsWith('en') ? 'en' : 'es';
+              handleSendMessage(autoFixRequest(generated, syntaxError, language), 'fix', { isAutoFix: true });
+            });
+          }
         },
         onError: (message: string) => {
           setStreaming((prev) => ({
@@ -365,9 +391,16 @@ export default function AIChatPanel({
     handleSendMessage(lastSendParamsRef.current.content, lastSendParamsRef.current.presetAction);
   };
 
+  // Closing the panel discards a pending automatic-fix check
+  useEffect(() => {
+    if (!isOpen) requestSeqRef.current++;
+  }, [isOpen]);
+
   // Cancel active stream on panel close or diagram change
   useEffect(() => {
+    const requestSeq = requestSeqRef; // the counter object itself (not a DOM node)
     return () => {
+      requestSeq.current++; // unmount (also on diagram change: the panel is keyed by diagram)
       if (streamControllerRef.current) {
         streamControllerRef.current.abort();
         streamControllerRef.current = null;
@@ -468,11 +501,13 @@ export default function AIChatPanel({
           <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-          Chat con IA
+          {t('chat.panelTitle')}
         </h3>
         <button
           type="button"
           onClick={onClose}
+          aria-label={t('common.close')}
+          title={t('common.close')}
           className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

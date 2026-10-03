@@ -23,6 +23,7 @@ class SlidingWindowRateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self._requests: dict[str, list[float]] = {}
+        self._last_sweep = time.monotonic()
 
     def is_allowed(self, key: str) -> tuple[bool, int]:
         """Register a request for ``key`` and report whether it is allowed.
@@ -35,6 +36,7 @@ class SlidingWindowRateLimiter:
         """
         now = time.monotonic()
         cutoff = now - self.window_seconds
+        self._sweep(now, cutoff)
 
         if key in self._requests:
             self._requests[key] = [t for t in self._requests[key] if t > cutoff]
@@ -48,6 +50,22 @@ class SlidingWindowRateLimiter:
 
         self._requests[key].append(now)
         return True, 0
+
+    def _sweep(self, now: float, cutoff: float) -> None:
+        """Drop keys with no request inside the window, at most once per window.
+
+        Without it every key ever seen (e.g. each client IP) kept its entry
+        forever, so memory grew without bound under rotating IPs. Amortised:
+        one pass over the keys per ``window_seconds``.
+        """
+        if now - self._last_sweep < self.window_seconds:
+            return
+        self._last_sweep = now
+        stale = [
+            key for key, stamps in self._requests.items() if not stamps or stamps[-1] <= cutoff
+        ]
+        for key in stale:
+            del self._requests[key]
 
     def reset(self) -> None:
         """Clear every counter. Used by tests to isolate rate-limit state."""

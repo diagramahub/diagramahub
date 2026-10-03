@@ -116,11 +116,7 @@ class UsageLimiter:
         """
         # Admin sin límites
         if await self._is_admin(user_id):
-            projects = await self.project_repository.get_by_user_id(user_id)
-            total_diagrams = 0
-            for project in projects:
-                diagrams = await self.diagram_repository.get_by_project_id(str(project.id))
-                total_diagrams += len(diagrams)
+            total_diagrams = await self._count_user_diagrams(user_id)
             return {
                 "allowed": True,
                 "current_usage": total_diagrams,
@@ -146,11 +142,7 @@ class UsageLimiter:
 
         # Contar diagramas activos del usuario
         # Necesitamos contar todos los diagramas de todos los proyectos del usuario
-        projects = await self.project_repository.get_by_user_id(user_id)
-        total_diagrams = 0
-        for project in projects:
-            diagrams = await self.diagram_repository.get_by_project_id(str(project.id))
-            total_diagrams += len(diagrams)
+        total_diagrams = await self._count_user_diagrams(user_id)
 
         allowed = total_diagrams < max_diagrams
 
@@ -243,6 +235,11 @@ class UsageLimiter:
                 current=check["current_usage"],
                 limit=check["limit"],
             )
+
+    async def _count_user_diagrams(self, user_id: str) -> int:
+        """Diagrams across all the user's projects, counted in MongoDB (no content loaded)."""
+        projects = await self.project_repository.get_by_user_id(user_id)
+        return await self.diagram_repository.count_by_project_ids([str(p.id) for p in projects])
 
     async def _get_free_plan(self):
         """Obtiene el plan FREE por código, con fallback por nombre."""

@@ -31,6 +31,7 @@ from app.api.v1.users.email_templates import build_mfa_email_html
 from app.api.deps import get_current_user_email
 from app.api.v1.users.schemas import UserInDB
 from app.core.security import decode_mfa_temp_token
+from app.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -454,13 +455,11 @@ async def admin_export_users_excel(
     """Export all users to an Excel file. Admin only."""
     await _require_admin(current_user_email)
 
-    from datetime import datetime
-
     from fastapi.responses import StreamingResponse
 
     buffer = await admin_service.export_users_excel(lang)
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+    timestamp = utcnow().strftime("%Y%m%d_%H%M")
     filename = f"diagramahub_users_{timestamp}.xlsx"
 
     return StreamingResponse(

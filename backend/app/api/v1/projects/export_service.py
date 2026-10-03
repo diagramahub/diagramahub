@@ -6,6 +6,7 @@ the rendering to the pure builders in ``export_builders.py``.
 from dataclasses import dataclass
 from typing import Literal, Optional
 
+import anyio
 from fastapi import HTTPException, status
 
 from app.core.rate_limit import SlidingWindowRateLimiter
@@ -21,6 +22,7 @@ from .export_builders import (
     build_zip,
     download_filename,
     estimate_tokens,
+    group_by_folder,
 )
 from .interfaces import IProjectRepository
 
@@ -123,7 +125,7 @@ class ProjectExportService:
             # A folder of another project is reported as not found: it isn't in this one.
             if not folder or folder.project_id != str(project.id):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
-            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
+            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id), str(project.id))
             tree.scope_folder_name = folder.name
             tree.folders = [
                 ExportFolder(
@@ -135,10 +137,16 @@ class ProjectExportService:
             ]
             return tree
 
-        root = await self.diagram_repository.get_without_folder(str(project.id))
+        # One query for the whole project, grouped in memory (no query per folder);
+        # diagrams of a missing folder are exported at the root, not dropped.
+        folders = await self.folder_repository.get_by_project_id(str(project.id))
+        root, by_folder = group_by_folder(
+            await self.diagram_repository.get_by_project_id(str(project.id)),
+            [str(f.id) for f in folders],
+        )
         tree.root_diagrams = [_to_export_diagram(d) for d in root]
-        for folder in await self.folder_repository.get_by_project_id(str(project.id)):
-            diagrams = await self.diagram_repository.get_by_folder_id(str(folder.id))
+        for folder in folders:
+            diagrams = by_folder[str(folder.id)]
             tree.folders.append(
                 ExportFolder(
                     id=str(folder.id),
@@ -187,7 +195,11 @@ class ProjectExportService:
         _check_rate_limit(export_summary_rate_limiter, user_id)
         tree = await self.load_tree(project_id, user_id, folder_id)
         if fmt == "zip":
-            size = len(build_zip(tree, include_descriptions=include_descriptions, compress=False))
+            # Built in a worker thread: a large project must not block the event loop
+            archive = await anyio.to_thread.run_sync(
+                lambda: build_zip(tree, include_descriptions=include_descriptions, compress=False)
+            )
+            size = len(archive)
             return ExportSummary(
                 diagram_count=tree.diagram_count,
                 folder_count=len(tree.folders),
@@ -196,7 +208,9 @@ class ProjectExportService:
                 estimated_tokens=None,
                 filename=download_filename(tree, "zip"),
             )
-        document = build_markdown(tree, variant=variant, include_descriptions=include_descriptions)
+        document = await anyio.to_thread.run_sync(
+            lambda: build_markdown(tree, variant=variant, include_descriptions=include_descriptions)
+        )
         return ExportSummary(
             diagram_count=tree.diagram_count,
             folder_count=len(tree.folders),
@@ -218,4 +232,7 @@ class ProjectExportService:
         """Build the download, enforcing the per-user rate limit."""
         _check_rate_limit(export_rate_limiter, user_id)
         tree = await self.load_tree(project_id, user_id, folder_id)
-        return self.render(tree, fmt, variant, include_descriptions)
+        # Compression/rendering runs in a worker thread, off the event loop
+        return await anyio.to_thread.run_sync(
+            lambda: self.render(tree, fmt, variant, include_descriptions)
+        )

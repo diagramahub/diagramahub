@@ -3,7 +3,6 @@ Plan service with business logic.
 """
 
 import logging
-from datetime import datetime
 from typing import Optional
 
 from .interfaces import IPlanRepository
@@ -17,6 +16,7 @@ from .exceptions import (
 )
 from .constants import FREE_PLAN_CODE
 from .logger import SubscriptionLogger
+from app.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class PlanService:
                         external_price_id=stripe_price_id,
                     ).model_dump(),
                     "prices": initial_prices,
-                    "updated_at": datetime.utcnow(),
+                    "updated_at": utcnow(),
                 },
             )
             # Re-fetch to get updated data
@@ -170,7 +170,7 @@ class PlanService:
                             external_price_id=stripe_price_id,
                         ).model_dump(),
                         "prices": updated_prices,
-                        "updated_at": datetime.utcnow(),
+                        "updated_at": utcnow(),
                     },
                 )
                 # Re-fetch to get updated data
@@ -303,7 +303,7 @@ class PlanService:
                     external_price_id=new_price_id,
                 ).model_dump(),
                 "prices": updated_prices,
-                "updated_at": datetime.utcnow(),
+                "updated_at": utcnow(),
             },
         )
 
@@ -354,7 +354,7 @@ class PlanService:
                     external_price_id=new_price_id,
                 ).model_dump(),
                 "prices": updated_prices,
-                "updated_at": datetime.utcnow(),
+                "updated_at": utcnow(),
             },
         )
 

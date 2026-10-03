@@ -5,15 +5,15 @@ Usa el nuevo SDK google-genai (reemplaza al deprecado google-generativeai).
 
 import time
 
+from google.genai import errors as genai_errors
 from google import genai
 from google.genai import types
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict, Any, Optional
 
-from .base import BaseAIClient
+from ..model_catalog import recommended_model
+from .base import BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
-    build_generate_diagram_prompt,
-    build_improve_diagram_prompt,
     build_chat_system_prompt,
     build_summarize_prompt,
     clean_code_response,
@@ -24,9 +24,9 @@ class GeminiClient(BaseAIClient):
     """Client for Google Gemini AI."""
 
     def __init__(
-        self, api_key: str, model: str = "gemini-2.0-flash-lite", parameters: Dict[str, Any] = None
+        self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
-        super().__init__(api_key, model, parameters or {})
+        super().__init__(api_key, model or recommended_model("gemini"), parameters or {})
         self.client = genai.Client(api_key=self.api_key)
 
     def _gen_config(
@@ -37,13 +37,22 @@ class GeminiClient(BaseAIClient):
     ) -> types.GenerateContentConfig:
         """Configuracion de generacion reutilizable."""
         return types.GenerateContentConfig(
-            temperature=temperature or self.parameters.get("temperature", 0.7),
+            temperature=(
+                temperature if temperature is not None else self.parameters.get("temperature", 0.7)
+            ),
             top_p=self.parameters.get("top_p", 0.95),
             max_output_tokens=max_tokens or self.parameters.get("max_output_tokens", 4096),
             system_instruction=system_instruction or None,
         )
 
-    async def complete(self, system_prompt: str, user_prompt: str) -> str:
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
         """
         Complete a request with separate system and user prompts.
 
@@ -52,7 +61,12 @@ class GeminiClient(BaseAIClient):
         the ``system`` role the other providers receive. Dropping it left the
         chat without the diagram context, so replies could not be parsed.
         """
-        return await self._generate(user_prompt, system_instruction=system_prompt)
+        return await self._generate(
+            user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_instruction=system_prompt,
+        )
 
     async def _generate(
         self,
@@ -62,14 +76,21 @@ class GeminiClient(BaseAIClient):
         system_instruction: str | None = None,
     ) -> str:
         """Llamada generica async a generate_content de Gemini."""
-        response = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config=self._gen_config(temperature, max_tokens, system_instruction),
-        )
-        if not response or not response.text:
+        try:
+            response = await self.client.aio.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=self._gen_config(temperature, max_tokens, system_instruction),
+            )
+        except genai_errors.APIError as error:
+            raise provider_error(self.provider_name, error.code or 0, str(error)) from error
+        candidates = getattr(response, "candidates", None) or []
+        finish = str(getattr(candidates[0], "finish_reason", "") or "") if candidates else ""
+        self.last_truncated = finish.endswith("MAX_TOKENS")
+        text = (response.text if response else None) or ""
+        if not text and not self.last_truncated:
             raise ValueError("Gemini returned empty response")
-        return response.text.strip()
+        return text.strip()
 
     async def generate_description(
         self, diagram_code: str, diagram_type: str, language: str = "es"
@@ -87,15 +108,6 @@ class GeminiClient(BaseAIClient):
         except Exception as e:
             print(f"Gemini API key validation failed: {str(e)}")
             return False
-
-    async def generate_diagram(
-        self, description: str, diagram_type: str, language: str = "es"
-    ) -> str:
-        prompt = build_generate_diagram_prompt(description, diagram_type, language)
-        try:
-            return clean_code_response(await self._generate(prompt))
-        except Exception as e:
-            raise ValueError(f"Error generating diagram with Gemini: {str(e)}")
 
     async def fix_diagram(
         self,
@@ -120,21 +132,6 @@ class GeminiClient(BaseAIClient):
 
         except Exception as e:
             raise ValueError(f"Error al corregir diagrama con Gemini: {str(e)}")
-
-    async def improve_diagram(
-        self,
-        diagram_code: str,
-        improvement_request: str,
-        diagram_type: str,
-        language: str = "es",
-    ) -> str:
-        prompt = build_improve_diagram_prompt(
-            diagram_code, improvement_request, diagram_type, language
-        )
-        try:
-            return clean_code_response(await self._generate(prompt))
-        except Exception as e:
-            raise ValueError(f"Error improving diagram with Gemini: {str(e)}")
 
     async def chat_with_context(
         self,
@@ -178,6 +175,8 @@ class GeminiClient(BaseAIClient):
         diagram_code: str,
         diagram_type: str,
         language: str = "es",
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
     ) -> AsyncGenerator[str, None]:
         """Stream chat response token by token using Gemini async streaming API.
 
@@ -188,6 +187,8 @@ class GeminiClient(BaseAIClient):
             diagram_code: Current diagram code
             diagram_type: Diagram type (mermaid, plantuml, etc.)
             language: Response language (es, en)
+            system_prompt: System prompt to use (default: the basic chat prompt)
+            max_tokens: Output budget for this reply (default: provider settings)
 
         Yields:
             String chunks as they arrive from Gemini
@@ -195,7 +196,10 @@ class GeminiClient(BaseAIClient):
         Raises:
             ValueError: If streaming fails or times out
         """
-        system_prompt = build_chat_system_prompt(diagram_code, diagram_type, language)
+        self.last_truncated = False
+        system_prompt = system_prompt or build_chat_system_prompt(
+            diagram_code, diagram_type, language
+        )
 
         # Build concatenated prompt (same pattern as chat_with_context)
         conversation_parts = [system_prompt, ""]
@@ -217,8 +221,13 @@ class GeminiClient(BaseAIClient):
             async for chunk in await self.client.aio.models.generate_content_stream(
                 model=self.model,
                 contents=full_prompt,
-                config=self._gen_config(),
+                config=self._gen_config(max_tokens=max_tokens),
             ):
+                candidates = getattr(chunk, "candidates", None) or []
+                if candidates and str(getattr(candidates[0], "finish_reason", "") or "").endswith(
+                    "MAX_TOKENS"
+                ):
+                    self.last_truncated = True
                 if time.time() - last_token_time > 60:
                     raise ValueError(
                         f"{self.provider_name} stream timeout: no token received in 60s"
@@ -229,6 +238,8 @@ class GeminiClient(BaseAIClient):
 
         except ValueError:
             raise
+        except genai_errors.APIError as error:
+            raise provider_error(self.provider_name, error.code or 0, str(error)) from error
         except Exception as e:
             raise ValueError(f"Error in streaming chat with {self.provider_name}: {str(e)}")
 

@@ -8,6 +8,7 @@ from typing import Optional
 
 from beanie import Document
 from pydantic import BaseModel, Field
+from app.core.clock import utcnow
 
 
 class VendorCategory(str, Enum):
@@ -39,8 +40,8 @@ class VendorConfigInDB(Document):
 
     # Metadata
     created_by: str  # user_id of the admin
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
 
     class Settings:
         name = "vendor_configs"

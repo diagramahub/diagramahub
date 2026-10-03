@@ -4,6 +4,7 @@ Contiene todas las plantillas de prompts y funciones de construcción
 utilizadas por los clientes de IA (OpenAI, Claude, Gemini, DeepSeek).
 """
 
+import re
 from typing import Optional
 
 # ------------------------------------------------------------------ #
@@ -906,135 +907,156 @@ def build_refine_description_prompt(
 
 
 # ------------------------------------------------------------------ #
-#  Prompt: Generar diagrama desde descripcion
+#  Code generation (generate / improve) — 0.8.1
+#
+#  One English instruction template for every language (models follow
+#  English instructions best); only the labels follow the user's language.
+#  The stable part (role, syntax reference, verified rules, output contract)
+#  is the system prompt, so providers with prompt caching can reuse it; the
+#  user message only carries the request. Rules below were checked against
+#  the real renderers (Kroki for PlantUML/D2/DBML, mermaid for Mermaid) on
+#  the failures seen in the 0.8.1 benchmark.
 # ------------------------------------------------------------------ #
 
+CODE_START_MARKER = "<<<DIAGRAM>>>"
+CODE_END_MARKER = "<<<END_DIAGRAM>>>"
+_LANGUAGE_NAMES = {"es": "Spanish", "en": "English"}
+# Code fences are what models emit most reliably (custom <<<markers>>> got
+# mangled, e.g. "<<<DIAGRAM>", especially in D2 where < > look like syntax).
+_FENCE_TAGS = {"mermaid": "mermaid", "plantuml": "plantuml", "d2": "d2", "dbml": "dbml"}
 
-def build_generate_diagram_prompt(description: str, diagram_type: str, language: str = "es") -> str:
-    """Prompt para generar codigo de diagrama a partir de una descripcion."""
-    context = get_diagram_context(diagram_type, language)
+_VERIFIED_RULES = {
+    "mermaid": (
+        "MERMAID RULES (verified against the parser):\n"
+        "- Choose the diagram type from the request: a process or decision flow -> flowchart; "
+        "messages between actors/services over time -> sequenceDiagram; classes and their "
+        "relationships -> classDiagram; states and transitions -> stateDiagram-v2; data model -> "
+        "erDiagram; schedule -> gantt; idea hierarchy -> mindmap; dated events -> timeline.\n"
+        "- Node ids: ASCII letters, digits and underscores only, no spaces or accents; never a "
+        "keyword (end, graph, flowchart, subgraph, style, class, classDef, click, default). "
+        'Put every visible text in double quotes: login["Iniciar sesión (MFA)"]. Text with ( ) [ ] { } '
+        ": ; / # or quotes MUST be quoted; never put a double quote inside a label.\n"
+        "- No HTML in labels except <br/> for line breaks.\n"
+        "- classDef / class / style exist ONLY in flowchart and stateDiagram-v2; never in "
+        "classDiagram, sequenceDiagram, erDiagram, gantt or mindmap.\n"
+        "- sequenceDiagram: use activate/deactivate only in pairs on an active participant (or "
+        "the +/- shorthand), never deactivate a participant that is not active; arrows are ->> "
+        "and -->>, not -->.\n"
+        "- Styling is optional: add classDef colors only when they make the diagram clearer."
+    ),
+    "plantuml": (
+        "PLANTUML RULES (verified against the renderer):\n"
+        "- Exactly one @startuml ... @enduml block.\n"
+        "- Activity diagrams: use ONLY the new syntax (start, :action;, if (cond?) then (yes) ... "
+        "else (no) ... endif, |Swimlane|, stop). Never the old (*) --> syntax and never "
+        "'decision' (it does not exist). With swimlanes, the FIRST line after @startuml (and "
+        "skinparams) must be a |Swimlane|, before start.\n"
+        "- Sequence: every activate has exactly one later deactivate; never activate an already "
+        'active participant. box "Title" ... end box only wraps participant declarations.\n'
+        "- Colors are a valid name (#LightBlue) or #RGB / #RRGGBB hex (3 or 6 digits).\n"
+        "- Quote names with spaces or accents and give them an ASCII alias: participant "
+        '"Banco emisor" as BancoEmisor.'
+    ),
+    "d2": (
+        "D2 RULES (verified against the renderer):\n"
+        "- Valid shapes ONLY: rectangle, square, page, parallelogram, document, cylinder, queue, "
+        "package, step, callout, stored_data, person, diamond, oval, circle, hexagon, cloud, "
+        "c4-person, sql_table, class, text, code. There is NO database, server, monitor or "
+        "phone shape: use cylinder for databases and rectangle for the rest.\n"
+        "- Never connect a container to something inside itself (a -> a.b is invalid).\n"
+        '- Close every { and every "; quote labels that contain special characters.'
+    ),
+    "dbml": (
+        "DBML RULES (verified against the renderer):\n"
+        "- Table, column, enum and enum-value names: ASCII letters, digits and underscores only "
+        "(no ñ or accents: anio, not año; danado, not dañado). Accents are fine inside notes.\n"
+        "- Ref only connects two table columns: Ref: posts.user_id > users.id. An Enum is never "
+        "referenced (not in Ref, not as table.column): it is only a column type: status ticket_status.\n"
+        "- Strings (notes, defaults) in single or double quotes, but never the same quote inside: "
+        "Note: 'Registro de \"me gusta\"'.\n"
+        "- Every [ and { is closed. Supported: Project, Table, Enum, Ref, Note, TableGroup, indexes."
+    ),
+}
 
-    if language == "es":
-        return (
-            f"Eres un experto en crear diagramas {diagram_type} profesionales y visualmente atractivos.\n\n"
-            f"{context}\n\n"
-            f"DESCRIPCION DEL USUARIO:\n{description}\n\n"
-            "INSTRUCCIONES:\n"
-            "1. Crea un diagrama COMPLETO y PROFESIONAL que capture todos los aspectos de la descripcion\n"
-            "2. DISENO VISUAL ATRACTIVO:\n"
-            "   - Usa colores profesionales para diferenciar tipos de elementos (ver ejemplos en la referencia de sintaxis)\n"
-            "   - Agrupa elementos relacionados con subgrafos cuando tenga sentido\n"
-            "   - Usa formas variadas segun el tipo de nodo (rectangulos, rombos, circulos, etc.)\n"
-            "3. SINTAXIS 100% VALIDA:\n"
-            "   - Sigue ESTRICTAMENTE la referencia de sintaxis proporcionada arriba\n"
-            "   - Los estilos (classDef, class) van DESPUES de todos los nodos y conexiones\n"
-            '   - Los IDs de nodos NO pueden tener espacios (usa camelCase: procesoInicio, no "proceso inicio")\n'
-            "   - Si el tipo de diagrama NO soporta estilos (erDiagram, pie, etc.), NO intentes agregarlos\n"
-            "4. Genera SOLO el codigo del diagrama, sin texto adicional\n"
-            "5. NO incluyas markdown code blocks (```)\n"
-            "6. Usa nombres descriptivos en espanol\n"
-            "7. Organiza el codigo de forma legible con indentacion apropiada\n\n"
-            "GENERA EL CODIGO DEL DIAGRAMA:"
-        )
+
+def build_code_system_prompt(diagram_type: str, language: str = "es") -> str:
+    """System prompt shared by "generate" and "improve" (stable, cacheable).
+
+    Args:
+        diagram_type: mermaid, plantuml, d2 or dbml
+        language: es/en — language of the labels and comments in the diagram
+    """
+    language_name = _LANGUAGE_NAMES.get(language, "Spanish")
+    return (
+        f"You are an expert in {diagram_type} diagrams. You write diagram source code that "
+        "renders without errors on the first try.\n\n"
+        f"{get_diagram_context(diagram_type, 'en')}\n\n"
+        f"{_VERIFIED_RULES.get(diagram_type, '')}\n\n"
+        "PRIORITIES, in order:\n"
+        "1. Valid syntax: only constructs from the reference above.\n"
+        "2. Faithful to the request: include every element and relationship asked for; do not "
+        "invent unrelated parts.\n"
+        "3. Readable: clear names and grouping; keep it as compact as the request allows.\n"
+        "4. Visual style only where the diagram type supports it.\n\n"
+        f"LANGUAGE: write every visible label, title and comment in {language_name}. "
+        "Identifiers stay ASCII.\n\n"
+        "OUTPUT FORMAT — mandatory:\n"
+        f"Reply with exactly one Markdown code block tagged {_FENCE_TAGS.get(diagram_type, diagram_type)} "
+        "that contains the complete diagram, and nothing else: no text before or after it."
+    )
+
+
+def build_generate_user_prompt(description: str) -> str:
+    """User message for "generate": just the request."""
+    return f"Create this diagram:\n{description.strip()}"
+
+
+def build_improve_user_prompt(diagram_code: str, improvement_request: str) -> str:
+    """User message for "improve": the current code and the requested change."""
+    return (
+        "Current diagram:\n"
+        f"```\n{diagram_code.strip()}\n```\n\n"
+        f"Requested change:\n{improvement_request.strip()}\n\n"
+        "Keep everything the request doesn't ask to change (structure, names, styles) and return "
+        "the complete updated diagram."
+    )
+
+
+_START_MARKER_RE = r"<{2,3}\s*DIAGRAMA?\s*>{1,3}"
+_END_MARKER_RE = r"<{2,3}\s*/?\s*END_DIAGRAMA?\s*>{1,3}"
+_MARKER_LINE_RE = re.compile(
+    r"^\s*(?:[<>]+\s*[_/]?\s*(?:end_)?diagrama?\s*_?[<>]*|[<>]+|end_diagrama?)\s*$", re.IGNORECASE
+)
+
+
+def extract_diagram_code(text: str) -> str:
+    """The diagram code from a model reply, wherever the model put it.
+
+    Tolerates what models actually send: a Markdown code block anywhere in
+    the reply (the requested format), the <<<DIAGRAM>>> markers used by the
+    chat (also Spanish and malformed variants such as ``<<<DIAGRAM>``), an
+    unterminated block, or bare code. ``<think>`` blocks are removed first and
+    stray marker fragments never reach the editor.
+    """
+    import re
+
+    text = re.sub(r"<think>.*?</think>\s*", "", text or "", flags=re.DOTALL)
+    if "<think>" in text:
+        text = text[: text.index("<think>")]
+    fenced = re.search(r"```[\w+-]*[ \t]*\n(.*?)```", text, re.DOTALL)
+    if fenced:
+        text = fenced.group(1)
     else:
-        return (
-            f"You are an expert in creating professional and visually appealing {diagram_type} diagrams.\n\n"
-            f"{context}\n\n"
-            f"USER DESCRIPTION:\n{description}\n\n"
-            "INSTRUCTIONS:\n"
-            "1. Create a COMPLETE and PROFESSIONAL diagram that captures all aspects of the description\n"
-            "2. VISUALLY ATTRACTIVE DESIGN:\n"
-            "   - Use professional colors to differentiate element types (see examples in syntax reference)\n"
-            "   - Group related elements with subgraphs when it makes sense\n"
-            "   - Use varied shapes based on node type (rectangles, diamonds, circles, etc.)\n"
-            "3. 100% VALID SYNTAX:\n"
-            "   - Follow STRICTLY the syntax reference provided above\n"
-            "   - Styles (classDef, class) go AFTER all nodes and connections\n"
-            '   - Node IDs CANNOT have spaces (use camelCase: startProcess, not "start process")\n'
-            "   - If the diagram type does NOT support styles (erDiagram, pie, etc.), DO NOT try to add them\n"
-            "4. Generate ONLY the diagram code, no additional text\n"
-            "5. DO NOT include markdown code blocks (```)\n"
-            "6. Use descriptive names in English\n"
-            "7. Organize the code in a readable format with proper indentation\n\n"
-            "GENERATE THE DIAGRAM CODE:"
-        )
-
-
-def get_generate_diagram_system_prompt(diagram_type: str) -> str:
-    """System prompt para generacion de diagramas."""
-    return f"You are an expert in creating visually appealing and professional {diagram_type} diagrams. Generate well-designed diagram code with attractive colors and clear structure."
-
-
-# ------------------------------------------------------------------ #
-#  Prompt: Mejorar diagrama existente
-# ------------------------------------------------------------------ #
-
-
-def build_improve_diagram_prompt(
-    diagram_code: str, improvement_request: str, diagram_type: str, language: str = "es"
-) -> str:
-    """Prompt para mejorar un diagrama existente segun la solicitud del usuario."""
-    context = get_diagram_context(diagram_type, language)
-
-    if language == "es":
-        return (
-            f"Eres un experto en diagramas {diagram_type} con gran sentido del diseno visual.\n\n"
-            f"{context}\n\n"
-            f"DIAGRAMA ACTUAL:\n```\n{diagram_code}\n```\n\n"
-            f"SOLICITUD DE MEJORA DEL USUARIO:\n{improvement_request}\n\n"
-            "INSTRUCCIONES PARA LA MEJORA:\n"
-            "1. PRESERVA la estructura y logica fundamental del diagrama original\n"
-            "2. Aplica las mejoras solicitadas por el usuario de la mejor forma posible\n"
-            "3. Si el usuario pide mejoras visuales (colores, estilos, diseno):\n"
-            "   - Propon la MEJOR combinacion visual posible usando SOLO sintaxis valida de la referencia\n"
-            "   - Usa paletas de colores profesionales y armoniosas\n"
-            "   - Aplica los colores de forma coherente (mismo color para elementos del mismo tipo)\n"
-            "   - Se generoso con el diseno: haz que se vea espectacular\n"
-            "4. SINTAXIS 100% VALIDA:\n"
-            "   - Sigue ESTRICTAMENTE la referencia de sintaxis proporcionada arriba\n"
-            "   - Los estilos (classDef, class) van DESPUES de todos los nodos y conexiones\n"
-            "   - Los IDs de nodos NO pueden tener espacios\n"
-            "   - Si el tipo de diagrama NO soporta estilos, NO intentes agregarlos\n"
-            "5. Si el usuario pide mas detalle, EXPANDE el diagrama con informacion relevante\n"
-            "6. Si el usuario pide simplificacion, CONSOLIDA elementos manteniendo la claridad\n"
-            "7. Si el diagrama actual no tiene estilos y el usuario no pide cambios visuales, manten el estilo actual\n"
-            "8. Genera SOLO el codigo del diagrama mejorado, sin texto adicional\n"
-            "9. NO incluyas markdown code blocks (```)\n"
-            "10. Manten la coherencia del idioma del diagrama original\n\n"
-            "GENERA EL CODIGO DEL DIAGRAMA MEJORADO:"
-        )
-    else:
-        return (
-            f"You are an expert in {diagram_type} diagrams with a strong sense of visual design.\n\n"
-            f"{context}\n\n"
-            f"CURRENT DIAGRAM:\n```\n{diagram_code}\n```\n\n"
-            f"USER'S IMPROVEMENT REQUEST:\n{improvement_request}\n\n"
-            "INSTRUCTIONS FOR IMPROVEMENT:\n"
-            "1. PRESERVE the fundamental structure and logic of the original diagram\n"
-            "2. Apply the user's requested improvements in the best possible way\n"
-            "3. If the user requests visual improvements (colors, styles, design):\n"
-            "   - Propose the BEST possible visual combination using ONLY valid syntax from the reference\n"
-            "   - Use professional and harmonious color palettes\n"
-            "   - Apply colors coherently (same color for elements of the same type)\n"
-            "   - Be generous with design: make it look spectacular\n"
-            "4. 100% VALID SYNTAX:\n"
-            "   - Follow STRICTLY the syntax reference provided above\n"
-            "   - Styles (classDef, class) go AFTER all nodes and connections\n"
-            "   - Node IDs CANNOT have spaces\n"
-            "   - If the diagram type does NOT support styles, DO NOT try to add them\n"
-            "5. If user requests more detail, EXPAND the diagram with relevant information\n"
-            "6. If user requests simplification, CONSOLIDATE elements while maintaining clarity\n"
-            "7. If the current diagram has no styles and the user doesn't request visual changes, keep the current style\n"
-            "8. Generate ONLY the improved diagram code, no additional text\n"
-            "9. DO NOT include markdown code blocks (```)\n"
-            "10. Maintain language consistency from the original diagram\n\n"
-            "GENERATE THE IMPROVED DIAGRAM CODE:"
-        )
-
-
-def get_improve_diagram_system_prompt(diagram_type: str) -> str:
-    """System prompt para mejora de diagramas."""
-    return f"You are an expert in improving {diagram_type} diagrams. Apply requested improvements effectively, especially visual enhancements with professional color palettes and attractive design."
+        start = re.search(_START_MARKER_RE, text, re.IGNORECASE)
+        if start:
+            text = text[start.end() :]
+        end = re.search(_END_MARKER_RE, text, re.IGNORECASE)
+        if end:
+            text = text[: end.start()]
+        text = clean_code_response(text.strip())
+    # Lines that are only a (possibly mangled) marker: "<<<_DIAGRAM>>", "<END_DIAGRAM>", "<"
+    kept = [line for line in text.split("\n") if not _MARKER_LINE_RE.match(line)]
+    return "\n".join(kept).strip()
 
 
 # ------------------------------------------------------------------ #
@@ -1074,6 +1096,10 @@ def build_unified_chat_prompt(
     """System prompt unificado que detecta intencion automaticamente."""
     context = get_diagram_context(diagram_type, language)
     common_errors = get_common_errors_section(diagram_type, language)
+    # Rules checked against the real renderers (also used by generate/improve)
+    verified_rules = (
+        f"{_VERIFIED_RULES[diagram_type]}\n\n" if diagram_type in _VERIFIED_RULES else ""
+    )
     action_instruction = _get_chat_action_instruction(preset_action, language)
 
     # Add Kroki rendering context for server-rendered types
@@ -1101,10 +1127,10 @@ def build_unified_chat_prompt(
             elif diagram_type == "dbml":
                 kroki_context += (
                     "- DBML: usa dbml-renderer (version basica).\n"
-                    "- SOLO soporta: Table, Enum, Ref, Note, TableGroup, indexes.\n"
-                    "- NO soporta: DiagramView, Schemas, Project, headercolor, alias con 'as'.\n"
-                    "- SIEMPRE usar comillas DOBLES (\") para notas y strings. NUNCA comillas simples (').\n"
-                    "- Las notas multilinea con triple comillas (''') NO estan soportadas.\n\n"
+                    "- Soporta: Project, Table, Enum, Ref, Note, TableGroup e indexes.\n"
+                    "- Nombres de tablas, columnas y valores de enum solo en ASCII (sin ñ ni acentos); los acentos van en notas.\n"
+                    "- Strings con comillas simples o dobles, pero nunca la misma comilla anidada dentro.\n"
+                    "- Ref solo une columnas de tablas, nunca un enum.\n\n"
                 )
         else:
             kroki_context = (
@@ -1128,10 +1154,10 @@ def build_unified_chat_prompt(
             elif diagram_type == "dbml":
                 kroki_context += (
                     "- DBML: uses dbml-renderer (basic version).\n"
-                    "- ONLY supports: Table, Enum, Ref, Note, TableGroup, indexes.\n"
-                    "- Does NOT support: DiagramView, Schemas, Project, headercolor, alias with 'as'.\n"
-                    "- ALWAYS use DOUBLE quotes (\") for notes and strings. NEVER single quotes (').\n"
-                    "- Multi-line notes with triple quotes (''') are NOT supported.\n\n"
+                    "- Supports: Project, Table, Enum, Ref, Note, TableGroup and indexes.\n"
+                    "- Table, column and enum-value names ASCII only (no ñ or accents); accents go in notes.\n"
+                    "- Strings in single or double quotes, but never the same quote nested inside.\n"
+                    "- Ref only connects table columns, never an enum.\n\n"
                 )
 
     if language == "es":
@@ -1162,6 +1188,7 @@ def build_unified_chat_prompt(
             f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
+            f"{verified_rules}"
             f"{action_instruction}"
             f"{complete_code_instruction}"
             f"{lang_instruction}"
@@ -1214,6 +1241,7 @@ def build_unified_chat_prompt(
             f"{kroki_context}"
             f"{context}\n\n"
             f"{common_errors}\n\n"
+            f"{verified_rules}"
             f"{action_instruction}"
             f"{complete_code_instruction}"
             f"{lang_instruction}"

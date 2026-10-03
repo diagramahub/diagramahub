@@ -202,6 +202,28 @@ class SyntaxValidator:
             )
     
     @staticmethod
+    async def _kroki_verdict(diagram_type: str, code: str) -> ValidationResult:
+        """Validate with the real renderer; valid when Kroki can't be reached.
+
+        Used for D2, whose errors (unknown shapes, container-to-child
+        connections…) a structural check can't see.
+        """
+        from app.core.config import settings
+
+        from .kroki_client import KrokiClient, KrokiRenderError, KrokiTimeoutError
+
+        try:
+            await KrokiClient(base_url=settings.KROKI_URL, timeout=15.0).render(diagram_type, code)
+            return ValidationResult(is_valid=True, error_message=None, error_line=None)
+        except KrokiRenderError as error:
+            if error.status_code != 400:
+                return ValidationResult(is_valid=True, error_message=None, error_line=None)
+            message = error.detail.removeprefix("Error 400: ").strip().splitlines()[0][:300]
+            return ValidationResult(is_valid=False, error_message=message, error_line=None)
+        except KrokiTimeoutError:
+            return ValidationResult(is_valid=True, error_message=None, error_line=None)
+
+    @staticmethod
     async def validate_d2(code: str) -> ValidationResult:
         """
         Validar sintaxis estructural básica de código D2.
@@ -258,7 +280,9 @@ class SyntaxValidator:
                     error_message=f"{brace_depth} llave(s) '{{' sin cerrar (falta '}}' )",
                 )
 
-            return ValidationResult(is_valid=True)
+            # Structure looks fine: ask the real renderer (shapes, connections,
+            # keys). Unreachable Kroki keeps the structural verdict.
+            return await SyntaxValidator._kroki_verdict("d2", code)
 
         except Exception as e:
             return ValidationResult(

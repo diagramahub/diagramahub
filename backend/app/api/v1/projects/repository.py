@@ -2,11 +2,11 @@
 Concrete implementation of project repository.
 """
 
-from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from .interfaces import IProjectRepository
 from .schemas import ProjectInDB, ProjectCreate, ProjectUpdate
+from app.core.clock import utcnow
 
 
 class ProjectRepository(IProjectRepository):
@@ -19,8 +19,8 @@ class ProjectRepository(IProjectRepository):
             description=project_data.description,
             emoji=project_data.emoji or "📊",
             user_id=user_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await project.insert()
         return project
@@ -45,7 +45,7 @@ class ProjectRepository(IProjectRepository):
 
         update_data = project_data.model_dump(exclude_unset=True)
         if update_data:
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = utcnow()
             await project.set(update_data)
 
         return project

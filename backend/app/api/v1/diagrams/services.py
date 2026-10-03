@@ -17,6 +17,7 @@ from .schemas import (
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
 from .kroki_client import KrokiClient
 from .rate_limiter import render_rate_limiter
+from ..folders.interfaces import IFolderRepository
 from ..projects.interfaces import IProjectRepository
 from ..shared_links.interfaces import ISharedLinkRepository
 
@@ -31,6 +32,7 @@ class DiagramService:
         config_embedder: MermaidConfigEmbedder = None,
         config_parser: MermaidConfigParser = None,
         shared_link_repository: Optional[ISharedLinkRepository] = None,
+        folder_repository: Optional[IFolderRepository] = None,
     ):
         """
         Initialize the diagram service.
@@ -41,12 +43,32 @@ class DiagramService:
             config_embedder: Mermaid config embedder
             config_parser: Mermaid config parser
             shared_link_repository: Shared link repository
+            folder_repository: Folder repository (validates ``folder_id``)
         """
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
         self.config_embedder = config_embedder or MermaidConfigEmbedder()
         self.config_parser = config_parser or MermaidConfigParser()
         self.shared_link_repository = shared_link_repository
+        self.folder_repository = folder_repository
+
+    async def _ensure_folder_in_project(self, folder_id: Optional[str], project_id: str) -> None:
+        """Reject a ``folder_id`` that is not a folder of ``project_id``.
+
+        Without this check a user could file a diagram under another user's
+        folder id, and it would show up in that user's tree and folder export.
+        A folder of another project is reported as not found (no existence leak).
+
+        Raises:
+            HTTPException: 404 when the folder doesn't exist in this project
+        """
+        if not folder_id:
+            return
+        if self.folder_repository is None:
+            raise RuntimeError("DiagramService needs a folder repository to validate folder_id")
+        folder = await self.folder_repository.get_by_id(folder_id)
+        if not folder or folder.project_id != project_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
 
     async def get_recent_diagrams(self, user_id: str, limit: int = 4) -> list[dict]:
         """
@@ -148,6 +170,8 @@ class DiagramService:
                 detail="You don't have access to this project",
             )
 
+        await self._ensure_folder_in_project(diagram_data.folder_id, project_id)
+
         # For Mermaid diagrams, config is in content (init block)
         # Frontend handles embedding config in content, backend just stores it
         # No need to parse or manipulate the content here
@@ -244,6 +268,8 @@ class DiagramService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this diagram",
             )
+
+        await self._ensure_folder_in_project(diagram_data.folder_id, diagram.project_id)
 
         # For Mermaid diagrams, config is in content (init block)
         # Frontend handles embedding config in content, backend just stores it

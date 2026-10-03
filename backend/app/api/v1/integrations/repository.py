@@ -3,7 +3,6 @@ MongoDB repository implementation for vendor integrations using Beanie.
 """
 
 import json
-from datetime import datetime
 from typing import Optional
 
 from beanie import PydanticObjectId
@@ -17,6 +16,7 @@ from app.api.v1.integrations.schemas import (
 from app.core.security import decrypt_api_key, encrypt_api_key
 
 from .interfaces import IIntegrationsRepository
+from app.core.clock import utcnow
 
 
 class IntegrationsRepository(IIntegrationsRepository):
@@ -45,8 +45,8 @@ class IntegrationsRepository(IIntegrationsRepository):
             encrypted_config=self._encrypt_config(vendor_data.config),
             is_configured=True,
             created_by=created_by,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=utcnow(),
+            updated_at=utcnow(),
         )
         await vendor.insert()
         return vendor
@@ -88,7 +88,7 @@ class IntegrationsRepository(IIntegrationsRepository):
         if update_data.config is not None:
             vendor.encrypted_config = self._encrypt_config(update_data.config)
 
-        vendor.updated_at = datetime.utcnow()
+        vendor.updated_at = utcnow()
         await vendor.save()
         return vendor
 
@@ -120,12 +120,12 @@ class IntegrationsRepository(IIntegrationsRepository):
 
         for v in current_defaults:
             v.is_default = False
-            v.updated_at = datetime.utcnow()
+            v.updated_at = utcnow()
             await v.save()
 
         # Set the new default
         vendor.is_default = True
-        vendor.updated_at = datetime.utcnow()
+        vendor.updated_at = utcnow()
         await vendor.save()
         return vendor
 
@@ -147,12 +147,12 @@ class IntegrationsRepository(IIntegrationsRepository):
 
         for v in current_active:
             v.is_active_payment = False
-            v.updated_at = datetime.utcnow()
+            v.updated_at = utcnow()
             await v.save()
 
         # Set the new active payment vendor
         vendor.is_active_payment = True
-        vendor.updated_at = datetime.utcnow()
+        vendor.updated_at = utcnow()
         await vendor.save()
         return vendor
 
@@ -168,14 +168,14 @@ class IntegrationsRepository(IIntegrationsRepository):
         for v in oauth_vendors:
             if v.vendor_type == provider and v.is_active_oauth:
                 v.is_active_oauth = False
-                v.updated_at = datetime.utcnow()
+                v.updated_at = utcnow()
                 await v.save()
 
         vendor = await self.get_by_id(vendor_id)
         if vendor is None:
             return None
         vendor.is_active_oauth = True
-        vendor.updated_at = datetime.utcnow()
+        vendor.updated_at = utcnow()
         await vendor.save()
         return vendor
 
@@ -185,9 +185,9 @@ class IntegrationsRepository(IIntegrationsRepository):
         if vendor is None:
             return None
         vendor.connection_tested = True
-        vendor.last_test_at = datetime.utcnow()
+        vendor.last_test_at = utcnow()
         vendor.last_test_success = result
-        vendor.updated_at = datetime.utcnow()
+        vendor.updated_at = utcnow()
         await vendor.save()
         return vendor
 

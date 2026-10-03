@@ -42,8 +42,8 @@ describe("sketchToMermaid", () => {
       arrow("e", "a", "b"),
     ]));
     expect(result.code.startsWith("flowchart LR\n")).toBe(true);
-    expect(result.code).toContain('    rectangle["rectangle"]');
-    expect(result.code).toContain("    A --> rectangle");
+    expect(result.code).toContain('    node[" "]');
+    expect(result.code).toContain("    A --> node");
   });
 
   it("skips strokes, loose text, unbound arrows and untitled isolated shapes, and reports them", () => {
@@ -53,10 +53,9 @@ describe("sketchToMermaid", () => {
       { id: "s", type: "freehand", x: 0, y: 0, width: 1, height: 1, strokeColor: "#000", fillColor: "transparent", strokeWidth: 2, opacity: 1, points: [] },
       { id: "t", type: "text", x: 0, y: 0, width: 1, height: 1, strokeColor: "#000", fillColor: "transparent", strokeWidth: 2, opacity: 1, text: "nota" },
       { ...arrow("free", "a", "nowhere"), endBinding: undefined },
-      arrow("self", "a", "a"),
     ]));
     expect(result.code).toBe('flowchart TD\n    Solo["Solo"]\n');
-    expect(result.skipped).toEqual({ skipped_freehand: 1, skipped_text: 1, skipped_unbound_arrow: 2, skipped_untitled_shape: 1 });
+    expect(result.skipped).toEqual({ skipped_freehand: 1, skipped_text: 1, skipped_unbound_arrow: 1, skipped_untitled_shape: 1 });
   });
 
   it("reverses an edge whose arrowhead is only at the start, and de-duplicates ids", () => {
@@ -78,5 +77,41 @@ describe("sketchToMermaid", () => {
   it("returns an empty conversion for invalid or empty sketches", () => {
     expect(sketchToMermaid("not json")).toEqual({ code: "", nodeCount: 0, edgeCount: 0, skipped: {} });
     expect(sketchToMermaid(sketch([])).code).toBe("");
+  });
+
+  it("prefixes ids that are Mermaid keywords (end, style, class…)", () => {
+    const result = sketchToMermaid(sketch([
+      shape("a", "ellipse", 0, 0, "start"),
+      shape("b", "ellipse", 0, 100, "end"),
+      shape("c", "rectangle", 0, 200, "Style"),
+      shape("d", "rectangle", 0, 300, "click"),
+      arrow("e1", "a", "b"),
+    ]));
+    expect(result.code).toContain('    n_end("end")');
+    expect(result.code).toContain('    n_Style["Style"]');
+    expect(result.code).toContain('    n_click["click"]');
+    expect(result.code).toContain("    start --> n_end");
+    expect(result.code).not.toMatch(/^\s+end[[({ ]/m);
+  });
+
+  it("maps lines to ---, double-headed arrows to <-->, keeps self-loops and the default end head", () => {
+    const line = { ...arrow("l", "a", "b"), type: "line", endArrowhead: undefined };
+    const both = arrow("both", "b", "c", { startArrowhead: true });
+    const legacy = { ...arrow("legacy", "c", "a"), endArrowhead: undefined }; // arrow: end head by default
+    const self = arrow("self", "a", "a", { text: "reintentar" });
+    const dashedLine = { ...arrow("dl", "a", "c"), type: "line", endArrowhead: undefined, dashed: true };
+    const result = sketchToMermaid(sketch([
+      shape("a", "rectangle", 0, 0, "A"),
+      shape("b", "rectangle", 0, 100, "B"),
+      shape("c", "rectangle", 0, 200, "C"),
+      line, both, legacy, self, dashedLine,
+    ]));
+    expect(result.code).toContain("    A --- B");
+    expect(result.code).toContain("    B <--> C");
+    expect(result.code).toContain("    C --> A");
+    expect(result.code).toContain('    A -->|"reintentar"| A');
+    expect(result.code).toContain("    A -.- C");
+    expect(result.edgeCount).toBe(5);
+    expect(result.skipped).toEqual({});
   });
 });

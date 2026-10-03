@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDialogA11y } from '../hooks/useDialogA11y';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { downloadBlob, retryAfterSeconds } from '../utils/download';
 import api, { type ProjectExportFormat, type ProjectExportSummary, type ProjectExportVariant } from '../services/api';
 
 interface FolderOption {
@@ -56,9 +58,14 @@ export default function ExportProjectModal({
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  // Reset to the caller's context each time the dialog opens.
+  // Reset to the caller's context each time the dialog OPENS — only on the
+  // closed -> open transition: callers pass `folders` as a fresh array on every
+  // render, so depending on it would wipe the user's choices while it's open.
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (!isOpen) return;
+    const justOpened = isOpen && !wasOpenRef.current;
+    wasOpenRef.current = isOpen;
+    if (!justOpened) return;
     setScope(initialFolderId ? 'folder' : 'project');
     setFolderId(initialFolderId ?? folders[0]?.id ?? '');
     setFormat('zip');
@@ -97,28 +104,23 @@ export default function ExportProjectModal({
     setExportError(null);
     try {
       const { blob, filename } = await api.downloadProjectExport(projectId, request);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, filename);
       onClose();
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } })?.response?.status;
-      setExportError(status === 429 ? t('projectExport.tooMany') : t('projectExport.error'));
+      const seconds = retryAfterSeconds(error);
+      setExportError(
+        status === 429
+          ? seconds ? t('projectExport.tooManyRetry', { seconds }) : t('projectExport.tooMany')
+          : t('projectExport.error'),
+      )
     } finally {
       setExporting(false);
     }
   }, [projectId, request, scopeInvalid, onClose, t]);
 
-  // Escape closes (unless a download is in progress)
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !exporting) onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, exporting, onClose]);
+  // Escape (not while downloading), initial focus, focus trap, focus restore
+  const panelRef = useDialogA11y(isOpen, onClose, !exporting);
 
   if (!isOpen) return null;
 
@@ -126,7 +128,7 @@ export default function ExportProjectModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="export-project-title">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[90vh]">
+      <div ref={panelRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="min-w-0">
@@ -243,8 +245,8 @@ export default function ExportProjectModal({
             ) : summary ? (
               <span className="text-gray-800 dark:text-gray-200">
                 {t('projectExport.summaryLine', {
-                  diagrams: summary.diagram_count,
-                  folders: summary.folder_count,
+                  diagrams: t('common.counts.diagrams', { count: summary.diagram_count }),
+                  folders: t('common.counts.folders', { count: summary.folder_count }),
                   size: summary.size_is_upper_bound
                     ? t('projectExport.sizeUpTo', { size: formatBytes(summary.size_bytes) })
                     : formatBytes(summary.size_bytes),

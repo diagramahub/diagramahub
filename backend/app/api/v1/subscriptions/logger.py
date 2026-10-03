@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
 import json
+from app.core.clock import utcnow
 
 # Configure logger
 logger = logging.getLogger("subscriptions")
@@ -36,7 +37,7 @@ class SubscriptionLogger:
             data: Additional event data
         """
         log_data = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": utcnow().isoformat(),
             "event": event,
             **(data or {})
         }

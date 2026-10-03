@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, status, Body
 from app.api.deps import get_current_user_id
 from .repository import AIProviderRepository
 from .services import AIProviderService
+from .model_catalog import recommended_model
 from .schemas import (
     CreateProviderRequest,
     UpdateProviderRequest,
@@ -68,7 +69,7 @@ async def add_provider(
     provider_config = AIProviderConfig(
         provider=request.provider,
         api_key=request.api_key,
-        model=request.model,
+        model=request.model or recommended_model(request.provider.value),
         is_default=request.is_default,
         parameters=request.parameters,
         display_name=request.display_name,
@@ -113,6 +114,23 @@ async def remove_provider(
     Specify the index of the provider to remove (0-based).
     """
     return await service.remove_provider(user_id, provider_index)
+
+
+@router.put(
+    "/settings/auto-fix",
+    response_model=UserAISettingsResponse,
+    summary="Turn the automatic fix of generated diagrams on or off",
+)
+async def set_auto_fix(
+    enabled: bool = Body(..., embed=True),
+    user_id: str = Depends(get_current_user_id),
+    service: AIProviderService = Depends(get_ai_provider_service),
+):
+    """
+    When enabled (default), generated or improved Mermaid/D2 code that doesn't
+    render is sent back once to the model with the error to fix it.
+    """
+    return await service.set_auto_fix(user_id, enabled)
 
 
 @router.put(
@@ -225,5 +243,7 @@ async def test_provider(
     Useful for validating keys before adding them to settings.
     """
     return await service.test_provider(
-        provider=request.provider, api_key=request.api_key, model=request.model
+        provider=request.provider,
+        api_key=request.api_key,
+        model=request.model or recommended_model(request.provider.value),
     )
