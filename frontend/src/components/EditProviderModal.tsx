@@ -85,7 +85,10 @@ export default function EditProviderModal({
 
       setTestResult({
         success: result.valid,
-        message: result.valid ? t('ai.messages.testSuccess') : t('ai.messages.testError')
+        // The real cause (no credits, wrong key, model not available…) instead of a generic error
+        message: result.valid
+          ? t('ai.messages.testSuccess')
+          : t(`ai.testErrors.${result.error_code || 'provider_error'}`, { defaultValue: t('ai.messages.testError') }),
       });
     } catch (error: any) {
       setTestResult({

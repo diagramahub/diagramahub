@@ -114,6 +114,8 @@ class TestProviderResponse(BaseModel):
     valid: bool
     message: str
     provider_name: Optional[str] = None
+    # no_credits | rate_limited | invalid_key | model_unavailable | provider_error
+    error_code: Optional[str] = None
 
 
 class GenerateDescriptionRequest(BaseModel):

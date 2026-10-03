@@ -28,6 +28,85 @@ class EmptyResponseError(ValueError):
     """The provider answered without any diagram code."""
 
 
+class ProviderError(ValueError):
+    """A provider rejected the request, classified so users get the real reason.
+
+    ``code`` is one of: no_credits, rate_limited, invalid_key,
+    model_unavailable, provider_error.
+    """
+
+    def __init__(self, code: str, message: str, status_code: Optional[int] = None):
+        super().__init__(message)
+        self.code = code
+        self.status_code = status_code
+
+
+_NO_CREDIT_HINTS = (
+    "insufficient_quota",
+    "credit_balance",
+    "credit balance",
+    "insufficient balance",
+    "insufficient_balance",
+    "billing",
+    "payment required",
+)
+_MODEL_HINTS = (
+    "model_not_found",
+    "does not exist",
+    "not exist",  # DeepSeek: "Model Not Exist"
+    "not found",
+    "not_found",
+    "unknown model",
+)
+_KEY_HINTS = (
+    "invalid_api_key",
+    "invalid api key",
+    "incorrect api key",
+    "authentication",
+    "api key not valid",
+)
+
+
+def provider_error(provider: str, status_code: int, body: str) -> ProviderError:
+    """Classify a provider's HTTP error.
+
+    Each provider says "no credits" differently: OpenAI answers 429
+    ``insufficient_quota``, DeepSeek and MiniMax 402, Anthropic 400 "credit
+    balance is too low". Reporting all of them as "rate limit, try again"
+    sent users to wait for something that would never recover.
+    """
+    text = (body or "").lower()
+    detail = (body or "").strip().replace("\n", " ")[:300]
+    if status_code == 402 or any(hint in text for hint in _NO_CREDIT_HINTS):
+        return ProviderError(
+            "no_credits",
+            f"{provider}: la cuenta del proveedor no tiene créditos o saldo. "
+            "Recarga en el panel del proveedor e inténtalo de nuevo.",
+            status_code,
+        )
+    if status_code in (401, 403) or any(hint in text for hint in _KEY_HINTS):
+        return ProviderError(
+            "invalid_key",
+            f"{provider}: la llave de API no es válida o no tiene permisos.",
+            status_code,
+        )
+    if status_code == 404 or ("model" in text and any(hint in text for hint in _MODEL_HINTS)):
+        return ProviderError(
+            "model_unavailable",
+            f"{provider}: el modelo elegido no está disponible para esta llave.",
+            status_code,
+        )
+    if status_code == 429:
+        return ProviderError(
+            "rate_limited",
+            f"{provider}: se alcanzó el límite de solicitudes. Inténtalo de nuevo en unos momentos.",
+            status_code,
+        )
+    return ProviderError(
+        "provider_error", f"{provider} API error ({status_code}): {detail}", status_code
+    )
+
+
 class BaseAIClient(ABC):
     """Abstract base class for AI provider clients."""
 
@@ -131,6 +210,23 @@ class BaseAIClient(ABC):
             ValueError: If generation fails
         """
         pass
+
+    async def check_connection(self) -> tuple[bool, Optional[str], str]:
+        """Make a minimal real call with the configured model.
+
+        Listing models (``validate_api_key``) succeeds for a key without
+        credits or without access to the chosen model; this doesn't.
+
+        Returns:
+            ``(ok, error_code, message)`` — error_code as in ``ProviderError``
+        """
+        try:
+            await self.complete("Reply with exactly: OK", "OK", max_tokens=64)
+            return True, None, "OK"
+        except ProviderError as error:
+            return False, error.code, str(error)
+        except Exception as error:  # noqa: BLE001 - reported to the user, not raised
+            return False, "provider_error", str(error)[:300]
 
     async def _complete_code(self, system_prompt: str, user_prompt: str) -> str:
         """Run a code request and return just the diagram code.

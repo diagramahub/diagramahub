@@ -9,7 +9,7 @@ import httpx
 from typing import AsyncGenerator, Dict, Any, Optional
 
 from ..model_catalog import recommended_model
-from .base import BaseAIClient
+from .base import BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
     build_chat_system_prompt,
@@ -80,12 +80,8 @@ class OpenAIClient(BaseAIClient):
                 json=payload,
             )
 
-            if response.status_code == 429:
-                raise ValueError(
-                    "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                )
             if response.status_code != 200:
-                raise ValueError(f"OpenAI API error: {response.status_code} - {response.text}")
+                raise provider_error(self.provider_name, response.status_code, response.text)
 
             result = response.json()
             if not result.get("choices") or len(result["choices"]) == 0:
@@ -252,12 +248,9 @@ class OpenAIClient(BaseAIClient):
                     headers=self.headers,
                     json=payload,
                 ) as response:
-                    if response.status_code == 429:
-                        raise ValueError(
-                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                        )
                     if response.status_code != 200:
-                        raise ValueError(f"OpenAI API error: {response.status_code}")
+                        body = (await response.aread()).decode("utf-8", errors="replace")
+                        raise provider_error(self.provider_name, response.status_code, body)
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():

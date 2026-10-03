@@ -444,7 +444,9 @@ class AIProviderService:
             client = AIClientFactory.create_client(
                 provider=provider, api_key=api_key, model=model, parameters={}
             )
-            is_valid = await client.validate_api_key()
+            # A real (tiny) call with the chosen model: listing models said "valid"
+            # for keys without credits or without access to that model.
+            ok, error_code, message = await client.check_connection()
         except NotImplementedError:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -453,17 +455,18 @@ class AIProviderService:
         except HTTPException:
             # Never swallow HTTP errors raised during validation.
             raise
-        except Exception:
-            is_valid = False
+        except Exception as error:  # noqa: BLE001 - reported in the response
+            ok, error_code, message = False, "provider_error", str(error)[:300]
 
-        if is_valid:
+        if ok:
             return TestProviderResponse(
                 valid=True, message="API key is valid", provider_name=provider.value
             )
         return TestProviderResponse(
             valid=False,
-            message="API key is invalid or has no permissions",
+            message=message,
             provider_name=provider.value,
+            error_code=error_code,
         )
 
     async def generate_diagram(

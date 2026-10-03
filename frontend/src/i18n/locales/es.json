@@ -1080,6 +1080,13 @@
       "label": "Corregir automáticamente los diagramas generados",
       "hint": "Si el código que genera la IA (Mermaid o D2) no se puede renderizar, se le pide una corrección una vez antes de mostrártelo. Usa una llamada extra de tu llave. No aplica a PlantUML ni DBML.",
       "error": "No se pudo guardar la preferencia. Inténtalo de nuevo."
+    },
+    "testErrors": {
+      "no_credits": "La llave es válida, pero la cuenta del proveedor no tiene créditos o saldo. Recarga en el panel del proveedor.",
+      "rate_limited": "El proveedor limitó las solicitudes por ahora. Inténtalo de nuevo en unos momentos.",
+      "invalid_key": "La llave de API no es válida o no tiene permisos.",
+      "model_unavailable": "El modelo elegido no está disponible para esta llave. Elige otro modelo.",
+      "provider_error": "El proveedor respondió con un error. Revisa la llave y el modelo e inténtalo de nuevo."
     }
   },
   "oauth": {

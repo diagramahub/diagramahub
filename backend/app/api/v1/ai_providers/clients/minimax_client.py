@@ -10,7 +10,7 @@ import httpx
 from typing import AsyncGenerator, Dict, Any, List, Optional
 
 from ..model_catalog import recommended_model
-from .base import BaseAIClient
+from .base import BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
     build_chat_system_prompt,
@@ -86,18 +86,8 @@ class MinimaxClient(BaseAIClient):
                     json=data,
                 )
 
-                if response.status_code == 429:
-                    raise ValueError(
-                        "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                    )
                 if response.status_code != 200:
-                    error_detail = response.text
-                    try:
-                        error_json = response.json()
-                        error_detail = error_json.get("error", {}).get("message", response.text)
-                    except Exception:
-                        pass
-                    raise ValueError(f"Minimax API error ({response.status_code}): {error_detail}")
+                    raise provider_error(self.provider_name, response.status_code, response.text)
 
                 result = response.json()
                 choice = result["choices"][0]
@@ -270,12 +260,9 @@ class MinimaxClient(BaseAIClient):
                     headers=self.headers,
                     json=payload,
                 ) as response:
-                    if response.status_code == 429:
-                        raise ValueError(
-                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                        )
                     if response.status_code != 200:
-                        raise ValueError(f"Minimax API error: {response.status_code}")
+                        body = (await response.aread()).decode("utf-8", errors="replace")
+                        raise provider_error(self.provider_name, response.status_code, body)
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():

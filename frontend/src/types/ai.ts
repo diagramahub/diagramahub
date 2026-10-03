@@ -60,6 +60,8 @@ export interface TestProviderRequest {
 export interface TestProviderResponse {
   valid: boolean;
   message: string;
+  /** Why it failed: no_credits | rate_limited | invalid_key | model_unavailable | provider_error */
+  error_code?: string | null;
   provider_name?: string;
 }
 

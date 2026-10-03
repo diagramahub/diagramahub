@@ -8,7 +8,7 @@ import time
 import httpx
 from typing import AsyncGenerator, Dict, Any, Optional
 
-from .base import BaseAIClient
+from .base import BaseAIClient, provider_error
 from ..model_catalog import recommended_model, supports_temperature
 from ..prompts import (
     build_description_prompt,
@@ -106,12 +106,8 @@ class ClaudeClient(BaseAIClient):
                     json=payload,
                 )
 
-            if response.status_code == 429:
-                raise ValueError(
-                    "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                )
             if response.status_code != 200:
-                raise ValueError(f"Claude API error: {response.status_code} - {response.text}")
+                raise provider_error(self.provider_name, response.status_code, response.text)
 
             result = response.json()
             self.last_truncated = result.get("stop_reason") == "max_tokens"
@@ -283,12 +279,9 @@ class ClaudeClient(BaseAIClient):
                     headers=self.headers,
                     json=payload,
                 ) as response:
-                    if response.status_code == 429:
-                        raise ValueError(
-                            "Rate limit excedido. Por favor intenta de nuevo en unos momentos."
-                        )
                     if response.status_code != 200:
-                        raise ValueError(f"Claude API error: {response.status_code}")
+                        body = (await response.aread()).decode("utf-8", errors="replace")
+                        raise provider_error(self.provider_name, response.status_code, body)
 
                     last_token_time = time.time()
                     async for line in response.aiter_lines():

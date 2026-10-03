@@ -5,12 +5,13 @@ Usa el nuevo SDK google-genai (reemplaza al deprecado google-generativeai).
 
 import time
 
+from google.genai import errors as genai_errors
 from google import genai
 from google.genai import types
 from typing import AsyncGenerator, Dict, Any, Optional
 
 from ..model_catalog import recommended_model
-from .base import BaseAIClient
+from .base import BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
     build_chat_system_prompt,
@@ -75,11 +76,14 @@ class GeminiClient(BaseAIClient):
         system_instruction: str | None = None,
     ) -> str:
         """Llamada generica async a generate_content de Gemini."""
-        response = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config=self._gen_config(temperature, max_tokens, system_instruction),
-        )
+        try:
+            response = await self.client.aio.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=self._gen_config(temperature, max_tokens, system_instruction),
+            )
+        except genai_errors.APIError as error:
+            raise provider_error(self.provider_name, error.code or 0, str(error)) from error
         candidates = getattr(response, "candidates", None) or []
         finish = str(getattr(candidates[0], "finish_reason", "") or "") if candidates else ""
         self.last_truncated = finish.endswith("MAX_TOKENS")
@@ -234,6 +238,8 @@ class GeminiClient(BaseAIClient):
 
         except ValueError:
             raise
+        except genai_errors.APIError as error:
+            raise provider_error(self.provider_name, error.code or 0, str(error)) from error
         except Exception as e:
             raise ValueError(f"Error in streaming chat with {self.provider_name}: {str(e)}")
 
