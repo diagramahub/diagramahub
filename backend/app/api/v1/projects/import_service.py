@@ -11,6 +11,7 @@ Guarantees:
   multi-document transactions).
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -27,8 +28,17 @@ from ..subscriptions.constants import RESOURCE_TYPE_DIAGRAM
 from ..subscriptions.exceptions import ResourceLimitError
 from ..subscriptions.usage_limiter import UsageLimiter
 from .export_builders import unique_name
-from .import_parsers import ImportError_, ImportLimits, ImportPlan, plan_upload, upload_footprint
+from .import_parsers import (
+    MAX_TITLE_LENGTH,
+    ImportError_,
+    ImportLimits,
+    ImportPlan,
+    plan_upload,
+    upload_footprint,
+)
 from .interfaces import IProjectRepository
+
+logger = logging.getLogger(__name__)
 
 import_rate_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=60)
 # The import dialog previews on every file change, so the dry run gets its own,
@@ -264,14 +274,16 @@ class ProjectImportService:
 
         created = _Created()
         try:
-            # Existing folders with the same name (case-insensitive) are reused.
+            # Folders match by name case-insensitively: an existing one is reused,
+            # and "Docs" + "docs" in the same upload become a single folder.
             existing = {
                 f.name.lower(): str(f.id)
                 for f in await self.folder_repository.get_by_project_id(str(project.id))
             }
             folder_ids: dict[str, str] = {}
             for plan_folder in plan.folders:
-                fid = existing.get(plan_folder.name.lower())
+                key = plan_folder.name.lower()
+                fid = existing.get(key)
                 if fid is None:
                     new_folder = await self.folder_repository.create(
                         FolderCreate(name=plan_folder.name, color=plan_folder.color or "#3B82F6"),
@@ -279,7 +291,8 @@ class ProjectImportService:
                     )
                     fid = str(new_folder.id)
                     created.folder_ids.append(fid)
-                folder_ids[plan_folder.name] = fid
+                    existing[key] = fid
+                folder_ids[key] = fid
 
             # Titles already used in each destination: imported ones get "(2)", "(3)"…
             taken: dict[Optional[str], set[str]] = {}
@@ -296,7 +309,7 @@ class ProjectImportService:
                 return taken[target]
 
             async def create(diagram, target: Optional[str]) -> None:
-                title = unique_name(diagram.title, await taken_in(target))
+                title = unique_name(diagram.title, await taken_in(target), MAX_TITLE_LENGTH)
                 new_diagram = await self.diagram_repository.create(
                     DiagramCreate(
                         title=title,
@@ -313,16 +326,21 @@ class ProjectImportService:
                 await create(diagram, str(folder.id) if folder else None)
             for plan_folder in plan.folders:
                 for diagram in plan_folder.diagrams:
-                    await create(diagram, folder_ids[plan_folder.name])
+                    await create(diagram, folder_ids[plan_folder.name.lower()])
         except HTTPException:
             await self._rollback(created)
             raise
         except Exception as exc:  # noqa: BLE001 - any failure midway must undo the partial import
-            await self._rollback(created)
+            rolled_back = await self._rollback(created)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"error": "import_failed", "rolled_back": True},
+                detail={"error": "import_failed", "rolled_back": rolled_back},
             ) from exc
+        except BaseException:
+            # Cancellation (client disconnect, worker timeout) is not an Exception:
+            # still undo the partial import before letting it propagate.
+            await self._rollback(created)
+            raise
 
         preview = self._preview(
             plan, current + plan.diagram_count, limit, True, folder.name if folder else None
@@ -333,15 +351,23 @@ class ProjectImportService:
             created_folder_ids=created.folder_ids,
         )
 
-    async def _rollback(self, created: _Created) -> None:
-        """Best-effort removal of what this request created."""
+    async def _rollback(self, created: _Created) -> bool:
+        """Remove what this request created; True only if everything was removed.
+
+        Keeps going after a failed delete (and logs it) so as little as
+        possible is left behind.
+        """
+        complete = True
         for diagram_id in created.diagram_ids:
             try:
                 await self.diagram_repository.delete(diagram_id)
             except Exception:  # noqa: BLE001 - keep rolling back the rest
-                pass
+                complete = False
+                logger.exception("Import rollback: could not delete diagram %s", diagram_id)
         for folder_id in created.folder_ids:
             try:
                 await self.folder_repository.delete(folder_id)
             except Exception:  # noqa: BLE001
-                pass
+                complete = False
+                logger.exception("Import rollback: could not delete folder %s", folder_id)
+        return complete

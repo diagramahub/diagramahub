@@ -566,6 +566,7 @@
       "nothing": "There is nothing to import in those files."
     },
     "reasons": {
+      "unreadable": "damaged or unreadable file",
       "unsupported_type": "unrecognised type",
       "too_large": "too large",
       "nested_zip": "ZIP inside another ZIP",

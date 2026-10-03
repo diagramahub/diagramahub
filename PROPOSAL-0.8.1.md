@@ -48,15 +48,15 @@ Tamaños: **S** < 1 h · **M** ½ día · **L** 1 día+.
 
 | ID | Problema | Evidencia | Tam. |
 |---|---|---|---|
-| C1 | **Importar un título de 100 caracteres que ya existe falla completo** (el sufijo "(2)" excede 100 → 500 `import_failed`). | ✔︎ 2.ª importación: 500 | S |
-| C2 | Un `.excalidraw` mal formado (puntos inválidos, `appState` no objeto, ids no texto, JSON muy anidado) provoca **500**. | 📖 `import_parsers.py:418-514` | S |
-| C3 | Errores al leer una entrada del ZIP (CRC, cifrado, deflate64) provocan **500** en vez de omitirla. | 📖 `:633` | S |
-| C4 | El revert no cubre cancelaciones (cliente que se desconecta): queda una importación parcial; además reporta `rolled_back: true` aunque algún borrado falle. | 📖 `import_service.py:289` | S |
-| C5 | Carpetas con el mismo nombre en distinta capitalización (`Docs/` y `docs/`) crean dos carpetas; nombres repetidos en el manifest dejan carpetas vacías. | 📖 | S |
-| C6 | Diagramas cuya carpeta ya no existe quedan **fuera de la exportación** del proyecto. | 📖 `export_service.py:138` | S |
-| C7 | `NaN`/`Infinity` en un pizarrón importado se guardan y el frontend no puede leerlo; texto no UTF-8 se importa con caracteres de reemplazo sin aviso. | 📖 | S |
-| C8 | Contar diagramas para la cuota **carga todos los documentos con su contenido** (en cada creación, importación y en la lista de proyectos). | 📖 `usage_limiter.py:127` | S |
-| C9 | Los constructores de ZIP/Markdown corren en el event loop: un proyecto grande bloquea a todos mientras exporta. | 📖 `export_service.py:190` | S |
+| C1 | **Importar un título de 100 caracteres que ya existe falla completo** (el sufijo "(2)" excede 100 → 500 `import_failed`). | ✔︎ 2.ª importación: 500 | S ✅ |
+| C2 | Un `.excalidraw` mal formado (puntos inválidos, `appState` no objeto, ids no texto, JSON muy anidado) provoca **500**. | 📖 `import_parsers.py:418-514` | S ✅ |
+| C3 | Errores al leer una entrada del ZIP (CRC, cifrado, deflate64) provocan **500** en vez de omitirla. | 📖 `:633` | S ✅ |
+| C4 | El revert no cubre cancelaciones (cliente que se desconecta): queda una importación parcial; además reporta `rolled_back: true` aunque algún borrado falle. | 📖 `import_service.py:289` | S ✅ |
+| C5 | Carpetas con el mismo nombre en distinta capitalización (`Docs/` y `docs/`) crean dos carpetas; nombres repetidos en el manifest dejan carpetas vacías. | 📖 | S ✅ |
+| C6 | Diagramas cuya carpeta ya no existe quedan **fuera de la exportación** del proyecto. | 📖 `export_service.py:138` | S ✅ |
+| C7 | `NaN`/`Infinity` en un pizarrón importado se guardan y el frontend no puede leerlo; texto no UTF-8 se importa con caracteres de reemplazo sin aviso. | 📖 | S ✅ |
+| C8 | Contar diagramas para la cuota **carga todos los documentos con su contenido** (en cada creación, importación y en la lista de proyectos). | 📖 `usage_limiter.py:127` | S ✅ |
+| C9 | Los constructores de ZIP/Markdown corren en el event loop: un proyecto grande bloquea a todos mientras exporta. | 📖 `export_service.py:190` | S ✅ |
 
 ## D. UI de export/import y editor
 

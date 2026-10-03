@@ -69,6 +69,31 @@ class DiagramRepository(IDiagramRepository):
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()
         return diagrams
 
+    async def count_by_project_ids(self, project_ids: list[str]) -> int:
+        """Number of diagrams across projects, counted by MongoDB (no documents loaded)."""
+        if not project_ids:
+            return 0
+        return await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).count()
+
+    async def type_counts_by_project(self, project_ids: list[str]) -> dict[str, dict[str, int]]:
+        """``{project_id: {diagram_type: count}}`` from one aggregation (no content loaded)."""
+        if not project_ids:
+            return {}
+        rows = await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).aggregate(
+            [
+                {
+                    "$group": {
+                        "_id": {"p": "$project_id", "t": {"$ifNull": ["$diagram_type", "mermaid"]}},
+                        "n": {"$sum": 1},
+                    }
+                }
+            ]
+        ).to_list()
+        counts: dict[str, dict[str, int]] = {}
+        for row in rows:
+            counts.setdefault(row["_id"]["p"], {})[row["_id"]["t"] or "mermaid"] = row["n"]
+        return counts
+
     async def get_recent_by_project_ids(
         self, project_ids: list[str], limit: int
     ) -> list[DiagramSummary]:

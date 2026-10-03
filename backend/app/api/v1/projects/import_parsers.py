@@ -11,15 +11,44 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import math
 import posixpath
 import re
 import uuid
 import zipfile
+import zlib
 from dataclasses import dataclass, field
 from typing import Optional
 
 from .export_builders import MANIFEST_FILENAME, sanitize_filename, unique_name
+
+logger = logging.getLogger(__name__)
+
+# Reason used when a file can't be read at all (corrupt entry, unexpected data).
+UNREADABLE = "unreadable"
+
+
+def _loads(text: str):
+    """``json.loads`` for untrusted files.
+
+    ``NaN``/``Infinity`` become 0 (they'd be written back as invalid JSON the
+    browser can't parse) and absurdly nested documents are a ValueError
+    instead of a RecursionError.
+    """
+    try:
+        return json.loads(text, parse_constant=lambda _constant: 0.0)
+    except RecursionError as exc:
+        raise ValueError("too deeply nested") from exc
+
+
+def _eid(value) -> Optional[str]:
+    """An element id from an untrusted file: only strings/numbers count."""
+    if isinstance(value, bool) or not isinstance(value, (str, int)):
+        return None
+    text = str(value)
+    return text or None
+
 
 KNOWN_TYPES = ("mermaid", "plantuml", "d2", "dbml", "freehand")
 
@@ -77,6 +106,10 @@ _FENCE_LANGUAGES = {
     "d2": "d2",
     "dbml": "dbml",
 }
+
+
+# Same limit as DiagramCreate.title: imported titles (and their "(2)" suffixes) must fit.
+MAX_TITLE_LENGTH = 100
 
 
 @dataclass
@@ -199,7 +232,7 @@ def detect_type_from_content(content: str) -> Optional[str]:
     ):
         return "d2"
     try:
-        data = json.loads(text)
+        data = _loads(text)
     except ValueError:
         return None
     if isinstance(data, dict):
@@ -300,7 +333,7 @@ def normalize_freehand(content: str) -> str:
         ImportError_: when the JSON is not a sketch.
     """
     try:
-        data = json.loads(content)
+        data = _loads(content)
     except ValueError as exc:
         raise ImportError_("invalid_json") from exc
     if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
@@ -346,6 +379,12 @@ def _anchor_side(point: dict, box: dict) -> str:
     return "bottom" if dy > 0 else "top"
 
 
+def _background(app_state) -> str:
+    """Canvas background from an Excalidraw ``appState`` (any shape tolerated)."""
+    color = app_state.get("viewBackgroundColor") if isinstance(app_state, dict) else None
+    return color if isinstance(color, str) and color else "#ffffff"
+
+
 def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
     """Convert an ``.excalidraw`` file into a Diagramahub sketch.
 
@@ -357,7 +396,7 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
         ImportError_: when the file is not an Excalidraw document.
     """
     try:
-        data = json.loads(content)
+        data = _loads(content)
     except ValueError as exc:
         raise ImportError_("invalid_json") from exc
     if (
@@ -368,7 +407,11 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
         raise ImportError_("not_excalidraw")
 
     raw_elements = [e for e in data["elements"] if isinstance(e, dict) and not e.get("isDeleted")]
-    by_id = {e.get("id"): e for e in raw_elements if e.get("id")}
+    by_id: dict[str, dict] = {}
+    for raw in raw_elements:
+        raw_id = _eid(raw.get("id"))
+        if raw_id:
+            by_id[raw_id] = raw
     converted: dict[str, dict] = {}
     order: list[str] = []
     skipped: dict[str, int] = {}
@@ -397,7 +440,7 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
 
     for element in raw_elements:
         kind = element.get("type")
-        eid = str(element.get("id") or uuid.uuid4().hex[:12])
+        eid = _eid(element.get("id")) or uuid.uuid4().hex[:12]
         if kind in ("rectangle", "diamond", "ellipse"):
             shape = base(element, kind, eid)
             if kind == "rectangle" and element.get("roundness"):
@@ -415,6 +458,9 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
                 for p in points
                 if isinstance(p, (list, tuple)) and len(p) >= 2
             ]
+            if len(abs_points) < 2:
+                skipped[kind] = skipped.get(kind, 0) + 1
+                continue
             xs = [p["x"] for p in abs_points]
             ys = [p["y"] for p in abs_points]
             shape = base(element, kind, eid)
@@ -433,8 +479,9 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
                 shape["startArrowhead"] = bool(element.get("startArrowhead"))
             for side in ("start", "end"):
                 binding = element.get(f"{side}Binding")
-                if isinstance(binding, dict) and binding.get("elementId"):
-                    shape[f"_{side}_bound_to"] = binding["elementId"]
+                target_id = _eid(binding.get("elementId")) if isinstance(binding, dict) else None
+                if target_id:
+                    shape[f"_{side}_bound_to"] = target_id
             converted[eid] = shape
             order.append(eid)
         elif kind == "freedraw":
@@ -448,6 +495,9 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
                 for p in points
                 if isinstance(p, (list, tuple)) and len(p) >= 2
             ]
+            if len(abs_points) < 2:
+                skipped[kind] = skipped.get(kind, 0) + 1
+                continue
             xs = [p["x"] for p in abs_points]
             ys = [p["y"] for p in abs_points]
             shape = base(element, "freehand", eid)
@@ -464,7 +514,7 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
             converted[eid] = shape
             order.append(eid)
         elif kind == "text":
-            container_id = element.get("containerId")
+            container_id = _eid(element.get("containerId"))
             if container_id and container_id in by_id:
                 bound_text_ids.add(eid)
                 continue  # applied to its container below
@@ -485,7 +535,7 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
     # Labels: text elements bound to a container become the container's text.
     for text_id in bound_text_ids:
         text_el = by_id[text_id]
-        container = converted.get(str(text_el.get("containerId")))
+        container = converted.get(_eid(text_el.get("containerId")) or "")
         if container is not None:
             container["text"] = str(text_el.get("text") or "")
             container["fontSize"] = _num(text_el.get("fontSize"), 14) or 14
@@ -511,7 +561,7 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
         "version": 1,
         "elements": elements,
         "viewport": {"zoom": 1, "scrollX": 0, "scrollY": 0},
-        "background": (data.get("appState") or {}).get("viewBackgroundColor") or "#ffffff",
+        "background": _background(data.get("appState")),
     }
     warnings = [f"skipped_{kind}:{count}" for kind, count in sorted(skipped.items())]
     return json.dumps(sketch, ensure_ascii=False), warnings
@@ -523,21 +573,46 @@ def excalidraw_to_freehand(content: str) -> tuple[str, list[str]]:
 
 
 def _decode(data: bytes) -> str:
-    text = data.decode("utf-8-sig", errors="replace")
-    return text.replace("\r\n", "\n")
+    """Text of an uploaded file: UTF-8 (with or without BOM) or UTF-16 with BOM.
+
+    Bytes that aren't valid become U+FFFD; callers flag that with a
+    ``replaced_characters`` warning. Line endings are normalised to ``\n``.
+    """
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = data.decode("utf-16", errors="replace")
+    else:
+        text = data.decode("utf-8-sig", errors="replace")
+    return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def parse_loose_file(
     filename: str, data: bytes, limits: ImportLimits
 ) -> tuple[Optional[ImportDiagram], Optional[ImportSkipped]]:
-    """One uploaded (non-ZIP) file -> a diagram, or the reason it was skipped."""
+    """One uploaded (non-ZIP) file -> a diagram, or the reason it was skipped.
+
+    Files come from users: anything unexpected while reading one skips that
+    file (reason ``unreadable``) instead of failing the whole import.
+    """
     name = posixpath.basename(filename) or "file"
+    try:
+        return _parse_loose_file(name, data, limits)
+    except Exception:  # noqa: BLE001 - one bad file must not break the import
+        logger.warning("Import: could not read %s", name, exc_info=True)
+        return None, ImportSkipped(name, UNREADABLE)
+
+
+def _parse_loose_file(
+    name: str, data: bytes, limits: ImportLimits
+) -> tuple[Optional[ImportDiagram], Optional[ImportSkipped]]:
+    """Body of :func:`parse_loose_file` (``name`` already a base name)."""
     if len(data) > limits.max_file_bytes:
         return None, ImportSkipped(name, "too_large")
     if not data.strip():
         return None, ImportSkipped(name, "empty")
 
     text = _decode(data)
+    # Not UTF-8/UTF-16 (e.g. Latin-1): imported, but the user is told some characters were replaced
+    encoding_warnings = ["replaced_characters"] if "\ufffd" in text else []
     detected = detect_diagram_type(name, text)
     _, ext = split_extension(name)
 
@@ -578,7 +653,12 @@ def parse_loose_file(
             content = text.strip("\n")
     except ImportError_ as exc:
         return None, ImportSkipped(name, str(exc))
-    return ImportDiagram(title_from_filename(name), detected, content, None, name, warnings), None
+    return (
+        ImportDiagram(
+            title_from_filename(name), detected, content, None, name, warnings + encoding_warnings
+        ),
+        None,
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -630,7 +710,18 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
             if info.file_size > limits.max_file_bytes:
                 plan.skipped.append(ImportSkipped("/".join(parts), "too_large"))
                 continue
-            files["/".join(parts)] = archive.read(info)
+            try:
+                files["/".join(parts)] = archive.read(info)
+            except (
+                zipfile.BadZipFile,
+                RuntimeError,
+                NotImplementedError,
+                zlib.error,
+                OSError,
+                EOFError,
+            ):
+                # Corrupt (bad CRC), encrypted or unsupported compression: skip that entry only
+                plan.skipped.append(ImportSkipped("/".join(parts), UNREADABLE))
 
     # A Diagramahub export wraps everything in one top-level folder that holds
     # the manifest: unwrap it. Any other archive keeps its top-level folder.
@@ -643,7 +734,7 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
     manifest = None
     if MANIFEST_FILENAME in files:
         try:
-            candidate = json.loads(_decode(files[MANIFEST_FILENAME]))
+            candidate = _loads(_decode(files[MANIFEST_FILENAME]))
             if isinstance(candidate, dict) and candidate.get("format") == "diagramahub-export":
                 manifest = candidate
         except ValueError:
@@ -716,7 +807,7 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
                     description = "\n".join(lines[1:]).strip()
                 diagram.description = description or None
         if folder_key is None:
-            diagram.title = unique_name(diagram.title, taken_root)
+            diagram.title = unique_name(diagram.title, taken_root, MAX_TITLE_LENGTH)
             plan.root_diagrams.append(diagram)
         else:
             folder = folders.get(folder_key)
@@ -729,7 +820,9 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
                 )
                 folders[folder_key] = folder
                 taken_in_folder[folder_key] = set()
-            diagram.title = unique_name(diagram.title, taken_in_folder[folder_key])
+            diagram.title = unique_name(
+                diagram.title, taken_in_folder[folder_key], MAX_TITLE_LENGTH
+            )
             folder.diagrams.append(diagram)
 
     # Empty folders declared by the manifest are still created.

@@ -566,6 +566,7 @@
       "nothing": "No hay nada que importar en esos archivos."
     },
     "reasons": {
+      "unreadable": "archivo dañado o ilegible",
       "unsupported_type": "tipo no reconocido",
       "too_large": "demasiado grande",
       "nested_zip": "ZIP dentro de otro ZIP",

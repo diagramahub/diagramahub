@@ -3,6 +3,7 @@ Business logic layer for projects.
 """
 
 from fastapi import HTTPException, status
+from .export_builders import group_by_folder
 from .interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
 from ..diagrams.schemas import diagram_to_response
@@ -78,9 +79,7 @@ class ProjectService:
                 detail="You don't have access to this project",
             )
 
-        # Count diagrams for this project
-        diagrams = await self.diagram_repository.get_by_project_id(project_id)
-        diagram_count = len(diagrams)
+        diagram_count = await self.diagram_repository.count_by_project_ids([project_id])
 
         return ProjectResponse(
             id=str(project.id),
@@ -119,17 +118,18 @@ class ProjectService:
                 detail="You don't have access to this project",
             )
 
-        # Get diagrams without folder
-        diagrams_without_folder = await self.diagram_repository.get_without_folder(project_id)
-        diagram_responses = [diagram_to_response(d) for d in diagrams_without_folder]
-
-        # Get folders with their diagrams
+        # One query for all the project's diagrams, grouped by folder in memory.
+        # A diagram whose folder no longer exists is listed at the root.
         folders = await self.folder_repository.get_by_project_id(project_id)
+        root, by_folder = group_by_folder(
+            await self.diagram_repository.get_by_project_id(project_id),
+            [str(f.id) for f in folders],
+        )
+        diagram_responses = [diagram_to_response(d) for d in root]
+
         folder_responses = []
         for folder in folders:
-            folder_diagrams = await self.diagram_repository.get_by_folder_id(
-                str(folder.id), project_id
-            )
+            folder_diagrams = by_folder[str(folder.id)]
             folder_diagram_responses = [diagram_to_response(d) for d in folder_diagrams]
             folder_responses.append(
                 {
@@ -167,17 +167,12 @@ class ProjectService:
         """
         projects = await self.repository.get_by_user_id(user_id)
         project_responses = []
+        # Counts per project and type from one aggregation (diagram content isn't loaded)
+        counts = await self.diagram_repository.type_counts_by_project([str(p.id) for p in projects])
 
         for p in projects:
-            # Count diagrams for this project
-            diagrams = await self.diagram_repository.get_by_project_id(str(p.id))
-            diagram_count = len(diagrams)
-
-            # Count by diagram type
-            type_counts: dict = {}
-            for d in diagrams:
-                dt = d.diagram_type or "mermaid"
-                type_counts[dt] = type_counts.get(dt, 0) + 1
+            type_counts = counts.get(str(p.id), {})
+            diagram_count = sum(type_counts.values())
 
             project_responses.append(
                 ProjectResponse(
@@ -224,9 +219,7 @@ class ProjectService:
 
         updated_project = await self.repository.update(project_id, project_data)
 
-        # Count diagrams for this project
-        diagrams = await self.diagram_repository.get_by_project_id(project_id)
-        diagram_count = len(diagrams)
+        diagram_count = await self.diagram_repository.count_by_project_ids([project_id])
 
         return ProjectResponse(
             id=str(updated_project.id),
