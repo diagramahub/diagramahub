@@ -1,3 +1,4 @@
+import { useDialogA11y } from '../hooks/useDialogA11y';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { retryAfterSeconds } from '../utils/download';
@@ -145,12 +146,8 @@ export default function ImportProjectModal({
     }
   };
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && step !== 'importing') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, step, onClose]);
+  // Escape (not while importing), initial focus, focus trap, focus restore
+  const panelRef = useDialogA11y(isOpen, onClose, step !== 'importing');
 
   if (!isOpen) return null;
 
@@ -159,7 +156,7 @@ export default function ImportProjectModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="import-project-title">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[90vh]">
+      <div ref={panelRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="min-w-0">

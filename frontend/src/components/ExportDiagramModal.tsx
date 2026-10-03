@@ -1,3 +1,4 @@
+import { useDialogA11y } from '../hooks/useDialogA11y';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -60,6 +61,8 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
   // mounted between diagrams, so a sketch (PNG only) must not inherit the format
   // picked for a previous text diagram.
   const [chosenFormat, setSelectedFormat] = useState<ExportFormat>('png');
+  // Escape (not while exporting), initial focus, focus trap, focus restore
+  const panelRef = useDialogA11y(isOpen, onClose, exportingFormat === null);
   const selectedFormat: ExportFormat = diagramType === 'freehand' ? 'png' : chosenFormat;
 
   if (!isOpen) return null;
@@ -143,20 +146,20 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
             : '.mmd';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full mx-auto overflow-y-auto max-h-[90vh]">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="export-diagram-title">
+      <div ref={panelRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full mx-auto overflow-y-auto max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <h3 id="export-diagram-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t('editor.exportDiagram')}
           </h3>
           <button
             onClick={onClose}
             disabled={isBusy}
-            aria-label={t('common.cancel')}
+            aria-label={t('common.close')}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-40 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
