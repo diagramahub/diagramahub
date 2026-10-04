@@ -159,7 +159,57 @@
       "improveProcessPrompt": "Mejora el proceso del diagrama para que sea más eficiente y claro.",
       "fixPrompt": "Corrige errores de sintaxis, estructura o renderizado del diagrama actual. Mantén la intención original y devuelve el diagrama completo corregido."
     },
-    "panelTitle": "Chat con IA"
+    "panelTitle": "Chat con IA",
+    "empty": "Envía un mensaje para comenzar",
+    "copied": "Copiado",
+    "copyContent": "Copiar contenido",
+    "copyCode": "Copiar código",
+    "deleteMessage": "Eliminar mensaje",
+    "retry": "Reintentar",
+    "finalizedReadOnly": "Sesión finalizada (solo lectura)",
+    "previewTitle": "Vista previa del diagrama",
+    "time": {
+      "now": "ahora",
+      "minutes": "hace {{count}} min",
+      "hours": "hace {{count}} h",
+      "days": "hace {{count}} d"
+    },
+    "phase": {
+      "thinking": "Pensando…",
+      "generating": "Generando código…"
+    },
+    "preview": {
+      "expand": "Ver en grande",
+      "accept": "✓ Aceptar",
+      "reject": "✗ Rechazar",
+      "accepted": "✓ Mejora aceptada",
+      "rejected": "✗ Mejora rechazada",
+      "restore": "↩ Restaurar",
+      "restoreTitle": "Restaurar esta versión",
+      "use": "↩ Utilizar",
+      "useTitle": "Utilizar esta versión"
+    },
+    "sessions": {
+      "select": "Seleccionar sesión",
+      "new": "Nueva sesión",
+      "none": "Sin sesiones",
+      "finalized": "finalizada",
+      "messages_one": "{{count}} mensaje",
+      "messages_other": "{{count}} mensajes",
+      "rename": "Renombrar"
+    },
+    "errors": {
+      "loadSessions": "Error al cargar las sesiones",
+      "loadMessages": "Error al cargar los mensajes",
+      "createSession": "Error al crear la sesión",
+      "deleteSession": "Error al eliminar la sesión",
+      "renameSession": "Error al renombrar la sesión",
+      "accept": "Error al aceptar el cambio",
+      "reject": "Error al rechazar el cambio",
+      "deleteMessage": "Error al eliminar el mensaje",
+      "noStreamBody": "El servidor no devolvió una respuesta. Inténtalo de nuevo.",
+      "network": "Se interrumpió la conexión. Inténtalo de nuevo."
+    }
   },
   "installation": {
     "title": "Bienvenido a DiagramaHub",
@@ -1316,5 +1366,12 @@
     },
     "clearAllConfirmTitle": "¿Limpiar todo el pizarrón?",
     "clearAllConfirmMessage": "Se borrarán todos los elementos del pizarrón. Puedes deshacerlo con Deshacer."
+  },
+  "diagramPreview": {
+    "syntaxError": "⚠️ Error de sintaxis",
+    "empty": "Sin código para previsualizar",
+    "zoomOut": "Alejar",
+    "zoomReset": "Restablecer zoom",
+    "zoomIn": "Acercar"
   }
 }

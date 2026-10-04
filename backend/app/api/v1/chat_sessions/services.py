@@ -123,6 +123,35 @@ def _is_code_verb(word: str) -> bool:
     return any(plain.endswith(e) and plain[: -len(e)] in verbs for e in _ENCLITICS)
 
 
+# User-facing chat errors, by language
+_CHAT_ERRORS = {
+    "session_not_found": {"es": "Sesión no encontrada", "en": "Chat session not found"},
+    "session_finalized": {
+        "es": "No se pueden enviar mensajes a una sesión finalizada",
+        "en": "Messages can't be sent to a finished session",
+    },
+    "no_provider": {
+        "es": "No hay proveedor de IA configurado.",
+        "en": "No AI provider is configured.",
+    },
+}
+
+
+def _chat_error(key: str, language: str) -> str:
+    """A chat error in the user's language (Spanish by default)."""
+    texts = _CHAT_ERRORS[key]
+    return texts.get(language, texts["es"])
+
+
+def _error_text(exc: Exception, language: str) -> str:
+    """What the user reads for a failed reply: provider errors come localized."""
+    from app.api.v1.ai_providers.clients.base import ProviderError
+
+    if isinstance(exc, ProviderError):
+        return exc.message_for(language)
+    return str(exc)
+
+
 # --- Auto-retry constants ---
 MAX_RETRIES = 2
 
@@ -285,12 +314,12 @@ class ChatSessionService:
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sesión no encontrada",
+                detail=_chat_error("session_not_found", language),
             )
         if session.status == "finalized":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se pueden enviar mensajes a una sesión finalizada",
+                detail=_chat_error("session_finalized", language),
             )
 
         session_id_str = str(session.id)
@@ -321,7 +350,7 @@ class ChatSessionService:
             if not provider_config:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No hay proveedor de IA configurado.",
+                    detail=_chat_error("no_provider", language),
                 )
 
             actual_model = model or provider_config.model
@@ -524,7 +553,7 @@ class ChatSessionService:
             error_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
                 role=MessageRole.ERROR,
-                content=str(exc),
+                content=_error_text(exc, language),
             )
             return self._message_to_response(error_msg)
 
@@ -561,10 +590,10 @@ class ChatSessionService:
 
         session = await self.session_repo.get_session_by_id(session_id)
         if not session:
-            yield error_event("Sesión no encontrada")
+            yield error_event(_chat_error("session_not_found", language))
             return
         if session.status == "finalized":
-            yield error_event("No se pueden enviar mensajes a una sesión finalizada")
+            yield error_event(_chat_error("session_finalized", language))
             return
 
         session_id_str = str(session.id)
@@ -600,7 +629,7 @@ class ChatSessionService:
                 user_id, provider_type
             )
             if not provider_config:
-                yield error_event("No hay proveedor de IA configurado.")
+                yield error_event(_chat_error("no_provider", language))
                 return
 
             actual_model = model or provider_config.model
@@ -922,16 +951,17 @@ class ChatSessionService:
             yield error_event(exc.detail)
         except Exception as exc:
             logger.error("Stream chat error: %s", exc)
+            error_text = _error_text(exc, language)
             # Save error message to session
             try:
                 await self.message_repo.create_message(
                     session_id=session_id_str,
                     role=MessageRole.ERROR,
-                    content=str(exc),
+                    content=error_text,
                 )
             except Exception:
                 pass
-            yield error_event(str(exc))
+            yield error_event(error_text)
 
     # ------------------------------------------------------------------ #
     #  AI client dispatch helper (used by send_message + retries)

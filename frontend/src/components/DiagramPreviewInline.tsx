@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ImprovementStatus } from '../types/chat';
 import DiagramPreview from './DiagramPreview';
 
@@ -21,6 +22,7 @@ export default function DiagramPreviewInline({
   onRestore,
   onExpand,
 }: DiagramPreviewInlineProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -41,7 +43,7 @@ export default function DiagramPreviewInline({
             type="button"
             onClick={handleCopy}
             className="p-1.5 bg-white/90 border border-gray-200 rounded-md text-gray-500 hover:text-purple-600 hover:bg-white shadow-sm"
-            title={copied ? 'Copiado' : 'Copiar código'}
+            title={copied ? t('chat.copied') : t('chat.copyCode')}
           >
             {copied ? (
               <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,7 +60,7 @@ export default function DiagramPreviewInline({
               type="button"
               onClick={onExpand}
               className="p-1.5 bg-white/90 border border-gray-200 rounded-md text-gray-500 hover:text-purple-600 hover:bg-white shadow-sm"
-              title="Ver en grande"
+              title={t('chat.preview.expand')}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
@@ -74,43 +76,43 @@ export default function DiagramPreviewInline({
             onClick={onAccept}
             className="flex-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
           >
-            ✓ Aceptar
+            {t('chat.preview.accept')}
           </button>
           <button
             type="button"
             onClick={onReject}
             className="flex-1 px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-300 rounded-md hover:bg-orange-50 transition-colors"
           >
-            ✗ Rechazar
+            {t('chat.preview.reject')}
           </button>
         </div>
       )}
       {status === 'accepted' && (
         <div className="flex items-center gap-2 p-2 bg-green-50 border-t border-green-200">
-          <span className="flex-1 text-xs text-green-700 font-medium text-center">✓ Mejora aceptada</span>
+          <span className="flex-1 text-xs text-green-700 font-medium text-center">{t('chat.preview.accepted')}</span>
           {onRestore && (
             <button
               type="button"
               onClick={onRestore}
               className="px-2 py-1 text-[10px] font-medium text-green-700 bg-white border border-green-300 rounded hover:bg-green-100 transition-colors"
-              title="Restaurar esta versión"
+              title={t('chat.preview.restoreTitle')}
             >
-              ↩ Restaurar
+              {t('chat.preview.restore')}
             </button>
           )}
         </div>
       )}
       {status === 'rejected' && (
         <div className="flex items-center gap-2 p-2 bg-orange-50 border-t border-orange-200">
-          <span className="flex-1 text-xs text-orange-600 font-medium text-center">✗ Mejora rechazada</span>
+          <span className="flex-1 text-xs text-orange-600 font-medium text-center">{t('chat.preview.rejected')}</span>
           {onRestore && (
             <button
               type="button"
               onClick={onRestore}
               className="px-2 py-1 text-[10px] font-medium text-orange-600 bg-white border border-orange-300 rounded hover:bg-orange-100 transition-colors"
-              title="Utilizar esta versión"
+              title={t('chat.preview.useTitle')}
             >
-              ↩ Utilizar
+              {t('chat.preview.use')}
             </button>
           )}
         </div>

@@ -35,10 +35,33 @@ class ProviderError(ValueError):
     model_unavailable, provider_error.
     """
 
-    def __init__(self, code: str, message: str, status_code: Optional[int] = None):
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        status_code: Optional[int] = None,
+        provider: str = "",
+    ):
         super().__init__(message)
         self.code = code
         self.status_code = status_code
+        self.provider = provider
+
+    def message_for(self, language: str) -> str:
+        """The error in the user's language (the default message is Spanish)."""
+        english = _ENGLISH_PROVIDER_ERRORS.get(self.code)
+        if language == "en" and english:
+            return english.format(provider=self.provider)
+        return str(self)
+
+
+_ENGLISH_PROVIDER_ERRORS = {
+    "no_credits": "{provider}: the provider account has no credits or balance. "
+    "Top it up in the provider's console and try again.",
+    "invalid_key": "{provider}: the API key is invalid or has no permissions.",
+    "model_unavailable": "{provider}: the chosen model isn't available for this key.",
+    "rate_limited": "{provider}: the provider's rate limit was reached. Try again in a moment.",
+}
 
 
 _NO_CREDIT_HINTS = (
@@ -83,27 +106,31 @@ def provider_error(provider: str, status_code: int, body: str) -> ProviderError:
             f"{provider}: la cuenta del proveedor no tiene créditos o saldo. "
             "Recarga en el panel del proveedor e inténtalo de nuevo.",
             status_code,
+            provider,
         )
     if status_code in (401, 403) or any(hint in text for hint in _KEY_HINTS):
         return ProviderError(
             "invalid_key",
             f"{provider}: la llave de API no es válida o no tiene permisos.",
             status_code,
+            provider,
         )
     if status_code == 404 or ("model" in text and any(hint in text for hint in _MODEL_HINTS)):
         return ProviderError(
             "model_unavailable",
             f"{provider}: el modelo elegido no está disponible para esta llave.",
             status_code,
+            provider,
         )
     if status_code == 429:
         return ProviderError(
             "rate_limited",
             f"{provider}: se alcanzó el límite de solicitudes. Inténtalo de nuevo en unos momentos.",
             status_code,
+            provider,
         )
     return ProviderError(
-        "provider_error", f"{provider} API error ({status_code}): {detail}", status_code
+        "provider_error", f"{provider} API error ({status_code}): {detail}", status_code, provider
     )
 
 

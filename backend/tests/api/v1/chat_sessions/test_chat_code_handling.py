@@ -280,3 +280,63 @@ async def test_a_text_answer_stays_text() -> None:
     await _stream(service, _ReplyClient("Es un flujo de compra con 3 pasos."), "¿Qué hace este diagrama?")
     saved = service.message_repo.items[-1]
     assert saved.improved_code is None and saved.content == "Es un flujo de compra con 3 pasos."
+
+
+# --- 0.8.2: chat errors in the user's language ---
+
+
+class _FailingClient(_ReplyClient):
+    """The provider rejects the request (no credits)."""
+
+    async def chat_with_context_stream(self, messages, diagram_code, diagram_type, language="es", system_prompt=None, max_tokens=None):  # noqa: ANN001, ANN201
+        from app.api.v1.ai_providers.clients.base import provider_error
+
+        raise provider_error("OpenAI", 402, "insufficient_quota")
+        yield ""  # pragma: no cover - makes this an async generator
+
+
+class _NoProviderAIService(_AIService):
+    async def get_active_provider_config(self, *_a):  # noqa: ANN002, ANN201
+        return None
+
+
+async def _stream_lang(service, client, language):  # noqa: ANN001, ANN202
+    import json
+
+    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=client):
+        return [
+            json.loads(line[6:])
+            async for raw in service.stream_message(
+                "s1", "u", "Crea un flujo", "flowchart TD", "mermaid", language=language
+            )
+            for line in raw.splitlines() if line.startswith("data: ")
+        ]
+
+
+def test_provider_errors_speak_the_users_language() -> None:
+    from app.api.v1.ai_providers.clients.base import provider_error
+
+    error = provider_error("OpenAI", 402, "insufficient_quota")
+    assert error.message_for("en").startswith("OpenAI: the provider account has no credits")
+    assert error.message_for("es") == str(error) and "créditos" in str(error)
+    # Unclassified errors carry the provider's own (English) text in both languages
+    other = provider_error("OpenAI", 500, "boom")
+    assert other.message_for("en") == other.message_for("es") == str(other)
+
+
+@pytest.mark.parametrize(("language", "expected"), [("en", "no credits"), ("es", "créditos")])
+async def test_a_provider_failure_is_reported_in_the_users_language(language: str, expected: str) -> None:
+    service = _service()
+    events = await _stream_lang(service, _FailingClient("x"), language)
+    error = next(e for e in events if e["type"] == "error")
+    assert expected in error["message"]
+    assert expected in service.message_repo.items[-1].content  # the saved error too
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"), [("en", "No AI provider is configured."), ("es", "No hay proveedor de IA configurado.")]
+)
+async def test_missing_provider_is_reported_in_the_users_language(language: str, expected: str) -> None:
+    service = ChatSessionService(_Sessions(), _Messages(), _NoProviderAIService())
+    events = await _stream_lang(service, _ReplyClient("x"), language)
+    assert next(e for e in events if e["type"] == "error")["message"] == expected

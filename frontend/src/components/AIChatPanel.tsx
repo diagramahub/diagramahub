@@ -112,10 +112,10 @@ export default function AIChatPanel({
       setSessions(data);
       return data;
     } catch {
-      setError('Error al cargar sesiones');
+      setError(t('chat.errors.loadSessions'));
       return [];
     }
-  }, [diagramId]);
+  }, [diagramId, t]);
 
   // Cargar mensajes de una sesión
   const loadMessages = useCallback(async (sessionId: string) => {
@@ -123,9 +123,9 @@ export default function AIChatPanel({
       const data = await apiService.getChatSessionWithMessages(sessionId);
       setMessages(data.messages);
     } catch {
-      setError('Error al cargar mensajes');
+      setError(t('chat.errors.loadMessages'));
     }
-  }, []);
+  }, [t]);
 
   // Inicializar: cargar sesiones y seleccionar la más reciente o crear nueva
   useEffect(() => {
@@ -162,7 +162,7 @@ export default function AIChatPanel({
       setActiveSessionId(session.id);
       setMessages([]);
     } catch {
-      setError('Error al crear sesión');
+      setError(t('chat.errors.createSession'));
     }
   };
 
@@ -198,7 +198,7 @@ export default function AIChatPanel({
         }
       }
     } catch {
-      setError('Error al eliminar sesión');
+      setError(t('chat.errors.deleteSession'));
     }
   };
 
@@ -208,7 +208,7 @@ export default function AIChatPanel({
       const updated = await apiService.updateChatSessionTitle(sessionId, { title: newTitle });
       setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, title: updated.title } : s)));
     } catch {
-      setError('Error al renombrar sesión');
+      setError(t('chat.errors.renameSession'));
     }
   };
 
@@ -259,7 +259,7 @@ export default function AIChatPanel({
     setStreaming({
       isStreaming: true,
       accumulatedText: '',
-      currentPhase: 'Pensando…',
+      currentPhase: t('chat.phase.thinking'),
       diagramCode: null,
       error: null,
       retryCount: streaming.retryCount,
@@ -291,7 +291,7 @@ export default function AIChatPanel({
             return {
               ...prev,
               accumulatedText: newText,
-              currentPhase: inProgress ? 'Generando código…' : prev.currentPhase,
+              currentPhase: inProgress ? t('chat.phase.generating') : prev.currentPhase,
               isDiagramGenerating: inProgress || prev.isDiagramGenerating,
             };
           });
@@ -411,7 +411,7 @@ export default function AIChatPanel({
       );
       onAcceptImprovement(code);
     } catch {
-      setError('Error al aceptar mejora');
+      setError(t('chat.errors.accept'));
     }
   };
 
@@ -424,7 +424,7 @@ export default function AIChatPanel({
         prev.map((m) => (m.id === messageId ? { ...m, improvement_status: 'rejected' } : m))
       );
     } catch {
-      setError('Error al rechazar mejora');
+      setError(t('chat.errors.reject'));
     }
   };
 
@@ -454,7 +454,7 @@ export default function AIChatPanel({
       await apiService.deleteChatMessage(activeSessionId, messageId);
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
     } catch {
-      setError('Error al eliminar mensaje');
+      setError(t('chat.errors.deleteMessage'));
     }
   };
 
@@ -546,7 +546,7 @@ export default function AIChatPanel({
       {/* Input */}
       {isFinalized ? (
         <div className="px-3 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 text-center flex-shrink-0">
-          <p className="text-xs text-gray-500 dark:text-gray-400">Sesión finalizada (solo lectura)</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('chat.finalizedReadOnly')}</p>
         </div>
       ) : (
         <ChatInput
@@ -564,10 +564,12 @@ export default function AIChatPanel({
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setExpandedPreview(null)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Vista previa del diagrama</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('chat.previewTitle')}</span>
               <button
                 type="button"
                 onClick={() => setExpandedPreview(null)}
+                aria-label={t('common.close')}
+                title={t('common.close')}
                 className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

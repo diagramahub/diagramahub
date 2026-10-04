@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg } from '../utils/sanitize';
 
@@ -12,6 +13,7 @@ const MAX_ZOOM = 10;
 const ZOOM_STEP = 0.2;
 
 export default function DiagramPreview({ code, diagramType }: DiagramPreviewProps) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState('');
@@ -113,13 +115,13 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
         {renderError ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-amber-600 text-sm text-center p-4">
-              <p className="font-medium mb-1">⚠️ Error de sintaxis</p>
+              <p className="font-medium mb-1">{t('diagramPreview.syntaxError')}</p>
               <p className="text-xs text-gray-500">{renderError}</p>
             </div>
           </div>
         ) : !code.trim() ? (
           <div className="w-full h-full flex items-center justify-center">
-            <p className="text-sm text-gray-400">Sin código para previsualizar</p>
+            <p className="text-sm text-gray-400">{t('diagramPreview.empty')}</p>
           </div>
         ) : (
           <div
@@ -142,7 +144,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
             onClick={handleZoomOut}
             disabled={zoom <= MIN_ZOOM}
             className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            title="Alejar"
+            title={t('diagramPreview.zoomOut')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -151,7 +153,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
           <button
             onClick={handleReset}
             className="px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded transition-colors min-w-[3rem] text-center"
-            title="Restablecer zoom"
+            title={t('diagramPreview.zoomReset')}
           >
             {zoomPercent}%
           </button>
@@ -159,7 +161,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
             onClick={handleZoomIn}
             disabled={zoom >= MAX_ZOOM}
             className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            title="Acercar"
+            title={t('diagramPreview.zoomIn')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
