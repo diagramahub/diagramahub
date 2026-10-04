@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.2] - 2026-10-04
+
+### Fixed
+- AI chat: replies that carried the diagram were saved as text when the keyword-based mode guess took the request for a question ("¿Me puedes…?", "Necesito que…", "Agrégale…", "resuélvelo", "Diagrama de…"), so the code showed up as broken Markdown in the chat with no preview. The reply now decides: `<<<DIAGRAM>>>` markers, or a block tagged with the diagram type holding a whole diagram, are handled as code (split, validation, truncation notice; the stream emits `mode: code`). Real-model check (Gemini): 7/7 such requests leaked code before, 0/7 after.
+- Every chat reply gets the 8192-token cap; text-mode replies had a smaller budget and no truncation check.
+- Mode guess: accent-insensitive, Spanish enclitic imperatives, more verbs and noun-led requests.
+- The chat panel always shows the message the server saved after a reply.
+- The chat, the editor line count and the AI fix diff view were hardcoded in Spanish; they now follow the UI language (plurals included). Chat errors and AI provider errors are sent in the request language.
+
+### Removed
+- `ChatModeSelector` (unused).
+
 ## [0.8.1] - 2026-10-03
 
 ### Security
