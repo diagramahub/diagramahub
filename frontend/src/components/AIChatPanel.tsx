@@ -68,7 +68,6 @@ export default function AIChatPanel({
     retryCount: 0,
     isDiagramGenerating: false,
   });
-  const currentStreamModeRef = useRef<'text' | 'code' | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
   const lastSendParamsRef = useRef<{ content: string; presetAction?: ChatPresetAction } | null>(null);
   // The automatic fix runs at most once per user request (never on its own result)
@@ -76,7 +75,6 @@ export default function AIChatPanel({
   // Generation counter: bumped on every send, panel close, diagram change and unmount.
   // An automatic-fix check only acts if nothing newer happened while mermaid parsed.
   const requestSeqRef = useRef(0);
-  const lastStreamTextRef = useRef('');
 
   // Mobile keyboard handling — adjust height when virtual keyboard opens
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
@@ -242,8 +240,6 @@ export default function AIChatPanel({
 
     // Save params for retry
     lastSendParamsRef.current = { content, presetAction };
-    currentStreamModeRef.current = null;
-    lastStreamTextRef.current = '';
 
     // Agregar mensaje del usuario de forma optimista
     const optimisticMsg: ChatMessage = {
@@ -291,7 +287,6 @@ export default function AIChatPanel({
           setStreaming((prev) => {
             // If mode is "code", still accumulate but don't change display behavior
             const newText = prev.accumulatedText + tokenContent;
-            lastStreamTextRef.current = newText;
             const inProgress = isDiagramInProgress(newText);
             return {
               ...prev,
@@ -302,7 +297,6 @@ export default function AIChatPanel({
           });
         },
         onMode: (mode: 'text' | 'code') => {
-          currentStreamModeRef.current = mode;
           // When mode is "code", hide content from the start
           setStreaming((prev) => ({
             ...prev,
@@ -313,24 +307,6 @@ export default function AIChatPanel({
           setStreaming((prev) => ({ ...prev, currentPhase: phase }));
         },
         onDone: (event: SSEDoneEvent) => {
-          const shouldPersistTextOnly = currentStreamModeRef.current === 'text' && !event.improved_code;
-
-          if (shouldPersistTextOnly) {
-            const finalText = lastStreamTextRef.current.trim();
-            if (finalText) {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  id: `temp-assistant-${Date.now()}`,
-                  session_id: activeSessionId || '',
-                  role: 'assistant',
-                  content: finalText,
-                  created_at: new Date().toISOString(),
-                },
-              ]);
-            }
-          }
-
           // Extract diagram code from accumulated text
           setStreaming((prev) => {
             const result = extractDiagramCode(prev.accumulatedText, diagramType);
@@ -345,7 +321,9 @@ export default function AIChatPanel({
 
           // Reload messages to get the persisted version with all metadata
           setIsLoading(false);
-          if (activeSessionId && !shouldPersistTextOnly) {
+          // Always show what the server saved: it decides whether the reply
+          // carried a diagram (preview card) or is text, even in "text" mode.
+          if (activeSessionId) {
             loadMessages(activeSessionId);
           }
           loadSessions();

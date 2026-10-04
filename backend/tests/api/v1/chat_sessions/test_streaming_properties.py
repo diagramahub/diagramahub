@@ -366,6 +366,8 @@ def test_property_7_truncated_stream_extraction(before_text: str, diagram_code: 
     """Feature: ai-chat-streaming, Property 7: Truncated Stream Extraction"""
     assume(not _has_marker(before_text))
     assume(not _has_marker(diagram_code))
+    # A fence right after the marker is stripped on purpose (models wrap code in ```)
+    assume("`" not in diagram_code)
 
     full_text = f"{before_text}<<<DIAGRAM>>>\n{diagram_code}"
 
