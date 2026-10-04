@@ -525,7 +525,6 @@
     "newDiagramInFolder": "New diagram in this folder",
     "syntaxError": "Syntax error",
     "noErrors": "No errors",
-    "lines": "lines",
     "fixing": "Fixing...",
     "fixWithAI": "Fix with AI",
     "fix": "Fix",
@@ -587,7 +586,16 @@
     "timeAgoDays": "{{count}}d ago",
     "pinPanel": "Pin panel",
     "unpinPanel": "Unpin panel",
-    "defaultProjectName": "Project"
+    "defaultProjectName": "Project",
+    "lineCount_one": "{{count}} line",
+    "lineCount_other": "{{count}} lines",
+    "diffView": {
+      "title": "AI diagram fix",
+      "explanation": "What changed:",
+      "original": "Original code",
+      "corrected": "Fixed code",
+      "apply": "Apply fix"
+    }
   },
   "projectImport": {
     "title": "Import diagrams",

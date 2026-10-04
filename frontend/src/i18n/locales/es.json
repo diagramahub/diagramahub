@@ -525,7 +525,6 @@
     "newDiagramInFolder": "Nuevo diagrama en esta carpeta",
     "syntaxError": "Error de sintaxis",
     "noErrors": "Sin errores",
-    "lines": "líneas",
     "fixing": "Corrigiendo...",
     "fixWithAI": "Corregir con IA",
     "fix": "Corregir",
@@ -587,7 +586,16 @@
     "timeAgoDays": "hace {{count}}d",
     "pinPanel": "Fijar panel",
     "unpinPanel": "Desfijar panel",
-    "defaultProjectName": "Proyecto"
+    "defaultProjectName": "Proyecto",
+    "lineCount_one": "{{count}} línea",
+    "lineCount_other": "{{count}} líneas",
+    "diffView": {
+      "title": "Corrección del diagrama con IA",
+      "explanation": "Explicación de los cambios:",
+      "original": "Código original",
+      "corrected": "Código corregido",
+      "apply": "Aplicar corrección"
+    }
   },
   "projectImport": {
     "title": "Importar diagramas",

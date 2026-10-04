@@ -4321,7 +4321,7 @@ export default function DiagramEditorPage() {
                               d="M4 6h16M4 12h16M4 18h16"
                             />
                           </svg>
-                          <span>{diagramCode.split("\n").length} líneas</span>
+                          <span>{t("editor.lineCount", { count: diagramCode.split("\n").length })}</span>
                         </div>
 
                         {/* Información del zoom (solo cuando está visible) */}

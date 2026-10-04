@@ -289,7 +289,7 @@ export default function DiagramCodePanel({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span>{value.split('\n').length} {t('editor.lines')}</span>
+          <span>{t('editor.lineCount', { count: value.split('\n').length })}</span>
           <span className="text-gray-400 dark:text-gray-600">|</span>
           <span className="uppercase">{diagramType}</span>
         </div>
