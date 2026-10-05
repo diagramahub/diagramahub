@@ -231,7 +231,9 @@ def test_reply_offers_a_diagram_only_with_markers_or_a_whole_tagged_block() -> N
     # A snippet that illustrates an answer is not a new diagram
     assert not offers("Usa:\n```mermaid\nstyle A fill:#f9f\n```", "mermaid")
     assert not offers(f"Ejemplo:\n```text\n{CODE}\n```", "mermaid")
-    assert not offers(f"<<<DIAGRAM>>>\n{CODE}\n<<<END_DIAGRAM>>>", "mermaid", ChatPresetAction.EXPLAIN)
+    # "Explain": the markers still win; a quoted block of the current diagram does not
+    assert offers(f"<<<DIAGRAM>>>\n{CODE}\n<<<END_DIAGRAM>>>", "mermaid", ChatPresetAction.EXPLAIN)
+    assert not offers(f"Este diagrama:\n```mermaid\n{CODE}\n```", "mermaid", ChatPresetAction.EXPLAIN)
 
 
 async def test_streaming_a_question_answered_with_the_diagram_offers_the_preview() -> None:
@@ -340,3 +342,21 @@ async def test_missing_provider_is_reported_in_the_users_language(language: str,
     service = ChatSessionService(_Sessions(), _Messages(), _NoProviderAIService())
     events = await _stream_lang(service, _ReplyClient("x"), language)
     assert next(e for e in events if e["type"] == "error")["message"] == expected
+
+
+async def test_an_explain_reply_with_markers_offers_the_preview() -> None:
+    service = _service()
+    reply = f"Este flujo va de inicio a fin. Lo ordené así:\n<<<DIAGRAM>>>\n{CODE}\n<<<END_DIAGRAM>>>"
+    events = await _stream(service, _ReplyClient(reply), "Explica", preset=ChatPresetAction.EXPLAIN)
+    saved = service.message_repo.items[-1]
+    assert [e["mode"] for e in events if e["type"] == "mode"] == ["text", "code"]
+    assert saved.improved_code == CODE and "<<<" not in saved.content
+
+
+async def test_a_cut_explain_reply_with_markers_shows_the_notice() -> None:
+    service = _service()
+    reply = "Así queda:\n<<<DIAGRAM>>>\nflowchart TD\n    A[Inicio] --> B[Pa"
+    await _stream(service, _ReplyClient(reply, truncated=True), "Explica", preset=ChatPresetAction.EXPLAIN)
+    saved = service.message_repo.items[-1]
+    assert saved.improved_code is None
+    assert "se cortó" in saved.content and "flowchart" not in saved.content

@@ -1198,16 +1198,17 @@ class ChatSessionService:
         """Whether a reply the keyword guess took for text actually carries the diagram.
 
         The <<<DIAGRAM>>> markers are the prompt's contract for "here is the
-        changed diagram", so they always count. A Markdown block counts only when
-        it is tagged with this diagram type and holds a whole diagram (not a
-        snippet that illustrates an answer). "Explain" never offers a diagram.
+        changed diagram", so they always count, even for "Explain". A Markdown
+        block counts only when it is tagged with this diagram type and holds a
+        whole diagram (not a snippet that illustrates an answer), and never for
+        "Explain", whose answers often quote the current diagram.
         """
         import re
 
-        if preset_action == ChatPresetAction.EXPLAIN:
-            return False
         if re.search(r"<{2,3}\s*DIAGRAMA?\s*>{1,3}", ai_text, re.IGNORECASE):
             return True
+        if preset_action == ChatPresetAction.EXPLAIN:
+            return False
         tags = cls._FENCE_TAGS.get(diagram_type, {diagram_type})
         for match in re.finditer(r"```[ \t]*([\w-]+)[^\n`]*\n(.*?)(?:```|$)", ai_text, re.DOTALL):
             if match.group(1).lower() not in tags:
