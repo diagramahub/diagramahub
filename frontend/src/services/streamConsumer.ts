@@ -6,6 +6,7 @@
  */
 import type { SSEEvent, StreamCallbacks, SendMessageStreamRequest } from '../types/streaming';
 import { API_URL } from '../utils/runtimeConfig';
+import i18n from '../i18n/config';
 
 /**
  * Create a stream consumer that connects to the SSE endpoint and processes events.
@@ -48,7 +49,7 @@ export function createStreamConsumer(
       }
 
       if (!response.body) {
-        callbacks.onError('Stream response has no body');
+        callbacks.onError(i18n.t('chat.errors.noStreamBody'));
         return;
       }
 
@@ -130,7 +131,7 @@ export function createStreamConsumer(
     .catch((err: Error) => {
       // AbortError is expected when the user cancels — don't report it
       if (err.name === 'AbortError') return;
-      callbacks.onError('Network error: connection interrupted');
+      callbacks.onError(i18n.t('chat.errors.network'));
     });
 
   return controller;

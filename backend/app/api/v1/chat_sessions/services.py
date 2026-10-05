@@ -62,6 +62,22 @@ _LEADING_CODE_VERBS = {
     "reorganiza",
     "refactoriza",
     "convierte",
+    "pon",
+    "resuelve",
+    "arregla",
+    "repara",
+    "completa",
+    "simplifica",
+    "optimiza",
+    "incluye",
+    "conecta",
+    "separa",
+    "divide",
+    "combina",
+    "reemplaza",
+    "sustituye",
+    "traduce",
+    "transforma",
     "add",
     "create",
     "generate",
@@ -81,6 +97,60 @@ _LEADING_CODE_VERBS = {
     "refactor",
     "convert",
 }
+
+# Pronouns Spanish glues to an imperative: "agrégale", "hazlo", "corrígelo"
+_ENCLITICS = ("selos", "selas", "selo", "sela", "les", "los", "las", "nos", "le", "lo", "la", "me", "te")
+
+# Words that open a request naming the diagram to draw ("Diagrama de flujo de…")
+_LEADING_DIAGRAM_NOUNS = {"diagrama", "diagram", "flujo", "flowchart", "esquema", "modelo"}
+
+
+def _strip_accents(text: str) -> str:
+    """Lowercase ASCII-ish form: "agrégale" → "agregale"."""
+    import unicodedata
+
+    return "".join(
+        c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
+    )
+
+
+def _is_code_verb(word: str) -> bool:
+    """Whether a message's first word is an imperative that changes the diagram."""
+    plain = _strip_accents(word)
+    verbs = {_strip_accents(v) for v in _LEADING_CODE_VERBS}
+    if plain in verbs:
+        return True
+    return any(plain.endswith(e) and plain[: -len(e)] in verbs for e in _ENCLITICS)
+
+
+# User-facing chat errors, by language
+_CHAT_ERRORS = {
+    "session_not_found": {"es": "Sesión no encontrada", "en": "Chat session not found"},
+    "session_finalized": {
+        "es": "No se pueden enviar mensajes a una sesión finalizada",
+        "en": "Messages can't be sent to a finished session",
+    },
+    "no_provider": {
+        "es": "No hay proveedor de IA configurado.",
+        "en": "No AI provider is configured.",
+    },
+}
+
+
+def _chat_error(key: str, language: str) -> str:
+    """A chat error in the user's language (Spanish by default)."""
+    texts = _CHAT_ERRORS[key]
+    return texts.get(language, texts["es"])
+
+
+def _error_text(exc: Exception, language: str) -> str:
+    """What the user reads for a failed reply: provider errors come localized."""
+    from app.api.v1.ai_providers.clients.base import ProviderError
+
+    if isinstance(exc, ProviderError):
+        return exc.message_for(language)
+    return str(exc)
+
 
 # --- Auto-retry constants ---
 MAX_RETRIES = 2
@@ -244,12 +314,12 @@ class ChatSessionService:
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sesión no encontrada",
+                detail=_chat_error("session_not_found", language),
             )
         if session.status == "finalized":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se pueden enviar mensajes a una sesión finalizada",
+                detail=_chat_error("session_finalized", language),
             )
 
         session_id_str = str(session.id)
@@ -280,7 +350,7 @@ class ChatSessionService:
             if not provider_config:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No hay proveedor de IA configurado.",
+                    detail=_chat_error("no_provider", language),
                 )
 
             actual_model = model or provider_config.model
@@ -324,8 +394,9 @@ class ChatSessionService:
             )
 
             response_mode = self._detect_response_mode(content, preset_action)
-            if response_mode == "code":
-                self._use_code_budget(client)
+            # Every chat reply may carry a diagram (the model decides the intent),
+            # so all get the code budget: it is a cap, short answers don't use it.
+            self._use_code_budget(client)
 
             start = time.time()
 
@@ -357,6 +428,12 @@ class ChatSessionService:
             improvement_status = None
 
             code_display = ai_text
+            if response_mode == "text" and self._reply_offers_diagram(
+                ai_text, diagram_type, preset_action
+            ):
+                # The keyword guess said "question" but the model answered with
+                # the diagram: show it as a diagram, never as raw text in the chat.
+                response_mode = "code"
             if response_mode == "code":
                 improved_code, code_display = self._split_reply(ai_text, diagram_type)
                 if client.last_truncated:
@@ -476,7 +553,7 @@ class ChatSessionService:
             error_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
                 role=MessageRole.ERROR,
-                content=str(exc),
+                content=_error_text(exc, language),
             )
             return self._message_to_response(error_msg)
 
@@ -513,10 +590,10 @@ class ChatSessionService:
 
         session = await self.session_repo.get_session_by_id(session_id)
         if not session:
-            yield error_event("Sesión no encontrada")
+            yield error_event(_chat_error("session_not_found", language))
             return
         if session.status == "finalized":
-            yield error_event("No se pueden enviar mensajes a una sesión finalizada")
+            yield error_event(_chat_error("session_finalized", language))
             return
 
         session_id_str = str(session.id)
@@ -552,7 +629,7 @@ class ChatSessionService:
                 user_id, provider_type
             )
             if not provider_config:
-                yield error_event("No hay proveedor de IA configurado.")
+                yield error_event(_chat_error("no_provider", language))
                 return
 
             actual_model = model or provider_config.model
@@ -594,8 +671,9 @@ class ChatSessionService:
             )
 
             response_mode = self._detect_response_mode(content, preset_action)
-            if response_mode == "code":
-                self._use_code_budget(client)
+            # Every chat reply may carry a diagram (the model decides the intent),
+            # so all get the code budget: it is a cap, short answers don't use it.
+            self._use_code_budget(client)
 
             start = time.time()
             accumulated_text = ""
@@ -737,6 +815,13 @@ class ChatSessionService:
             improvement_status = None
 
             code_display = ai_text
+            if response_mode == "text" and self._reply_offers_diagram(
+                ai_text, diagram_type, preset_action
+            ):
+                # The keyword guess said "question" but the model answered with
+                # the diagram: show it as a diagram, never as raw text in the chat.
+                response_mode = "code"
+                yield mode_event(response_mode)
             if response_mode == "code":
                 improved_code, code_display = self._split_reply(ai_text, diagram_type)
                 if client.last_truncated:
@@ -866,16 +951,17 @@ class ChatSessionService:
             yield error_event(exc.detail)
         except Exception as exc:
             logger.error("Stream chat error: %s", exc)
+            error_text = _error_text(exc, language)
             # Save error message to session
             try:
                 await self.message_repo.create_message(
                     session_id=session_id_str,
                     role=MessageRole.ERROR,
-                    content=str(exc),
+                    content=error_text,
                 )
             except Exception:
                 pass
-            yield error_event(str(exc))
+            yield error_event(error_text)
 
     # ------------------------------------------------------------------ #
     #  AI client dispatch helper (used by send_message + retries)
@@ -1093,6 +1179,65 @@ class ChatSessionService:
                 return match.group(0).strip(), around(ai_text[: match.start()], "")
         return None, ai_text.strip()
 
+    # Fence language tags that name each diagram type
+    _FENCE_TAGS = {
+        "mermaid": {"mermaid", "mmd"},
+        "plantuml": {"plantuml", "puml", "uml"},
+        "uml": {"plantuml", "puml", "uml"},
+        "d2": {"d2"},
+        "dbml": {"dbml"},
+    }
+
+    @classmethod
+    def _reply_offers_diagram(
+        cls,
+        ai_text: str,
+        diagram_type: str,
+        preset_action: Optional[ChatPresetAction] = None,
+    ) -> bool:
+        """Whether a reply the keyword guess took for text actually carries the diagram.
+
+        The <<<DIAGRAM>>> markers are the prompt's contract for "here is the
+        changed diagram", so they always count, even for "Explain". A Markdown
+        block counts only when it is tagged with this diagram type and holds a
+        whole diagram (not a snippet that illustrates an answer), and never for
+        "Explain", whose answers often quote the current diagram.
+        """
+        import re
+
+        if re.search(r"<{2,3}\s*DIAGRAMA?\s*>{1,3}", ai_text, re.IGNORECASE):
+            return True
+        if preset_action == ChatPresetAction.EXPLAIN:
+            return False
+        tags = cls._FENCE_TAGS.get(diagram_type, {diagram_type})
+        for match in re.finditer(r"```[ \t]*([\w-]+)[^\n`]*\n(.*?)(?:```|$)", ai_text, re.DOTALL):
+            if match.group(1).lower() not in tags:
+                continue
+            code = match.group(2).strip()
+            if diagram_type in ("plantuml", "uml"):
+                whole = "@startuml" in code
+            elif diagram_type == "mermaid":
+                first = next(
+                    (ln.strip() for ln in code.splitlines() if ln.strip() and not ln.strip().startswith("%%")),
+                    "",
+                )
+                whole = bool(
+                    re.match(
+                        r"(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram"
+                        r"|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram"
+                        r"|C4\w+|sankey(?:-beta)?|xychart(?:-beta)?|block(?:-beta)?|architecture(?:-beta)?"
+                        r"|kanban|packet(?:-beta)?|radar(?:-beta)?)\b",
+                        first,
+                    )
+                )
+            elif diagram_type == "dbml":
+                whole = bool(re.search(r"^\s*Table\s+\S+.*\{", code, re.MULTILINE))
+            else:
+                whole = len(code) > 20
+            if whole:
+                return True
+        return False
+
     @staticmethod
     def _detect_response_mode(
         content: str,
@@ -1118,7 +1263,10 @@ class ChatSessionService:
         # contains a question inside ("Crea un flujo de urgencias (¿requiere
         # cirugía? ¿hay camas?)"): checking "?" first sent those to text mode.
         first_word = re.split(r"[\s:,.;!¡]+", lower, maxsplit=1)[0] if lower else ""
-        if first_word in _LEADING_CODE_VERBS:
+        if _is_code_verb(first_word):
+            return "code"
+        # A request that names what to draw: "Diagrama de base de datos de…"
+        if first_word in _LEADING_DIAGRAM_NOUNS and "?" not in lower:
             return "code"
 
         # Question indicators → text mode
@@ -1160,6 +1308,9 @@ class ChatSessionService:
             "improve",
             "corrige",
             "fix",
+            "resuelv",
+            "arregl",
+            "repara",
             "actualiza",
             "update",
             "elimina",
@@ -1204,8 +1355,9 @@ class ChatSessionService:
             "sustituye",
             "substitute",
         ]
+        plain = _strip_accents(lower)
         for marker in code_markers:
-            if marker in lower:
+            if _strip_accents(marker) in plain:
                 return "code"
 
         # Default: if it starts with a verb-like word, assume code mode

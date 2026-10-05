@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { ChatMessage } from '../types/chat';
 import DiagramPreviewInline from './DiagramPreviewInline';
 
@@ -26,21 +28,22 @@ interface ChatMessageListProps {
   streamingHideContent?: boolean;
 }
 
-function formatRelativeDate(dateStr: string): string {
+function formatRelativeDate(dateStr: string, t: TFunction): string {
   const normalized = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
   const date = new Date(normalized);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-  if (diffMin < 1) return 'ahora';
-  if (diffMin < 60) return `hace ${diffMin} min`;
-  if (diffHours < 24) return `hace ${diffHours}h`;
-  if (diffDays < 30) return `hace ${diffDays}d`;
+  if (diffMin < 1) return t('chat.time.now');
+  if (diffMin < 60) return t('chat.time.minutes', { count: diffMin });
+  if (diffHours < 24) return t('chat.time.hours', { count: diffHours });
+  if (diffDays < 30) return t('chat.time.days', { count: diffDays });
   return date.toLocaleDateString();
 }
 
 function CopyButton({ text }: { text: string }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -56,21 +59,21 @@ function CopyButton({ text }: { text: string }) {
       type="button"
       onClick={handleCopy}
       className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors opacity-0 group-hover:opacity-100"
-      title="Copiar contenido"
+      title={t('chat.copyContent')}
     >
       {copied ? (
         <>
           <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          <span className="text-green-500">Copiado</span>
+          <span className="text-green-500">{t('chat.copied')}</span>
         </>
       ) : (
         <>
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
-          <span>Copiar</span>
+          <span>{t('common.copy')}</span>
         </>
       )}
     </button>
@@ -93,6 +96,7 @@ export default function ChatMessageList({
   onStreamRetry,
   streamingHideContent,
 }: ChatMessageListProps) {
+  const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -122,7 +126,7 @@ export default function ChatMessageList({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
           <p className="text-xs text-gray-400 dark:text-gray-500">
-            Envía un mensaje para comenzar
+            {t('chat.empty')}
           </p>
         </div>
       </div>
@@ -168,7 +172,7 @@ export default function ChatMessageList({
                 type="button"
                 onClick={() => onDeleteMessage(msg.id)}
                 className={`absolute -top-2 ${msg.role === 'user' ? '-left-2' : '-right-2'} p-0.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm`}
-                title="Eliminar mensaje"
+                title={t('chat.deleteMessage')}
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -213,14 +217,14 @@ export default function ChatMessageList({
                 onClick={() => onRetry(msg.id)}
                 className="mt-2 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-red-300 dark:border-red-700 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
               >
-                ↻ Reintentar
+                ↻ {t('chat.retry')}
               </button>
             )}
           </div>
 
           {/* Timestamp */}
           <span className={`text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 px-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-            {formatRelativeDate(msg.created_at)}
+            {formatRelativeDate(msg.created_at, t)}
           </span>
         </div>
       ))}
@@ -285,7 +289,7 @@ export default function ChatMessageList({
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Reintentar
+                {t('chat.retry')}
               </button>
             )}
           </div>

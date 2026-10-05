@@ -2,6 +2,7 @@
  * Componente para mostrar la comparación entre código original y corregido
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface DiagramDiffViewProps {
   originalCode: string;
@@ -22,6 +23,7 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
   onApply,
   onCancel
 }) => {
+  const { t } = useTranslation();
   // Simple diff highlighting (line-by-line comparison)
   const originalLines = originalCode.split('\n');
   const correctedLines = correctedCode.split('\n');
@@ -71,7 +73,7 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Corrección de Diagrama con IA
+            {t('editor.diffView.title')}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             {changesSummary}
@@ -83,7 +85,7 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
           {/* Explanation */}
           <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-200 mb-2">
-              Explicación de los cambios:
+              {t('editor.diffView.explanation')}
             </h3>
             <p className="text-sm text-purple-800 dark:text-purple-300 whitespace-pre-wrap">
               {explanation}
@@ -96,10 +98,10 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Código Original
+                  {t('editor.diffView.original')}
                 </h3>
                 <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                  {originalLines.length} líneas
+                  {t('editor.lineCount', { count: originalLines.length })}
                 </span>
               </div>
               <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm">
@@ -149,10 +151,10 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Código Corregido
+                  {t('editor.diffView.corrected')}
                 </h3>
                 <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                  {correctedLines.length} líneas
+                  {t('editor.lineCount', { count: correctedLines.length })}
                 </span>
               </div>
               <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm">
@@ -206,13 +208,13 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
             onClick={onCancel}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200 font-medium text-sm"
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button
             onClick={onApply}
             className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
           >
-            Aplicar Corrección
+            {t('editor.diffView.apply')}
           </button>
         </div>
       </div>

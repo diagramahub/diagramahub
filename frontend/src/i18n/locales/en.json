@@ -159,7 +159,57 @@
       "improveProcessPrompt": "Improve the process represented by the diagram to make it more efficient and clear.",
       "fixPrompt": "Fix any syntax, structure, or rendering issues in the current diagram. Keep the original intent and return the complete corrected diagram."
     },
-    "panelTitle": "AI chat"
+    "panelTitle": "AI chat",
+    "empty": "Send a message to get started",
+    "copied": "Copied",
+    "copyContent": "Copy content",
+    "copyCode": "Copy code",
+    "deleteMessage": "Delete message",
+    "retry": "Retry",
+    "finalizedReadOnly": "Session finished (read-only)",
+    "previewTitle": "Diagram preview",
+    "time": {
+      "now": "just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{count}} h ago",
+      "days": "{{count}} d ago"
+    },
+    "phase": {
+      "thinking": "Thinking…",
+      "generating": "Generating code…"
+    },
+    "preview": {
+      "expand": "View larger",
+      "accept": "✓ Accept",
+      "reject": "✗ Reject",
+      "accepted": "✓ Change accepted",
+      "rejected": "✗ Change rejected",
+      "restore": "↩ Restore",
+      "restoreTitle": "Restore this version",
+      "use": "↩ Use",
+      "useTitle": "Use this version"
+    },
+    "sessions": {
+      "select": "Select session",
+      "new": "New session",
+      "none": "No sessions",
+      "finalized": "finished",
+      "messages_one": "{{count}} message",
+      "messages_other": "{{count}} messages",
+      "rename": "Rename"
+    },
+    "errors": {
+      "loadSessions": "Couldn't load the sessions",
+      "loadMessages": "Couldn't load the messages",
+      "createSession": "Couldn't create the session",
+      "deleteSession": "Couldn't delete the session",
+      "renameSession": "Couldn't rename the session",
+      "accept": "Couldn't accept the change",
+      "reject": "Couldn't reject the change",
+      "deleteMessage": "Couldn't delete the message",
+      "noStreamBody": "The server sent no reply. Try again.",
+      "network": "The connection was interrupted. Try again."
+    }
   },
   "installation": {
     "title": "Welcome to DiagramaHub",
@@ -475,7 +525,6 @@
     "newDiagramInFolder": "New diagram in this folder",
     "syntaxError": "Syntax error",
     "noErrors": "No errors",
-    "lines": "lines",
     "fixing": "Fixing...",
     "fixWithAI": "Fix with AI",
     "fix": "Fix",
@@ -537,7 +586,16 @@
     "timeAgoDays": "{{count}}d ago",
     "pinPanel": "Pin panel",
     "unpinPanel": "Unpin panel",
-    "defaultProjectName": "Project"
+    "defaultProjectName": "Project",
+    "lineCount_one": "{{count}} line",
+    "lineCount_other": "{{count}} lines",
+    "diffView": {
+      "title": "AI diagram fix",
+      "explanation": "What changed:",
+      "original": "Original code",
+      "corrected": "Fixed code",
+      "apply": "Apply fix"
+    }
   },
   "projectImport": {
     "title": "Import diagrams",
@@ -1316,5 +1374,12 @@
       "updatePaymentMethod": "Error updating payment method",
       "noSubscription": "No subscription found"
     }
+  },
+  "diagramPreview": {
+    "syntaxError": "⚠️ Syntax error",
+    "empty": "No code to preview",
+    "zoomOut": "Zoom out",
+    "zoomReset": "Reset zoom",
+    "zoomIn": "Zoom in"
   }
 }

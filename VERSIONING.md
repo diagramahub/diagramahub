@@ -1,7 +1,7 @@
 # Política de Versionamiento
 
 Este proyecto adopta oficialmente **Semantic Versioning (SemVer)**.
-Versión actual: **0.8.1**.
+Versión actual: **0.8.2**.
 
 ## Formato
 
