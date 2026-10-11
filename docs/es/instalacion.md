@@ -79,7 +79,7 @@ Si prefieres instalar manualmente, asegúrate de tener:
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/alexdzul/diagramahub.git
+git clone https://github.com/diagramahub/diagramahub.git
 cd diagramahub
 ```
 
