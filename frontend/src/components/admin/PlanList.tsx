@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan } from '../../types/subscription';
 import PlanForm from './PlanForm';
@@ -7,6 +8,7 @@ import ConfirmModal from '../ConfirmModal';
 
 export default function PlanList() {
   const [plans, setPlans] = useState<Plan[]>([]);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -189,7 +191,7 @@ export default function PlanList() {
                     ) : (
                       <span 
                         className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded flex items-center gap-1 cursor-help"
-                        title="Plan no sincronizado con gateway de pago"
+                        title={t('admin.plans.notSynced')}
                       >
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -240,7 +242,7 @@ export default function PlanList() {
                   <button
                     onClick={() => setDeletingPlan(plan)}
                     className="px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                    title="Eliminar plan"
+                    title={t('admin.plans.delete')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -280,10 +282,10 @@ export default function PlanList() {
         isOpen={!!deactivatingPlan}
         onClose={() => setDeactivatingPlan(null)}
         onConfirm={handleDeactivatePlan}
-        title="Desactivar Plan"
-        message={`¿Desactivar el plan "${deactivatingPlan?.name}"? Las suscripciones existentes se mantendrán activas, pero nuevos usuarios no podrán suscribirse. El producto se archivará en Stripe.`}
-        confirmText="Desactivar"
-        cancelText="Cancelar"
+        title={t('admin.plans.deactivate')}
+        message={t('admin.plans.deactivateConfirm', { name: deactivatingPlan?.name })}
+        confirmText={t('admin.plans.deactivateAction')}
+        cancelText={t('common.cancel')}
         isDangerous={true}
       />
 
@@ -292,10 +294,10 @@ export default function PlanList() {
         isOpen={!!deletingPlan}
         onClose={() => setDeletingPlan(null)}
         onConfirm={handleDeletePlan}
-        title="Eliminar Plan"
-        message={`¿Estás seguro de eliminar el plan "${deletingPlan?.name}"? Esta acción eliminará el plan de la base de datos y de Stripe. Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('admin.plans.delete')}
+        message={t('admin.plans.deleteConfirm', { name: deletingPlan?.name })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous={true}
       />
     </div>

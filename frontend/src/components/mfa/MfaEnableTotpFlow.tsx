@@ -115,7 +115,7 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
               <div className="flex justify-center mb-3">
                 <img
                   src={`data:image/png;base64,${setupData.qr_code_base64}`}
-                  alt="TOTP QR Code"
+                  alt={t('mfa.totp.qrAlt')}
                   className="w-48 h-48 border border-gray-200 rounded-lg"
                 />
               </div>

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - Documentation site: GitHub Pages built `docs/` with Jekyll, so it served the raw Markdown with the default theme (no navigation, no search, no theme, no language switcher) and the site root returned 404. It is now built with MkDocs Material and deployed by `.github/workflows/docs.yml`, with `site_url`, a root landing page, working language links and per-page UI language (English pages render the theme in English); `mkdocs build --strict` fails the build on broken links.
+- Frontend i18n: ~40 hardcoded UI strings (tooltips, placeholders, `aria-label`, `alt`) moved to translation keys, so the English UI no longer shows Spanish labels (and vice versa); icon-only zoom, text-size, fullscreen and close controls now expose `aria-label`.
+- Document metadata: `<html lang>`, `<title>` and the meta description now follow the active language (the page declared English while the default UI is Spanish), and `index.html` gained `meta description` and `theme-color`.
 
 ## [0.8.2] - 2026-10-04
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 const BROKEN_DIAGRAM = `graph TD
@@ -12,6 +13,7 @@ const BROKEN_DIAGRAM = `graph TD
 
 export default function NotFoundPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [countdown, setCountdown] = useState(15);
   const [glitchText, setGlitchText] = useState('404');
 
@@ -84,7 +86,7 @@ export default function NotFoundPage() {
         <h1
           className="text-[10rem] font-black leading-none bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent select-none"
           style={{ fontFamily: 'monospace' }}
-          aria-label="Error 404"
+          aria-label={t('errors.pageNotFound')}
         >
           {glitchText}
         </h1>

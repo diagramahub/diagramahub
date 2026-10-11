@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan, PlanCreate, PlanUpdate, CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
 
@@ -12,6 +13,7 @@ interface PlanFormProps {
 
 export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
   const [error, setError] = useState('');
 
   // Form fields
@@ -167,7 +169,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-              placeholder="ej: Pro, Enterprise"
+              placeholder={t('admin.plans.namePlaceholder')}
             />
           </div>
 
@@ -182,7 +184,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               value={code}
               onChange={(e) => handleCodeChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 font-mono"
-              placeholder="ej: PRO, ENTERPRISE"
+              placeholder={t('admin.plans.codePlaceholder')}
               disabled={isFreePlan}
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -203,7 +205,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-              placeholder="Breve descripción de las características del plan"
+              placeholder={t('admin.plans.descriptionPlaceholder')}
             />
           </div>
 
@@ -286,7 +288,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                     onChange={(e) => setNewCurrency(e.target.value)}
                     className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
                   >
-                    <option value="">Seleccionar moneda...</option>
+                    <option value="">{t('admin.plans.selectCurrency')}</option>
                     {availableCurrencies.map(c => (
                       <option key={c} value={c}>
                         {CURRENCY_FLAGS[c] ?? '🏳️'} {c.toUpperCase()}
@@ -337,7 +339,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 value={maxProjects}
                 onChange={(e) => setMaxProjects(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-                placeholder="ej: 10"
+                placeholder={t('admin.plans.projectsPlaceholder')}
               />
             )}
           </div>
@@ -365,7 +367,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 value={maxDiagrams}
                 onChange={(e) => setMaxDiagrams(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-                placeholder="ej: 100"
+                placeholder={t('admin.plans.diagramsPlaceholder')}
               />
             )}
           </div>

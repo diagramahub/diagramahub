@@ -1,4 +1,6 @@
 
+import { useTranslation } from 'react-i18next';
+
 type SkeletonVariant = 'text' | 'card' | 'chart' | 'table';
 
 interface SkeletonProps {
@@ -13,11 +15,12 @@ interface SkeletonProps {
 
 /** Pulse animation base — shared across all variants */
 function PulseBlock({ className = '' }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`bg-gray-200 dark:bg-gray-700 rounded animate-pulse ${className}`}
       role="status"
-      aria-label="Cargando"
+      aria-label={t('common.loading')}
     />
   );
 }
@@ -36,6 +39,7 @@ export default function Skeleton({
   height,
   className = '',
 }: SkeletonProps) {
+  const { t } = useTranslation();
   switch (variant) {
     case 'card':
       return (
@@ -53,7 +57,7 @@ export default function Skeleton({
 
     case 'table':
       return (
-        <div className={`space-y-3 ${className}`} role="status" aria-label="Cargando tabla">
+        <div className={`space-y-3 ${className}`} role="status" aria-label={t('common.loadingTable')}>
           {/* Header row */}
           <div className="flex gap-4">
             <PulseBlock className="h-6 w-1/4" />

@@ -452,7 +452,7 @@ export default function Sidebar() {
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
         role="navigation"
-        aria-label="Sidebar"
+        aria-label={t('common.sidebar')}
       >
         {sidebarContent}
       </aside>
@@ -466,7 +466,7 @@ export default function Sidebar() {
           ${isExpanded ? 'w-40' : 'w-16'}
         `}
         role="navigation"
-        aria-label="Sidebar"
+        aria-label={t('common.sidebar')}
       >
         {sidebarContent}
       </aside>
