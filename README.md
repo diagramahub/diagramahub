@@ -94,7 +94,7 @@ MFA, encrypted API keys, audit logging, brute-force protection, and production h
 - 🛡️ **[Security](SECURITY.md)** — security controls and vulnerability reporting.
 - 💳 **[Stripe Quickstart](STRIPE_QUICKSTART.md)** — configure subscriptions and billing.
 - 📖 **[Backend](backend/README.md)** · **[Frontend](frontend/README.md)** — layer-specific docs.
-- 📚 **[Full Documentation](docs/)** — MkDocs Material site (ES/EN).
+- 📚 **[Full Documentation](https://diagramahub.github.io/diagramahub/)** — MkDocs Material site (ES/EN), published on GitHub Pages.
 
 ---
 

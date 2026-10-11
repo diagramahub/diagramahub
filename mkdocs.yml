@@ -2,14 +2,33 @@ site_name: Documentación de DiagramaHub
 site_description: Documentación oficial de DiagramaHub
 site_author: DiagramaHub Team
 
+# GitHub Pages sirve el sitio en un subdirectorio (https://diagramahub.github.io/diagramahub/).
+# Sin `site_url`, MkDocs no puede generar la URL canónica ni los enlaces alternos de idioma.
+site_url: https://diagramahub.github.io/diagramahub/
+repo_url: https://github.com/diagramahub/diagramahub
+repo_name: diagramahub/diagramahub
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; DiagramaHub — Apache License 2.0
+
+# Páginas que se construyen pero no aparecen en la navegación: la portada se
+# alcanza desde el logo (site_url), y así no añade una pestaña extra.
+not_in_nav: |
+  /index.md
+
 theme:
   name: material
+  custom_dir: overrides
   language: es
+  logo: assets/logo.png
+  favicon: assets/favicon.png
   features:
     - navigation.tabs # Pestañas en la navegación
     - navigation.indexes # Hace clickeables las secciones
     - navigation.top # Botón de "volver arriba"
+    - navigation.footer # Enlaces anterior/siguiente al pie
     - content.code.copy # Botón para copiar código
+    - search.suggest # Sugerencias de búsqueda
+    - search.highlight # Resalta el término buscado
 
   # Configuración del modo Claro/Oscuro dinámico
   palette:
@@ -31,14 +50,15 @@ theme:
         icon: material/brightness-4
         name: Cambiar a modo claro
 
-# Selector de idiomas
+# Selector de idiomas. Las URLs son absolutas a propósito: el sitio vive bajo
+# /diagramahub/, así que un enlace como "/es/" apuntaría fuera del subdirectorio.
 extra:
   alternate:
     - name: Español
-      link: /es/
+      link: https://diagramahub.github.io/diagramahub/es/
       lang: es
     - name: English
-      link: /en/
+      link: https://diagramahub.github.io/diagramahub/en/
       lang: en
 
 # Configuración de los menús
@@ -48,6 +68,7 @@ nav:
       - Guía de Instalación: es/instalacion.md
       - Notas de Versión:
           - es/release-notes/index.md
+          - 0.8.3: es/release-notes/0.8.3.md
           - 0.8.2: es/release-notes/0.8.2.md
           - 0.8.1: es/release-notes/0.8.1.md
           - 0.8.0: es/release-notes/0.8.0.md
@@ -80,6 +101,7 @@ nav:
       - Installation: en/installation.md
       - Release Notes:
           - en/release-notes/index.md
+          - 0.8.3: en/release-notes/0.8.3.md
           - 0.8.2: en/release-notes/0.8.2.md
           - 0.8.1: en/release-notes/0.8.1.md
           - 0.8.0: en/release-notes/0.8.0.md
@@ -110,9 +132,27 @@ nav:
 
 # Funcionalidades adicionales
 plugins:
-  - search
+  - search:
+      # El sitio es bilingüe: el índice se construye con ambos stemmers.
+      lang:
+        - es
+        - en
 
 markdown_extensions:
   - admonition
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

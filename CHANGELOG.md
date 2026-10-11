@@ -5,6 +5,11 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.3] - 2026-10-11
+
+### Fixed
+- Documentation site: GitHub Pages built `docs/` with Jekyll, so it served the raw Markdown with the default theme (no navigation, no search, no theme, no language switcher) and the site root returned 404. It is now built with MkDocs Material and deployed by `.github/workflows/docs.yml`, with `site_url`, a root landing page, working language links and per-page UI language (English pages render the theme in English); `mkdocs build --strict` fails the build on broken links.
+
 ## [0.8.2] - 2026-10-04
 
 ### Fixed

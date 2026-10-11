@@ -1,0 +1,17 @@
+{#-
+  Idioma de la interfaz por página.
+
+  Material for MkDocs sólo admite un idioma de interfaz (`theme.language`) para
+  todo el sitio, así que las páginas en inglés mostraban los textos del tema en
+  español ("Buscar", "Tabla de contenidos", ...). Este override elige el idioma
+  según la carpeta de la página: `docs/en/**` en inglés, el resto en el idioma
+  por defecto del sitio (español).
+
+  Es el mismo mecanismo que usa el plugin `mkdocs-static-i18n`, sin tener que
+  cambiar la estructura del `nav` (que `scripts/check-version.sh` lee por
+  versión).
+-#}
+{% set language = "en" if page and page.url.startswith("en/") else config.theme.language %}
+{% import "partials/languages/" ~ language ~ ".html" as lang %}
+{% import "partials/languages/en.html" as fallback %}
+{% macro t(key) %}{{ lang.t(key) or fallback.t(key) or key }}{% endmacro %}
