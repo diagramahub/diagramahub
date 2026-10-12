@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.8.3
+- **Current version**: 0.8.4
 - **Repo**: https://github.com/diagramahub/diagramahub
 
 ## Tech Stack
@@ -386,7 +386,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.8.3
+VITE_APP_VERSION=0.8.4
 ```
 
 ---
@@ -466,7 +466,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.3**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.4**.
 
 | Bump | When |
 |------|------|
