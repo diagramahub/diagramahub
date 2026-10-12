@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import SimpleMDE from "react-simplemde-editor";
@@ -24,6 +25,7 @@ export default function MarkdownEditor({
   maxLength,
 }: MarkdownEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const { t } = useTranslation();
 
   const handleChange = useCallback(
     (val: string) => {
@@ -111,12 +113,13 @@ export default function MarkdownEditor({
           {/* Read-only mode header */}
           <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-              Descripción
+              {t('editor.description')}
             </span>
             <button
               onClick={() => setIsEditing(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-purple-700 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-md transition-colors"
-              title="Editar descripción"
+              title={t('editor.editDescription')}
+              aria-label={t('editor.editDescription')}
             >
               <svg
                 className="w-3.5 h-3.5"

@@ -200,7 +200,7 @@ export default function SharedDiagramPage() {
         }
       } catch {
         if (diagramRef.current) {
-          diagramRef.current.innerHTML = `<div class="text-red-500 p-4 text-center"><p>Error al renderizar el diagrama</p></div>`;
+          diagramRef.current.innerHTML = `<div class="text-red-500 p-4 text-center"><p>${t('diagram.render.error')}</p></div>`;
         }
       }
     };
@@ -477,7 +477,8 @@ export default function SharedDiagramPage() {
               onClick={handleZoomOut}
               disabled={zoom <= MIN_ZOOM}
               className="p-1 hover:bg-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Reducir zoom"
+              title={t('editor.zoomOut')}
+              aria-label={t('editor.zoomOut')}
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -486,7 +487,8 @@ export default function SharedDiagramPage() {
             <button
               onClick={handleResetZoom}
               className="px-2 text-xs font-mono text-gray-700 min-w-[45px] text-center hover:bg-white rounded transition-colors"
-              title="Restablecer zoom"
+              title={t('diagramPreview.zoomReset')}
+              aria-label={t('diagramPreview.zoomReset')}
             >
               {zoomPercent}%
             </button>
@@ -494,7 +496,8 @@ export default function SharedDiagramPage() {
               onClick={handleZoomIn}
               disabled={zoom >= MAX_ZOOM}
               className="p-1 hover:bg-white rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Aumentar zoom"
+              title={t('editor.zoomIn')}
+              aria-label={t('editor.zoomIn')}
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -504,7 +507,8 @@ export default function SharedDiagramPage() {
             <button
               onClick={handleFitToScreen}
               className="p-1 hover:bg-white rounded transition-colors"
-              title="Ajustar a pantalla"
+              title={t('editor.fitToScreen')}
+              aria-label={t('editor.fitToScreen')}
             >
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
@@ -593,7 +597,8 @@ export default function SharedDiagramPage() {
                 <button
                   onClick={() => setShowDescription(false)}
                   className="text-gray-500 hover:text-gray-700 hover:bg-gray-200 p-1.5 rounded transition-colors"
-                  title="Cerrar"
+                  title={t('common.close')}
+                  aria-label={t('common.close')}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -700,7 +705,7 @@ export default function SharedDiagramPage() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
-              <span>Vista compartida</span>
+              <span>{t('sharing.sharedViewLabel')}</span>
             </div>
           </div>
 

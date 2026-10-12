@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface SplitPaneProps {
   left: React.ReactNode;
@@ -16,6 +17,7 @@ export default function SplitPane({
   minRight = 300,
 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
   const [splitPercent, setSplitPercent] = useState(defaultSplit);
   const isResizing = useRef(false);
 
@@ -94,7 +96,7 @@ export default function SplitPane({
         onMouseDown={handleMouseDown}
         className="relative flex-shrink-0 w-1.5 cursor-col-resize group"
         role="separator"
-        aria-label="Resize panels"
+        aria-label={t('editor.resizePanels')}
         aria-valuenow={Math.round(splitPercent)}
       >
         {/* Visible bar */}

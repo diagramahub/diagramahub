@@ -36,7 +36,10 @@
       "diagrams_other": "{{count}} diagramas",
       "folders_one": "{{count}} carpeta",
       "folders_other": "{{count}} carpetas"
-    }
+    },
+    "tabs": "Pestañas",
+    "sidebar": "Barra lateral",
+    "loadingTable": "Cargando tabla"
   },
   "nav": {
     "dashboard": "Panel de control",
@@ -143,6 +146,23 @@
       "user": "Usuario",
       "noMfa": "Desactivado",
       "noAiModels": "Sin modelos conectados"
+    },
+    "plans": {
+      "notSynced": "Plan no sincronizado con gateway de pago",
+      "delete": "Eliminar plan",
+      "deactivate": "Desactivar plan",
+      "deactivateAction": "Desactivar",
+      "noGateway": "Sin Gateway",
+      "deactivateConfirm": "¿Desactivar el plan \"{{name}}\"? Las suscripciones existentes se mantendrán activas, pero nuevos usuarios no podrán suscribirse. El producto se archivará en Stripe.",
+      "deleteConfirm": "¿Estás seguro de eliminar el plan \"{{name}}\"? Esta acción eliminará el plan de la base de datos y de Stripe. Esta acción no se puede deshacer.",
+      "deletePrice": "Eliminar precio",
+      "deletePriceConfirm": "¿Estás seguro de eliminar el precio en {{currency}}? El precio se desactivará en Stripe.",
+      "namePlaceholder": "ej: Pro, Enterprise",
+      "codePlaceholder": "ej: PRO, ENTERPRISE",
+      "descriptionPlaceholder": "Breve descripción de las características del plan",
+      "projectsPlaceholder": "ej: 10",
+      "diagramsPlaceholder": "ej: 100",
+      "selectCurrency": "Seleccionar moneda..."
     }
   },
   "chat": {
@@ -595,7 +615,14 @@
       "original": "Código original",
       "corrected": "Código corregido",
       "apply": "Aplicar corrección"
-    }
+    },
+    "editDescription": "Editar descripción",
+    "resetView": "Restablecer vista (100%)",
+    "exitFullscreenHint": "Salir de pantalla completa (Esc)",
+    "increaseFontSize": "Aumentar tamaño de texto",
+    "decreaseFontSize": "Reducir tamaño de texto",
+    "resizePanels": "Redimensionar paneles",
+    "deleteDiagramConfirm": "¿Estás seguro de que quieres eliminar el diagrama \"{{name}}\"? Esta acción no se puede deshacer."
   },
   "projectImport": {
     "title": "Importar diagramas",
@@ -713,7 +740,8 @@
     "serverError": "Error del servidor",
     "validationError": "Error de validación",
     "tryAgain": "Intentar de nuevo",
-    "contactSupport": "Contactar soporte"
+    "contactSupport": "Contactar soporte",
+    "pageNotFound": "Error 404"
   },
   "subscription": {
     "title": "Mi Suscripción",
@@ -815,7 +843,8 @@
       "cancellingSubscription": "Error al cancelar suscripción",
       "updatePaymentMethod": "Error al actualizar método de pago",
       "noSubscription": "No se encontró suscripción"
-    }
+    },
+    "viewDetails": "Ver detalles de la suscripción"
   },
   "dangerZone": {
     "title": "Zona de peligro",
@@ -993,7 +1022,8 @@
       "loading": "Generando código QR...",
       "errorSetup": "Error al configurar autenticador",
       "errorVerifying": "Error al verificar código",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "qrAlt": "Código QR de TOTP"
     },
     "recoveryCodes": {
       "title": "Códigos de Recuperación",
@@ -1202,7 +1232,9 @@
     "generateLink": "Generar enlace",
     "generating": "Generando...",
     "generateError": "Error al generar el enlace",
-    "revokeError": "Error al revocar el enlace"
+    "revokeError": "Error al revocar el enlace",
+    "enterCodePlaceholder": "Ingresa el código",
+    "sharedViewLabel": "Vista compartida"
   },
   "export": {
     "error": {
@@ -1381,5 +1413,9 @@
     "zoomOut": "Alejar",
     "zoomReset": "Restablecer zoom",
     "zoomIn": "Acercar"
+  },
+  "app": {
+    "title": "DiagramaHub — Diagramación con texto plano",
+    "description": "Plataforma open-source para crear, organizar y exportar diagramas con texto plano (Mermaid, PlantUML, D2 y DBML)."
   }
 }

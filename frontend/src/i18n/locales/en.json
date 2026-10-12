@@ -36,7 +36,10 @@
       "diagrams_other": "{{count}} diagrams",
       "folders_one": "{{count}} folder",
       "folders_other": "{{count}} folders"
-    }
+    },
+    "tabs": "Tabs",
+    "sidebar": "Sidebar",
+    "loadingTable": "Loading table"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -143,6 +146,23 @@
       "user": "User",
       "noMfa": "Disabled",
       "noAiModels": "No connected models"
+    },
+    "plans": {
+      "notSynced": "Plan not synced with payment gateway",
+      "delete": "Delete plan",
+      "deactivate": "Deactivate plan",
+      "deactivateAction": "Deactivate",
+      "noGateway": "No gateway",
+      "deactivateConfirm": "Deactivate the \"{{name}}\" plan? Existing subscriptions stay active, but new users won't be able to subscribe. The product will be archived in Stripe.",
+      "deleteConfirm": "Are you sure you want to delete the \"{{name}}\" plan? This removes the plan from the database and from Stripe. This cannot be undone.",
+      "deletePrice": "Delete price",
+      "deletePriceConfirm": "Are you sure you want to delete the {{currency}} price? The price will be deactivated in Stripe.",
+      "namePlaceholder": "e.g. Pro, Enterprise",
+      "codePlaceholder": "e.g. PRO, ENTERPRISE",
+      "descriptionPlaceholder": "Brief description of the plan features",
+      "projectsPlaceholder": "e.g. 10",
+      "diagramsPlaceholder": "e.g. 100",
+      "selectCurrency": "Select currency..."
     }
   },
   "chat": {
@@ -595,7 +615,14 @@
       "original": "Original code",
       "corrected": "Fixed code",
       "apply": "Apply fix"
-    }
+    },
+    "editDescription": "Edit description",
+    "resetView": "Reset view (100%)",
+    "exitFullscreenHint": "Exit fullscreen (Esc)",
+    "increaseFontSize": "Increase text size",
+    "decreaseFontSize": "Decrease text size",
+    "resizePanels": "Resize panels",
+    "deleteDiagramConfirm": "Are you sure you want to delete the \"{{name}}\" diagram? This action cannot be undone."
   },
   "projectImport": {
     "title": "Import diagrams",
@@ -713,7 +740,8 @@
     "serverError": "Server error",
     "validationError": "Validation error",
     "tryAgain": "Try again",
-    "contactSupport": "Contact support"
+    "contactSupport": "Contact support",
+    "pageNotFound": "Error 404"
   },
   "dangerZone": {
     "title": "Danger Zone",
@@ -891,7 +919,8 @@
       "loading": "Generating QR code...",
       "errorSetup": "Error setting up authenticator",
       "errorVerifying": "Error verifying code",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "qrAlt": "TOTP QR code"
     },
     "recoveryCodes": {
       "title": "Recovery Codes",
@@ -1100,7 +1129,9 @@
     "generateLink": "Generate link",
     "generating": "Generating...",
     "generateError": "Error generating link",
-    "revokeError": "Error revoking link"
+    "revokeError": "Error revoking link",
+    "enterCodePlaceholder": "Enter the code",
+    "sharedViewLabel": "Shared view"
   },
   "export": {
     "error": {
@@ -1373,7 +1404,8 @@
       "cancellingSubscription": "Error cancelling subscription",
       "updatePaymentMethod": "Error updating payment method",
       "noSubscription": "No subscription found"
-    }
+    },
+    "viewDetails": "View subscription details"
   },
   "diagramPreview": {
     "syntaxError": "⚠️ Syntax error",
@@ -1381,5 +1413,9 @@
     "zoomOut": "Zoom out",
     "zoomReset": "Reset zoom",
     "zoomIn": "Zoom in"
+  },
+  "app": {
+    "title": "DiagramaHub — Text-powered diagramming",
+    "description": "Open-source platform to create, organize and export diagrams with plain text (Mermaid, PlantUML, D2 and DBML)."
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan } from '../../types/subscription';
 import { CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
@@ -12,6 +13,7 @@ interface CurrencyPriceTableProps {
 
 export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPriceTableProps) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const { t } = useTranslation();
   const [deletingCurrency, setDeletingCurrency] = useState<string | null>(null);
 
   const priceEntries = Object.entries(plan.prices ?? {});
@@ -113,10 +115,10 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
         isOpen={!!deletingCurrency}
         onClose={() => setDeletingCurrency(null)}
         onConfirm={handleDelete}
-        title="Eliminar precio"
-        message={`¿Estás seguro de eliminar el precio en ${deletingCurrency?.toUpperCase() ?? ''}? El precio se desactivará en Stripe.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('admin.plans.deletePrice')}
+        message={t('admin.plans.deletePriceConfirm', { currency: deletingCurrency?.toUpperCase() ?? '' })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous={true}
       />
     </div>

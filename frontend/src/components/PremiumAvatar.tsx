@@ -1,4 +1,5 @@
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface PremiumAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -12,6 +13,7 @@ export default function PremiumAvatar({
   className = '' 
 }: PremiumAvatarProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Determinar si el usuario tiene un plan de paga
   const isPremium = (user?.subscription?.plan?.price_usd ?? 0) > 0;
@@ -58,7 +60,7 @@ export default function PremiumAvatar({
   const avatarContent = user?.profile_picture ? (
     <img
       src={user.profile_picture}
-      alt="Foto de perfil"
+      alt={t('profile.profilePicture')}
       className={`${sizeClasses[size]} rounded-full object-cover`}
     />
   ) : (

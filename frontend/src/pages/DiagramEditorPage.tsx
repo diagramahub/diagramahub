@@ -4052,7 +4052,8 @@ export default function DiagramEditorPage() {
                     <button
                       onClick={() => setIsFullscreen(false)}
                       className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-lg"
-                      title="Salir de pantalla completa (Esc)"
+                      title={t('editor.exitFullscreenHint')}
+                      aria-label={t('editor.exitFullscreenHint')}
                     >
                       <svg
                         className="w-5 h-5"
@@ -4077,7 +4078,8 @@ export default function DiagramEditorPage() {
                     <button
                       onClick={handleZoomOut}
                       className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
-                      title="Reducir zoom"
+                      title={t('editor.zoomOut')}
+                      aria-label={t('editor.zoomOut')}
                     >
                       <svg
                         className="w-4 h-4"
@@ -4099,7 +4101,8 @@ export default function DiagramEditorPage() {
                     <button
                       onClick={handleZoomIn}
                       className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
-                      title="Aumentar zoom"
+                      title={t('editor.zoomIn')}
+                      aria-label={t('editor.zoomIn')}
                     >
                       <svg
                         className="w-4 h-4"
@@ -4119,7 +4122,8 @@ export default function DiagramEditorPage() {
                     <button
                       onClick={handleFitToScreen}
                       className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
-                      title="Ajustar a pantalla"
+                      title={t('editor.fitToScreen')}
+                      aria-label={t('editor.fitToScreen')}
                     >
                       <svg
                         className="w-4 h-4"
@@ -4138,7 +4142,8 @@ export default function DiagramEditorPage() {
                     <button
                       onClick={handleResetZoom}
                       className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors text-white"
-                      title="Restablecer vista (100%)"
+                      title={t('editor.resetView')}
+                      aria-label={t('editor.resetView')}
                     >
                       <svg
                         className="w-4 h-4"
@@ -4506,7 +4511,8 @@ export default function DiagramEditorPage() {
                         }
                         disabled={descriptionFontSize <= 10}
                         className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        title="Reducir tamaño de texto"
+                        title={t('editor.decreaseFontSize')}
+                        aria-label={t('editor.decreaseFontSize')}
                       >
                         <svg
                           className="w-3.5 h-3.5"
@@ -4533,7 +4539,8 @@ export default function DiagramEditorPage() {
                         }
                         disabled={descriptionFontSize >= 32}
                         className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                        title="Aumentar tamaño de texto"
+                        title={t('editor.increaseFontSize')}
+                        aria-label={t('editor.increaseFontSize')}
                       >
                         <svg
                           className="w-3.5 h-3.5"
@@ -5200,10 +5207,10 @@ export default function DiagramEditorPage() {
           })
         }
         onConfirm={confirmDeleteDiagram}
-        title="Eliminar diagrama"
-        message={`¿Estás seguro de que quieres eliminar el diagrama "${deleteDiagramModal.diagramName}"? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('editor.deleteDiagram')}
+        message={t('editor.deleteDiagramConfirm', { name: deleteDiagramModal.diagramName })}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous={true}
       />
 

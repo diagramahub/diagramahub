@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface AccessCodeFormProps {
   onSubmit: (code: string) => void;
@@ -14,6 +15,7 @@ export default function AccessCodeForm({
   loading,
 }: AccessCodeFormProps) {
   const [code, setCode] = useState('');
+  const { t } = useTranslation();
 
   const isBlocked = attemptsRemaining !== null && attemptsRemaining <= 0;
 
@@ -59,14 +61,14 @@ export default function AccessCodeForm({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="access-code" className="block text-sm font-medium text-gray-700 mb-1">
-                  Código de acceso
+                  {t('sharing.accessCode')}
                 </label>
                 <input
                   id="access-code"
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder="Ingresa el código"
+                  placeholder={t('sharing.enterCodePlaceholder')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-lg tracking-widest font-mono focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors"
                   autoFocus
                   disabled={loading}
