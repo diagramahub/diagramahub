@@ -9,6 +9,7 @@ from .webhook_handler import WebhookHandler
 from .subscription_service import SubscriptionService
 from .subscription_repository import SubscriptionRepository
 from .plan_repository import PlanRepository
+from .webhook_event_repository import WebhookEventRepository
 from .payment_providers.stripe_provider import StripePaymentProvider
 
 router = APIRouter()
@@ -29,7 +30,9 @@ async def get_webhook_handler() -> WebhookHandler:
     )
 
     return WebhookHandler(
-        subscription_service=subscription_service, payment_provider=payment_provider
+        subscription_service=subscription_service,
+        payment_provider=payment_provider,
+        event_repository=WebhookEventRepository(),
     )
 
 
@@ -48,8 +51,9 @@ async def stripe_webhook(
     - customer.subscription.deleted: Cancel subscription and switch to FREE
     - invoice.payment_failed: Mark subscription as payment_failed
 
-    Validates webhook signature for security.
-    Always returns 200 OK to prevent Stripe retries on internal errors.
+    Validates the webhook signature (401 when invalid) and processes each event
+    once: a repeated delivery returns {"status": "duplicate"}. An internal error
+    returns 500 so Stripe retries the delivery.
     """
     # Obtener payload raw
     payload = await request.body()

@@ -289,7 +289,7 @@ class StripePaymentProvider(IPaymentProvider):
         except stripe.error.SignatureVerificationError as e:
             raise ValueError(f"Invalid webhook signature: {str(e)}")
 
-        return {"event_type": event.type, "data": event.data.object}
+        return {"event_id": event.id, "event_type": event.type, "data": event.data.object}
 
     async def validate_configuration(self) -> bool:
         """

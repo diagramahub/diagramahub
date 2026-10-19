@@ -19,10 +19,10 @@ If you discover a security vulnerability, please report it **privately** via [Gi
 | **Session Security** | JWT tokens with automatic invalidation on password change (`pca` claim). Differentiated session durations based on MFA status. |
 | **Brute Force Protection** | Rate limiting on login (10 attempts/IP/minute) with account lockout after 5 consecutive failures (15-minute cooldown). |
 | **API Key Encryption** | All third-party API keys (AI providers, payment gateways) encrypted at rest with Fernet (AES-128-CBC). Keys are masked in all API responses. |
-| **Security Headers** | HSTS (production), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, and `Cache-Control: no-store`. |
+| **Security Headers** | `X-Content-Type-Options`, `X-Frame-Options: DENY`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy` and `Cache-Control: no-store` on every API response; in production also HSTS and a restrictive `Content-Security-Policy` (`default-src 'none'`, `frame-ancestors 'none'`). |
 | **Audit Logging** | Immutable security audit log with 90-day retention. Tracks login attempts, MFA events, password changes, OAuth activity, and account lifecycle. |
 | **CSRF Protection** | Server-side state tokens with 10-minute TTL for OAuth flows. Cryptographic validation of all OAuth ID tokens (signature, issuer, audience, expiration). |
-| **Webhook Verification** | Stripe webhooks verified via signature check before processing. Idempotent event handling prevents duplicate processing. |
+| **Webhook Verification** | Stripe webhooks verified via signature check before processing. Each event is processed once: its `event_id` is claimed under a unique index, a redelivery is acknowledged as a duplicate, and a failed event is released so Stripe's retry processes it. |
 | **Production Hardening** | Swagger/OpenAPI disabled in production. Stack traces hidden. Sentry error tracking with PII sanitization. |
 
 ### Frontend

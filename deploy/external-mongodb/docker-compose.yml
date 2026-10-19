@@ -1,6 +1,6 @@
 # DiagramHub - External MongoDB Installation
 # This configuration uses an external MongoDB instance (Atlas, custom server, etc.)
-# Only Backend and Frontend are deployed locally
+# Kroki, Backend and Frontend are deployed locally
 
 services:
   kroki:
@@ -24,6 +24,9 @@ services:
       - ./backend/run-tests.sh:/app/run-tests.sh
     env_file:
       - ./backend/.env
+    environment:
+      # The image defaults to PORT=8000; match the published port.
+      - PORT=5172
     depends_on:
       - kroki
     networks:

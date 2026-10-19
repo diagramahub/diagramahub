@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.8.3"
+    VERSION: str = "0.8.4"
     API_V1_PREFIX: str = "/api/v1"
 
     # Global request body limit (bytes). Generous on purpose: freehand
@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # Security
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
+    # Unused: session lifetimes are fixed in the login flows (see users/ and
+    # oauth/). Kept so existing .env files that still set it keep loading.
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     AI_ENCRYPTION_KEY: str | None = None  # For encrypting AI provider API keys
 
@@ -40,11 +42,18 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        """Parse CORS origins from comma-separated string. Falls back to FRONTEND_URL."""
+        """Parse CORS origins from a comma-separated string. Falls back to FRONTEND_URL.
+
+        A JSON-style list (``["https://a.com","https://b.com"]``), the format older
+        ``.env`` templates shipped, is accepted too: brackets and quotes are stripped
+        instead of ending up inside the origins and breaking every CORS check.
+        """
         v = self.BACKEND_CORS_ORIGINS.strip()
-        if not v:
-            return [self.FRONTEND_URL]
-        return [origin.strip() for origin in v.split(",") if origin.strip()]
+        if v.startswith("[") and v.endswith("]"):
+            v = v[1:-1]
+        origins = [origin.strip().strip("\"'").strip() for origin in v.split(",")]
+        origins = [origin for origin in origins if origin]
+        return origins or [self.FRONTEND_URL]
 
     # Frontend URL (for Stripe redirects)
     FRONTEND_URL: str = "http://localhost:5173"

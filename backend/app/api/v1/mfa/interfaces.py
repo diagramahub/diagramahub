@@ -3,6 +3,7 @@ MFA repository interface following Dependency Inversion Principle.
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 
 
@@ -64,4 +65,20 @@ class IMfaRepository(ABC):
         self, user_id: str, resend_count: int, last_resend_at: float
     ) -> bool:
         """Guardar datos temporales de sesión MFA (seguimiento de reenvíos)."""
+        pass
+
+    @abstractmethod
+    async def reserve_token_attempt(
+        self, token_hash: str, expires_at: datetime
+    ) -> tuple[int, bool]:
+        """Atomically reserve one verification attempt for a temporary MFA token.
+
+        Returns the attempt count including this one and whether the token was
+        already consumed by a successful sign-in.
+        """
+        pass
+
+    @abstractmethod
+    async def consume_token(self, token_hash: str) -> bool:
+        """Atomically mark a temporary MFA token as used; False if it already was."""
         pass

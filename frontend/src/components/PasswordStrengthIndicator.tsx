@@ -40,7 +40,7 @@ const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({ p
       {
         key: 'special',
         label: t('password.strength.special'),
-        met: /[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(password),
+        met: /[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password),
       },
     ];
 

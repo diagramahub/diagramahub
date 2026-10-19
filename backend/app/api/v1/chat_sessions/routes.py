@@ -87,39 +87,43 @@ async def list_sessions(
 @router.get("/{session_id}", response_model=ChatSessionWithMessagesResponse)
 async def get_session(
     session_id: str,
+    user_id: str = Depends(get_current_user_id),
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
-    """Get a chat session with all its messages."""
-    return await service.get_session_with_messages(session_id)
+    """Get one of the user's chat sessions with all its messages."""
+    return await service.get_session_with_messages(session_id, user_id)
 
 
 @router.put("/{session_id}", response_model=ChatSessionResponse)
 async def update_session_title(
     session_id: str,
     body: UpdateSessionTitleRequest,
+    user_id: str = Depends(get_current_user_id),
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
-    """Update the title of a chat session."""
-    return await service.update_session_title(session_id, body.title)
+    """Update the title of one of the user's chat sessions."""
+    return await service.update_session_title(session_id, user_id, body.title)
 
 
 @router.delete("/{session_id}")
 async def delete_session(
     session_id: str,
+    user_id: str = Depends(get_current_user_id),
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
-    """Delete a chat session and all its messages."""
-    return await service.delete_session(session_id)
+    """Delete one of the user's chat sessions and all its messages."""
+    return await service.delete_session(session_id, user_id)
 
 
 @router.put("/{session_id}/model", response_model=ChatSessionResponse)
 async def update_session_model(
     session_id: str,
     body: UpdateSessionModelRequest,
+    user_id: str = Depends(get_current_user_id),
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
-    """Update the AI provider and model used in a chat session."""
-    return await service.update_session_model(session_id, body.provider, body.model)
+    """Update the AI provider and model used in one of the user's chat sessions."""
+    return await service.update_session_model(session_id, user_id, body.provider, body.model)
 
 
 # --- Message endpoints ---
@@ -193,10 +197,11 @@ async def stream_message(
 async def delete_message(
     session_id: str,
     message_id: str,
+    user_id: str = Depends(get_current_user_id),
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
-    """Delete a single message from a chat session."""
-    deleted = await service.delete_message(message_id)
+    """Delete a single message from one of the user's chat sessions."""
+    deleted = await service.delete_message(session_id, message_id, user_id)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -213,7 +218,8 @@ async def update_message_status(
     session_id: str,
     message_id: str,
     body: UpdateMessageStatusRequest,
+    user_id: str = Depends(get_current_user_id),
     service: ChatSessionService = Depends(get_chat_session_service),
 ):
     """Update the improvement status of a message (accepted/rejected)."""
-    return await service.update_message_status(message_id, body.status)
+    return await service.update_message_status(session_id, message_id, user_id, body.status)

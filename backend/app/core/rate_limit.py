@@ -4,9 +4,10 @@ Modules that need per-IP abuse protection keep their own limiter instances
 (``users/rate_limiter.py``, ``mfa/rate_limiter.py``, ``diagrams/rate_limiter.py``)
 but share this implementation, so the window logic lives in one place.
 
-Storage is in-process on purpose: a self-hosted Diagramahub runs a single
-backend process. A multi-instance deployment would need a Redis-backed store,
-otherwise every replica enforces its own counters.
+Storage is in-process on purpose (no Redis dependency for self-hosting). Each
+gunicorn worker (``WORKERS`` in ``start.sh``, default 2) and each replica keeps
+its own counters, so the effective limit can be up to that many times the
+configured one; a shared store would be needed to enforce it exactly.
 """
 import time
 

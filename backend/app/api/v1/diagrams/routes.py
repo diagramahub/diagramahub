@@ -17,6 +17,7 @@ from app.api.v1.subscriptions.subscription_repository import SubscriptionReposit
 from app.api.v1.subscriptions.plan_repository import PlanRepository
 from app.api.v1.shared_links.repository import SharedLinkRepository
 from app.core.config import settings
+from app.core.client_ip import get_client_ip
 from .repository import DiagramRepository
 from .services import DiagramService
 from .fix_service import (
@@ -174,7 +175,7 @@ async def render_diagram(
     Acepta código fuente y tipo de diagrama, delega al servicio Kroki,
     y retorna el SVG renderizado.
     """
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     source = service.validate_render_request(request, client_ip)
 
     try:

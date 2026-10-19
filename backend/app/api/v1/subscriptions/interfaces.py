@@ -103,3 +103,27 @@ class ISubscriptionRepository(ABC):
     async def delete_by_user_id(self, user_id: str) -> int:
         """Delete all subscriptions belonging to a user. Returns the number deleted."""
         pass
+
+
+class IWebhookEventRepository(ABC):
+    """Interface for the webhook event log used to process each event once."""
+
+    @abstractmethod
+    async def claim(self, event_id: str, event_type: str) -> Optional[str]:
+        """Claim an event for processing.
+
+        Returns a lease token when the caller must process it: the event is new,
+        or a previous delivery claimed it and never finished (stale claim).
+        Returns None when it was already processed or is being processed right now.
+        """
+        pass
+
+    @abstractmethod
+    async def mark_processed(self, event_id: str, lease: str) -> bool:
+        """Mark a claimed event as processed; False if ``lease`` lost the claim."""
+        pass
+
+    @abstractmethod
+    async def release(self, event_id: str, lease: str) -> None:
+        """Drop the claim held by ``lease`` after a failure, so a retry runs it."""
+        pass

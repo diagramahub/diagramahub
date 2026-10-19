@@ -68,7 +68,10 @@ DATABASE_NAME=diagramahub
 
 # JWT Configuration (generate with: python3 -c "import secrets; print(secrets.token_urlsafe(32))")
 JWT_SECRET=your-secure-jwt-secret-here-min-32-chars
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Encrypts AI API keys, integration credentials and TOTP secrets (generate with:
+# python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+AI_ENCRYPTION_KEY=<fernet-key>
 
 # API Configuration
 API_V1_PREFIX=/api/v1

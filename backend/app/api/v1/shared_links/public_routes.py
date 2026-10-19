@@ -1,13 +1,15 @@
 """
 FastAPI routes for shared links (public endpoints, no authentication required).
 """
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.v1.diagrams.repository import DiagramRepository
+from app.core.client_ip import get_client_ip
+from app.core.rate_limit import SlidingWindowRateLimiter
 
-from .rate_limiter import InMemoryRateLimiter
 from .repository import SharedLinkRepository
 from .schemas import (
     SharedDiagramResponse,
@@ -20,11 +22,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Singleton rate limiter instance
-_rate_limiter = InMemoryRateLimiter(max_requests=60, window_seconds=60)
+# Singleton rate limiter instance (shared sliding-window implementation, which
+# also sweeps idle IPs so memory stays bounded).
+_rate_limiter = SlidingWindowRateLimiter(max_requests=60, window_seconds=60)
 
 
 # Dependency injection
+
 
 def get_shared_link_service() -> SharedLinkService:
     """Get shared link service instance."""
@@ -34,27 +38,24 @@ def get_shared_link_service() -> SharedLinkService:
     )
 
 
-def get_rate_limiter() -> InMemoryRateLimiter:
+def get_rate_limiter() -> SlidingWindowRateLimiter:
     """Get rate limiter instance."""
     return _rate_limiter
 
 
-def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request."""
-    return request.client.host if request.client else "unknown"
-
-
 async def _enforce_rate_limit(
     request: Request,
-    limiter: InMemoryRateLimiter = Depends(get_rate_limiter),
+    limiter: SlidingWindowRateLimiter = Depends(get_rate_limiter),
 ) -> str:
     """Enforce rate limiting and return client IP."""
-    client_ip = _get_client_ip(request)
-    if not limiter.is_allowed(client_ip):
+    client_ip = get_client_ip(request)
+    allowed, retry_after = limiter.is_allowed(client_ip)
+    if not allowed:
         logger.warning("Rate limit exceeded for IP hash (public shared link endpoint)")
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Demasiadas solicitudes. Intenta más tarde",
+            headers={"Retry-After": str(retry_after)},
         )
     return client_ip
 

@@ -108,19 +108,21 @@ docker-compose restart backend
 # Conectarse a MongoDB
 docker exec -it diagramahub-mongodb mongosh diagramahub
 
-# Verificar que existe el plan FREE
-db.plans.find({ is_free: true }).pretty()
+# Verificar que existe el plan FREE (`is_free` no es un campo guardado:
+# el plan gratuito se identifica por su código)
+db.plans.find({ code: "FREE" }).pretty()
 
-# Si no existe, crearlo:
-docker exec -it diagramahub-backend python scripts/create_free_plan.py
+# Si no existe, crearlo (desde otra terminal; el script es idempotente):
+docker exec -it diagramahub-backend python -m scripts.create_free_plan
 ```
 
 ### 3.2 Crear Plan de Pago de Prueba
 
-1. Accede a: http://localhost:5173/profile?tab=admin
-2. Haz clic en "Crear Nuevo Plan"
+1. Accede a: http://localhost:5173/admin/plans (como administrador)
+2. Crea un plan nuevo
 3. Completa:
    - **Nombre**: Pro
+   - **Código**: PRO
    - **Descripción**: Plan profesional con recursos ilimitados
    - **Precio**: 9.99 USD/mes
    - **Max Proyectos**: -1 (ilimitado)
@@ -133,7 +135,7 @@ docker exec -it diagramahub-backend python scripts/create_free_plan.py
 
 ### 4.1 Acceder como Usuario
 
-1. Ve a: http://localhost:5173/profile?tab=subscription
+1. Ve a: http://localhost:5173/subscription
 2. Verás tu plan actual (FREE)
 3. Haz clic en **"Cambiar Plan"**
 4. Selecciona el plan **"Pro"**

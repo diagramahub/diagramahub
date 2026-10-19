@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.8.4](0.8.4.md) | 2026-10-19 | Seguridad (chat de IA, MFA, webhooks, Mermaid, IP tras proxy), configuración y documentación completa |
 | [0.8.3](0.8.3.md) | 2026-10-11 | Documentación: el sitio publicado se construye con MkDocs Material (antes Jekyll) |
 | [0.8.2](0.8.2.md) | 2026-10-04 | Chat de IA: el diagrama siempre llega a la vista previa (no como código suelto) y chat completo en inglés |
 | [0.8.1](0.8.1.md) | 2026-10-03 | Estabilización: seguridad, chat de IA confiable (88 % → 99 %), modelos actualizados, pizarrón e importación pulidos |

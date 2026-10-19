@@ -199,14 +199,38 @@ class ChatSessionService:
             result.append(self._session_to_response(s, message_count=count))
         return result
 
-    async def get_session_with_messages(self, session_id: str) -> ChatSessionWithMessagesResponse:
-        """Get a session together with all its messages."""
+    async def _get_owned_session(self, session_id: str, user_id: str) -> ChatSessionInDB:
+        """Return the session when it exists and belongs to ``user_id``.
+
+        A session owned by someone else answers 404, like a missing one, so the
+        API never reveals which session ids exist.
+        """
         session = await self.session_repo.get_session_by_id(session_id)
-        if not session:
+        if not session or session.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Sesión no encontrada",
             )
+        return session
+
+    async def _get_owned_message(
+        self, session_id: str, message_id: str, user_id: str
+    ) -> ChatMessageInDB:
+        """Return the message when it belongs to the user's session ``session_id``."""
+        session = await self._get_owned_session(session_id, user_id)
+        msg = await self.message_repo.get_message_by_id(message_id)
+        if not msg or msg.session_id != str(session.id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mensaje no encontrado",
+            )
+        return msg
+
+    async def get_session_with_messages(
+        self, session_id: str, user_id: str
+    ) -> ChatSessionWithMessagesResponse:
+        """Get one of the user's sessions together with all its messages."""
+        session = await self._get_owned_session(session_id, user_id)
         messages = await self.message_repo.get_messages_by_session(session_id)
         count = len(messages)
         return ChatSessionWithMessagesResponse(
@@ -214,8 +238,11 @@ class ChatSessionService:
             messages=[self._message_to_response(m) for m in messages],
         )
 
-    async def update_session_title(self, session_id: str, title: str) -> ChatSessionResponse:
-        """Update the title of a chat session."""
+    async def update_session_title(
+        self, session_id: str, user_id: str, title: str
+    ) -> ChatSessionResponse:
+        """Update the title of one of the user's chat sessions."""
+        await self._get_owned_session(session_id, user_id)
         try:
             session = await self.session_repo.update_session_title(session_id, title)
         except ValueError:
@@ -226,8 +253,9 @@ class ChatSessionService:
         count = await self.message_repo.count_messages_by_session(session_id)
         return self._session_to_response(session, message_count=count)
 
-    async def delete_session(self, session_id: str) -> dict:
-        """Delete a session and cascade-delete all its messages."""
+    async def delete_session(self, session_id: str, user_id: str) -> dict:
+        """Delete one of the user's sessions and cascade-delete all its messages."""
+        await self._get_owned_session(session_id, user_id)
         deleted_messages = await self.message_repo.delete_messages_by_session(session_id)
         deleted = await self.session_repo.delete_session(session_id)
         if not deleted:
@@ -261,20 +289,16 @@ class ChatSessionService:
             "total_messages": total_messages,
         }
 
-    async def delete_message(self, message_id: str) -> bool:
-        """Delete a single chat message by its ID."""
+    async def delete_message(self, session_id: str, message_id: str, user_id: str) -> bool:
+        """Delete a single message of one of the user's sessions."""
+        await self._get_owned_message(session_id, message_id, user_id)
         return await self.message_repo.delete_message(message_id)
 
     async def update_session_model(
-        self, session_id: str, provider: str, model: str
+        self, session_id: str, user_id: str, provider: str, model: str
     ) -> ChatSessionResponse:
-        """Update the last used provider and model for a session."""
-        session = await self.session_repo.get_session_by_id(session_id)
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Sesión no encontrada",
-            )
+        """Update the last used provider and model for one of the user's sessions."""
+        session = await self._get_owned_session(session_id, user_id)
         session.last_provider = provider
         session.last_model = model
         session = await self.session_repo.update_session_model(session)
@@ -311,7 +335,7 @@ class ChatSessionService:
         )
 
         session = await self.session_repo.get_session_by_id(session_id)
-        if not session:
+        if not session or session.user_id != user_id:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=_chat_error("session_not_found", language),
@@ -589,7 +613,7 @@ class ChatSessionService:
         from .sse_events import token_event, phase_event, done_event, error_event, mode_event
 
         session = await self.session_repo.get_session_by_id(session_id)
-        if not session:
+        if not session or session.user_id != user_id:
             yield error_event(_chat_error("session_not_found", language))
             return
         if session.status == "finalized":
@@ -1051,18 +1075,17 @@ class ChatSessionService:
     # ------------------------------------------------------------------ #
 
     async def update_message_status(
-        self, message_id: str, new_status: ImprovementStatus
+        self,
+        session_id: str,
+        message_id: str,
+        user_id: str,
+        new_status: ImprovementStatus,
     ) -> ChatMessageResponse:
-        """Accept or reject a diagram improvement.
+        """Accept or reject a diagram improvement in one of the user's sessions.
 
         Validates that the message has improved_code and is currently pending.
         """
-        msg = await self.message_repo.get_message_by_id(message_id)
-        if not msg:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Mensaje no encontrado",
-            )
+        msg = await self._get_owned_message(session_id, message_id, user_id)
 
         if not msg.improved_code:
             raise HTTPException(

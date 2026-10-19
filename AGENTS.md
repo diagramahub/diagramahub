@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.8.3
+- **Current version**: 0.8.4
 - **Repo**: https://github.com/diagramahub/diagramahub
 
 ## Tech Stack
@@ -24,7 +24,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 | Layer | Technology |
 |-------|-----------|
 | **Frontend** | React 19 + TypeScript 5.9+ + Vite 7 + TailwindCSS v3 |
-| **Backend** | Python 3.11+ + FastAPI + Beanie ODM (MongoDB) + Poetry |
+| **Backend** | Python 3.12+ (image: 3.13) + FastAPI + Beanie ODM (MongoDB) + Poetry |
 | **Database** | MongoDB 8 via Motor async driver |
 | **Diagram rendering** | Mermaid (client-side), PlantUML/DBML/D2 (server-side via Kroki) |
 | **Payments** | Stripe SDK |
@@ -40,7 +40,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 ## Common Commands
 
-Everything runs via Docker Compose — no direct Poetry/npm on the host.
+Everything runs via Docker Compose — no direct Poetry/pnpm on the host (the frontend uses pnpm; `pnpm-lock.yaml` is the lockfile).
 
 ```bash
 # Start all services
@@ -81,11 +81,12 @@ docker exec diagramahub-backend poetry run mypy app/
 ### Frontend
 
 ```bash
-cd frontend && npm install
-npm run dev         # hot reload on 5173
-npm run build       # production build
-npm run lint        # ESLint
-npm run preview     # preview production build
+cd frontend && pnpm install
+pnpm dev            # hot reload on 5173
+pnpm build          # production build
+pnpm lint           # ESLint
+pnpm test           # Vitest (pure utilities)
+pnpm preview        # preview production build
 ```
 
 ### Shell test scripts
@@ -122,7 +123,7 @@ diagramahub/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic Settings (env vars)
 │   │   │   └── security.py      # JWT + BCrypt utilities
-│   │   └── api/v1/              # All feature modules (14 modules, see below)
+│   │   └── api/v1/              # All feature modules (12 modules, see below)
 │   ├── tests/
 │   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
 │   │   └── api/v1/              # Tests mirror module structure
@@ -134,7 +135,6 @@ diagramahub/
 │   ├── index.css                # Tailwind directives + custom @layer components
 │   ├── components/              # Reusable UI (flat + feature subfolders)
 │   │   ├── admin/               # Admin panel components
-│   │   ├── annotations/         # Presentation annotation components
 │   │   ├── mfa/                 # MFA-related components
 │   │   └── subscription/        # Billing components
 │   ├── pages/                   # Route-level page components
@@ -150,13 +150,13 @@ diagramahub/
 ├── deploy/
 │   ├── local-full/              # MongoDB 8 + Kroki + Backend + Frontend
 │   └── external-mongodb/        # Kroki + Backend + Frontend (external DB)
-├── docs/                        # MkDocs Material (ES/EN)
+├── docs/                        # MkDocs Material (ES/EN): {es,en}/ guide, self-host, development, security, release-notes
 ├── overrides/                   # MkDocs theme overrides (per-page UI language)
 ├── .github/workflows/docs.yml   # Builds and publishes the docs site on GitHub Pages
 ├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-### Backend Module Registry (All 14 Modules)
+### Backend Module Registry (All 12 Modules)
 
 Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
@@ -166,15 +166,14 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **projects** | `projects/` | Project CRUD | — |
 | **diagrams** | `diagrams/` | Diagram CRUD, AI fix, syntax validation, Kroki proxy | `fix_service.py`, `syntax_validator.py`, `config_utils.py`, `fix_prompts.py`, `kroki_client.py` |
 | **folders** | `folders/` | Folder CRUD | — |
-| **ai_providers** | `ai_providers/` | AI provider config + LLM clients (5 providers) | `clients/` subfolder, `factory.py`, `prompts.py` |
+| **ai_providers** | `ai_providers/` | AI provider config + LLM clients (5 providers) | `clients/` subfolder (with `factory.py`), `prompts.py`, `model_catalog.json` + `model_catalog.py` |
 | **chat_sessions** | `chat_sessions/` | AI chat session management | — |
 | **subscriptions** | `subscriptions/` | Stripe billing, plans, webhooks | `billing_service.py`, `webhook_handler.py`, `webhook_routes.py`, `usage_limiter.py`, `payment_providers/`, `constants.py`, `exceptions.py`, `logger.py`, `plan_service.py`, `stripe_catalog_service.py`, `subscription_service.py`, `migration_service.py` |
 | **shared_links** | `shared_links/` | Public diagram sharing, rate limiting | `public_routes.py`, `rate_limiter.py` |
-| **prompt_history** | `prompt_history/` | AI prompt history tracking | — |
+| **prompt_history** | `prompt_history/` | AI prompt history tracking (API only: no UI reads or writes it yet) | — |
 | **integrations** | `integrations/` | Admin email/payment/OAuth vendor config | `email_service.py`, `email_vendors/`, `vendor_factory.py` |
 | **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
 | **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
-| **prompt_history** | `prompt_history/` | AI prompt history | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
 
@@ -265,17 +264,17 @@ When creating a new module, you MUST:
 
 ### Diagram Engine
 - Supported: **Mermaid** (client-side), **PlantUML**, **D2**, **DBML** (server-side via Kroki)
-- Monaco Editor with Dark theme, syntax highlighting, autocomplete
+- Monaco Editor with Dark theme and syntax highlighting (a custom language only for D2; no autocomplete)
 - Export: PNG, PDF, Markdown
 - Mermaid: themes (default/dark/forest/neutral/base), layout engines (dagre/elk), visual styles (classic/handDrawn), curve types
 - PlantUML: themes + skinparam. D2: themes. DBML: background only.
 - Shared `DiagramConfig`: background color + pattern (plain/dots/grid)
 - Viewport state (zoom, x, y) persisted per diagram — **never overwrite on load**
-- Presentation mode with full-screen viewing and annotations
+- Presentation mode with full-screen viewing
 
 ### AI Integration (BYOL)
 - 5 providers: Google Gemini, OpenAI GPT, Anthropic Claude, DeepSeek, **MiniMax**
-- Pattern: abstract `BaseAIClient` → concrete clients in `ai_providers/clients/` → registered in `factory.py`
+- Pattern: abstract `BaseAIClient` → concrete clients in `ai_providers/clients/` → registered in `clients/factory.py`
 - Capabilities: generation, improvement, auto-fix, description generation, chat refinement
 - API keys stored Fernet-encrypted, returned masked in responses
 - `max_tokens`: 4096 for descriptions; **8192 for generate/improve and every chat reply** (reasoning models spend part of the budget thinking). A reply cut at the limit is never returned as code: the API answers 422 `response_truncated` (empty reply: 502 `empty_response`)
@@ -305,7 +304,7 @@ When creating a new module, you MUST:
 - Resource limits (`max_projects`, `max_diagrams`): `-1` or `None` = unlimited
 - Stripe: checkout sessions, idempotent webhooks (keyed by `event_id`), billing portal
 - Multi-currency pricing via `prices` dict on plans
-- Provider-agnostic payment gateway (Stripe active, Conekta placeholder)
+- Provider-agnostic payment gateway (`payment_providers/interfaces.py`; Stripe is the only implementation)
 
 ### Sharing
 - Access types: `public` (open) or `protected` (access code 4–20 chars)
@@ -345,19 +344,19 @@ All prefixed with `/api/v1`. See Swagger UI at `/docs` for full interactive docs
 
 **OAuth (public)**:
 - `GET /oauth/providers` — list active providers
-- `GET /oauth/{provider}/authorize` — initiate flow
-- `GET /oauth/{provider}/callback` — handle callback
+- `GET /oauth/authorize/{provider}` — initiate flow
+- `POST /oauth/callback` — handle callback
 
 **Protected** (JWT required):
 - `GET /users/me`, `PUT /users/change-password`
 - `CRUD /projects`, `CRUD /diagrams`, `CRUD /folders`
 - `CRUD /ai/providers`, `POST /ai/providers/{type}/test`
 - `CRUD /chat-sessions`, `POST /chat-sessions/{id}/messages`
-- `CRUD /shared-links`, `GET /shared-links/public/{token}` (public)
-- `GET /subscriptions/me`, `POST /subscriptions/checkout`, `GET /subscriptions/billing`
+- `CRUD /shared-links`; public: `GET /shared/{token}/info`, `GET /shared/{token}/diagram`, `POST /shared/{token}/verify`
+- `GET /subscriptions/me`, `POST /subscriptions/checkout`, `GET /subscriptions/billing-history`
 - `GET /prompt-history`
 - `CRUD /mfa` (TOTP setup, verify, recovery codes)
-- Admin: `GET /admin/users`, `CRUD /integrations`
+- Admin: `GET /mfa/admin/users`, `CRUD /admin/integrations/vendors`
 - Webhooks: `POST /webhooks/stripe`
 
 **Health**:
@@ -373,7 +372,7 @@ All prefixed with `/api/v1`. See Swagger UI at `/docs` for full interactive docs
 JWT_SECRET=<generated-32-char-min>
 MONGO_URI=mongodb://mongodb:27017
 DATABASE_NAME=diagramahub
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+AI_ENCRYPTION_KEY=<fernet-key>   # encrypts AI keys, integration secrets and TOTP secrets
 
 # Optional
 SENTRY_DSN=
@@ -386,7 +385,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.8.3
+VITE_APP_VERSION=0.8.4
 ```
 
 ---
@@ -418,7 +417,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 
 ### Frontend Tests
 
-- **Vitest** (`npm test` / `vitest run`, config in `vitest.config.ts`) for **pure utilities only**: tests live in `src/**/__tests__/*.test.ts` (e.g. `sketchToMermaid`). Node environment, no DOM rendering.
+- **Vitest** (`pnpm test` / `vitest run`, config in `vitest.config.ts`) for **pure utilities only**: tests live in `src/**/__tests__/*.test.ts` (e.g. `sketchToMermaid`). Node environment, no DOM rendering.
 - UI behaviour is verified with example-based checks or manual/Playwright runs against the dev stack
 
 ---
@@ -448,7 +447,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 ### Adding an AI Provider
 
 1. Create client class extending `BaseAIClient` in `ai_providers/clients/`
-2. Register in `factory.py` → `_clients_map`
+2. Register in `clients/factory.py` → `_clients_map`
 3. Add frontend UI in provider configuration
 4. Add provider type to `AIProviderType` enum (backend + frontend)
 5. Add its models to `backend/app/api/v1/ai_providers/model_catalog.json` (context window, `listed`, one `recommended`, `supports_temperature`) and the same `listed` models to `AI_PROVIDER_MODELS` in `frontend/src/types/ai.ts` — a Vitest test fails if they differ
@@ -466,7 +465,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.3**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.4**.
 
 | Bump | When |
 |------|------|

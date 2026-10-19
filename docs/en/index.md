@@ -1,152 +1,128 @@
 # Welcome to DiagramaHub
 
-Welcome to the official documentation for the **DiagramaHub** codebase!
+**DiagramaHub** is an open-source platform (Apache 2.0) to create, organize and export
+diagrams written as text: **Mermaid**, **PlantUML**, **D2** and **DBML**, plus a
+**freehand whiteboard** for sketching. It includes an AI assistant built on **BYOL**
+(*Bring Your Own LLM*): you supply your provider's API key and DiagramaHub uses it to
+generate, improve, fix and explain diagrams through a chat.
 
-This documentation is built with [MkDocs](https://squidfunk.github.io/mkdocs-material/) and is designed to be the single source of truth for all developers working on the project.
+It runs on your own infrastructure with Docker Compose.
 
-## What is DiagramaHub?
+!!! warning "Beta software (v0.x)"
+    APIs and data structures may change between versions. Check the
+    [release notes](release-notes/index.md) before upgrading.
 
-DiagramaHub is an open-source platform for creating, organizing, and exporting diagrams using plain text markup (Mermaid, PlantUML). It targets developers and teams who prefer text-based diagramming.
+## Where do I start?
 
-## Key Features
+<div class="grid cards" markdown>
 
-- **Text-to-diagram**: Mermaid and PlantUML support with real-time rendering.
-- **Organization**: Projects, folders, and hierarchical navigation.
-- **Flexible export**: PNG, PDF, and Markdown.
-- **AI generation (BYOL)**: Create and improve diagrams with your own LLM key (Gemini, OpenAI, Claude, DeepSeek).
-- **AI chat**: Iterative chat sessions for diagram refinement.
-- **Prompt history**: Full log of all AI interactions.
-- **Diagram sharing**: Public links protected with access codes.
-- **Subscriptions and billing**: Plan system with Stripe integration.
-- **Authentication**: JWT with registration, login, password reset, and account deletion flows.
-- **Onboarding**: Installation wizard and new-user onboarding.
-- **Presentation mode**: Full-screen diagram viewing with annotations.
-- **Multi-language**: Spanish (default) and English.
-- **Admin panel**: Email vendor and integration configuration.
-- **Self-hostable**: Full deployment via Docker Compose.
+-   :material-pencil-ruler: **I want to use DiagramaHub**
 
-## What will you find here?
+    ---
 
-In these manuals you can discover:
+    Create your first project and learn the editor and the four diagram languages.
 
-* **Installation Guide:** How to deploy DiagramaHub with the automatic installer or manually.
-* **Architecture:** How the frontend and backend communicate.
-* **Tech Stack:** Technologies, dependencies, and project tooling.
+    [:octicons-arrow-right-24: User guide](guide/index.md)
 
-## Main Repository Structure
+-   :material-server: **I want to run it on my server**
 
-```text
-diagramahub/
-├── frontend/               # React 19 + TypeScript + Vite 7 web app
-├── backend/                # FastAPI + MongoDB (Beanie ODM) REST API
-├── deploy/                 # Docker Compose configurations
-│   ├── local-full/         # MongoDB 8 + Backend + Frontend
-│   └── external-mongodb/   # Backend + Frontend (external MongoDB)
-├── docs/                   # This documentation (MkDocs Material)
-├── install.sh              # Interactive one-line installer
-├── verify-installation.sh  # Post-installation verification script
-├── test-api.sh             # API test script
-├── test-onboarding.sh      # Onboarding flow test script
-├── docker-compose.yml      # Symlinked to chosen deploy mode
-├── mkdocs.yml              # MkDocs configuration
-├── INSTALL.md              # Detailed installation guide
-├── STRIPE_QUICKSTART.md    # Stripe configuration quickstart
-├── README.md               # Main project readme
-└── LICENSE                 # Apache License 2.0
+    ---
+
+    Installation, environment variables, production, integrations and backups.
+
+    [:octicons-arrow-right-24: Self-host](self-host/index.md)
+
+-   :material-code-braces: **I want to develop or contribute**
+
+    ---
+
+    Architecture, backend modules, frontend, API, testing and how to extend it.
+
+    [:octicons-arrow-right-24: Development](development/index.md)
+
+-   :material-shield-lock: **I want to review security**
+
+    ---
+
+    Authentication, MFA, protections, audit log and how to report issues.
+
+    [:octicons-arrow-right-24: Security](security/index.md)
+
+</div>
+
+## Features
+
+### Diagrams as code
+
+- **Four languages**: Mermaid (rendered in the browser), PlantUML, D2 and DBML (rendered on the
+  server with [Kroki](https://kroki.io/), inside your own installation).
+- **Monaco editor** with syntax highlighting and a live preview.
+- **Per-diagram styling**: themes, layout engines, classic or hand-drawn look and curve types in
+  Mermaid; themes and `skinparam` in PlantUML; themes in D2; background color and pattern for all.
+- **Conversion between languages** with AI, with a side-by-side preview.
+- **Presentation mode** in full screen.
+
+### Freehand whiteboard
+
+- Whiteboard canvas with shapes, arrows, text and freehand strokes, drawn with a hand-drawn look.
+- Element locking, undo/redo and PNG export.
+- **Sketch → Mermaid**: turn a sketch into an editable Mermaid diagram.
+
+### Organization
+
+- **Projects and folders** with a file explorer: rename, duplicate, move between folders and
+  between projects.
+- **Export** a diagram to PNG, SVG, PDF or Markdown.
+- **Export a project or a folder** as a ZIP or as Markdown meant as context for AI.
+- **Import** diagram files, ZIP archives and Excalidraw drawings.
+
+### AI assistant (BYOL)
+
+- Five providers: **Google Gemini**, **OpenAI**, **Anthropic Claude**, **DeepSeek** and
+  **MiniMax**. Your API key is stored encrypted and is never returned in full.
+- Per-diagram chat to generate, improve, repair or explain, with validation of the generated
+  code and optional automatic fixing.
+
+### Sharing
+
+- **Public** or **protected** links with an access code, expiring after 5, 10 or 30 days or
+  never, with the option to show or hide the source code.
+
+### Accounts, security and administration
+
+- Sign-up with a strong password, **MFA** (TOTP app and email codes, with recovery codes) and
+  **Google** sign-in.
+- **Plans and limits** defined by the operator, with optional payments through **Stripe**.
+- **Admin panel**: users, plans and integrations (email, payments, OAuth).
+- **Audit log** of security events.
+- **Spanish and English** UI, with light and dark mode.
+
+## How it is built
+
+```mermaid
+flowchart LR
+    U["Browser"] --> F["Frontend<br/>React + Vite"]
+    F -->|"REST API /api/v1"| B["Backend<br/>FastAPI"]
+    B --> M[("MongoDB")]
+    B --> K["Kroki<br/>PlantUML · D2 · DBML"]
+    B -.->|"your API key"| AI["AI provider"]
 ```
 
-## Tech Stack
+Four Docker Compose services: frontend, backend, Kroki and MongoDB (which can be external).
+See [Architecture](development/architecture.md) for the details.
 
-### Backend
+## Links
 
-| Technology | Version / Detail |
-|---|---|
-| Python | 3.11+ |
-| FastAPI | 0.115+ |
-| MongoDB | 8 (via Docker) |
-| Beanie ODM | 1.27+ (Motor async driver) |
-| Pydantic | v2 |
-| Authentication | JWT (python-jose) + BCrypt (passlib) |
-| Payments | Stripe SDK 11+ |
-| AI Clients | google-genai, httpx (OpenAI, Claude, DeepSeek) |
-| Email | Resend (async) |
-| Dependencies | Poetry 2.x |
-| Linting | Ruff (line-length 100, target py311) |
-| Formatting | Black (line-length 100, target py311) |
-| Type checking | mypy |
-| Testing | pytest + pytest-asyncio + pytest-cov + Hypothesis + Faker |
-
-### Frontend
-
-| Technology | Version / Detail |
-|---|---|
-| React | 19 |
-| TypeScript | 5.9+ |
-| Vite | 7 |
-| TailwindCSS | v3 |
-| React Router | v7 |
-| Axios | HTTP client with interceptors |
-| i18next | Spanish (default) and English |
-| Mermaid | 11+ |
-| PlantUML | via plantuml-encoder |
-| Monaco Editor | Code editor |
-| react-markdown | Markdown rendering |
-| ESLint | typescript-eslint |
-
-### Infrastructure
-
-| Aspect | Detail |
-|---|---|
-| Containers | Docker Compose |
-| Deploy modes | `deploy/local-full/` and `deploy/external-mongodb/` |
-| Hot reload (dev) | Backend: uvicorn `--reload`, Frontend: Vite HMR |
-| Production | Reverse proxy (Nginx/Traefik) recommended for SSL |
-
-## Ports
-
-| Service | Port |
-|---|---|
-| Frontend | 5173 |
-| Backend | 5172 |
-| MongoDB | 27017 (local-full mode only) |
-
-## Backend Modules
-
-The backend follows SOLID principles. Each entity lives in its own folder under `backend/app/api/v1/`:
-
-| Module | Description |
-|---|---|
-| `users/` | Authentication, registration, password management, account deletion |
-| `projects/` | Project CRUD |
-| `diagrams/` | Diagram CRUD, AI fix service, syntax validation |
-| `folders/` | Folder CRUD |
-| `ai_providers/` | AI provider configuration, LLM clients (Gemini, OpenAI, Claude, DeepSeek) |
-| `chat_sessions/` | AI chat session management |
-| `subscriptions/` | Stripe billing, plans, webhooks, payment providers |
-| `shared_links/` | Public diagram sharing, rate limiting |
-| `prompt_history/` | AI prompt history tracking |
-| `integrations/` | Email vendor configuration (admin) |
-
-## Frontend Routes
-
-| Route | Description | Protected |
-|---|---|---|
-| `/setup` | Initial installation wizard | No |
-| `/login` | Login page | No |
-| `/register` | Registration page | No |
-| `/forgot-password` | Password recovery | No |
-| `/reset-password` | Password reset | No |
-| `/shared/:token` | Public shared diagram | No |
-| `/onboarding` | Onboarding wizard | Yes |
-| `/dashboard` | User dashboard | Yes |
-| `/projects/:projectId` | Project view | Yes |
-| `/projects/:projectId/diagrams/:diagramId` | Diagram editor | Yes |
-| `/profile` | User profile | Yes |
-| `/` | Redirect to `/dashboard` | — |
+- [GitHub repository](https://github.com/diagramahub/diagramahub)
+- [Release notes](release-notes/index.md) ·
+  [CHANGELOG](https://github.com/diagramahub/diagramahub/blob/main/CHANGELOG.md)
+- [FAQ](faq.md)
+- [Apache 2.0](https://github.com/diagramahub/diagramahub/blob/main/LICENSE) license
 
 ---
 
 *To serve this documentation locally:*
+
 ```bash
 pip install -r docs/requirements.txt
 mkdocs serve

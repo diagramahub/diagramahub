@@ -7,6 +7,7 @@ Complete DiagramHub installation with all services running locally in Docker.
 ## Services Included
 
 - **MongoDB 8** - Database (Docker container, always latest 8.x)
+- **Kroki** - Server-side rendering for PlantUML, D2 and DBML (internal network only)
 - **Backend** - FastAPI application
 - **Frontend** - React + Vite application
 
@@ -24,7 +25,7 @@ Complete DiagramHub installation with all services running locally in Docker.
    MONGO_URI=mongodb://mongodb:27017
    DATABASE_NAME=diagramahub
    JWT_SECRET=<generate-secure-secret>
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   AI_ENCRYPTION_KEY=<fernet-key>
    API_V1_PREFIX=/api/v1
    ```
 

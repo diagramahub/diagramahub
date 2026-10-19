@@ -37,6 +37,7 @@ from app.api.v1.integrations.schemas import VendorConfigInDB
 from app.api.v1.mfa.routes import router as mfa_router
 from app.api.v1.oauth.routes import router as oauth_router
 from app.api.v1.oauth.schemas import OAuthStateToken
+from app.api.v1.mfa.schemas import MfaTokenAttempt
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.config import settings
 from app.core.request_limits import BodySizeLimitMiddleware
@@ -150,6 +151,7 @@ async def lifespan(app: FastAPI):
             VendorConfigInDB,
             AuditLogEntry,
             OAuthStateToken,
+            MfaTokenAttempt,
         ],
     )
 

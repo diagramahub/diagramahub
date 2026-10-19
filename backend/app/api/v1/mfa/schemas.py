@@ -2,9 +2,12 @@
 Pydantic schemas for the MFA (Multi-Factor Authentication) module.
 """
 
+from datetime import datetime
 from typing import Optional
 
+from beanie import Document
 from pydantic import BaseModel, Field, field_validator
+from pymongo import IndexModel
 
 # --- Allowed MFA methods ---
 
@@ -154,3 +157,32 @@ class MfaSetDefaultMethodRequest(BaseModel):
     def validate_method(cls, v: str) -> str:
         """Ensure the method is a valid MFA method."""
         return _validate_mfa_method(v)
+
+
+# --- Login-flow attempt tracking ---
+
+
+class MfaTokenAttempt(Document):
+    """Verification attempts and single-use state of one temporary MFA token.
+
+    The temporary MFA token is a stateless JWT, so its attempt limit and its
+    single use are kept server side, keyed by a SHA-256 hash of the token (the
+    token itself is never stored). Documents expire with the token through a
+    TTL index.
+    """
+
+    token_hash: str
+    attempts: int = 0
+    consumed: bool = False
+    expires_at: datetime
+
+    class Settings:
+        name = "mfa_token_attempts"
+        indexes = [
+            IndexModel([("token_hash", 1)], unique=True, name="token_hash_unique"),
+            IndexModel(
+                [("expires_at", 1)],
+                expireAfterSeconds=0,
+                name="mfa_token_attempt_ttl",
+            ),
+        ]

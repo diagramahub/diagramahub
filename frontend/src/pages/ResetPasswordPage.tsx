@@ -43,7 +43,7 @@ const ResetPasswordPage: React.FC = () => {
     if (!/[A-Z]/.test(password)) errors.push(t('validation.passwordUppercase'));
     if (!/[a-z]/.test(password)) errors.push(t('validation.passwordLowercase'));
     if (!/\d/.test(password)) errors.push(t('validation.passwordNumber'));
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(password)) errors.push(t('validation.passwordSpecial'));
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password)) errors.push(t('validation.passwordSpecial'));
     if (email && password.toLowerCase() === email.toLowerCase()) errors.push(t('validation.passwordNotEmail'));
     return errors;
   };

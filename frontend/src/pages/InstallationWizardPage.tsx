@@ -43,10 +43,12 @@ export default function InstallationWizardPage() {
   const [timezone, setTimezone] = useState('UTC');
 
   const validatePassword = (pwd: string): string | null => {
-    if (pwd.length < 8) return t('validation.passwordMin');
+    // Same policy as the backend (users/schemas.py): 12+ chars, upper, lower, digit, special.
+    if (pwd.length < 12) return t('validation.passwordMin');
     if (!/[A-Z]/.test(pwd)) return t('validation.passwordUppercase');
     if (!/[a-z]/.test(pwd)) return t('validation.passwordLowercase');
     if (!/[0-9]/.test(pwd)) return t('validation.passwordNumber');
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(pwd)) return t('validation.passwordSpecial');
     return null;
   };
 

@@ -235,12 +235,15 @@ async def improve_diagram(
     "/test-provider", response_model=TestProviderResponse, summary="Test AI provider API key"
 )
 async def test_provider(
-    request: TestProviderRequest, service: AIProviderService = Depends(get_ai_provider_service)
+    request: TestProviderRequest,
+    user_id: str = Depends(get_current_user_id),
+    service: AIProviderService = Depends(get_ai_provider_service),
 ):
     """
     Test if an API key is valid for a provider without saving it.
 
-    Useful for validating keys before adding them to settings.
+    Useful for validating keys before adding them to settings. Requires an
+    authenticated user, so the endpoint can't be used anonymously to probe keys.
     """
     return await service.test_provider(
         provider=request.provider,

@@ -6,6 +6,7 @@ import logging
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from app.core.client_ip import get_client_ip
 
 from app.api.deps import get_current_user_email, get_user_service
 from app.api.v1.users.repository import UserRepository
@@ -60,7 +61,7 @@ async def register(
     """
     from app.api.v1.users.rate_limiter import register_rate_limiter
 
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     allowed, retry_after = register_rate_limiter.is_allowed(client_ip)
     if not allowed:
         raise HTTPException(
@@ -105,7 +106,7 @@ async def login(
     from app.api.v1.users.rate_limiter import login_rate_limiter, account_lockout
 
     # --- Rate limiting by IP ---
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     allowed, retry_after = login_rate_limiter.is_allowed(client_ip)
     if not allowed:
         raise HTTPException(
@@ -274,7 +275,7 @@ async def reset_password_request(
     """
     from app.api.v1.users.rate_limiter import password_reset_rate_limiter
 
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     allowed, retry_after = password_reset_rate_limiter.is_allowed(client_ip)
     if not allowed:
         raise HTTPException(

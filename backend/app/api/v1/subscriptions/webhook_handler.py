@@ -9,6 +9,7 @@ from fastapi import HTTPException
 
 from .subscription_service import SubscriptionService
 from .payment_providers.interfaces import IPaymentProvider
+from .interfaces import IWebhookEventRepository
 from .logger import SubscriptionLogger
 
 logger = logging.getLogger(__name__)
@@ -18,21 +19,28 @@ class WebhookHandler:
     """Manejador de webhooks de proveedores de pago."""
 
     def __init__(
-        self, subscription_service: SubscriptionService, payment_provider: IPaymentProvider
+        self,
+        subscription_service: SubscriptionService,
+        payment_provider: IPaymentProvider,
+        event_repository: IWebhookEventRepository,
     ):
         self.subscription_service = subscription_service
         self.payment_provider = payment_provider
+        self.event_repository = event_repository
 
     async def handle_webhook(self, payload: bytes, signature: str) -> dict:
         """
-        Procesa webhook entrante.
+        Procesa webhook entrante una sola vez por evento.
 
         Proceso:
         1. Validar firma usando payment_provider.validate_webhook()
-        2. Extraer event_type y data
+        2. Reclamar el event_id en el registro de eventos; si ya se procesó (o se
+           está procesando), responder {"status": "duplicate"} sin reaplicarlo
         3. Delegar a método específico según event_type
-        4. Registrar evento en logs
-        5. Retornar {"status": "processed"}
+        4. Marcar el evento como procesado y retornar {"status": "processed"}
+
+        Si el procesamiento falla se libera el reclamo y se responde 500, para que
+        el proveedor reintente la entrega y el reintento sí se procese.
         """
         # Validar webhook
         try:
@@ -41,13 +49,17 @@ class WebhookHandler:
             logger.warning(f"Invalid webhook signature: {str(e)}")
             raise HTTPException(status_code=401, detail=str(e))
 
-        # Procesar según tipo de evento
         event_type = event["event_type"]
         data = event["data"]
-        event_id = data.get("id", "unknown")
+        event_id = event["event_id"]
 
         # Log webhook received
         SubscriptionLogger.webhook_received(event_type, event_id)
+
+        lease = await self.event_repository.claim(event_id, event_type)
+        if lease is None:
+            logger.info(f"Duplicate webhook event ignored: {event_id} ({event_type})")
+            return {"status": "duplicate"}
 
         logger.info(f"Processing webhook event: {event_type}")
 
@@ -62,18 +74,21 @@ class WebhookHandler:
                 await self._handle_payment_failed(data)
             else:
                 logger.info(f"Unhandled webhook event type: {event_type}")
-
-            # Log successful processing
-            SubscriptionLogger.webhook_processed(event_type, event_id, success=True)
-            logger.info(f"Webhook processed successfully: {event_type}")
-            return {"status": "processed"}
-
         except Exception as e:
-            # Log failed processing
+            # Log failed processing; releasing the claim lets the retry run it again
             SubscriptionLogger.webhook_processed(event_type, event_id, success=False)
             logger.error(f"Error processing webhook {event_type}: {str(e)}")
-            # No lanzar excepción para que Stripe no reintente
-            return {"status": "error", "message": str(e)}
+            await self.event_repository.release(event_id, lease)
+            raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+        if not await self.event_repository.mark_processed(event_id, lease):
+            # A later delivery took over this claim (it looked abandoned); it owns the record now.
+            logger.warning(f"Webhook claim lost before completion: {event_id} ({event_type})")
+
+        # Log successful processing
+        SubscriptionLogger.webhook_processed(event_type, event_id, success=True)
+        logger.info(f"Webhook processed successfully: {event_type}")
+        return {"status": "processed"}
 
     async def _handle_checkout_completed(self, data: dict):
         """

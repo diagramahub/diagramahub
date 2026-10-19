@@ -1,152 +1,128 @@
 # Bienvenido a DiagramaHub
 
-¡Bienvenido a la documentación oficial del código base de **DiagramaHub**!
+**DiagramaHub** es una plataforma open-source (Apache 2.0) para crear, organizar y exportar
+diagramas escritos como texto: **Mermaid**, **PlantUML**, **D2** y **DBML**, más un
+**pizarrón a mano alzada** para bocetar. Incluye un asistente de IA con modelo **BYOL**
+(*Bring Your Own LLM*): tú pones la API key de tu proveedor y DiagramaHub la usa para
+generar, mejorar, corregir y explicar diagramas por chat.
 
-Esta documentación está construida con [MkDocs](https://squidfunk.github.io/mkdocs-material/) y está diseñada para ser la fuente principal de verdad de todos los desarrolladores del proyecto.
+Se instala en tu propia infraestructura con Docker Compose.
 
-## ¿Qué es DiagramaHub?
+!!! warning "Software en beta (v0.x)"
+    Las APIs y las estructuras de datos pueden cambiar entre versiones. Revisa las
+    [notas de versión](release-notes/index.md) antes de actualizar.
 
-DiagramaHub es una plataforma open-source para crear, organizar y exportar diagramas usando marcado de texto plano (Mermaid, PlantUML). Está orientada a desarrolladores y equipos que prefieren diagramar con texto.
+## ¿Por dónde empiezo?
 
-## Funcionalidades principales
+<div class="grid cards" markdown>
 
-- **Texto a diagrama**: Soporte para Mermaid y PlantUML con renderizado en tiempo real.
-- **Organización**: Proyectos, carpetas y navegación jerárquica.
-- **Exportación flexible**: PNG, PDF y Markdown.
-- **Generación con IA (BYOL)**: Crea y mejora diagramas con tu propia clave de LLM (Gemini, OpenAI, Claude, DeepSeek).
-- **Chat de IA**: Sesiones de chat iterativas para refinar diagramas.
-- **Historial de prompts**: Registro de todas las interacciones con IA.
-- **Compartir diagramas**: Enlaces públicos protegidos con código de acceso.
-- **Suscripciones y facturación**: Sistema de planes con integración Stripe.
-- **Autenticación**: JWT con flujos de registro, login, reset de contraseña y eliminación de cuenta.
-- **Onboarding**: Wizard de instalación inicial y onboarding para nuevos usuarios.
-- **Modo presentación**: Visualización de diagramas a pantalla completa con anotaciones.
-- **Multi-idioma**: Español (por defecto) e inglés.
-- **Panel de administración**: Configuración de vendors de email e integraciones.
-- **Self-hostable**: Despliegue completo vía Docker Compose.
+-   :material-pencil-ruler: **Quiero usar DiagramaHub**
 
-## ¿Qué encontrarás aquí?
+    ---
 
-En estos manuales podrás descubrir:
+    Crea tu primer proyecto, aprende el editor y los cuatro lenguajes de diagrama.
 
-* **Guía de Instalación:** Cómo desplegar DiagramaHub con el instalador automático o de forma manual.
-* **Arquitectura:** Cómo se comunican el frontend y el backend.
-* **Stack tecnológico:** Tecnologías, dependencias y herramientas del proyecto.
+    [:octicons-arrow-right-24: Guía de uso](guia/index.md)
 
-## Estructura principal del repositorio
+-   :material-server: **Quiero instalarlo en mi servidor**
 
-```text
-diagramahub/
-├── frontend/               # App web en React 19 + TypeScript + Vite 7
-├── backend/                # API REST con FastAPI + MongoDB (Beanie ODM)
-├── deploy/                 # Configuraciones Docker Compose
-│   ├── local-full/         # MongoDB 8 + Backend + Frontend
-│   └── external-mongodb/   # Backend + Frontend (MongoDB externo)
-├── docs/                   # Esta documentación (MkDocs Material)
-├── install.sh              # Instalador interactivo de una línea
-├── verify-installation.sh  # Script de verificación post-instalación
-├── test-api.sh             # Script de pruebas de API
-├── test-onboarding.sh      # Script de pruebas del flujo de onboarding
-├── docker-compose.yml      # Symlink al modo de despliegue elegido
-├── mkdocs.yml              # Configuración de MkDocs
-├── INSTALL.md              # Guía detallada de instalación
-├── STRIPE_QUICKSTART.md    # Guía rápida de configuración de Stripe
-├── README.md               # Readme principal del proyecto
-└── LICENSE                 # Apache License 2.0
+    ---
+
+    Instalación, variables de entorno, producción, integraciones y respaldos.
+
+    [:octicons-arrow-right-24: Self-host](self-host/index.md)
+
+-   :material-code-braces: **Quiero desarrollar o contribuir**
+
+    ---
+
+    Arquitectura, módulos del backend, frontend, API, pruebas y cómo extenderlo.
+
+    [:octicons-arrow-right-24: Desarrollo](desarrollo/index.md)
+
+-   :material-shield-lock: **Quiero revisar la seguridad**
+
+    ---
+
+    Autenticación, MFA, protecciones, registro de auditoría y cómo reportar fallas.
+
+    [:octicons-arrow-right-24: Seguridad](seguridad/index.md)
+
+</div>
+
+## Funcionalidades
+
+### Diagramas como código
+
+- **Cuatro lenguajes**: Mermaid (renderizado en el navegador), PlantUML, D2 y DBML (renderizados
+  en el servidor con [Kroki](https://kroki.io/), dentro de tu propia instalación).
+- **Editor Monaco** con resaltado de sintaxis y vista previa en tiempo real.
+- **Estilo por diagrama**: temas, motores de layout, estilo clásico o a mano y tipos de curva en
+  Mermaid; temas y `skinparam` en PlantUML; temas en D2; color y patrón de fondo en todos.
+- **Conversión entre lenguajes** con IA, con vista previa lado a lado.
+- **Modo presentación** a pantalla completa.
+
+### Pizarrón a mano alzada
+
+- Lienzo tipo pizarrón con formas, flechas, texto y trazo libre, dibujados con estilo a mano.
+- Bloqueo de elementos, deshacer/rehacer y exportación a PNG.
+- **Boceto → Mermaid**: convierte un boceto en un diagrama Mermaid editable.
+
+### Organización
+
+- **Proyectos y carpetas** con un explorador de archivos: renombrar, duplicar, mover entre
+  carpetas y entre proyectos.
+- **Exportar** un diagrama a PNG, SVG, PDF o Markdown.
+- **Exportar un proyecto o una carpeta** como ZIP o como Markdown pensado como contexto para IA.
+- **Importar** archivos de diagrama, ZIP y dibujos de Excalidraw.
+
+### Asistente de IA (BYOL)
+
+- Cinco proveedores: **Google Gemini**, **OpenAI**, **Anthropic Claude**, **DeepSeek** y
+  **MiniMax**. Tu API key se guarda cifrada y nunca se devuelve completa.
+- Chat por diagrama para generar, mejorar, reparar o explicar, con validación del código
+  generado y corrección automática opcional.
+
+### Compartir
+
+- Enlaces **públicos** o **protegidos** con código de acceso, con expiración de 5, 10 o 30 días
+  o sin expiración, y la opción de mostrar u ocultar el código fuente.
+
+### Cuentas, seguridad y administración
+
+- Registro con contraseña robusta, **MFA** (app TOTP y códigos por email, con códigos de
+  recuperación) e inicio de sesión con **Google**.
+- **Planes y límites** definidos por el operador, con pagos opcionales vía **Stripe**.
+- **Panel de administración**: usuarios, planes e integraciones (email, pagos, OAuth).
+- **Registro de auditoría** de eventos de seguridad.
+- Interfaz en **español e inglés**, con modo claro y oscuro.
+
+## Cómo está construido
+
+```mermaid
+flowchart LR
+    U["Navegador"] --> F["Frontend<br/>React + Vite"]
+    F -->|"API REST /api/v1"| B["Backend<br/>FastAPI"]
+    B --> M[("MongoDB")]
+    B --> K["Kroki<br/>PlantUML · D2 · DBML"]
+    B -.->|"tu API key"| AI["Proveedor de IA"]
 ```
 
-## Stack tecnológico
+Cuatro servicios en Docker Compose: frontend, backend, Kroki y MongoDB (este último puede ser
+externo). Los detalles están en [Arquitectura](desarrollo/arquitectura.md).
 
-### Backend
+## Enlaces
 
-| Tecnología | Versión / Detalle |
-|---|---|
-| Python | 3.11+ |
-| FastAPI | 0.115+ |
-| MongoDB | 8 (vía Docker) |
-| Beanie ODM | 1.27+ (Motor async driver) |
-| Pydantic | v2 |
-| Autenticación | JWT (python-jose) + BCrypt (passlib) |
-| Pagos | Stripe SDK 11+ |
-| Clientes IA | google-genai, httpx (OpenAI, Claude, DeepSeek) |
-| Email | Resend (async) |
-| Dependencias | Poetry 2.x |
-| Linting | Ruff (line-length 100, target py311) |
-| Formateo | Black (line-length 100, target py311) |
-| Type checking | mypy |
-| Testing | pytest + pytest-asyncio + pytest-cov + Hypothesis + Faker |
-
-### Frontend
-
-| Tecnología | Versión / Detalle |
-|---|---|
-| React | 19 |
-| TypeScript | 5.9+ |
-| Vite | 7 |
-| TailwindCSS | v3 |
-| React Router | v7 |
-| Axios | Cliente HTTP con interceptores |
-| i18next | Español (defecto) e inglés |
-| Mermaid | 11+ |
-| PlantUML | vía plantuml-encoder |
-| Monaco Editor | Editor de código |
-| react-markdown | Renderizado Markdown |
-| ESLint | typescript-eslint |
-
-### Infraestructura
-
-| Aspecto | Detalle |
-|---|---|
-| Contenedores | Docker Compose |
-| Modos de despliegue | `deploy/local-full/` y `deploy/external-mongodb/` |
-| Hot reload (dev) | Backend: uvicorn `--reload`, Frontend: Vite HMR |
-| Producción | Reverse proxy (Nginx/Traefik) recomendado para SSL |
-
-## Puertos
-
-| Servicio | Puerto |
-|---|---|
-| Frontend | 5173 |
-| Backend | 5172 |
-| MongoDB | 27017 (solo en modo local-full) |
-
-## Módulos del backend
-
-El backend sigue principios SOLID. Cada entidad vive en su propia carpeta bajo `backend/app/api/v1/`:
-
-| Módulo | Descripción |
-|---|---|
-| `users/` | Autenticación, registro, gestión de contraseñas, eliminación de cuenta |
-| `projects/` | CRUD de proyectos |
-| `diagrams/` | CRUD de diagramas, servicio de corrección con IA, validación de sintaxis |
-| `folders/` | CRUD de carpetas |
-| `ai_providers/` | Configuración de proveedores IA, clientes LLM (Gemini, OpenAI, Claude, DeepSeek) |
-| `chat_sessions/` | Gestión de sesiones de chat con IA |
-| `subscriptions/` | Facturación Stripe, planes, webhooks, proveedores de pago |
-| `shared_links/` | Compartir diagramas públicamente, rate limiting |
-| `prompt_history/` | Historial de prompts de IA |
-| `integrations/` | Configuración de vendors de email (admin) |
-
-## Rutas del frontend
-
-| Ruta | Descripción | Protegida |
-|---|---|---|
-| `/setup` | Wizard de instalación inicial | No |
-| `/login` | Página de login | No |
-| `/register` | Página de registro | No |
-| `/forgot-password` | Recuperación de contraseña | No |
-| `/reset-password` | Restablecer contraseña | No |
-| `/shared/:token` | Diagrama compartido público | No |
-| `/onboarding` | Wizard de onboarding | Sí |
-| `/dashboard` | Dashboard del usuario | Sí |
-| `/projects/:projectId` | Vista de proyecto | Sí |
-| `/projects/:projectId/diagrams/:diagramId` | Editor de diagrama | Sí |
-| `/profile` | Perfil del usuario | Sí |
-| `/` | Redirect a `/dashboard` | — |
+- [Repositorio en GitHub](https://github.com/diagramahub/diagramahub)
+- [Notas de versión](release-notes/index.md) ·
+  [CHANGELOG](https://github.com/diagramahub/diagramahub/blob/main/CHANGELOG.md)
+- [Preguntas frecuentes](faq.md)
+- Licencia [Apache 2.0](https://github.com/diagramahub/diagramahub/blob/main/LICENSE)
 
 ---
 
 *Para servir esta documentación localmente:*
+
 ```bash
 pip install -r docs/requirements.txt
 mkdocs serve

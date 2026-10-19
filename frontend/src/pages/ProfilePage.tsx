@@ -146,7 +146,7 @@ export default function ProfilePage() {
       setError(t('profile.passwordTooShort'));
       return;
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(newPassword)) {
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(newPassword)) {
       setError(t('validation.passwordSpecial'));
       return;
     }
