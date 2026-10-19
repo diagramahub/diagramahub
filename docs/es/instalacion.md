@@ -2,6 +2,9 @@
 
 Bienvenido a la guía de instalación de DiagramaHub. Hemos preparado herramientas para facilitar el despliegue de la aplicación tanto para entornos locales y desarrollo, como para un entorno productivo.
 
+!!! tip "Después de instalar"
+    La referencia completa de variables está en [Configuración](self-host/configuracion.md). Antes de exponer la instancia a internet, sigue la guía de [Producción](self-host/produccion.md). Si algo falla, consulta [Solución de problemas](self-host/problemas.md).
+
 Nuestra herramienta recomendada y principal es el instalador `install.sh`, un script interactivo que se encarga de instalar los prerrequisitos, clonar el repositorio y configurar el proyecto por ti.
 
 ## Análisis del Instalador Automático (`install.sh`)
@@ -12,7 +15,7 @@ El archivo `install.sh` está diseñado para ofrecer una experiencia fluida desd
 2. **Revisión e Instalación:** Comprueba si tienes instalados `git`, `docker` y `docker compose`. Si no los tienes, ofrece instalarlos automáticamente.
 3. **Clonación:** Descarga el repositorio de GitHub y lo ubica en `$HOME/diagramahub`.
 4. **Configuración de MongoDB:** Wizard interactivo para elegir entre MongoDB local (Docker) o MongoDB externo (Atlas, DocumentDB, etc.).
-5. **Seguridad y Variables:** Genera criptográficamente el `JWT_SECRET` (32 bytes, base64) y construye el archivo `backend/.env` automáticamente.
+5. **Seguridad y Variables:** Genera criptográficamente el `JWT_SECRET` (32 bytes, base64) y la `AI_ENCRYPTION_KEY` (clave Fernet; si ya existe en `backend/.env`, la conserva) y construye el archivo `backend/.env` automáticamente.
 6. **Docker Compose:** Crea un symlink de `docker-compose.yml` al modo de despliegue elegido.
 7. **Build y arranque:** Construye las imágenes Docker y levanta los servicios.
 8. **Verificación:** Espera 15 segundos y verifica que todos los servicios estén corriendo.
@@ -26,6 +29,7 @@ Este nivel es el recomendado si quieres **conocer la aplicación**, **probar nue
 **Aspectos clave:**
 
 * Administra una base de datos **MongoDB 8** en un contenedor Docker con volumen persistente.
+* Despliega **Kroki** (render en servidor de PlantUML, D2 y DBML), accesible solo dentro de la red Docker.
 * Despliega el Backend (FastAPI en puerto 5172).
 * Despliega el Frontend (Vite/React en puerto 5173).
 * Hot reload habilitado: backend vía uvicorn `--reload`, frontend vía Vite HMR.
@@ -33,7 +37,7 @@ Este nivel es el recomendado si quieres **conocer la aplicación**, **probar nue
 
 **¿Qué ocurre a nivel interno?**
 
-El instalador vincula el orquestador principal a `deploy/local-full/docker-compose.yml`, que tiene los 3 servicios declarados: `mongodb`, `backend` y `frontend`.
+El instalador vincula el orquestador principal a `deploy/local-full/docker-compose.yml`, que tiene los 4 servicios declarados: `mongodb`, `kroki`, `backend` y `frontend`.
 
 ---
 
@@ -45,12 +49,13 @@ Este ambiente está pensado para entornos de **Producción**. La mejor práctica
 
 * **No inicializa el contenedor de MongoDB.**
 * El script te solicitará tu cadena y URI de conexión externa (por ejemplo: MongoDB Atlas, Amazon DocumentDB, o una BD propia).
-* Únicamente levanta el Backend y el Frontend en Docker, los cuales se comunican con tu base de datos cloud.
+* Únicamente levanta Kroki, el Backend y el Frontend en Docker, los cuales se comunican con tu base de datos cloud.
+* El backend corre en modo producción (`APP_ENV=production`, gunicorn, sin Swagger) y el frontend se sirve como build estático con Nginx sin root.
 * Ideal porque descargas a Docker de la administración de respaldos y recuperación de tu base de datos principal.
 
 **¿Qué ocurre a nivel interno?**
 
-El instalador vincula el orquestador principal a `deploy/external-mongodb/docker-compose.yml`, donde solo están el API y el Cliente.
+El instalador vincula el orquestador principal a `deploy/external-mongodb/docker-compose.yml`, donde solo están Kroki, el API y el Cliente. Detalles en [Producción](self-host/produccion.md#modos-de-despliegue).
 
 ---
 
@@ -101,7 +106,6 @@ DATABASE_NAME=diagramahub
 
 # JWT (genera un secret seguro)
 JWT_SECRET=tu-secret-seguro-aqui-minimo-32-caracteres
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # API
 API_V1_PREFIX=/api/v1
@@ -112,9 +116,15 @@ BACKEND_CORS_ORIGINS=http://localhost:5173
 # Entorno
 APP_ENV=development
 
-# Frontend URL (para redirects de Stripe)
+# Frontend URL (redirects de Stripe, enlaces de correo y de compartir)
 FRONTEND_URL=http://localhost:5173
+
+# Cifrado de API keys de IA, integraciones y MFA (necesaria en la práctica)
+AI_ENCRYPTION_KEY=<clave-fernet>
 ```
+
+!!! note "`BACKEND_CORS_ORIGINS`"
+    El valor es una lista separada por comas, sin corchetes: `http://localhost:5173,https://diagramas.ejemplo.com`.
 
 Para generar un JWT secret seguro:
 
@@ -122,7 +132,7 @@ Para generar un JWT secret seguro:
 python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
-Para generar una clave de encriptación de IA (opcional):
+Para generar `AI_ENCRYPTION_KEY` (sin ella no se pueden guardar proveedores de IA, integraciones ni MFA por app):
 
 ```bash
 python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
@@ -254,6 +264,8 @@ docker exec -it diagramahub-backend bash
 | Backend API | http://localhost:5172 |
 | Swagger UI | http://localhost:5172/docs |
 | ReDoc | http://localhost:5172/redoc |
+
+Swagger y ReDoc solo están disponibles cuando `APP_ENV` no es `production` (modo `local-full`).
 | MongoDB | localhost:27017 (solo modo local) |
 
 ---
@@ -263,9 +275,9 @@ docker exec -it diagramahub-backend bash
 1. Abre http://localhost:5173 — verás el **wizard de instalación** (`/setup`) si es la primera vez.
 2. Crea tu **cuenta de administrador** siguiendo el wizard.
 3. Completa el **onboarding** donde se creará tu primer proyecto automáticamente.
-4. Empieza a crear diagramas con Mermaid o PlantUML.
-5. (Opcional) Configura **integraciones de IA** en tu perfil para generar diagramas con IA.
-6. (Opcional) Configura **Stripe** para habilitar suscripciones — consulta `STRIPE_QUICKSTART.md`.
+4. Empieza a crear diagramas con Mermaid, PlantUML, D2 o DBML.
+5. (Opcional) Conecta tu **proveedor de IA** en **Ajustes** para generar y refinar diagramas con IA.
+6. (Opcional) Conecta un motor de **email**, **Stripe** o **Google OAuth** desde **Integraciones** — consulta [Integraciones](self-host/integraciones.md) y [Planes y límites](self-host/planes.md).
 
 ---
 
@@ -318,7 +330,7 @@ sudo certbot --nginx -d diagramahub.tudominio.com -d api.diagramahub.tudominio.c
 ### Consideraciones de seguridad
 
 - **JWT_SECRET**: Usa un string aleatorio fuerte de al menos 32 caracteres.
-- **AI_ENCRYPTION_KEY**: Genera una clave Fernet para encriptar las API keys de IA almacenadas.
+- **AI_ENCRYPTION_KEY**: Genera una clave Fernet; cifra las API keys de IA, las integraciones y los secretos MFA. Respáldala junto con la base de datos.
 - **MongoDB**: Si usas MongoDB local, asegúrate de que el puerto 27017 **NO** esté expuesto a internet (usa firewall).
 - **CORS**: Configura `BACKEND_CORS_ORIGINS` solo con los orígenes necesarios.
 - **Backups**: Respalda regularmente el volumen `mongodb_data`.

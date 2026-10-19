@@ -265,6 +265,16 @@ generate_jwt_secret() {
     fi
 }
 
+generate_fernet_key() {
+    # Fernet key: 32 random bytes, URL-safe base64 (44 chars with padding).
+    # Encrypts AI provider API keys, integration credentials and TOTP secrets.
+    if command -v openssl &> /dev/null; then
+        openssl rand -base64 32 | tr -d '\n' | tr '+/' '-_'
+    else
+        head -c 32 /dev/urandom | base64 | tr -d '\n' | tr '+/' '-_'
+    fi
+}
+
 test_mongodb_connection() {
     local mongo_uri="$1"
 
@@ -399,6 +409,19 @@ create_env_file() {
     print_info "Generating JWT secret..."
     JWT_SECRET=$(generate_jwt_secret)
 
+    # Keep an existing encryption key: data encrypted with it (AI API keys,
+    # integration credentials, TOTP secrets) can't be decrypted with a new one.
+    AI_ENCRYPTION_KEY=""
+    if [ -f "$env_file" ]; then
+        AI_ENCRYPTION_KEY=$(grep -E '^AI_ENCRYPTION_KEY=' "$env_file" | tail -n 1 | cut -d '=' -f 2- | tr -d '[:space:]')
+    fi
+    if [ -n "$AI_ENCRYPTION_KEY" ]; then
+        print_info "Keeping the existing AI_ENCRYPTION_KEY"
+    else
+        print_info "Generating encryption key..."
+        AI_ENCRYPTION_KEY=$(generate_fernet_key)
+    fi
+
     print_info "Creating $env_file..."
 
     cat > "$env_file" <<EOF
@@ -411,7 +434,10 @@ DATABASE_NAME=$DATABASE_NAME
 
 # JWT Configuration
 JWT_SECRET=$JWT_SECRET
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Encryption key for AI provider API keys, integration credentials and TOTP
+# secrets. Back it up: if it changes, that data can no longer be decrypted.
+AI_ENCRYPTION_KEY=$AI_ENCRYPTION_KEY
 
 # API Configuration
 API_V1_PREFIX=/api/v1

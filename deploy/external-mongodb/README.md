@@ -6,6 +6,7 @@ DiagramHub deployment using an external MongoDB instance (MongoDB Atlas, AWS Doc
 
 ## Services Included
 
+- **Kroki** - Server-side rendering for PlantUML, D2 and DBML (internal network only)
 - **Backend** - FastAPI application
 - **Frontend** - React + Vite application
 - ❌ **MongoDB** - Expected to be hosted externally
@@ -65,7 +66,7 @@ mongodb://<db-user>:<db-password>@host:27017/database
    MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/
    DATABASE_NAME=diagramahub
    JWT_SECRET=<generate-secure-secret>
-   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   AI_ENCRYPTION_KEY=<fernet-key>
    API_V1_PREFIX=/api/v1
    ```
 

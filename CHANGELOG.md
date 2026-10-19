@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.4] - 2026-10-19
+
+### Security
+- Chat sessions: `GET`/`PUT`/`DELETE /chat-sessions/{id}`, `PUT /chat-sessions/{id}/model`, `DELETE /chat-sessions/{id}/messages/{mid}` and `PUT …/messages/{mid}/status` required no authentication and checked no ownership (and message deletion ignored the session); sending or streaming a message did not check that the session belonged to the caller. Every chat route now requires a session and answers 404 for another user's session or a message outside the session.
+- `POST /ai/test-provider` requires an authenticated user.
+- Stripe webhooks are idempotent for real (invariant #4): the handler keyed on the object id instead of the event id and never recorded events. Events are now claimed by `event.id` (unique index), a duplicate answers `duplicate` without being re-applied, a failure releases the claim and answers 500 so Stripe retries, and a claim abandoned for 10 minutes can be taken over.
+- MFA sign-in: the 5-attempts-per-temporary-token limit never triggered (the counter was never incremented). Attempts are now reserved atomically before the code is checked (also under concurrent requests), the token is single-use after a successful sign-in, and hitting the limit is audited as `login_failed` (`mfa_max_attempts`). New collection `mfa_token_attempts` with a TTL index.
+- Mermaid renders with `securityLevel: 'strict'` (was `loose`): labels are sanitized while Mermaid renders them, before the SVG reaches the page, including on shared links.
+- Real client IP behind a reverse proxy: new `FORWARDED_ALLOW_IPS` (default `127.0.0.1,::1`) passed to uvicorn/gunicorn; `X-Forwarded-For` is honoured only from those addresses. Rate limits, lockout, shared-link throttling and the audit log no longer see every user as the proxy. Client IP resolution is centralized in `app/core/client_ip.py`.
+- Shared-link throttling uses the core sliding-window limiter (it kept every IP forever) and returns `Retry-After`.
+
+### Fixed
+- `BACKEND_CORS_ORIGINS`: the templates used a JSON list that the comma parser turned into invalid origins; both formats are accepted now and the templates use commas.
+- `deploy/external-mongodb`: the backend listened on 8000 while the compose file published 5172.
+- `install.sh` generates `AI_ENCRYPTION_KEY` (needed for AI keys, integration secrets and TOTP) and keeps an existing one.
+- Templates: removed `VERSION=1.0.0` (overrode the real version), empty `SENTRY_DSN` (a placeholder enabled Sentry), `FRONTEND_URL` on 5173; `ACCESS_TOKEN_EXPIRE_MINUTES` is documented as having no effect (session lengths are fixed).
+- Setup wizard: password rule said 8 characters without a special character; it now enforces the real policy (12 + upper + lower + digit + special). The frontend no longer accepts a backtick as the special character, which the server rejected.
+- `STRIPE_QUICKSTART.md` (plan query, admin routes, script command) and the deploy READMEs (Kroki).
+
+### Changed
+- Documentation site: from installation + release notes only to a full ES/EN site organized by reader — User guide (10 pages), Self-host (7: environment variable reference, production, integrations, operator-defined plans, maintenance, troubleshooting), Development (9: architecture diagrams, backend modules, frontend, REST API map, testing, extending, versioning, contributing), Security (4) and an FAQ; release notes grouped by minor version in the nav; more Material extensions (content tabs, keys, task lists, breadcrumbs, edit button).
+- Documentation home listed only Mermaid/PlantUML and four AI providers, and advertised features that don't exist (presentation annotations, editor autocomplete, prompt history as a user feature).
+- `SECURITY.md` matches the code (webhook idempotency, `X-XSS-Protection`, production API CSP). `AGENTS.md`: 12 backend modules, Python 3.12+, pnpm, real endpoint paths.
+
 ## [0.8.3] - 2026-10-11
 
 ### Fixed

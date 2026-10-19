@@ -2,11 +2,14 @@
 MFA repository implementation using Beanie ODM.
 """
 
+from datetime import datetime
 from typing import Optional
 
 from bson import ObjectId
+from pymongo import ReturnDocument
 
 from app.api.v1.mfa.interfaces import IMfaRepository
+from app.api.v1.mfa.schemas import MfaTokenAttempt
 from app.api.v1.users.schemas import RecoveryCodeEntry, UserInDB
 from app.core.security import verify_password
 
@@ -163,3 +166,26 @@ class MfaRepository(IMfaRepository):
         user.mfa_temp_last_resend = last_resend_at
         await user.save()
         return True
+
+    async def reserve_token_attempt(
+        self, token_hash: str, expires_at: datetime
+    ) -> tuple[int, bool]:
+        """Reservar un intento de verificación de forma atómica (antes de validar el código)."""
+        result = await MfaTokenAttempt.get_motor_collection().find_one_and_update(
+            {"token_hash": token_hash},
+            {
+                "$inc": {"attempts": 1},
+                "$setOnInsert": {"expires_at": expires_at, "consumed": False},
+            },
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+        return int(result["attempts"]), bool(result.get("consumed", False))
+
+    async def consume_token(self, token_hash: str) -> bool:
+        """Marcar el token MFA temporal como usado; False si ya lo estaba."""
+        result = await MfaTokenAttempt.get_motor_collection().update_one(
+            {"token_hash": token_hash, "consumed": False},
+            {"$set": {"consumed": True}},
+        )
+        return result.modified_count == 1

@@ -56,7 +56,10 @@ export async function renderDiagram(
 }
 
 async function renderMermaid(source: string): Promise<{ svg: string } | { error: string }> {
-  mermaid.initialize({ startOnLoad: true, securityLevel: 'loose' });
+  // 'strict' runs every HTML label through DOMPurify while Mermaid renders it.
+  // 'loose' left labels unsanitized and Mermaid inserts the SVG into the DOM to
+  // measure it, so event handlers in a label ran before sanitizeSvg() was applied.
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   try {
     const { svg } = await mermaid.render(id, source);

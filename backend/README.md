@@ -83,10 +83,13 @@ DATABASE_NAME=diagramahub
 # Seguridad (CAMBIAR EN PRODUCCIÓN)
 JWT_SECRET=your-super-secret-key-change-this-min-32-chars
 JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# CORS
-BACKEND_CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"]
+# Encrypts AI API keys, integration credentials and TOTP secrets (generate with:
+# python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+AI_ENCRYPTION_KEY=<fernet-key>
+
+# CORS (comma-separated, no brackets or quotes)
+BACKEND_CORS_ORIGINS=http://localhost:5173
 ```
 
 ## API Endpoints

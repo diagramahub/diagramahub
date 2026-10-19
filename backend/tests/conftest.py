@@ -17,6 +17,7 @@ from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB
 from app.api.v1.diagrams.schemas import DiagramInDB
 from app.api.v1.folders.schemas import FolderInDB
 from app.api.v1.integrations.schemas import VendorConfigInDB
+from app.api.v1.mfa.schemas import MfaTokenAttempt
 from app.api.v1.oauth.schemas import OAuthStateToken
 from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.prompt_history.schemas import PromptHistoryInDB
@@ -58,6 +59,7 @@ def _reset_login_rate_state():
     """
     from app.api.v1.diagrams.rate_limiter import render_rate_limiter
     from app.api.v1.mfa.rate_limiter import mfa_verify_rate_limiter
+    from app.api.v1.shared_links.public_routes import get_rate_limiter
     from app.api.v1.users.rate_limiter import (
         account_lockout,
         login_rate_limiter,
@@ -70,6 +72,7 @@ def _reset_login_rate_state():
     password_reset_rate_limiter.reset()
     mfa_verify_rate_limiter.reset()
     render_rate_limiter.reset()
+    get_rate_limiter().reset()
     account_lockout._accounts.clear()
     yield
 
@@ -104,6 +107,7 @@ async def test_db() -> AsyncGenerator:
             VendorConfigInDB,
             AuditLogEntry,
             OAuthStateToken,
+            MfaTokenAttempt,
         ],
     )
 

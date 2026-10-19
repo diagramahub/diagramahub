@@ -147,7 +147,7 @@ class IPaymentProvider(ABC):
             signature: Firma del webhook
 
         Returns:
-            {"event_type": str, "data": dict}
+            {"event_id": str, "event_type": str, "data": dict}
 
         Raises:
             ValueError: Si la firma es inválida

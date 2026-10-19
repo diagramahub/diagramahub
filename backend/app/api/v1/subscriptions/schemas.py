@@ -282,10 +282,23 @@ class StripeConfigResponse(BaseModel):
 # Webhook Event Schemas
 # ============================================================================
 
+class WebhookEventStatus:
+    """Estados de un evento de webhook registrado."""
+    PROCESSING = "processing"
+    PROCESSED = "processed"
+
+
 class WebhookEventInDB(Document):
-    """Webhook event stored in MongoDB for idempotency."""
+    """Webhook event stored in MongoDB for idempotency.
+
+    The unique index on ``event_id`` is the lock: a delivery claims the event by
+    inserting it as ``processing`` and marks it ``processed`` when it succeeds.
+    ``processed_at`` holds the time of the last status change. Records created
+    before the status field existed default to ``processed``.
+    """
     event_id: str
     event_type: str
+    status: str = WebhookEventStatus.PROCESSED
     processed_at: datetime = Field(default_factory=utcnow)
 
     class Settings:

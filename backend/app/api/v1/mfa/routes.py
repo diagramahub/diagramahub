@@ -32,6 +32,7 @@ from app.api.deps import get_current_user_email
 from app.api.v1.users.schemas import UserInDB
 from app.core.security import decode_mfa_temp_token
 from app.core.clock import utcnow
+from app.core.client_ip import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +305,7 @@ async def verify_mfa(
     """
     from app.api.v1.mfa.rate_limiter import mfa_verify_rate_limiter
 
-    client_ip = http_request.client.host if http_request.client else "unknown"
+    client_ip = get_client_ip(http_request)
     allowed, retry_after = mfa_verify_rate_limiter.is_allowed(client_ip)
     if not allowed:
         raise HTTPException(

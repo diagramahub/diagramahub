@@ -52,7 +52,7 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~`]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password)) {
       setError(t('validation.passwordSpecial'));
       return;
     }

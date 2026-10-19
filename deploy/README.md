@@ -10,6 +10,7 @@ This directory contains different Docker Compose configurations for various depl
 
 **What's included:**
 - ✅ MongoDB (Docker container)
+- ✅ Kroki (server-side rendering for PlantUML, D2 and DBML; internal network only)
 - ✅ Backend (FastAPI)
 - ✅ Frontend (React + Vite)
 
@@ -24,7 +25,7 @@ This directory contains different Docker Compose configurations for various depl
 MONGO_URI=mongodb://mongodb:27017
 DATABASE_NAME=diagramahub
 JWT_SECRET=<your-secret-here>
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+AI_ENCRYPTION_KEY=<fernet-key>
 API_V1_PREFIX=/api/v1
 ```
 
@@ -41,6 +42,7 @@ docker-compose up -d
 **Use case:** Production deployments using managed MongoDB services (Atlas, AWS DocumentDB, etc.)
 
 **What's included:**
+- ✅ Kroki (server-side rendering for PlantUML, D2 and DBML; internal network only)
 - ✅ Backend (FastAPI)
 - ✅ Frontend (React + Vite)
 - ❌ MongoDB (expects external connection)
@@ -57,7 +59,7 @@ MONGO_URI=mongodb+srv://<db-user>:<db-password>@cluster.mongodb.net/
 # MONGO_URI=mongodb://<db-user>:<db-password>@host:27017/
 DATABASE_NAME=diagramahub
 JWT_SECRET=<your-secret-here>
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+AI_ENCRYPTION_KEY=<fernet-key>
 API_V1_PREFIX=/api/v1
 ```
 

@@ -5,10 +5,12 @@ Handles TOTP and email MFA setup, verification, recovery codes, and method manag
 Depends on IMfaRepository (Dependency Inversion) and uses TotpService for TOTP operations.
 """
 
+import hashlib
 import logging
 import secrets
 import string
 import time
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from jose import JWTError
@@ -33,6 +35,8 @@ RECOVERY_CODE_LENGTH = 10
 EMAIL_CODE_EXPIRATION_SECONDS = 600  # 10 minutes
 MAX_RESENDS = 3
 RESEND_COOLDOWN_SECONDS = 60
+# Wrong codes accepted per temporary MFA token before a new login is required
+MAX_MFA_TOKEN_ATTEMPTS = 5
 
 
 class MfaService:
@@ -356,15 +360,7 @@ class MfaService:
             )
 
         email: str = payload.get("sub", "")
-        attempt_count: int = payload.get("attempt_count", 0)
         available_methods: list[str] = payload.get("available_methods", [])
-
-        # Check attempt limit (max 5)
-        if attempt_count >= 5:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Máximo de intentos alcanzado. Inicie sesión nuevamente",
-            )
 
         # Get user from DB
         user = await self.user_repository.get_by_email(email)
@@ -377,8 +373,42 @@ class MfaService:
 
         # Determine the method to use
         selected_method = method or payload.get("mfa_default_method")
+        if not is_recovery_code and (
+            selected_method is None or selected_method not in available_methods
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El método MFA solicitado no está activo",
+            )
 
-        is_valid = False
+        from app.api.v1.users.audit_log import (
+            EVENT_LOGIN_FAILED,
+            EVENT_LOGIN_MFA_VERIFIED,
+            EVENT_MFA_RECOVERY_USED,
+            log_event,
+        )
+
+        # The token is a stateless JWT, so its use is tracked server side,
+        # keyed by a hash of the token, and expires together with it. Each
+        # verification reserves an attempt atomically *before* the code is
+        # checked, so a burst of concurrent requests cannot exceed the limit,
+        # and a token that already completed a sign-in is never accepted again.
+        token_hash = hashlib.sha256(mfa_token.encode()).hexdigest()
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+        attempts, consumed = await self.repository.reserve_token_attempt(token_hash, expires_at)
+        if consumed:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    "Token de verificación MFA inválido o expirado. " "Inicie sesión nuevamente"
+                ),
+            )
+        if attempts > MAX_MFA_TOKEN_ATTEMPTS:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Máximo de intentos alcanzado. Inicie sesión nuevamente",
+            )
+
         recovery_warning = None
 
         if is_recovery_code:
@@ -394,25 +424,35 @@ class MfaService:
                         "configuración de seguridad."
                     )
         else:
-            if selected_method is None or selected_method not in available_methods:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="El método MFA solicitado no está activo",
-                )
             is_valid = await self.verify_mfa_code(user_id, code, selected_method)
 
         if not is_valid:
+            if attempts >= MAX_MFA_TOKEN_ATTEMPTS:
+                await log_event(
+                    EVENT_LOGIN_FAILED,
+                    email,
+                    user_id=user_id,
+                    details="mfa_max_attempts",
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Máximo de intentos alcanzado. Inicie sesión nuevamente",
+                )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Código MFA inválido",
             )
 
+        # Single use: only the first successful verification of a token signs in
+        if not await self.repository.consume_token(token_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=(
+                    "Token de verificación MFA inválido o expirado. " "Inicie sesión nuevamente"
+                ),
+            )
+
         # Issue full access token with 5-day expiry (MFA enabled)
-        from app.api.v1.users.audit_log import (
-            EVENT_LOGIN_MFA_VERIFIED,
-            EVENT_MFA_RECOVERY_USED,
-            log_event,
-        )
 
         if is_recovery_code:
             await log_event(EVENT_MFA_RECOVERY_USED, email, user_id=user_id)

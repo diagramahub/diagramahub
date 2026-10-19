@@ -342,6 +342,7 @@ class TestWebhookValidationPreservation:
         )
 
         mock_event = MagicMock()
+        mock_event.id = "evt_123"
         mock_event.type = event_type
         mock_event.data.object = {"id": "evt_data_obj"}
 
@@ -354,5 +355,6 @@ class TestWebhookValidationPreservation:
                 payload, signature, webhook_secret
             )
 
+        assert result["event_id"] == "evt_123"
         assert result["event_type"] == event_type
         assert result["data"] == {"id": "evt_data_obj"}

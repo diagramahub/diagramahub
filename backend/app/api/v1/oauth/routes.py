@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.v1.integrations.repository import IntegrationsRepository
 from app.core.rate_limit import SlidingWindowRateLimiter
+from app.core.client_ip import get_client_ip
 
 from .schemas import (
     ActiveProviderResponse,
@@ -45,7 +46,7 @@ async def _enforce_callback_rate_limit(
     limiter: SlidingWindowRateLimiter = Depends(get_callback_rate_limiter),
 ) -> None:
     """Enforce rate limiting on the OAuth callback endpoint."""
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = get_client_ip(request)
     allowed, _ = limiter.is_allowed(client_ip)
     if not allowed:
         logger.warning("Rate limit exceeded for OAuth callback from IP %s", client_ip)

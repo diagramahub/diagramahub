@@ -22,11 +22,17 @@ theme:
   logo: assets/logo.png
   favicon: assets/favicon.png
   features:
-    - navigation.tabs # Pestañas en la navegación
+    - navigation.tabs # Pestañas en la navegación (una por idioma)
+    - navigation.sections # Agrupa las secciones en la barra lateral
     - navigation.indexes # Hace clickeables las secciones
+    - navigation.path # Migas de pan sobre el título
+    - toc.follow # El índice de la página sigue el scroll
     - navigation.top # Botón de "volver arriba"
     - navigation.footer # Enlaces anterior/siguiente al pie
     - content.code.copy # Botón para copiar código
+    - content.code.annotate # Anotaciones numeradas dentro del código
+    - content.tabs.link # Pestañas de contenido sincronizadas (p. ej. macOS / Linux)
+    - content.action.edit # Botón "editar esta página" en GitHub
     - search.suggest # Sugerencias de búsqueda
     - search.highlight # Resalta el término buscado
 
@@ -61,74 +67,168 @@ extra:
       link: https://diagramahub.github.io/diagramahub/en/
       lang: en
 
-# Configuración de los menús
+# Configuración de los menús.
+# Cada idioma es una pestaña; dentro, las secciones se muestran agrupadas en la
+# barra lateral (navigation.sections). Las notas de versión se agrupan por
+# versión menor: `scripts/check-version.sh` busca la línea `- <V>: <lang>/release-notes/<V>.md`
+# sin importar la indentación.
 nav:
   - Español:
       - Inicio: es/index.md
-      - Guía de Instalación: es/instalacion.md
+      - Preguntas frecuentes: es/faq.md
+      - Guía de uso:
+          - es/guia/index.md
+          - Primeros pasos: es/guia/primeros-pasos.md
+          - El editor: es/guia/editor.md
+          - Tipos de diagrama: es/guia/tipos-de-diagrama.md
+          - Pizarrón a mano alzada: es/guia/pizarron.md
+          - Proyectos y carpetas: es/guia/organizacion.md
+          - Exportar e importar: es/guia/exportar-importar.md
+          - Compartir diagramas: es/guia/compartir.md
+          - Modo presentación: es/guia/presentacion.md
+          - Asistente de IA: es/guia/ia.md
+          - Tu cuenta y seguridad: es/guia/cuenta.md
+      - Self-host:
+          - es/self-host/index.md
+          - Instalación: es/instalacion.md
+          - Configuración: es/self-host/configuracion.md
+          - Producción: es/self-host/produccion.md
+          - Integraciones: es/self-host/integraciones.md
+          - Planes y límites: es/self-host/planes.md
+          - Mantenimiento y actualización: es/self-host/mantenimiento.md
+          - Solución de problemas: es/self-host/problemas.md
+      - Desarrollo:
+          - es/desarrollo/index.md
+          - Arquitectura: es/desarrollo/arquitectura.md
+          - Backend: es/desarrollo/backend.md
+          - Frontend: es/desarrollo/frontend.md
+          - API REST: es/desarrollo/api.md
+          - Pruebas: es/desarrollo/pruebas.md
+          - Extender DiagramaHub: es/desarrollo/extender.md
+          - Versionado y releases: es/desarrollo/versionado.md
+          - Contribuir: es/desarrollo/contribuir.md
+      - Seguridad:
+          - es/seguridad/index.md
+          - Autenticación: es/seguridad/autenticacion.md
+          - Protecciones: es/seguridad/protecciones.md
+          - Registro de auditoría: es/seguridad/auditoria.md
       - Notas de Versión:
           - es/release-notes/index.md
-          - 0.8.3: es/release-notes/0.8.3.md
-          - 0.8.2: es/release-notes/0.8.2.md
-          - 0.8.1: es/release-notes/0.8.1.md
-          - 0.8.0: es/release-notes/0.8.0.md
-          - 0.7.1: es/release-notes/0.7.1.md
-          - 0.7.0: es/release-notes/0.7.0.md
-          - 0.6.2: es/release-notes/0.6.2.md
-          - 0.6.1: es/release-notes/0.6.1.md
-          - 0.6.0: es/release-notes/0.6.0.md
-          - 0.5.11: es/release-notes/0.5.11.md
-          - 0.5.10: es/release-notes/0.5.10.md
-          - 0.5.9: es/release-notes/0.5.9.md
-          - 0.5.8: es/release-notes/0.5.8.md
-          - 0.5.7: es/release-notes/0.5.7.md
-          - 0.5.6: es/release-notes/0.5.6.md
-          - 0.5.5: es/release-notes/0.5.5.md
-          - 0.5.4: es/release-notes/0.5.4.md
-          - 0.5.3: es/release-notes/0.5.3.md
-          - 0.5.2: es/release-notes/0.5.2.md
-          - 0.5.1: es/release-notes/0.5.1.md
-          - 0.5.0: es/release-notes/0.5.0.md
-          - 0.4.1: es/release-notes/0.4.1.md
-          - 0.4.0: es/release-notes/0.4.0.md
-          - 0.3.1: es/release-notes/0.3.1.md
-          - 0.3.0: es/release-notes/0.3.0.md
-          - 0.2.1: es/release-notes/0.2.1.md
-          - 0.2.0: es/release-notes/0.2.0.md
-          - 0.1.0: es/release-notes/0.1.0.md
+          - 0.8.x:
+              - 0.8.4: es/release-notes/0.8.4.md
+              - 0.8.3: es/release-notes/0.8.3.md
+              - 0.8.2: es/release-notes/0.8.2.md
+              - 0.8.1: es/release-notes/0.8.1.md
+              - 0.8.0: es/release-notes/0.8.0.md
+          - 0.7.x:
+              - 0.7.1: es/release-notes/0.7.1.md
+              - 0.7.0: es/release-notes/0.7.0.md
+          - 0.6.x:
+              - 0.6.2: es/release-notes/0.6.2.md
+              - 0.6.1: es/release-notes/0.6.1.md
+              - 0.6.0: es/release-notes/0.6.0.md
+          - 0.5.x:
+              - 0.5.11: es/release-notes/0.5.11.md
+              - 0.5.10: es/release-notes/0.5.10.md
+              - 0.5.9: es/release-notes/0.5.9.md
+              - 0.5.8: es/release-notes/0.5.8.md
+              - 0.5.7: es/release-notes/0.5.7.md
+              - 0.5.6: es/release-notes/0.5.6.md
+              - 0.5.5: es/release-notes/0.5.5.md
+              - 0.5.4: es/release-notes/0.5.4.md
+              - 0.5.3: es/release-notes/0.5.3.md
+              - 0.5.2: es/release-notes/0.5.2.md
+              - 0.5.1: es/release-notes/0.5.1.md
+              - 0.5.0: es/release-notes/0.5.0.md
+          - 0.4.x:
+              - 0.4.1: es/release-notes/0.4.1.md
+              - 0.4.0: es/release-notes/0.4.0.md
+          - 0.3.x:
+              - 0.3.1: es/release-notes/0.3.1.md
+              - 0.3.0: es/release-notes/0.3.0.md
+          - 0.2.x:
+              - 0.2.1: es/release-notes/0.2.1.md
+              - 0.2.0: es/release-notes/0.2.0.md
+          - 0.1.x:
+              - 0.1.0: es/release-notes/0.1.0.md
   - English:
       - Home: en/index.md
-      - Installation: en/installation.md
+      - FAQ: en/faq.md
+      - User guide:
+          - en/guide/index.md
+          - Getting started: en/guide/getting-started.md
+          - The editor: en/guide/editor.md
+          - Diagram types: en/guide/diagram-types.md
+          - Freehand whiteboard: en/guide/whiteboard.md
+          - Projects and folders: en/guide/organization.md
+          - Export and import: en/guide/export-import.md
+          - Sharing diagrams: en/guide/sharing.md
+          - Presentation mode: en/guide/presentation.md
+          - AI assistant: en/guide/ai.md
+          - Your account and security: en/guide/account.md
+      - Self-host:
+          - en/self-host/index.md
+          - Installation: en/installation.md
+          - Configuration: en/self-host/configuration.md
+          - Production: en/self-host/production.md
+          - Integrations: en/self-host/integrations.md
+          - Plans and limits: en/self-host/plans.md
+          - Maintenance and upgrades: en/self-host/maintenance.md
+          - Troubleshooting: en/self-host/troubleshooting.md
+      - Development:
+          - en/development/index.md
+          - Architecture: en/development/architecture.md
+          - Backend: en/development/backend.md
+          - Frontend: en/development/frontend.md
+          - REST API: en/development/api.md
+          - Testing: en/development/testing.md
+          - Extending DiagramaHub: en/development/extending.md
+          - Versioning and releases: en/development/versioning.md
+          - Contributing: en/development/contributing.md
+      - Security:
+          - en/security/index.md
+          - Authentication: en/security/authentication.md
+          - Protections: en/security/protections.md
+          - Audit log: en/security/audit-log.md
       - Release Notes:
           - en/release-notes/index.md
-          - 0.8.3: en/release-notes/0.8.3.md
-          - 0.8.2: en/release-notes/0.8.2.md
-          - 0.8.1: en/release-notes/0.8.1.md
-          - 0.8.0: en/release-notes/0.8.0.md
-          - 0.7.1: en/release-notes/0.7.1.md
-          - 0.7.0: en/release-notes/0.7.0.md
-          - 0.6.2: en/release-notes/0.6.2.md
-          - 0.6.1: en/release-notes/0.6.1.md
-          - 0.6.0: en/release-notes/0.6.0.md
-          - 0.5.11: en/release-notes/0.5.11.md
-          - 0.5.10: en/release-notes/0.5.10.md
-          - 0.5.9: en/release-notes/0.5.9.md
-          - 0.5.8: en/release-notes/0.5.8.md
-          - 0.5.7: en/release-notes/0.5.7.md
-          - 0.5.6: en/release-notes/0.5.6.md
-          - 0.5.5: en/release-notes/0.5.5.md
-          - 0.5.4: en/release-notes/0.5.4.md
-          - 0.5.3: en/release-notes/0.5.3.md
-          - 0.5.2: en/release-notes/0.5.2.md
-          - 0.5.1: en/release-notes/0.5.1.md
-          - 0.5.0: en/release-notes/0.5.0.md
-          - 0.4.1: en/release-notes/0.4.1.md
-          - 0.4.0: en/release-notes/0.4.0.md
-          - 0.3.1: en/release-notes/0.3.1.md
-          - 0.3.0: en/release-notes/0.3.0.md
-          - 0.2.1: en/release-notes/0.2.1.md
-          - 0.2.0: en/release-notes/0.2.0.md
-          - 0.1.0: en/release-notes/0.1.0.md
+          - 0.8.x:
+              - 0.8.4: en/release-notes/0.8.4.md
+              - 0.8.3: en/release-notes/0.8.3.md
+              - 0.8.2: en/release-notes/0.8.2.md
+              - 0.8.1: en/release-notes/0.8.1.md
+              - 0.8.0: en/release-notes/0.8.0.md
+          - 0.7.x:
+              - 0.7.1: en/release-notes/0.7.1.md
+              - 0.7.0: en/release-notes/0.7.0.md
+          - 0.6.x:
+              - 0.6.2: en/release-notes/0.6.2.md
+              - 0.6.1: en/release-notes/0.6.1.md
+              - 0.6.0: en/release-notes/0.6.0.md
+          - 0.5.x:
+              - 0.5.11: en/release-notes/0.5.11.md
+              - 0.5.10: en/release-notes/0.5.10.md
+              - 0.5.9: en/release-notes/0.5.9.md
+              - 0.5.8: en/release-notes/0.5.8.md
+              - 0.5.7: en/release-notes/0.5.7.md
+              - 0.5.6: en/release-notes/0.5.6.md
+              - 0.5.5: en/release-notes/0.5.5.md
+              - 0.5.4: en/release-notes/0.5.4.md
+              - 0.5.3: en/release-notes/0.5.3.md
+              - 0.5.2: en/release-notes/0.5.2.md
+              - 0.5.1: en/release-notes/0.5.1.md
+              - 0.5.0: en/release-notes/0.5.0.md
+          - 0.4.x:
+              - 0.4.1: en/release-notes/0.4.1.md
+              - 0.4.0: en/release-notes/0.4.0.md
+          - 0.3.x:
+              - 0.3.1: en/release-notes/0.3.1.md
+              - 0.3.0: en/release-notes/0.3.0.md
+          - 0.2.x:
+              - 0.2.1: en/release-notes/0.2.1.md
+              - 0.2.0: en/release-notes/0.2.0.md
+          - 0.1.x:
+              - 0.1.0: en/release-notes/0.1.0.md
 
 # Funcionalidades adicionales
 plugins:
@@ -151,6 +251,13 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
+  - def_list
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

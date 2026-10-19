@@ -203,7 +203,6 @@ def create_mfa_temp_token(
         "type": "mfa_temp",
         "mfa_default_method": mfa_default_method,
         "available_methods": available_methods,
-        "attempt_count": 0,
         "exp": expire,
     }
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
