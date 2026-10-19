@@ -97,8 +97,32 @@ async def test_event_in_progress_is_not_processed_twice(test_db) -> None:
     """A delivery that arrives while another one holds the claim is a duplicate."""
     repo = WebhookEventRepository()
 
-    assert await repo.claim(EVENT_ID, EVENT_TYPE) is True
-    assert await repo.claim(EVENT_ID, EVENT_TYPE) is False
+    assert await repo.claim(EVENT_ID, EVENT_TYPE) is not None
+    assert await repo.claim(EVENT_ID, EVENT_TYPE) is None
+
+
+@pytest.mark.integration
+async def test_lost_claim_cannot_complete_or_release_the_new_owner(test_db) -> None:
+    """After a takeover, the original delivery's lease no longer touches the record."""
+    repo = WebhookEventRepository()
+    old_lease = await repo.claim(EVENT_ID, EVENT_TYPE)
+    assert old_lease is not None
+    # The original delivery stalls past the stale threshold and a retry takes over.
+    await WebhookEventInDB.get_motor_collection().update_one(
+        {"event_id": EVENT_ID},
+        {"$set": {"processed_at": utcnow() - STALE_CLAIM_AFTER - timedelta(minutes=1)}},
+    )
+    new_lease = await repo.claim(EVENT_ID, EVENT_TYPE)
+    assert new_lease is not None and new_lease != old_lease
+
+    await repo.release(EVENT_ID, old_lease)
+    assert await repo.mark_processed(EVENT_ID, old_lease) is False
+    record = await WebhookEventInDB.find_one(WebhookEventInDB.event_id == EVENT_ID)
+    assert record is not None and record.status == WebhookEventStatus.PROCESSING
+
+    assert await repo.mark_processed(EVENT_ID, new_lease) is True
+    record = await WebhookEventInDB.find_one(WebhookEventInDB.event_id == EVENT_ID)
+    assert record is not None and record.status == WebhookEventStatus.PROCESSED
 
 
 @pytest.mark.integration

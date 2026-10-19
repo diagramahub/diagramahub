@@ -2,6 +2,7 @@
 Security utilities for authentication and password hashing.
 """
 
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -204,6 +205,9 @@ def create_mfa_temp_token(
         "mfa_default_method": mfa_default_method,
         "available_methods": available_methods,
         "exp": expire,
+        # Unique per login: attempt/consumed state is keyed by the token's hash, and
+        # without it two logins in the same second would produce the same token.
+        "jti": secrets.token_urlsafe(16),
     }
     return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 

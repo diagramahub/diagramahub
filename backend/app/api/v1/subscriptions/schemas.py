@@ -293,13 +293,15 @@ class WebhookEventInDB(Document):
 
     The unique index on ``event_id`` is the lock: a delivery claims the event by
     inserting it as ``processing`` and marks it ``processed`` when it succeeds.
-    ``processed_at`` holds the time of the last status change. Records created
+    ``processed_at`` holds the time of the last status change and ``claim_token``
+    identifies the delivery that holds the claim. Records created
     before the status field existed default to ``processed``.
     """
     event_id: str
     event_type: str
     status: str = WebhookEventStatus.PROCESSED
     processed_at: datetime = Field(default_factory=utcnow)
+    claim_token: Optional[str] = None  # lease of the delivery holding a ``processing`` claim
 
     class Settings:
         name = "webhook_events"

@@ -56,7 +56,8 @@ class WebhookHandler:
         # Log webhook received
         SubscriptionLogger.webhook_received(event_type, event_id)
 
-        if not await self.event_repository.claim(event_id, event_type):
+        lease = await self.event_repository.claim(event_id, event_type)
+        if lease is None:
             logger.info(f"Duplicate webhook event ignored: {event_id} ({event_type})")
             return {"status": "duplicate"}
 
@@ -77,10 +78,12 @@ class WebhookHandler:
             # Log failed processing; releasing the claim lets the retry run it again
             SubscriptionLogger.webhook_processed(event_type, event_id, success=False)
             logger.error(f"Error processing webhook {event_type}: {str(e)}")
-            await self.event_repository.release(event_id)
+            await self.event_repository.release(event_id, lease)
             raise HTTPException(status_code=500, detail="Webhook processing failed")
 
-        await self.event_repository.mark_processed(event_id)
+        if not await self.event_repository.mark_processed(event_id, lease):
+            # A later delivery took over this claim (it looked abandoned); it owns the record now.
+            logger.warning(f"Webhook claim lost before completion: {event_id} ({event_type})")
 
         # Log successful processing
         SubscriptionLogger.webhook_processed(event_type, event_id, success=True)

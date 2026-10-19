@@ -173,3 +173,9 @@ class TestMfaLoginAttemptLimit:
     def test_shipped_limit_is_pinned(self):
         """The documented limit is five wrong codes per token."""
         assert MAX_MFA_TOKEN_ATTEMPTS == 5
+
+    def test_tokens_issued_in_the_same_second_are_distinct(self):
+        """Two logins in the same second get different tokens, so their state doesn't collide."""
+        first = create_mfa_temp_token("user@example.com", "totp", ["totp"])
+        second = create_mfa_temp_token("user@example.com", "totp", ["totp"])
+        assert first != second

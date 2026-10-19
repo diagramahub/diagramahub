@@ -275,6 +275,11 @@ generate_fernet_key() {
     fi
 }
 
+# Print the value of KEY from an env file (last occurrence, whitespace trimmed).
+read_env_value() {
+    grep -E "^$2=" "$1" | tail -n 1 | cut -d '=' -f 2- | tr -d '[:space:]'
+}
+
 test_mongodb_connection() {
     local mongo_uri="$1"
 
@@ -386,6 +391,11 @@ clone_repository() {
     if [ -d "$INSTALL_DIR" ]; then
         print_warning "Directory $INSTALL_DIR already exists"
         if ask_yes_no "Remove existing directory and reinstall?" "n"; then
+            # The database (local volume or external MongoDB) survives the reinstall,
+            # so keep the encryption key that protects its secrets before deleting.
+            if [ -f "$INSTALL_DIR/backend/.env" ]; then
+                PRESERVED_AI_ENCRYPTION_KEY=$(read_env_value "$INSTALL_DIR/backend/.env" AI_ENCRYPTION_KEY)
+            fi
             rm -rf "$INSTALL_DIR"
         else
             print_info "Using existing directory"
@@ -413,7 +423,10 @@ create_env_file() {
     # integration credentials, TOTP secrets) can't be decrypted with a new one.
     AI_ENCRYPTION_KEY=""
     if [ -f "$env_file" ]; then
-        AI_ENCRYPTION_KEY=$(grep -E '^AI_ENCRYPTION_KEY=' "$env_file" | tail -n 1 | cut -d '=' -f 2- | tr -d '[:space:]')
+        AI_ENCRYPTION_KEY=$(read_env_value "$env_file" AI_ENCRYPTION_KEY)
+    fi
+    if [ -z "$AI_ENCRYPTION_KEY" ] && [ -n "${PRESERVED_AI_ENCRYPTION_KEY:-}" ]; then
+        AI_ENCRYPTION_KEY="$PRESERVED_AI_ENCRYPTION_KEY"
     fi
     if [ -n "$AI_ENCRYPTION_KEY" ]; then
         print_info "Keeping the existing AI_ENCRYPTION_KEY"
