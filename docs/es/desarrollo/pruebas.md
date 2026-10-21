@@ -6,7 +6,7 @@ Las pruebas corren **dentro del contenedor** del backend (necesitan MongoDB leva
 
 ```bash
 # Suite completa con el piso de cobertura (la que debe pasar antes de un release)
-docker exec diagramahub-backend poetry run pytest --cov-fail-under=45
+docker exec diagramahub-backend poetry run pytest --cov-fail-under=60
 # Equivalente, con el script del backend
 docker exec diagramahub-backend ./run-tests.sh
 
@@ -44,7 +44,7 @@ Fixtures de [`tests/conftest.py`](https://github.com/diagramahub/diagramahub/blo
 
 ### Cobertura
 
-La cobertura está activa por defecto (`--cov=app`, reportes en terminal, HTML y XML). La suite **completa** exige un piso del **45 %** con `--cov-fail-under=45`.
+La cobertura está activa por defecto (`--cov=app`, reportes en terminal, HTML y XML). La suite **completa** exige un piso del **60 %** con `--cov-fail-under=60`.
 
 !!! info "¿Por qué el piso no está en `addopts`?"
     Una corrida parcial (`-m unit`, `-k ...`) no puede alcanzar un piso calculado sobre todo el proyecto. Por eso el piso va en el comando de la suite completa y no en la configuración. Súbelo a medida que se agreguen pruebas.

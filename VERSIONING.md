@@ -106,7 +106,7 @@ Al crear una nueva versión:
 4. Agregar la versión al índice en `docs/es/release-notes/index.md` y `docs/en/release-notes/index.md` (fila `[<V>](<V>.md)`).
 5. Agregar las nuevas páginas de release notes al `nav` en `mkdocs.yml` bajo las secciones "Notas de Versión" / "Release Notes".
 6. Actualizar `CHANGELOG.md` con la sección `## [<V>] - <fecha>` (Keep a Changelog).
-7. Actualizar el badge de cobertura del `README.md` (`backend%20coverage-<N>%25`) con el `Total coverage` de la corrida completa (`docker exec diagramahub-backend poetry run pytest --cov-fail-under=45`). Es estático hasta que haya CI.
+7. Actualizar el badge de cobertura del `README.md` (`backend%20coverage-<N>%25`) con el `Total coverage` de la corrida completa (`docker exec diagramahub-backend poetry run pytest --cov-fail-under=60`). Es estático hasta que haya CI.
 8. Crear el tag de Git con el formato `<V>` (sin prefijo `v`).
 9. **Verificación obligatoria**: `bash scripts/check-version.sh <V>` debe terminar con `OK`. Si reporta `FAIL`, quedó un archivo sin actualizar; no hacer merge del release con el check en rojo.
 
