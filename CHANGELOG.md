@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.5] - 2026-10-21
+
+### Security
+- Frontend dependencies: `follow-redirects` 1.16.1 (two high advisories, via axios) and `katex` 0.18 (prototype pollution, via mermaid, whose 11.x line still pins katex 0.16), both as pnpm overrides. `pnpm audit --prod` reports no known vulnerabilities.
+
+### Fixed
+- Sign-in: a wrong password (or MFA code) showed no error. The API answers 401 and the response interceptor treated every 401 as an expired session, reloading `/login` before the message rendered; it now ends the session only when a token was stored.
+- Error messages: a 422 validation error (a list of objects in `detail`) was handed to React as the message to render. Errors are read through `utils/apiError.ts`, which only returns string details, so the translated fallback is shown instead.
+- Settings: the sole-admin check that blocks account deletion read the user's role only on mount; it now follows the role.
+- Dark mode: 21 components and pages had no `dark:` variants and rendered as white panels (confirm, delete-folder, upgrade, AI-provider, account, MFA and subscription modals, the AI chat previews, the shared diagram view, access code form, reset password, MFA verify, setup wizard and onboarding). Diagram canvases stay light, as in the editor.
+- i18n: the public shared diagram page, the access code form, the delete-folder dialog, `ConfirmModal` defaults, the show/hide password labels and the "Loading editor" placeholder were hardcoded in Spanish.
+
+### Changed
+- Frontend lint passes with no errors or warnings (was 94 errors, 25 warnings): API errors are typed (`unknown` + helpers) instead of `any`, the remaining `any` are typed, and hook dependency lists are complete or carry a comment explaining why they are partial.
+- Backend coverage floor raised from 45% to 60% (`run-tests.sh`, docs); measured 65.26%.
+- Dependencies: dompurify 3.4.17, cryptography 50.0.2, python-multipart 0.0.32, sentry-sdk 2.72.0. `poetry.lock` uses the Poetry 2 format of the backend image.
+
 ## [0.8.4] - 2026-10-19
 
 ### Security

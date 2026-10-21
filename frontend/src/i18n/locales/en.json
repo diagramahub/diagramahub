@@ -39,7 +39,8 @@
     },
     "tabs": "Tabs",
     "sidebar": "Sidebar",
-    "loadingTable": "Loading table"
+    "loadingTable": "Loading table",
+    "processing": "Processing..."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -108,7 +109,9 @@
       "digit": "At least one number",
       "special": "At least one special character",
       "notEmail": "Cannot be the same as your email"
-    }
+    },
+    "show": "Show password",
+    "hide": "Hide password"
   },
   "admin": {
     "users": {
@@ -388,7 +391,17 @@
     "updated": "Folder updated",
     "deleted": "Folder deleted",
     "empty": "Empty folder",
-    "emptyDescription": "There are no diagrams in this folder"
+    "emptyDescription": "There are no diagrams in this folder",
+    "deleteTitle": "Delete folder",
+    "deleteConfirm": "Are you sure you want to delete the folder <bold>\"{{name}}\"</bold>?",
+    "containsDiagrams_one": "This folder contains <bold>{{count}}</bold> diagram.",
+    "containsDiagrams_other": "This folder contains <bold>{{count}}</bold> diagrams.",
+    "moveToRoot": "Move to root",
+    "moveToRootDescription": "The diagrams will be moved to the project's top level",
+    "deleteAllDiagrams": "Delete all diagrams",
+    "deleteAllDiagramsDescription": "They will be permanently deleted along with the folder",
+    "isEmpty": "This folder is empty.",
+    "deleting": "Deleting..."
   },
   "profile": {
     "title": "My Profile",
@@ -622,7 +635,8 @@
     "increaseFontSize": "Increase text size",
     "decreaseFontSize": "Decrease text size",
     "resizePanels": "Resize panels",
-    "deleteDiagramConfirm": "Are you sure you want to delete the \"{{name}}\" diagram? This action cannot be undone."
+    "deleteDiagramConfirm": "Are you sure you want to delete the \"{{name}}\" diagram? This action cannot be undone.",
+    "loadingEditor": "Loading editor..."
   },
   "projectImport": {
     "title": "Import diagrams",
@@ -1417,5 +1431,35 @@
   "app": {
     "title": "DiagramaHub — Text-powered diagramming",
     "description": "Open-source platform to create, organize and export diagrams with plain text (Mermaid, PlantUML, D2 and DBML)."
+  },
+  "sharedView": {
+    "loading": "Loading diagram...",
+    "notFoundTitle": "Link not found",
+    "notFoundMessage": "The link you're looking for doesn't exist or is no longer available. Check the URL or ask the diagram's owner for a new link.",
+    "expiredTitle": "Link expired",
+    "expiredMessage": "This link has expired and is no longer accessible. Ask the diagram's owner for a new link.",
+    "unavailableTitle": "Diagram unavailable",
+    "unavailableMessage": "The diagram is no longer available. Its owner may have deleted it.",
+    "errorTitle": "Error",
+    "errorMessage": "Something went wrong while loading the diagram. Please try again later.",
+    "defaultTitle": "Shared diagram",
+    "code": "Code",
+    "description": "Description",
+    "descriptionFile": "description.md",
+    "readOnly": "read-only",
+    "copied": "Copied!",
+    "copyDescription": "Copy description",
+    "copyCode": "Copy code",
+    "createdBy": "Created by",
+    "protectedTitle": "Protected diagram",
+    "protectedSubtitle": "Enter the access code to view this diagram",
+    "tooManyAttemptsTitle": "Too many failed attempts",
+    "tryAgainLater": "Try again in 15 minutes",
+    "attemptsRemaining": "Attempts remaining: {{count}}",
+    "verifying": "Verifying...",
+    "verifyCode": "Verify code",
+    "wrongCode": "Incorrect access code",
+    "tooManyAttempts": "Too many attempts",
+    "verifyError": "Error verifying the code"
   }
 }

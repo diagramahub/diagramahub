@@ -16,7 +16,7 @@ export interface AIProviderConfig {
   model: string;
   is_active: boolean;
   is_default: boolean;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   display_name: string | null;
   created_at: string;
   updated_at: string;
@@ -38,7 +38,7 @@ export interface CreateProviderRequest {
   api_key: string;
   model: string;
   display_name?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   is_default?: boolean;
 }
 
@@ -46,7 +46,7 @@ export interface UpdateProviderRequest {
   api_key?: string;
   model?: string;
   display_name?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, unknown>;
   is_active?: boolean;
   is_default?: boolean;
 }

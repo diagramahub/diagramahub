@@ -32,7 +32,7 @@ flowchart LR
     docker exec diagramahub-backend poetry run black app/
     docker exec diagramahub-backend poetry run ruff check app/
     docker exec diagramahub-backend poetry run mypy app/
-    docker exec diagramahub-backend poetry run pytest --cov-fail-under=45
+    docker exec diagramahub-backend poetry run pytest --cov-fail-under=60
     ```
 
 === "Frontend"

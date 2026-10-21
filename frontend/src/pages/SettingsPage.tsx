@@ -19,21 +19,22 @@ export default function SettingsPage() {
   const [showDeletedModal, setShowDeletedModal] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const data = await apiService.getMySubscription();
-        setSubscription(data);
-      } catch (err) {
-        console.error('Error loading subscription:', err);
-      }
-      if (user?.role === 'admin') {
-        apiService.getAdminCount().then(data => {
-          setIsSoleAdmin(data.count <= 1);
-        }).catch(() => {});
-      }
-    };
-    loadData();
+    apiService.getMySubscription()
+      .then(setSubscription)
+      .catch((err) => console.error('Error loading subscription:', err));
   }, []);
+
+  // Follows the role: the user can be refreshed after the first render.
+  const isAdmin = user?.role === 'admin';
+  useEffect(() => {
+    if (!isAdmin) {
+      setIsSoleAdmin(false);
+      return;
+    }
+    apiService.getAdminCount().then(data => {
+      setIsSoleAdmin(data.count <= 1);
+    }).catch(() => {});
+  }, [isAdmin]);
 
   const hasActivePaidPlan = subscription?.status === 'active' && subscription.plan.price_usd > 0;
   const cannotDelete = hasActivePaidPlan || isSoleAdmin;

@@ -5,6 +5,7 @@ import { Plan } from '../../types/subscription';
 import PlanForm from './PlanForm';
 import CurrencyPriceTable from './CurrencyPriceTable';
 import ConfirmModal from '../ConfirmModal';
+import { apiErrorMessage } from '../../utils/apiError';
 
 export default function PlanList() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -30,8 +31,8 @@ export default function PlanList() {
       const data = await apiService.getAllPlans();
       setPlans(data);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error loading plans');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error loading plans');
     } finally {
       setLoading(false);
     }
@@ -55,8 +56,8 @@ export default function PlanList() {
       setSuccess(`Plan "${deactivatingPlan.name}" deactivated successfully`);
       setDeactivatingPlan(null);
       loadPlans();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error deactivating plan');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error deactivating plan');
     }
   };
 
@@ -69,8 +70,8 @@ export default function PlanList() {
       setSuccess(`Plan "${deletingPlan.name}" eliminado exitosamente`);
       setDeletingPlan(null);
       loadPlans();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error eliminando plan');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error eliminando plan');
       setDeletingPlan(null);
     }
   };
@@ -87,8 +88,8 @@ export default function PlanList() {
       await apiService.updatePlan(plan.id, { is_active: true });
       setSuccess(`Plan "${plan.name}" activado`);
       loadPlans();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error activando plan');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error activando plan');
     } finally {
       setTogglingPlanId(null);
     }

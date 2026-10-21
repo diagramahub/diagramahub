@@ -63,6 +63,7 @@ import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
 import { configInitBlockManager } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
+import { apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -938,6 +939,7 @@ export default function DiagramEditorPage() {
   useEffect(() => {
     initialLoadComplete.current = false;
     loadProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load on route change only; loadProject reads the state it is about to replace
   }, [projectId, diagramId]);
 
   // Save last viewed diagram when diagramId changes
@@ -1264,7 +1266,8 @@ export default function DiagramEditorPage() {
       const debounce = setTimeout(doRender, 500); // Increased debounce time
       return () => clearTimeout(debounce);
     }
-  }, [fullDiagramCode, currentDiagram, diagramCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleFitToScreen is declared later and redeclared every render; the effect reruns on code changes
+  }, [fullDiagramCode, currentDiagram, diagramCode, t]);
 
   // Autosave
   // ---------------------------------------------------------------------------
@@ -1445,6 +1448,7 @@ export default function DiagramEditorPage() {
     pendingSave.current = save;
     const debounce = setTimeout(() => void persistDiagram(save), 1500);
     return () => clearTimeout(debounce);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- zoom/pan are saved by the viewport effect (silently); listing them would autosave content on every pan
   }, [
     currentDiagram?.id,
     diagramId,
@@ -1561,6 +1565,7 @@ export default function DiagramEditorPage() {
         setDiagramCurve(parseResult.config.curve);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- code -> controls only: rerunning on control changes would revert them from the old code
   }, [diagramCode]);
 
   // Parse theme from content when user manually edits PlantUML code with theme directive
@@ -1582,6 +1587,7 @@ export default function DiagramEditorPage() {
         setPlantUMLTheme(parseResult.config.theme);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- code -> controls only: rerunning on control changes would revert them from the old code
   }, [diagramCode]);
 
   // Parse theme from content when user manually edits D2 code with vars block
@@ -1602,6 +1608,7 @@ export default function DiagramEditorPage() {
         setD2ThemeId(parseResult.config.themeId);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- code -> controls only: rerunning on control changes would revert them from the old code
   }, [diagramCode]);
 
   // Update init block in code when UI controls change (for Mermaid diagrams)
@@ -1637,6 +1644,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controls -> code only: rerunning on every keystroke would rewrite the user's init block
   }, [
     diagramTheme,
     diagramLayout,
@@ -1671,6 +1679,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controls -> code only: rerunning on every keystroke would rewrite the user's theme directive
   }, [plantUMLTheme, currentDiagram]);
 
   // Update vars block in code when UI controls change (for D2 diagrams)
@@ -1691,6 +1700,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controls -> code only: rerunning on every keystroke would rewrite the user's vars block
   }, [d2ThemeId, currentDiagram]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently.
@@ -1698,19 +1708,20 @@ export default function DiagramEditorPage() {
   // viewport on load creates a new `pan` object but is not a change, so the
   // first values seen for each diagram are the baseline and are never written.
   const viewportBaseline = useRef<{ id: string; key: string } | null>(null);
+  const currentDiagramId = currentDiagram?.id;
   useEffect(() => {
-    if (!currentDiagram || !projectId) return;
-    if (currentDiagram.id !== diagramId) return; // mid-switch
+    if (!currentDiagramId || !projectId) return;
+    if (currentDiagramId !== diagramId) return; // mid-switch
 
     const viewport = { viewport_zoom: zoom, viewport_x: pan.x, viewport_y: pan.y };
     const key = JSON.stringify(viewport);
-    if (viewportBaseline.current?.id !== currentDiagram.id) {
-      viewportBaseline.current = { id: currentDiagram.id, key };
+    if (viewportBaseline.current?.id !== currentDiagramId) {
+      viewportBaseline.current = { id: currentDiagramId, key };
       return;
     }
     if (key === viewportBaseline.current.key) return;
 
-    const diagramToSave = currentDiagram.id;
+    const diagramToSave = currentDiagramId;
     const saveViewport = async () => {
       try {
         await api.updateDiagram(diagramToSave, viewport);
@@ -1726,7 +1737,7 @@ export default function DiagramEditorPage() {
     // Silent on purpose: panning/zooming is not an edit, so no "Saved" badge.
     const debounce = setTimeout(saveViewport, 1000);
     return () => clearTimeout(debounce);
-  }, [zoom, pan, currentDiagram?.id, diagramId]);
+  }, [zoom, pan, currentDiagramId, diagramId, projectId]);
 
   const handleNewDiagram = (folderId: string | null = null) => {
     setNewDiagramName("");
@@ -1819,15 +1830,15 @@ export default function DiagramEditorPage() {
       navigate(`/projects/${projectId}/diagrams/${created.id}`, {
         replace: true,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating diagram:", err);
-      const detail = err.response?.data?.detail;
-      if (detail?.error === "resource_limit_exceeded") {
+      const limitDetail = resourceLimitDetail(err);
+      if (limitDetail) {
         setShowNewDiagramModal(false);
         setUpgradePlan({
-          resourceType: detail.resource_type,
-          currentUsage: detail.current_usage,
-          limit: detail.limit,
+          resourceType: limitDetail.resource_type,
+          currentUsage: limitDetail.current_usage,
+          limit: limitDetail.limit,
         });
       } else {
         setError(t("editor.createDiagramError"));
@@ -1927,17 +1938,17 @@ export default function DiagramEditorPage() {
         diagram_code: diagramCode,
         diagram_type: currentDiagram?.diagram_type || "mermaid",
         language: user?.language || "es",
-        ...(preferredProvider ? { provider: preferredProvider as any } : {}),
+        ...(preferredProvider ? { provider: preferredProvider as AIProviderType } : {}),
       });
 
       // Store generated description and show confirmation modal
       setGeneratedDescription(response.description);
       setShowDescriptionConfirmModal(true);
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error: unknown) {
+      if (apiErrorStatus(error) === 404) {
         setError(t("ai.messages.noProvidersError"));
       } else {
-        setError(error.response?.data?.detail || t("ai.generate.error"));
+        setError(apiErrorMessage(error) || t("ai.generate.error"));
       }
     } finally {
       setGeneratingDescription(false);
@@ -1981,12 +1992,12 @@ export default function DiagramEditorPage() {
         current_description: generatedDescription,
         refinement_request: refineInput.trim(),
         language: user?.language || "es",
-        ...(preferredProvider ? { provider: preferredProvider as any } : {}),
+        ...(preferredProvider ? { provider: preferredProvider as AIProviderType } : {}),
       });
       setGeneratedDescription(response.description);
       setRefineInput("");
-    } catch (error: any) {
-      setError(error.response?.data?.detail || t("ai.generate.error"));
+    } catch (error: unknown) {
+      setError(apiErrorMessage(error) || t("ai.generate.error"));
     } finally {
       setRefining(false);
     }
@@ -2016,7 +2027,7 @@ export default function DiagramEditorPage() {
         });
         setSaveStatus("saved");
         setLastSavedTime(new Date());
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error saving improved diagram:", error);
         setSaveStatus("idle");
       }
@@ -2094,6 +2105,7 @@ export default function DiagramEditorPage() {
       handleFitToScreen();
     }, 300);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refit only when the description panel opens or closes
   }, [showDescriptionView]);
 
   // Fix diagram handlers
@@ -2196,7 +2208,7 @@ export default function DiagramEditorPage() {
       });
       setConversionResult(result);
       setShowConversionModal(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setFixError(conversionErrorMessage(err, "conversion.error"));
       setTimeout(() => setFixError(null), 5000);
     } finally {
@@ -2242,7 +2254,7 @@ export default function DiagramEditorPage() {
 
       setShowConversionModal(false);
       setConversionResult(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error applying conversion:", err);
       setFixError(conversionErrorMessage(err, "conversion.applyError"));
       setTimeout(() => setFixError(null), 5000);

@@ -5,6 +5,7 @@ import apiService from '../services/api';
 import AnimatedBackground from '../components/AnimatedBackground';
 import LanguageSelector from '../components/LanguageSelector';
 import ThemeToggleButton from '../components/ThemeToggleButton';
+import { apiErrorStatus } from '../utils/apiError';
 
 const ForgotPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -21,8 +22,8 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await apiService.requestPasswordReset({ email });
       setSubmitted(true);
-    } catch (err: any) {
-      const status = err.response?.status;
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
       if (status === 503) {
         setError(t('auth.emailServiceUnavailable'));
       } else if (status === 422) {

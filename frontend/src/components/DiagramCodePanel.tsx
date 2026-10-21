@@ -5,12 +5,14 @@ import type { Monaco } from '@monaco-editor/react';
 import { registerD2Language } from '../utils/d2Language';
 import { useTheme } from '../contexts/ThemeContext';
 import apiService from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
+import type { FixDiagramResponse } from '../types/ai';
 
 // Compact fix button for the title bar
 function FixButton({ diagramId, errorContext, onFixSuccess, onFixError }: {
   diagramId: string;
   errorContext: string;
-  onFixSuccess: (response: any) => void;
+  onFixSuccess: (response: FixDiagramResponse) => void;
   onFixError: (error: string) => void;
 }) {
   const [isFixing, setIsFixing] = useState(false);
@@ -24,8 +26,8 @@ function FixButton({ diagramId, errorContext, onFixSuccess, onFixError }: {
         language: 'es'
       });
       onFixSuccess(response);
-    } catch (error: any) {
-      const detail = error.response?.data?.detail;
+    } catch (error: unknown) {
+      const detail = apiErrorMessage(error);
       onFixError(typeof detail === 'string' ? detail : 'Error al corregir el diagrama');
     } finally {
       setIsFixing(false);
@@ -65,7 +67,7 @@ interface DiagramCodePanelProps {
   onClose: () => void;
   isVisible?: boolean;
   diagramId?: string;
-  onFixSuccess?: (response: any) => void;
+  onFixSuccess?: (response: FixDiagramResponse) => void;
   onFixError?: (error: string) => void;
 }
 
@@ -85,7 +87,7 @@ export default function DiagramCodePanel({
 }: DiagramCodePanelProps) {
   const { t } = useTranslation();
   const { theme } = useTheme();
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [editorHeight, setEditorHeight] = useState(400);
 
@@ -267,7 +269,7 @@ export default function DiagramCodePanel({
           }}
           loading={
             <div className="flex items-center justify-center h-full bg-gray-900">
-              <div className="text-sm text-gray-500">Cargando editor...</div>
+              <div className="text-sm text-gray-500">{t('editor.loadingEditor')}</div>
             </div>
           }
         />

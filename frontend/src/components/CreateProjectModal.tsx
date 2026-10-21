@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { Project } from '../types/project';
 import UpgradePlanModal from './UpgradePlanModal';
+import { apiErrorMessage, resourceLimitDetail } from '../utils/apiError';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -83,17 +84,17 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
       }
 
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(`Error ${editMode ? 'updating' : 'creating'} project:`, err);
-      const detail = err.response?.data?.detail;
-      if (detail?.error === 'resource_limit_exceeded') {
+      const limitDetail = resourceLimitDetail(err);
+      if (limitDetail) {
         setUpgradePlan({
-          resourceType: detail.resource_type,
-          currentUsage: detail.current_usage,
-          limit: detail.limit,
+          resourceType: limitDetail.resource_type,
+          currentUsage: limitDetail.current_usage,
+          limit: limitDetail.limit,
         });
       } else {
-        setError(typeof detail === 'string' ? detail : t(editMode ? 'project.updateError' : 'project.createError'));
+        setError(apiErrorMessage(err) ?? t(editMode ? 'project.updateError' : 'project.createError'));
       }
     } finally {
       setLoading(false);

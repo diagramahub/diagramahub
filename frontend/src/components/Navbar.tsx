@@ -7,7 +7,7 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   return (
-    <nav className="border-b border-gray-100 bg-white">
+    <nav className="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="px-4">
         <div className="flex justify-between items-center h-14">
           {/* Logo */}

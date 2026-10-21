@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../utils/locale';
 import apiService from '../../services/api';
 import { AdminUserMfaInfo } from '../../types/auth';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const ShieldIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -131,8 +132,8 @@ export default function UserMfaManagement() {
       setSuccess(response.message);
       setResetConfirm(null);
       loadUsers(page, searchQuery);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('admin.users.errorResetting'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('admin.users.errorResetting'));
     } finally {
       setResetLoading(false);
     }
@@ -157,8 +158,8 @@ export default function UserMfaManagement() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('admin.users.errorExporting'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('admin.users.errorExporting'));
     } finally {
       setExporting(false);
     }

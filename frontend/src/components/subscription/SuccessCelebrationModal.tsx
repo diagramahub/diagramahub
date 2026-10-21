@@ -32,7 +32,7 @@ export default function SuccessCelebrationModal({
         return Math.random() * (max - min) + min;
       }
 
-      const interval: any = setInterval(function() {
+      const interval: ReturnType<typeof setInterval> = setInterval(function() {
         const timeLeft = animationEnd - Date.now();
 
         if (timeLeft <= 0) {
@@ -79,7 +79,7 @@ export default function SuccessCelebrationModal({
         />
 
         {/* Modal */}
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
           {/* Icono de éxito con animación */}
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -89,70 +89,70 @@ export default function SuccessCelebrationModal({
                 </svg>
               </div>
               {/* Anillo dorado giratorio */}
-              <div className="absolute inset-0 border-4 border-yellow-300 rounded-full animate-ping opacity-75"></div>
+              <div className="absolute inset-0 border-4 border-yellow-300 dark:border-yellow-700 rounded-full animate-ping opacity-75"></div>
             </div>
           </div>
 
           {/* Título */}
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-gray-100 mb-2">
             {t('subscription.celebration.title')}
           </h2>
-          <p className="text-center text-gray-600 mb-6">
+          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
             {t('subscription.celebration.subtitle')}
           </p>
 
           {/* Plan Info Card */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 mb-6 border-2 border-yellow-200">
+          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl p-6 mb-6 border-2 border-yellow-200 dark:border-yellow-800">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold text-gray-900">{planName}</h3>
-              <span className="px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{planName}</h3>
+              <span className="px-3 py-1 bg-yellow-400 text-yellow-900 dark:text-yellow-200 text-xs font-bold rounded-full">
                 {t('subscription.plans.premium')}
               </span>
             </div>
             
             <div className="mb-4">
-              <span className="text-3xl font-bold text-gray-900">
+              <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                 {formatPrice(planPrice)}
               </span>
-              <span className="text-gray-600">{t('subscription.plans.perMonth')}</span>
+              <span className="text-gray-600 dark:text-gray-400">{t('subscription.plans.perMonth')}</span>
             </div>
 
             {/* Beneficios */}
             <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('subscription.celebration.newBenefits')}</h4>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('subscription.celebration.newBenefits')}</h4>
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
                   {maxProjects === null || maxProjects === -1
                     ? t('subscription.features.unlimitedProjects')
                     : t('subscription.features.upToProjects', { count: maxProjects })}
                 </span>
               </div>
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
                   {maxDiagrams === null || maxDiagrams === -1
                     ? t('subscription.features.unlimitedDiagrams')
                     : t('subscription.features.upToDiagrams', { count: maxDiagrams })}
                 </span>
               </div>
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
                   {t('subscription.features.premiumBadge')}
                 </span>
               </div>
               <div className="flex items-start">
-                <svg className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
                   {t('subscription.features.prioritySupport')}
                 </span>
               </div>

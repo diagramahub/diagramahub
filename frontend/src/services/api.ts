@@ -57,7 +57,8 @@ import {
   PlanUpdate,
   Subscription,
   UsageSummary,
-  CurrencyPriceRequest
+  CurrencyPriceRequest,
+  BillingHistory
 } from '../types/subscription';
 import {
   PaginatedPromptHistory,
@@ -246,7 +247,10 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        // A 401 ends the session only if there was one: without a token it is a
+        // failed sign-in (wrong password, wrong MFA code), and reloading /login
+        // would wipe the error message before the user sees it.
+        if (error.response?.status === 401 && localStorage.getItem('token')) {
           // Token expired or invalid
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -521,9 +525,8 @@ class ApiService {
     return response.data;
   }
 
-  async deactivatePlan(planId: string): Promise<any> {
-    const response = await this.api.delete(`/api/v1/admin/plans/${planId}`);
-    return response.data;
+  async deactivatePlan(planId: string): Promise<void> {
+    await this.api.delete(`/api/v1/admin/plans/${planId}`);
   }
 
   async addPlanPrice(planId: string, data: CurrencyPriceRequest): Promise<Plan> {
@@ -552,9 +555,8 @@ class ApiService {
     return response.data;
   }
 
-  async cancelSubscription(immediate: boolean = false): Promise<any> {
-    const response = await this.api.post(`/api/v1/subscriptions/cancel?immediate=${immediate}`);
-    return response.data;
+  async cancelSubscription(immediate: boolean = false): Promise<void> {
+    await this.api.post(`/api/v1/subscriptions/cancel?immediate=${immediate}`);
   }
 
   async updatePaymentMethod(): Promise<{ session_id: string; session_url: string }> {
@@ -563,8 +565,8 @@ class ApiService {
   }
 
   // Billing History
-  async getBillingHistory(limit: number = 10): Promise<{ invoices: any[]; total_count: number }> {
-    const response = await this.api.get(`/api/v1/subscriptions/billing-history?limit=${limit}`);
+  async getBillingHistory(limit: number = 10): Promise<BillingHistory> {
+    const response = await this.api.get<BillingHistory>(`/api/v1/subscriptions/billing-history?limit=${limit}`);
     return response.data;
   }
 

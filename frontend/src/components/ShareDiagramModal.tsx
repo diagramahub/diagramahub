@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../utils/locale';
 import api from '../services/api';
 import { SharedLink, CreateSharedLinkRequest } from '../types/sharing';
+import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
 
 interface ShareDiagramModalProps {
   isOpen: boolean;
@@ -82,8 +83,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       } else {
         setExistingLink(null);
       }
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      if (apiErrorStatus(err) === 404) {
         setExistingLink(null);
       } else {
         setError(t('sharing.loadError'));
@@ -128,8 +129,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       if (link.access_code) {
         setPlainAccessCode(link.access_code);
       }
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
+    } catch (err: unknown) {
+      const detail = apiErrorMessage(err);
       setError(typeof detail === 'string' ? detail : t('sharing.generateError'));
     } finally {
       setLoading(false);
@@ -148,8 +149,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       setAccessType('public');
       setAccessCode('');
       setAllowCopyCode(false);
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
+    } catch (err: unknown) {
+      const detail = apiErrorMessage(err);
       setError(typeof detail === 'string' ? detail : t('sharing.revokeError'));
     } finally {
       setRevoking(false);

@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FixDiagramResponse } from '../types/ai';
 import apiService from '../services/api';
+import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
 
 interface FixDiagramButtonProps {
   diagramId: string;
@@ -32,12 +33,12 @@ export const FixDiagramButton: React.FC<FixDiagramButtonProps> = ({
       });
       
       onFixSuccess(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
       let errorMessage = 'Error al corregir el diagrama';
       
-      if (error.response) {
-        const status = error.response.status;
-        const detail = error.response.data?.detail || error.message;
+      const status = apiErrorStatus(error);
+      if (status !== undefined) {
+        const detail = apiErrorMessage(error) || (error instanceof Error ? error.message : '');
         
         switch (status) {
           case 401:
@@ -66,8 +67,8 @@ export const FixDiagramButton: React.FC<FixDiagramButtonProps> = ({
           default:
             errorMessage = detail || errorMessage;
         }
-      } else if (error.message) {
-        errorMessage = error.message;
+      } else if ((error instanceof Error ? error.message : '')) {
+        errorMessage = (error instanceof Error ? error.message : '');
       }
       
       onFixError(errorMessage);

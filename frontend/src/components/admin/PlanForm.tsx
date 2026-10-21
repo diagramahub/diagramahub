@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan, PlanCreate, PlanUpdate, CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
+import { apiErrorMessage } from '../../utils/apiError';
 
 const NON_USD_CURRENCIES = SUPPORTED_CURRENCIES.filter(c => c !== 'usd');
 
@@ -128,8 +129,8 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
         await apiService.createPlan(createData);
       }
       onSuccess();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || `Error ${plan ? 'actualizando' : 'creando'} plan`);
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || `Error ${plan ? 'actualizando' : 'creando'} plan`);
     } finally {
       setLoading(false);
     }

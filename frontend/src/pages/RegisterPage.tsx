@@ -52,7 +52,7 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(password)) {
       setError(t('validation.passwordSpecial'));
       return;
     }
@@ -68,8 +68,8 @@ const RegisterPage: React.FC = () => {
       await register(email, password, fullName || undefined);
       // Redirect to onboarding wizard to create first project
       navigate('/onboarding');
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ const RegisterPage: React.FC = () => {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPassword ? t('password.hide') : t('password.show')}
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,7 +196,7 @@ const RegisterPage: React.FC = () => {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showConfirmPassword ? t('password.hide') : t('password.show')}
                 >
                   {showConfirmPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

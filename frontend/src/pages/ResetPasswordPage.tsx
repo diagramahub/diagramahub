@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import { apiErrorStatus } from '../utils/apiError';
 
 const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -43,7 +44,7 @@ const ResetPasswordPage: React.FC = () => {
     if (!/[A-Z]/.test(password)) errors.push(t('validation.passwordUppercase'));
     if (!/[a-z]/.test(password)) errors.push(t('validation.passwordLowercase'));
     if (!/\d/.test(password)) errors.push(t('validation.passwordNumber'));
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password)) errors.push(t('validation.passwordSpecial'));
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(password)) errors.push(t('validation.passwordSpecial'));
     if (email && password.toLowerCase() === email.toLowerCase()) errors.push(t('validation.passwordNotEmail'));
     return errors;
   };
@@ -68,8 +69,8 @@ const ResetPasswordPage: React.FC = () => {
     try {
       await apiService.confirmPasswordReset({ email, token, new_password: newPassword });
       setSuccess(true);
-    } catch (err: any) {
-      const status = err.response?.status;
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
       if (status === 400) {
         setError(t('auth.resetTokenInvalid'));
       } else {
@@ -81,8 +82,8 @@ const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 px-4">
+      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold">
             <span
@@ -96,30 +97,30 @@ const ResetPasswordPage: React.FC = () => {
               DiagramaHub
             </span>
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {t('auth.resetPasswordSubtitle')}
           </p>
         </div>
 
         {success ? (
           <div className="mt-8 space-y-6">
-            <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded">
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-400 dark:border-green-600 text-green-700 dark:text-green-300 px-4 py-3 rounded">
               <span className="block sm:inline">{t('auth.resetPasswordSuccess')}</span>
             </div>
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
               {t('auth.redirectingToLogin', { seconds: countdown })}
             </p>
           </div>
         ) : (
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded relative">
                 <span className="block sm:inline">{error}</span>
                 {error === t('auth.resetTokenInvalid') && (
                   <div className="mt-2">
                     <Link
                       to="/forgot-password"
-                      className="font-medium text-purple-600 hover:text-purple-500 text-sm"
+                      className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 text-sm"
                     >
                       {t('auth.requestNewResetLink')}
                     </Link>
@@ -129,7 +130,7 @@ const ResetPasswordPage: React.FC = () => {
             )}
 
             {validationErrors.length > 0 && (
-              <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded relative">
                 <ul className="list-disc list-inside">
                   {validationErrors.map((ve, i) => (
                     <li key={i} className="text-sm">{ve}</li>
@@ -140,7 +141,7 @@ const ResetPasswordPage: React.FC = () => {
 
             <div className="rounded-md shadow-sm space-y-4">
               <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {t('auth.newPassword')}
                 </label>
                 <div className="relative">
@@ -152,14 +153,14 @@ const ResetPasswordPage: React.FC = () => {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
+                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm dark:bg-gray-700/50"
                     placeholder={t('installation.passwordPlaceholder')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    aria-label={showPassword ? t('password.hide') : t('password.show')}
                   >
                     {showPassword ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -176,7 +177,7 @@ const ResetPasswordPage: React.FC = () => {
                 <PasswordStrengthIndicator password={newPassword} email={email} />
               </div>
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {t('auth.confirmNewPassword')}
                 </label>
                 <div className="relative">
@@ -188,14 +189,14 @@ const ResetPasswordPage: React.FC = () => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
+                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm dark:bg-gray-700/50"
                     placeholder={t('auth.confirmNewPassword')}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    aria-label={showConfirmPassword ? t('password.hide') : t('password.show')}
                   >
                     {showConfirmPassword ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,7 +224,7 @@ const ResetPasswordPage: React.FC = () => {
             </div>
 
             <div className="text-center">
-              <Link to="/login" className="font-medium text-purple-600 hover:text-purple-500 text-sm">
+              <Link to="/login" className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 text-sm">
                 {t('auth.backToLogin')}
               </Link>
             </div>

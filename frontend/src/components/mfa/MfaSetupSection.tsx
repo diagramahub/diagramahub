@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { MfaStatusResponse } from '../../types/auth';
 import MfaEnableEmailFlow from './MfaEnableEmailFlow';
 import MfaEnableTotpFlow from './MfaEnableTotpFlow';
 import RecoveryCodesModal from './RecoveryCodesModal';
+import { apiErrorMessage } from '../../utils/apiError';
 
 /* ------------------------------------------------------------------ */
 /* SVG Icon components                                                 */
@@ -63,7 +64,7 @@ export default function MfaSetupSection() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     try {
       const data = await apiService.getMfaStatus();
       setStatus(data);
@@ -72,11 +73,11 @@ export default function MfaSetupSection() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadStatus();
-  }, []);
+  }, [loadStatus]);
 
   const clearMessages = () => {
     setError('');
@@ -103,8 +104,8 @@ export default function MfaSetupSection() {
       setDisablePassword('');
       setLoading(true);
       loadStatus();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('mfa.setup.errorDisabling'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('mfa.setup.errorDisabling'));
     } finally {
       setDisableLoading(false);
     }
@@ -117,8 +118,8 @@ export default function MfaSetupSection() {
       setSuccess(t('mfa.setup.defaultMethodUpdated'));
       setLoading(true);
       loadStatus();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('mfa.setup.errorSettingDefault'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('mfa.setup.errorSettingDefault'));
     }
   };
 
@@ -130,8 +131,8 @@ export default function MfaSetupSection() {
       setShowRecoveryCodes(true);
       setSuccess(t('mfa.setup.codesRegenerated'));
       loadStatus();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('mfa.setup.errorRegenerating'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('mfa.setup.errorRegenerating'));
     }
   };
 

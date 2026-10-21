@@ -6,7 +6,7 @@ Tests run **inside the backend container** (MongoDB must be up). Tools: pytest +
 
 ```bash
 # Full suite with the coverage floor (must pass before a release)
-docker exec diagramahub-backend poetry run pytest --cov-fail-under=45
+docker exec diagramahub-backend poetry run pytest --cov-fail-under=60
 # Same thing, through the backend script
 docker exec diagramahub-backend ./run-tests.sh
 
@@ -44,7 +44,7 @@ Fixtures from [`tests/conftest.py`](https://github.com/diagramahub/diagramahub/b
 
 ### Coverage
 
-Coverage is on by default (`--cov=app`, terminal, HTML and XML reports). The **full** suite enforces a **45%** floor with `--cov-fail-under=45`.
+Coverage is on by default (`--cov=app`, terminal, HTML and XML reports). The **full** suite enforces a **60%** floor with `--cov-fail-under=60`.
 
 !!! info "Why isn't the floor in `addopts`?"
     A partial run (`-m unit`, `-k ...`) can't reach a floor computed over the whole project. That's why the floor lives in the full-suite command instead of the configuration. Raise it as tests land.

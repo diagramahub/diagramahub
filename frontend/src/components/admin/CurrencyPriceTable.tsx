@@ -32,7 +32,7 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
       await apiService.removePlanPrice(plan.id, deletingCurrency);
       setDeletingCurrency(null);
       onPriceChanged();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error removing price:', err);
       setDeletingCurrency(null);
     }

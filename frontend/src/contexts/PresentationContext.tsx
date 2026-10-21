@@ -21,11 +21,13 @@ export function PresentationProvider({ children }: { children: ReactNode }) {
 }
 
 /** Read-only — used by SidebarLayout to hide when presentation is active */
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives with its provider; editing this file reloads instead of hot-swapping
 export function usePresentationMode(): boolean {
   return useContext(PresentationContext).isPresentationMode;
 }
 
 /** Write — used by DiagramEditorPage to signal fullscreen state */
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives with its provider; editing this file reloads instead of hot-swapping
 export function useSetPresentationMode(): (v: boolean) => void {
   return useContext(PresentationContext).setPresentationMode;
 }

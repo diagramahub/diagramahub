@@ -10,6 +10,7 @@ import {
   getRecommendedModel,
 } from '../types/ai';
 import apiService from '../services/api';
+import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
 
 interface AddProviderModalProps {
   isOpen: boolean;
@@ -103,10 +104,10 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
           ? t('ai.messages.testSuccess')
           : t(`ai.testErrors.${result.error_code || 'provider_error'}`, { defaultValue: t('ai.messages.testError') }),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setTestResult({
         success: false,
-        message: error.response?.data?.detail || t('ai.messages.testError')
+        message: apiErrorMessage(error) || t('ai.messages.testError')
       });
     } finally {
       setTesting(false);
@@ -123,11 +124,11 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
       await apiService.addAIProvider(formData);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      if (error.response?.status === 501) {
+    } catch (error: unknown) {
+      if (apiErrorStatus(error) === 501) {
         setErrors({ submit: t('ai.status.comingSoon') });
       } else {
-        setErrors({ submit: error.response?.data?.detail || t('errors.genericError') });
+        setErrors({ submit: apiErrorMessage(error) || t('errors.genericError') });
       }
     } finally {
       setLoading(false);

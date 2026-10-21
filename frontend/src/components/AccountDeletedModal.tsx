@@ -40,17 +40,17 @@ export default function AccountDeletedModal({ isOpen, onConfirm }: AccountDelete
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="fixed inset-0 bg-black bg-opacity-50" />
-        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                <svg className="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-yellow-500 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" strokeWidth={2} />
                   <path strokeLinecap="round" strokeWidth={2} d="M8 9v1M16 9v1M9 16c.5-.5 1.5-1 3-1s2.5.5 3 1" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex-1">
                 {t('dangerZone.deletedModalTitle')}
               </h3>
             </div>
@@ -58,26 +58,26 @@ export default function AccountDeletedModal({ isOpen, onConfirm }: AccountDelete
 
           {/* Body */}
           <div className="px-6 py-4 space-y-4">
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
               {t('dangerZone.deletedModalFarewell')}
             </p>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
               {t('dangerZone.deletedModalDescription')}
             </p>
-            <ul className="text-sm text-gray-500 space-y-1 list-disc list-inside">
+            <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-1 list-disc list-inside">
               <li>{t('dangerZone.deletedItemProjects')}</li>
               <li>{t('dangerZone.deletedItemDiagrams')}</li>
               <li>{t('dangerZone.deletedItemFolders')}</li>
               <li>{t('dangerZone.deletedItemSettings')}</li>
               <li>{t('dangerZone.deletedItemHistory')}</li>
             </ul>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
               {t('dangerZone.redirectCountdown', { seconds: countdown })}
             </p>
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end">
+          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex justify-end">
             <button
               onClick={handleConfirm}
               className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"

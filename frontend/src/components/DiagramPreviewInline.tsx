@@ -34,7 +34,7 @@ export default function DiagramPreviewInline({
   };
 
   return (
-    <div className="mt-2 rounded-lg border border-gray-200 overflow-hidden">
+    <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="relative h-48 group/preview">
         <DiagramPreview code={code} diagramType={diagramType} />
         {/* Botones flotantes */}
@@ -42,11 +42,11 @@ export default function DiagramPreviewInline({
           <button
             type="button"
             onClick={handleCopy}
-            className="p-1.5 bg-white/90 border border-gray-200 rounded-md text-gray-500 hover:text-purple-600 hover:bg-white shadow-sm"
+            className="p-1.5 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
             title={copied ? t('chat.copied') : t('chat.copyCode')}
           >
             {copied ? (
-              <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-green-500 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             ) : (
@@ -59,7 +59,7 @@ export default function DiagramPreviewInline({
             <button
               type="button"
               onClick={onExpand}
-              className="p-1.5 bg-white/90 border border-gray-200 rounded-md text-gray-500 hover:text-purple-600 hover:bg-white shadow-sm"
+              className="p-1.5 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
               title={t('chat.preview.expand')}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +70,7 @@ export default function DiagramPreviewInline({
         </div>
       </div>
       {status === 'pending' && (
-        <div className="flex items-center gap-2 p-2 bg-gray-50 border-t border-gray-200">
+        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={onAccept}
@@ -81,20 +81,20 @@ export default function DiagramPreviewInline({
           <button
             type="button"
             onClick={onReject}
-            className="flex-1 px-3 py-1.5 text-xs font-medium text-orange-600 bg-white border border-orange-300 rounded-md hover:bg-orange-50 transition-colors"
+            className="flex-1 px-3 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 rounded-md hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
           >
             {t('chat.preview.reject')}
           </button>
         </div>
       )}
       {status === 'accepted' && (
-        <div className="flex items-center gap-2 p-2 bg-green-50 border-t border-green-200">
-          <span className="flex-1 text-xs text-green-700 font-medium text-center">{t('chat.preview.accepted')}</span>
+        <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800">
+          <span className="flex-1 text-xs text-green-700 dark:text-green-300 font-medium text-center">{t('chat.preview.accepted')}</span>
           {onRestore && (
             <button
               type="button"
               onClick={onRestore}
-              className="px-2 py-1 text-[10px] font-medium text-green-700 bg-white border border-green-300 rounded hover:bg-green-100 transition-colors"
+              className="px-2 py-1 text-[10px] font-medium text-green-700 dark:text-green-300 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
               title={t('chat.preview.restoreTitle')}
             >
               {t('chat.preview.restore')}
@@ -103,13 +103,13 @@ export default function DiagramPreviewInline({
         </div>
       )}
       {status === 'rejected' && (
-        <div className="flex items-center gap-2 p-2 bg-orange-50 border-t border-orange-200">
-          <span className="flex-1 text-xs text-orange-600 font-medium text-center">{t('chat.preview.rejected')}</span>
+        <div className="flex items-center gap-2 p-2 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-200 dark:border-orange-800">
+          <span className="flex-1 text-xs text-orange-600 dark:text-orange-400 font-medium text-center">{t('chat.preview.rejected')}</span>
           {onRestore && (
             <button
               type="button"
               onClick={onRestore}
-              className="px-2 py-1 text-[10px] font-medium text-orange-600 bg-white border border-orange-300 rounded hover:bg-orange-100 transition-colors"
+              className="px-2 py-1 text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
               title={t('chat.preview.useTitle')}
             >
               {t('chat.preview.use')}

@@ -8,6 +8,7 @@ import {
   AI_PROVIDER_API_KEY_URLS,
 } from '../types/ai';
 import apiService from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
 
 interface EditProviderModalProps {
   isOpen: boolean;
@@ -90,10 +91,10 @@ export default function EditProviderModal({
           ? t('ai.messages.testSuccess')
           : t(`ai.testErrors.${result.error_code || 'provider_error'}`, { defaultValue: t('ai.messages.testError') }),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setTestResult({
         success: false,
-        message: error.response?.data?.detail || t('ai.messages.testError')
+        message: apiErrorMessage(error) || t('ai.messages.testError')
       });
     } finally {
       setTesting(false);
@@ -140,8 +141,8 @@ export default function EditProviderModal({
       await apiService.updateAIProvider(providerIndex, updateData);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      setErrors({ submit: error.response?.data?.detail || t('errors.genericError') });
+    } catch (error: unknown) {
+      setErrors({ submit: apiErrorMessage(error) || t('errors.genericError') });
     } finally {
       setLoading(false);
     }

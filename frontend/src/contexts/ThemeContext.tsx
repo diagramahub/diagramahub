@@ -37,6 +37,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives with its provider; editing this file reloads instead of hot-swapping
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (context === undefined) {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import apiService from '../../services/api';
 import { Plan, CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
+import { apiErrorMessage } from '../../utils/apiError';
 
 interface CurrencyPriceFormProps {
   plan: Plan;
@@ -39,8 +40,8 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
     try {
       await apiService.addPlanPrice(plan.id, { currency, amount: parsedAmount });
       onSuccess();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al agregar precio');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error al agregar precio');
     } finally {
       setLoading(false);
     }

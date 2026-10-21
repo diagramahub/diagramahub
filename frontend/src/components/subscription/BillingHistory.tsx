@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../utils/locale';
 import apiService from '../../services/api';
 import { Invoice } from '../../types/subscription';
+import { apiErrorMessage } from '../../utils/apiError';
 
 export default function BillingHistory() {
   const { t, i18n } = useTranslation();
@@ -10,22 +11,22 @@ export default function BillingHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadBillingHistory();
-  }, []);
-
-  const loadBillingHistory = async () => {
+  const loadBillingHistory = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getBillingHistory(10);
       setInvoices(data.invoices);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('subscription.billing.error'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('subscription.billing.error'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    loadBillingHistory();
+  }, [loadBillingHistory]);
 
   const handleDownloadInvoice = async (invoiceId: string) => {
     try {
@@ -33,8 +34,8 @@ export default function BillingHistory() {
       const response = await apiService.downloadInvoice(invoiceId);
       // Abrir el PDF de Stripe en nueva pestaña
       window.open(response.pdf_url, '_blank');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('subscription.billing.error'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('subscription.billing.error'));
     }
   };
 

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
 
 interface MfaVerifyLocationState {
   mfa_token: string;
@@ -136,9 +137,9 @@ const MfaVerifyPage: React.FC = () => {
 
       await completeMfaLogin(response.access_token);
       navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
+      const detail = apiErrorMessage(err) || '';
 
       if (status === 401 && detail.toLowerCase().includes('expir')) {
         navigate('/login', {
@@ -161,8 +162,8 @@ const MfaVerifyPage: React.FC = () => {
       setResendsRemaining(response.resends_remaining);
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setError('');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const detail = apiErrorMessage(err) || '';
       setError(detail || t('mfa.verify.resendError'));
     }
   }, [state?.mfa_token, resendCooldown, resendsRemaining, t]);
@@ -181,8 +182,8 @@ const MfaVerifyPage: React.FC = () => {
       setCode('');
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setViewMode('code');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const detail = apiErrorMessage(err) || '';
       setError(detail || t('mfa.verify.switchError'));
     } finally {
       setSendingEmail(false);
@@ -217,8 +218,8 @@ const MfaVerifyPage: React.FC = () => {
     state.available_methods && state.available_methods.length > 1;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 px-4">
-      <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-xl shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 px-4">
+      <div className="max-w-md w-full space-y-6 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl">
         {/* Header */}
         <div>
           <h2 className="mt-4 text-center text-3xl font-extrabold">
@@ -233,14 +234,14 @@ const MfaVerifyPage: React.FC = () => {
               DiagramaHub
             </span>
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {t('mfa.verify.title')}
           </p>
         </div>
 
         {/* Error message */}
         {error && (
-          <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded relative">
             <span className="block sm:inline">{error}</span>
           </div>
         )}
@@ -248,21 +249,21 @@ const MfaVerifyPage: React.FC = () => {
         {/* ---- METHOD SELECTION VIEW ---- */}
         {viewMode === 'methodSelection' && (
           <div className="space-y-3">
-            <p className="text-center text-sm text-gray-600 mb-4">
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mb-4">
               {t('mfa.verify.chooseMethod')}
             </p>
 
             {state.available_methods.includes('totp') && (
               <button
                 onClick={handleSelectTotpMethod}
-                className="w-full flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors text-left"
+                className="w-full flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors text-left"
               >
-                <div className="flex-shrink-0 p-2 bg-purple-100 text-purple-600 rounded-lg">
+                <div className="flex-shrink-0 p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
                   <ShieldIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{t('mfa.verify.methodTotp')}</p>
-                  <p className="text-xs text-gray-500">{t('mfa.verify.methodTotpDesc')}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('mfa.verify.methodTotp')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('mfa.verify.methodTotpDesc')}</p>
                 </div>
               </button>
             )}
@@ -271,16 +272,16 @@ const MfaVerifyPage: React.FC = () => {
               <button
                 onClick={handleSelectEmailMethod}
                 disabled={sendingEmail}
-                className="w-full flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50/50 transition-colors text-left disabled:opacity-50"
+                className="w-full flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors text-left disabled:opacity-50"
               >
-                <div className="flex-shrink-0 p-2 bg-purple-100 text-purple-600 rounded-lg">
+                <div className="flex-shrink-0 p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
                   <EmailIcon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {sendingEmail ? t('mfa.verify.sendingEmailCode') : t('mfa.verify.methodEmail')}
                   </p>
-                  <p className="text-xs text-gray-500">{t('mfa.verify.methodEmailDesc')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('mfa.verify.methodEmailDesc')}</p>
                 </div>
               </button>
             )}
@@ -289,7 +290,7 @@ const MfaVerifyPage: React.FC = () => {
             <button
               type="button"
               onClick={() => { setViewMode('code'); setError(''); }}
-              className="flex items-center justify-center gap-1.5 w-full mt-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+              className="flex items-center justify-center gap-1.5 w-full mt-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
             >
               <ArrowLeftIcon className="w-3.5 h-3.5" />
               {t('mfa.verify.backToCode')}
@@ -301,20 +302,20 @@ const MfaVerifyPage: React.FC = () => {
         {viewMode === 'code' && (
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Method-specific message */}
-            <div className="text-center text-sm text-gray-600">
+            <div className="text-center text-sm text-gray-600 dark:text-gray-400">
               {currentMethod === 'email' ? (
                 <div className="flex flex-col items-center gap-1">
                   <div className="flex items-center gap-2">
-                    <EmailIcon className="w-4 h-4 text-gray-400" />
+                    <EmailIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <p>{t('mfa.verify.emailSent')}</p>
                   </div>
                   {state?.email && (
-                    <p className="text-xs text-gray-500 font-medium">{state.email}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{state.email}</p>
                   )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-2">
-                  <ShieldIcon className="w-4 h-4 text-gray-400" />
+                  <ShieldIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <p>{t('mfa.verify.totpPrompt')}</p>
                 </div>
               )}
@@ -322,7 +323,7 @@ const MfaVerifyPage: React.FC = () => {
 
             {/* Code input */}
             <div>
-              <label htmlFor="mfa-code" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="mfa-code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {t('mfa.verify.codeLabel')}
               </label>
               <input
@@ -336,7 +337,7 @@ const MfaVerifyPage: React.FC = () => {
                 value={code}
                 onChange={handleCodeChange}
                 maxLength={6}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-center tracking-widest text-lg"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-center tracking-widest text-lg dark:bg-gray-700/50"
                 placeholder="000000"
               />
             </div>
@@ -350,15 +351,15 @@ const MfaVerifyPage: React.FC = () => {
                   disabled={!canResend}
                   className={`font-medium ${
                     canResend
-                      ? 'text-purple-600 hover:text-purple-500 cursor-pointer'
-                      : 'text-gray-400 cursor-not-allowed'
+                      ? 'text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 cursor-pointer'
+                      : 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   {resendCooldown > 0
                     ? `${t('mfa.verify.resend')} (${resendCooldown}s)`
                     : t('mfa.verify.resend')}
                 </button>
-                <span className="text-gray-500">
+                <span className="text-gray-500 dark:text-gray-400">
                   {t('mfa.verify.resendsRemaining', { count: resendsRemaining })}
                 </span>
               </div>
@@ -378,7 +379,7 @@ const MfaVerifyPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setViewMode('recovery'); setCode(''); setError(''); }}
-                className="flex items-center justify-center gap-1.5 w-full font-medium text-purple-600 hover:text-purple-500 text-sm"
+                className="flex items-center justify-center gap-1.5 w-full font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 text-sm"
               >
                 <KeyIcon className="w-3.5 h-3.5" />
                 {t('mfa.verify.useRecoveryCode')}
@@ -388,7 +389,7 @@ const MfaVerifyPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleShowMethodSelection}
-                  className="block w-full font-medium text-purple-600 hover:text-purple-500 text-sm"
+                  className="block w-full font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 text-sm"
                 >
                   {t('mfa.verify.tryAnotherMethod')}
                 </button>
@@ -397,7 +398,7 @@ const MfaVerifyPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/login', { replace: true })}
-                className="block w-full font-medium text-gray-500 hover:text-gray-700 text-sm"
+                className="block w-full font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm"
               >
                 {t('auth.backToLogin')}
               </button>
@@ -408,13 +409,13 @@ const MfaVerifyPage: React.FC = () => {
         {/* ---- RECOVERY CODE VIEW ---- */}
         {viewMode === 'recovery' && (
           <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-              <KeyIcon className="w-4 h-4 text-gray-400" />
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <KeyIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <p>{t('mfa.verify.recoveryPrompt')}</p>
             </div>
 
             <div>
-              <label htmlFor="mfa-recovery" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="mfa-recovery" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {t('mfa.verify.recoveryCodeLabel')}
               </label>
               <input
@@ -427,7 +428,7 @@ const MfaVerifyPage: React.FC = () => {
                 value={code}
                 onChange={handleCodeChange}
                 maxLength={11}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-center tracking-widest text-lg"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-center tracking-widest text-lg dark:bg-gray-700/50"
                 placeholder="XXXXX-XXXXX"
               />
             </div>
@@ -444,7 +445,7 @@ const MfaVerifyPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => { setViewMode('code'); setCode(''); setError(''); }}
-                className="flex items-center justify-center gap-1.5 w-full font-medium text-purple-600 hover:text-purple-500 text-sm"
+                className="flex items-center justify-center gap-1.5 w-full font-medium text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 text-sm"
               >
                 <ArrowLeftIcon className="w-3.5 h-3.5" />
                 {t('mfa.verify.backToCode')}
@@ -453,7 +454,7 @@ const MfaVerifyPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/login', { replace: true })}
-                className="block w-full font-medium text-gray-500 hover:text-gray-700 text-sm"
+                className="block w-full font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm"
               >
                 {t('auth.backToLogin')}
               </button>
