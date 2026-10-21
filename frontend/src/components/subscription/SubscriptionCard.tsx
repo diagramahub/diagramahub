@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Subscription } from '../../types/subscription';
 import CancelSubscriptionModal from './CancelSubscriptionModal';
+import { apiErrorMessage } from '../../utils/apiError';
 
 export default function SubscriptionCard() {
   const { t } = useTranslation();
@@ -22,8 +23,8 @@ export default function SubscriptionCard() {
       const data = await apiService.getMySubscription();
       setSubscription(data);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('subscription.errors.loadingSubscription'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('subscription.errors.loadingSubscription'));
     } finally {
       setLoading(false);
     }
@@ -34,8 +35,8 @@ export default function SubscriptionCard() {
       await apiService.cancelSubscription(immediate);
       setShowCancelModal(false);
       loadSubscription();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('subscription.errors.cancellingSubscription'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('subscription.errors.cancellingSubscription'));
     }
   };
 
@@ -46,8 +47,8 @@ export default function SubscriptionCard() {
       if (session_url) {
         window.location.href = session_url;
       }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('subscription.errors.updatePaymentMethod'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('subscription.errors.updatePaymentMethod'));
     } finally {
       setUpdatingPayment(false);
     }

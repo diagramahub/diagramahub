@@ -7,6 +7,7 @@ import apiService from '../services/api';
 import PremiumAvatar from '../components/PremiumAvatar';
 import MfaSetupSection from '../components/mfa/MfaSetupSection';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import { apiErrorMessage } from '../utils/apiError';
 
 // Lista de zonas horarias comunes
 const TIMEZONES = [
@@ -119,8 +120,8 @@ export default function ProfilePage() {
       setSuccess(t('profile.profileUpdated'));
       setIsEditingProfile(false);
       setTimeout(() => window.location.reload(), 1000);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('profile.profileUpdateError'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('profile.profileUpdateError'));
     } finally {
       setLoading(false);
     }
@@ -146,7 +147,7 @@ export default function ProfilePage() {
       setError(t('profile.passwordTooShort'));
       return;
     }
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(newPassword)) {
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(newPassword)) {
       setError(t('validation.passwordSpecial'));
       return;
     }
@@ -158,8 +159,8 @@ export default function ProfilePage() {
       setNewPassword('');
       setConfirmPassword('');
       setIsChangingPassword(false);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('profile.passwordChangeError'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('profile.passwordChangeError'));
     } finally {
       setLoading(false);
     }
@@ -175,8 +176,8 @@ export default function ProfilePage() {
       // which a bearer token alone cannot do.
       await apiService.requestPasswordReset({ email: user.email });
       setSuccess(t('profile.passwordSetupEmailSent'));
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('profile.passwordChangeError'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('profile.passwordChangeError'));
     } finally {
       setLoading(false);
     }

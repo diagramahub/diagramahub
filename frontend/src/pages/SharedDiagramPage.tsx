@@ -10,6 +10,7 @@ import { SharedLinkInfo, SharedDiagram } from "../types/sharing";
 import AccessCodeForm from "../components/AccessCodeForm";
 import CodeEditor from "../components/CodeEditor";
 import FreehandCanvas from "../components/FreehandCanvas";
+import { apiErrorMessage, apiErrorStatus } from "../utils/apiError";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 10;
@@ -100,8 +101,8 @@ export default function SharedDiagramPage() {
           // Public link — fetch diagram directly
           await fetchDiagram();
         }
-      } catch (err: any) {
-        const status = err?.response?.status;
+      } catch (err: unknown) {
+        const status = apiErrorStatus(err);
         if (status === 404) {
           setPageState('not_found');
         } else if (status === 410) {
@@ -121,8 +122,8 @@ export default function SharedDiagramPage() {
       const data = await api.getSharedDiagram(token);
       setDiagram(data);
       setPageState('diagram');
-    } catch (err: any) {
-      const status = err?.response?.status;
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
       if (status === 410) {
         setPageState('gone');
       } else if (status === 404) {
@@ -142,9 +143,9 @@ export default function SharedDiagramPage() {
       const data = await api.verifyAccessCode(token, { access_code: code });
       setDiagram(data);
       setPageState('diagram');
-    } catch (err: any) {
-      const status = err?.response?.status;
-      const detail = err?.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
+      const detail = apiErrorMessage(err) || '';
 
       if (status === 403) {
         setAccessError(t('sharedView.wrongCode'));

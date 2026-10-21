@@ -5,8 +5,6 @@
  * and a lightweight escape for plain text that must be rendered as HTML.
  */
 
-// DOMPurify is used indirectly via mermaid but we import it directly for SVG safety.
-// eslint-disable-next-line import/no-extraneous-dependencies
 import DOMPurify from 'dompurify';
 
 /**

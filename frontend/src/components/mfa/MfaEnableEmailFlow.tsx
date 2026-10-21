@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import RecoveryCodesModal from './RecoveryCodesModal';
+import { apiErrorMessage, apiErrorStatus } from '../../utils/apiError';
 
 interface MfaEnableEmailFlowProps {
   onComplete: () => void;
@@ -23,11 +24,11 @@ export default function MfaEnableEmailFlow({ onComplete, onCancel }: MfaEnableEm
     try {
       await apiService.enableEmailMfa();
       setStep('verify');
-    } catch (err: any) {
-      if (err.response?.status === 503) {
+    } catch (err: unknown) {
+      if (apiErrorStatus(err) === 503) {
         setError(t('mfa.email.emailUnavailable'));
       } else {
-        setError(err.response?.data?.detail || t('mfa.email.errorSending'));
+        setError(apiErrorMessage(err) || t('mfa.email.errorSending'));
       }
     } finally {
       setLoading(false);
@@ -47,8 +48,8 @@ export default function MfaEnableEmailFlow({ onComplete, onCancel }: MfaEnableEm
         // Already had recovery codes — just complete
         onComplete();
       }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('mfa.email.errorVerifying'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('mfa.email.errorVerifying'));
     } finally {
       setLoading(false);
     }

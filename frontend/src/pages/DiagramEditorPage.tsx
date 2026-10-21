@@ -63,6 +63,7 @@ import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
 import { configInitBlockManager } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
+import { apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -1819,15 +1820,15 @@ export default function DiagramEditorPage() {
       navigate(`/projects/${projectId}/diagrams/${created.id}`, {
         replace: true,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating diagram:", err);
-      const detail = err.response?.data?.detail;
-      if (detail?.error === "resource_limit_exceeded") {
+      const limitDetail = resourceLimitDetail(err);
+      if (limitDetail) {
         setShowNewDiagramModal(false);
         setUpgradePlan({
-          resourceType: detail.resource_type,
-          currentUsage: detail.current_usage,
-          limit: detail.limit,
+          resourceType: limitDetail.resource_type,
+          currentUsage: limitDetail.current_usage,
+          limit: limitDetail.limit,
         });
       } else {
         setError(t("editor.createDiagramError"));
@@ -1927,17 +1928,17 @@ export default function DiagramEditorPage() {
         diagram_code: diagramCode,
         diagram_type: currentDiagram?.diagram_type || "mermaid",
         language: user?.language || "es",
-        ...(preferredProvider ? { provider: preferredProvider as any } : {}),
+        ...(preferredProvider ? { provider: preferredProvider as AIProviderType } : {}),
       });
 
       // Store generated description and show confirmation modal
       setGeneratedDescription(response.description);
       setShowDescriptionConfirmModal(true);
-    } catch (error: any) {
-      if (error.response?.status === 404) {
+    } catch (error: unknown) {
+      if (apiErrorStatus(error) === 404) {
         setError(t("ai.messages.noProvidersError"));
       } else {
-        setError(error.response?.data?.detail || t("ai.generate.error"));
+        setError(apiErrorMessage(error) || t("ai.generate.error"));
       }
     } finally {
       setGeneratingDescription(false);
@@ -1981,12 +1982,12 @@ export default function DiagramEditorPage() {
         current_description: generatedDescription,
         refinement_request: refineInput.trim(),
         language: user?.language || "es",
-        ...(preferredProvider ? { provider: preferredProvider as any } : {}),
+        ...(preferredProvider ? { provider: preferredProvider as AIProviderType } : {}),
       });
       setGeneratedDescription(response.description);
       setRefineInput("");
-    } catch (error: any) {
-      setError(error.response?.data?.detail || t("ai.generate.error"));
+    } catch (error: unknown) {
+      setError(apiErrorMessage(error) || t("ai.generate.error"));
     } finally {
       setRefining(false);
     }
@@ -2016,7 +2017,7 @@ export default function DiagramEditorPage() {
         });
         setSaveStatus("saved");
         setLastSavedTime(new Date());
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error saving improved diagram:", error);
         setSaveStatus("idle");
       }
@@ -2196,7 +2197,7 @@ export default function DiagramEditorPage() {
       });
       setConversionResult(result);
       setShowConversionModal(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setFixError(conversionErrorMessage(err, "conversion.error"));
       setTimeout(() => setFixError(null), 5000);
     } finally {
@@ -2242,7 +2243,7 @@ export default function DiagramEditorPage() {
 
       setShowConversionModal(false);
       setConversionResult(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error applying conversion:", err);
       setFixError(conversionErrorMessage(err, "conversion.applyError"));
       setTimeout(() => setFixError(null), 5000);

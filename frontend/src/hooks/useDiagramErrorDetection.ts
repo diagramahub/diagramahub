@@ -99,9 +99,9 @@ export function useDiagramErrorDetection(
           errorMessage: '',
           errorContext: ''
         });
-      } catch (parseError: any) {
+      } catch (parseError: unknown) {
         // Extract error message
-        const errorMessage = parseError.message || parseError.toString();
+        const errorMessage = (parseError instanceof Error ? parseError.message : '') || String(parseError);
         
         // Try to extract line number if available
         const lineMatch = errorMessage.match(/line (\d+)/i);

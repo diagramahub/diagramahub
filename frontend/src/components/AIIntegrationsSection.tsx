@@ -6,6 +6,7 @@ import AddProviderModal from './AddProviderModal';
 import EditProviderModal from './EditProviderModal';
 import ConfirmModal from './ConfirmModal';
 import { ErrorToast } from './ErrorToast';
+import { apiErrorMessage } from '../utils/apiError';
 
 export default function AIIntegrationsSection() {
   const { t } = useTranslation();
@@ -56,8 +57,8 @@ export default function AIIntegrationsSection() {
       setActionLoading(`remove-${index}`);
       await apiService.removeAIProvider(index);
       await loadSettings();
-    } catch (error: any) {
-      setActionError(error.response?.data?.detail || t('errors.genericError'));
+    } catch (error: unknown) {
+      setActionError(apiErrorMessage(error) || t('errors.genericError'));
     } finally {
       setActionLoading(null);
     }
@@ -71,8 +72,8 @@ export default function AIIntegrationsSection() {
       setActionLoading(`default-${index}`);
       await apiService.setDefaultAIProvider(provider.provider);
       await loadSettings();
-    } catch (error: any) {
-      setActionError(error.response?.data?.detail || t('errors.genericError'));
+    } catch (error: unknown) {
+      setActionError(apiErrorMessage(error) || t('errors.genericError'));
     } finally {
       setActionLoading(null);
     }

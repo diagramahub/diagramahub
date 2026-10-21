@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import { apiErrorStatus } from '../utils/apiError';
 
 const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -43,7 +44,7 @@ const ResetPasswordPage: React.FC = () => {
     if (!/[A-Z]/.test(password)) errors.push(t('validation.passwordUppercase'));
     if (!/[a-z]/.test(password)) errors.push(t('validation.passwordLowercase'));
     if (!/\d/.test(password)) errors.push(t('validation.passwordNumber'));
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password)) errors.push(t('validation.passwordSpecial'));
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(password)) errors.push(t('validation.passwordSpecial'));
     if (email && password.toLowerCase() === email.toLowerCase()) errors.push(t('validation.passwordNotEmail'));
     return errors;
   };
@@ -68,8 +69,8 @@ const ResetPasswordPage: React.FC = () => {
     try {
       await apiService.confirmPasswordReset({ email, token, new_password: newPassword });
       setSuccess(true);
-    } catch (err: any) {
-      const status = err.response?.status;
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
       if (status === 400) {
         setError(t('auth.resetTokenInvalid'));
       } else {

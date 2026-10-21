@@ -15,6 +15,7 @@ import ConfirmModal from "./ConfirmModal";
 import type {
   FreehandCanvasState,
   FreehandElement,
+  FreehandElementType,
   FreehandTool,
   FreehandPoint,
   ConnectionBinding,
@@ -1277,7 +1278,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     } else {
       const x = Math.min(drawStart.x, endPt.x), y = Math.min(drawStart.y, endPt.y);
       const w = Math.abs(endPt.x - drawStart.x), h = Math.abs(endPt.y - drawStart.y);
-      if (w > 3 || h > 3) newEl = { id: generateId(), type: activeTool as any, x, y, width: w, height: h, strokeColor, fillColor, strokeWidth, opacity: 1, fontFamily: "hand", ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
+      if (w > 3 || h > 3) newEl = { id: generateId(), type: activeTool as FreehandElementType, x, y, width: w, height: h, strokeColor, fillColor, strokeWidth, opacity: 1, fontFamily: "hand", ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
     }
 
     if (newEl) {

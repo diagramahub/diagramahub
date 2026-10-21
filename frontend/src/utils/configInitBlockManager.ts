@@ -19,14 +19,14 @@ export interface InitJson {
   themeVariables?: {
     fontFamily?: string;
     fontSize?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   flowchart?: {
     curve?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   handDrawnSeed?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export class ConfigInitBlockManager {
@@ -108,7 +108,7 @@ export class ConfigInitBlockManager {
     }
 
     // Add themeVariables if any font settings are present
-    const themeVariables: { [key: string]: any } = {};
+    const themeVariables: { [key: string]: unknown } = {};
     
     // Font settings
     if (config.fontFamily) {
@@ -123,7 +123,7 @@ export class ConfigInitBlockManager {
     }
 
     // Add flowchart configuration
-    const flowchartConfig: { [key: string]: any } = {};
+    const flowchartConfig: { [key: string]: unknown } = {};
     
     // Curve type - prioritize explicit curve setting, otherwise use layout
     if (config.curve) {

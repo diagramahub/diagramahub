@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import LanguageSelector from '../components/LanguageSelector';
+import { apiErrorMessage } from '../utils/apiError';
 
 const TIMEZONES = [
   { value: 'America/Mexico_City', label: 'Ciudad de México (GMT-6)' },
@@ -116,8 +117,8 @@ export default function InstallationWizardPage() {
 
       // Redirect to dashboard
       navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('errors.genericError'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('errors.genericError'));
       setLoading(false);
     }
   };

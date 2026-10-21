@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { VendorConfigResponse, IntegrationStatus, VendorConfigCreate, VendorConfigUpdate } from '../../types/integrations';
 import ConfirmModal from '../ConfirmModal';
+import { apiErrorMessage } from '../../utils/apiError';
 
 /* ── vendor catalogue (available to connect) ─────────────────────── */
 type VendorCatalogEntry = {
@@ -123,8 +124,8 @@ export default function IntegrationsSection() {
       ]);
       setVendors([...emailData, ...paymentData, ...oauthData]);
       setStatus(statusData);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error loading integrations');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error loading integrations');
     } finally { setLoading(false); }
   };
 
@@ -192,7 +193,7 @@ export default function IntegrationsSection() {
       }
       resetForm(); await loadIntegrations();
       setActiveTab('connected');
-    } catch (err: any) { setFormError(err.response?.data?.detail || t('errors.genericError')); }
+    } catch (err: unknown) { setFormError(apiErrorMessage(err) || t('errors.genericError')); }
     finally { setFormSaving(false); }
   };
 
@@ -204,7 +205,7 @@ export default function IntegrationsSection() {
       const r = await apiService.testIntegrationVendor(id);
       setTestResult({ id, success: r.success, message: r.success ? t('integrations.messages.testSuccess') : (r.error_detail || r.message) });
       await loadIntegrations();
-    } catch (err: any) { setTestResult({ id, success: false, message: err.response?.data?.detail || t('integrations.messages.testFailed') }); }
+    } catch (err: unknown) { setTestResult({ id, success: false, message: apiErrorMessage(err) || t('integrations.messages.testFailed') }); }
     finally { setTestingId(null); }
   };
 
@@ -214,7 +215,7 @@ export default function IntegrationsSection() {
       await apiService.setDefaultIntegrationVendor(id);
       setSuccessMsg(cat === 'email' ? t('integrations.messages.setDefaultSuccess') : cat === 'oauth' ? t('integrations.messages.activateSuccess') : t('integrations.messages.activateSuccess'));
       await loadIntegrations();
-    } catch (err: any) { setError(err.response?.data?.detail || t('integrations.messages.mustTestFirst')); }
+    } catch (err: unknown) { setError(apiErrorMessage(err) || t('integrations.messages.mustTestFirst')); }
     finally { setSettingDefaultId(null); }
   };
 
@@ -227,7 +228,7 @@ export default function IntegrationsSection() {
       await apiService.deleteIntegrationVendor(id);
       setSuccessMsg(t('integrations.messages.vendorDeleted'));
       await loadIntegrations();
-    } catch (err: any) { setError(err.response?.data?.detail || t('errors.genericError')); }
+    } catch (err: unknown) { setError(apiErrorMessage(err) || t('errors.genericError')); }
     finally { setDeletingId(null); }
   };
 

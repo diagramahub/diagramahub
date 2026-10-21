@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import { Plan, Subscription } from '../../types/subscription';
+import { apiErrorMessage } from '../../utils/apiError';
 
 interface PlanSelectorProps {
   currentSubscription: Subscription | null;
@@ -23,8 +24,8 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
       const data = await apiService.getPlans();
       setPlans(data);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error loading plans');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error loading plans');
     } finally {
       setLoading(false);
     }
@@ -44,8 +45,8 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
           onPlanSelected();
         }
       }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error changing plan');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error changing plan');
       setChangingToPlan(null);
     }
   };

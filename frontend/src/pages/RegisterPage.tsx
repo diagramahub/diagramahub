@@ -52,7 +52,7 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/~]/.test(password)) {
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(password)) {
       setError(t('validation.passwordSpecial'));
       return;
     }
@@ -68,8 +68,8 @@ const RegisterPage: React.FC = () => {
       await register(email, password, fullName || undefined);
       // Redirect to onboarding wizard to create first project
       navigate('/onboarding');
-    } catch (err: any) {
-      setError(err.message || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

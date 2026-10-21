@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { MfaSetupTotpResponse } from '../../types/auth';
 import RecoveryCodesModal from './RecoveryCodesModal';
+import { apiErrorMessage } from '../../utils/apiError';
 
 interface MfaEnableTotpFlowProps {
   onComplete: () => void;
@@ -25,8 +26,8 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
       try {
         const data = await apiService.setupTotp();
         setSetupData(data);
-      } catch (err: any) {
-        setError(err.response?.data?.detail || t('mfa.totp.errorSetup'));
+      } catch (err: unknown) {
+        setError(apiErrorMessage(err) || t('mfa.totp.errorSetup'));
       } finally {
         setSetupLoading(false);
       }
@@ -66,8 +67,8 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
         // Already had recovery codes — just complete
         onComplete();
       }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || t('mfa.totp.errorVerifying'));
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || t('mfa.totp.errorVerifying'));
     } finally {
       setLoading(false);
     }

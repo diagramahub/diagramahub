@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AuthContextType, User, LoginResponse } from '../types/auth';
 import apiService from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -38,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {
         // MFA status fetch failed — default to false (show banner)
       }
-    } catch (error) {
+    } catch {
       // Token is invalid, clear everything
       logout();
     } finally {
@@ -75,8 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = await apiService.getCurrentUser();
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
-    } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Login failed');
+    } catch (error: unknown) {
+      throw new Error(apiErrorMessage(error) || 'Login failed');
     }
   };
 
@@ -115,8 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiService.register({ email, password, full_name: fullName });
       // Auto login after registration
       await login(email, password);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.detail || 'Registration failed');
+    } catch (error: unknown) {
+      throw new Error(apiErrorMessage(error) || 'Registration failed');
     }
   };
 
@@ -144,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook lives with its provider; editing this file reloads instead of hot-swapping
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

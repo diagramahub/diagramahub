@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
 
 interface MfaVerifyLocationState {
   mfa_token: string;
@@ -136,9 +137,9 @@ const MfaVerifyPage: React.FC = () => {
 
       await completeMfaLogin(response.access_token);
       navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
+      const detail = apiErrorMessage(err) || '';
 
       if (status === 401 && detail.toLowerCase().includes('expir')) {
         navigate('/login', {
@@ -161,8 +162,8 @@ const MfaVerifyPage: React.FC = () => {
       setResendsRemaining(response.resends_remaining);
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setError('');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const detail = apiErrorMessage(err) || '';
       setError(detail || t('mfa.verify.resendError'));
     }
   }, [state?.mfa_token, resendCooldown, resendsRemaining, t]);
@@ -181,8 +182,8 @@ const MfaVerifyPage: React.FC = () => {
       setCode('');
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       setViewMode('code');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail || '';
+    } catch (err: unknown) {
+      const detail = apiErrorMessage(err) || '';
       setError(detail || t('mfa.verify.switchError'));
     } finally {
       setSendingEmail(false);

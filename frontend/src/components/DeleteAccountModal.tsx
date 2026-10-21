@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { apiErrorMessage } from '../utils/apiError';
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -37,10 +38,10 @@ export default function DeleteAccountModal({
     setError(null);
     try {
       await onConfirm(inputValue);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.detail ||
-        err?.message ||
+        apiErrorMessage(err) ||
+        (err instanceof Error ? err.message : '') ||
         t('dangerZone.errorMessage');
       setError(message);
     } finally {

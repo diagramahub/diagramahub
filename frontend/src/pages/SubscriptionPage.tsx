@@ -7,7 +7,7 @@ import UsageIndicator from '../components/subscription/UsageIndicator';
 import PlanSelector from '../components/subscription/PlanSelector';
 import BillingHistory from '../components/subscription/BillingHistory';
 import SuccessCelebrationModal from '../components/subscription/SuccessCelebrationModal';
-import { Subscription } from '../types/subscription';
+import { Plan, Subscription } from '../types/subscription';
 
 export default function SubscriptionPage() {
   const { t } = useTranslation();
@@ -17,7 +17,7 @@ export default function SubscriptionPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationPlan, setCelebrationPlan] = useState<any>(null);
+  const [celebrationPlan, setCelebrationPlan] = useState<Plan | null>(null);
 
   const loadSubscription = async () => {
     try {

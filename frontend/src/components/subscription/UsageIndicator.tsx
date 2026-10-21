@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import { UsageSummary } from '../../types/subscription';
+import { apiErrorMessage } from '../../utils/apiError';
 
 export default function UsageIndicator() {
   const [usage, setUsage] = useState<UsageSummary | null>(null);
@@ -17,8 +18,8 @@ export default function UsageIndicator() {
       const data = await apiService.getUsageSummary();
       setUsage(data);
       setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error loading usage');
+    } catch (err: unknown) {
+      setError(apiErrorMessage(err) || 'Error loading usage');
     } finally {
       setLoading(false);
     }
