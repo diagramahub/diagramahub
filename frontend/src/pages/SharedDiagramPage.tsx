@@ -609,7 +609,7 @@ export default function SharedDiagramPage() {
             </div>
             {/* Scrollable markdown content */}
             <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
-              <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 prose-headings:text-gray-800 prose-a:text-purple-600 prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1 prose-code:rounded">
+              <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-700 dark:prose-code:text-purple-300 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/30 prose-code:px-1 prose-code:rounded prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {diagram.description}
                 </ReactMarkdown>
