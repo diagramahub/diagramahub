@@ -78,6 +78,24 @@ export default function SharedDiagramPage() {
   const diagramRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  const fetchDiagram = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await api.getSharedDiagram(token);
+      setDiagram(data);
+      setPageState('diagram');
+    } catch (err: unknown) {
+      const status = apiErrorStatus(err);
+      if (status === 410) {
+        setPageState('gone');
+      } else if (status === 404) {
+        setPageState('not_found');
+      } else {
+        setPageState('error');
+      }
+    }
+  }, [token]);
+
   // Fetch link info on mount
   useEffect(() => {
     if (!token) {
@@ -114,25 +132,7 @@ export default function SharedDiagramPage() {
     };
 
     fetchLinkInfo();
-  }, [token]);
-
-  const fetchDiagram = async () => {
-    if (!token) return;
-    try {
-      const data = await api.getSharedDiagram(token);
-      setDiagram(data);
-      setPageState('diagram');
-    } catch (err: unknown) {
-      const status = apiErrorStatus(err);
-      if (status === 410) {
-        setPageState('gone');
-      } else if (status === 404) {
-        setPageState('not_found');
-      } else {
-        setPageState('error');
-      }
-    }
-  };
+  }, [token, fetchDiagram]);
 
   const handleVerifyCode = async (code: string) => {
     if (!token) return;
@@ -207,7 +207,7 @@ export default function SharedDiagramPage() {
     };
 
     doRender();
-  }, [diagram]);
+  }, [diagram, t]);
 
   // Zoom handlers
   const handleZoomIn = useCallback(() => {

@@ -939,6 +939,7 @@ export default function DiagramEditorPage() {
   useEffect(() => {
     initialLoadComplete.current = false;
     loadProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load on route change only; loadProject reads the state it is about to replace
   }, [projectId, diagramId]);
 
   // Save last viewed diagram when diagramId changes
@@ -1265,7 +1266,8 @@ export default function DiagramEditorPage() {
       const debounce = setTimeout(doRender, 500); // Increased debounce time
       return () => clearTimeout(debounce);
     }
-  }, [fullDiagramCode, currentDiagram, diagramCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleFitToScreen is declared later and redeclared every render; the effect reruns on code changes
+  }, [fullDiagramCode, currentDiagram, diagramCode, t]);
 
   // Autosave
   // ---------------------------------------------------------------------------
@@ -1446,6 +1448,7 @@ export default function DiagramEditorPage() {
     pendingSave.current = save;
     const debounce = setTimeout(() => void persistDiagram(save), 1500);
     return () => clearTimeout(debounce);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- zoom/pan are saved by the viewport effect (silently); listing them would autosave content on every pan
   }, [
     currentDiagram?.id,
     diagramId,
@@ -1562,6 +1565,7 @@ export default function DiagramEditorPage() {
         setDiagramCurve(parseResult.config.curve);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- code -> controls only: rerunning on control changes would revert them from the old code
   }, [diagramCode]);
 
   // Parse theme from content when user manually edits PlantUML code with theme directive
@@ -1583,6 +1587,7 @@ export default function DiagramEditorPage() {
         setPlantUMLTheme(parseResult.config.theme);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- code -> controls only: rerunning on control changes would revert them from the old code
   }, [diagramCode]);
 
   // Parse theme from content when user manually edits D2 code with vars block
@@ -1603,6 +1608,7 @@ export default function DiagramEditorPage() {
         setD2ThemeId(parseResult.config.themeId);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- code -> controls only: rerunning on control changes would revert them from the old code
   }, [diagramCode]);
 
   // Update init block in code when UI controls change (for Mermaid diagrams)
@@ -1638,6 +1644,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controls -> code only: rerunning on every keystroke would rewrite the user's init block
   }, [
     diagramTheme,
     diagramLayout,
@@ -1672,6 +1679,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controls -> code only: rerunning on every keystroke would rewrite the user's theme directive
   }, [plantUMLTheme, currentDiagram]);
 
   // Update vars block in code when UI controls change (for D2 diagrams)
@@ -1692,6 +1700,7 @@ export default function DiagramEditorPage() {
       isUpdatingFromUI.current = true;
       setDiagramCode(updatedCode);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- controls -> code only: rerunning on every keystroke would rewrite the user's vars block
   }, [d2ThemeId, currentDiagram]);
 
   // Separate effect for viewport changes (zoom/pan) - saves less frequently.
@@ -1699,19 +1708,20 @@ export default function DiagramEditorPage() {
   // viewport on load creates a new `pan` object but is not a change, so the
   // first values seen for each diagram are the baseline and are never written.
   const viewportBaseline = useRef<{ id: string; key: string } | null>(null);
+  const currentDiagramId = currentDiagram?.id;
   useEffect(() => {
-    if (!currentDiagram || !projectId) return;
-    if (currentDiagram.id !== diagramId) return; // mid-switch
+    if (!currentDiagramId || !projectId) return;
+    if (currentDiagramId !== diagramId) return; // mid-switch
 
     const viewport = { viewport_zoom: zoom, viewport_x: pan.x, viewport_y: pan.y };
     const key = JSON.stringify(viewport);
-    if (viewportBaseline.current?.id !== currentDiagram.id) {
-      viewportBaseline.current = { id: currentDiagram.id, key };
+    if (viewportBaseline.current?.id !== currentDiagramId) {
+      viewportBaseline.current = { id: currentDiagramId, key };
       return;
     }
     if (key === viewportBaseline.current.key) return;
 
-    const diagramToSave = currentDiagram.id;
+    const diagramToSave = currentDiagramId;
     const saveViewport = async () => {
       try {
         await api.updateDiagram(diagramToSave, viewport);
@@ -1727,7 +1737,7 @@ export default function DiagramEditorPage() {
     // Silent on purpose: panning/zooming is not an edit, so no "Saved" badge.
     const debounce = setTimeout(saveViewport, 1000);
     return () => clearTimeout(debounce);
-  }, [zoom, pan, currentDiagram?.id, diagramId]);
+  }, [zoom, pan, currentDiagramId, diagramId, projectId]);
 
   const handleNewDiagram = (folderId: string | null = null) => {
     setNewDiagramName("");
@@ -2095,6 +2105,7 @@ export default function DiagramEditorPage() {
       handleFitToScreen();
     }, 300);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refit only when the description panel opens or closes
   }, [showDescriptionView]);
 
   // Fix diagram handlers

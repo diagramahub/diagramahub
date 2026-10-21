@@ -99,7 +99,7 @@ export default function AIChatPanel({
         setActiveModel(defaultConfig.model);
       }
     }
-  }, [aiSettings]);
+  }, [aiSettings, activeProvider, activeModel]);
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const isFinalized = activeSession?.status === 'finalized';
@@ -151,6 +151,7 @@ export default function AIChatPanel({
       }
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialize once per open/diagram; re-running on model or handler changes would reload the sessions
   }, [isOpen, diagramId]);
 
   // Crear nueva sesión
@@ -399,6 +400,7 @@ export default function AIChatPanel({
       }));
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on diagram change; depending on isStreaming would abort every stream as it starts
   }, [diagramId]);
 
   // Aceptar mejora

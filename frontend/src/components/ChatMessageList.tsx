@@ -109,14 +109,14 @@ export default function ChatMessageList({
   // Auto-scroll al último mensaje
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [messages, isLoading, scrollToBottom]);
 
   // Auto-scroll during streaming
   useEffect(() => {
     if (streamingContent) {
       scrollToBottom();
     }
-  }, [streamingContent]);
+  }, [streamingContent, scrollToBottom]);
 
   if (messages.length === 0 && !isLoading) {
     return (

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { AuthContextType, User, LoginResponse } from '../types/auth';
 import apiService from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -11,22 +11,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [mfaEnabled, setMfaEnabled] = useState(false);
 
-  useEffect(() => {
-    // Load user and token from localStorage on mount
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      // Verify token is still valid
-      verifyToken();
-    } else {
-      setLoading(false);
-    }
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('oauth_session');
+    setToken(null);
+    setUser(null);
   }, []);
 
-  const verifyToken = async () => {
+  const verifyToken = useCallback(async () => {
     try {
       const userData = await apiService.getCurrentUser();
       setUser(userData);
@@ -45,7 +38,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout]);
+
+  useEffect(() => {
+    // Load user and token from localStorage on mount
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+      // Verify token is still valid
+      verifyToken();
+    } else {
+      setLoading(false);
+    }
+  }, [verifyToken]);
 
   const login = async (email: string, password: string): Promise<LoginResponse | void> => {
     try {
@@ -119,14 +127,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: unknown) {
       throw new Error(apiErrorMessage(error) || 'Registration failed');
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('oauth_session');
-    setToken(null);
-    setUser(null);
   };
 
   const value: AuthContextType = {

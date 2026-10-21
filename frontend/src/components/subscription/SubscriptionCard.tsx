@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Subscription } from '../../types/subscription';
@@ -13,11 +13,7 @@ export default function SubscriptionCard() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [updatingPayment, setUpdatingPayment] = useState(false);
 
-  useEffect(() => {
-    loadSubscription();
-  }, []);
-
-  const loadSubscription = async () => {
+  const loadSubscription = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getMySubscription();
@@ -28,7 +24,11 @@ export default function SubscriptionCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    loadSubscription();
+  }, [loadSubscription]);
 
   const handleCancelSubscription = async (immediate: boolean) => {
     try {

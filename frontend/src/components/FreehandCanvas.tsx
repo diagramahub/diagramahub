@@ -754,6 +754,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
     // Restore pan transform
     ctx.restore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- renderElement is redeclared every render but only reads editingId, which is listed
   }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides]);
 
   useEffect(() => { draw(); }, [draw]);

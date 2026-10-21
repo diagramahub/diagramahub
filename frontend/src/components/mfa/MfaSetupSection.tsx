@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { MfaStatusResponse } from '../../types/auth';
@@ -64,7 +64,7 @@ export default function MfaSetupSection() {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     try {
       const data = await apiService.getMfaStatus();
       setStatus(data);
@@ -73,11 +73,11 @@ export default function MfaSetupSection() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     loadStatus();
-  }, []);
+  }, [loadStatus]);
 
   const clearMessages = () => {
     setError('');

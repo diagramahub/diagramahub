@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../utils/locale';
 import apiService from '../../services/api';
@@ -11,11 +11,7 @@ export default function BillingHistory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadBillingHistory();
-  }, []);
-
-  const loadBillingHistory = async () => {
+  const loadBillingHistory = useCallback(async () => {
     try {
       setLoading(true);
       const data = await apiService.getBillingHistory(10);
@@ -26,7 +22,11 @@ export default function BillingHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    loadBillingHistory();
+  }, [loadBillingHistory]);
 
   const handleDownloadInvoice = async (invoiceId: string) => {
     try {
