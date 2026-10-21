@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.8.4"
+    VERSION: str = "0.8.5"
     API_V1_PREFIX: str = "/api/v1"
 
     # Global request body limit (bytes). Generous on purpose: freehand
