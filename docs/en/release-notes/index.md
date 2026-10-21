@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.8.5](0.8.5.md) | 2026-10-21 | Maintenance: dependency advisories, sign-in error shown again, complete dark mode, shared page in English, clean lint |
 | [0.8.4](0.8.4.md) | 2026-10-19 | Security (AI chat, MFA, webhooks, Mermaid, IP behind proxy), configuration and complete documentation |
 | [0.8.3](0.8.3.md) | 2026-10-11 | Documentation: the published site is built with MkDocs Material (was Jekyll) |
 | [0.8.2](0.8.2.md) | 2026-10-04 | AI chat: the diagram always reaches the preview (never loose code) and the chat fully in English |
