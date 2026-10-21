@@ -123,7 +123,7 @@ export default function InstallationWizardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* Language Selector */}
         <div className="flex justify-end mb-4">
@@ -137,10 +137,10 @@ export default function InstallationWizardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
             {t('installation.title')}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             {t('installation.subtitle')}
           </p>
         </div>
@@ -152,18 +152,18 @@ export default function InstallationWizardPage() {
               <div key={s} className="flex items-center">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${step >= s
                   ? 'bg-purple-500 border-purple-500 text-white'
-                  : 'bg-white border-gray-300 text-gray-400'
+                  : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'
                   }`}>
                   {s}
                 </div>
                 {s < 3 && (
-                  <div className={`w-16 h-1 transition-all ${step > s ? 'bg-purple-500' : 'bg-gray-300'
+                  <div className={`w-16 h-1 transition-all ${step > s ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
                     }`} />
                 )}
               </div>
             ))}
           </div>
-          <div className="flex justify-between mt-2 text-xs text-gray-500">
+          <div className="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
             <span className="w-24 text-center">{t('installation.stepAccount')}</span>
             <span className="w-24 text-center">{t('installation.stepProfile')}</span>
             <span className="w-24 text-center">{t('installation.stepTimezone')}</span>
@@ -171,10 +171,10 @@ export default function InstallationWizardPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
 
@@ -182,53 +182,53 @@ export default function InstallationWizardPage() {
           {step === 1 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                   {t('installation.step1Title')}
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {t('installation.step1Subtitle')}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('common.email')}
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder={t('installation.emailPlaceholder')}
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('common.password')}
                 </label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder={t('installation.passwordPlaceholder')}
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   {t('installation.passwordHint')}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('common.confirmPassword')}
                 </label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder={t('installation.repeatPassword')}
                 />
               </div>
@@ -239,36 +239,36 @@ export default function InstallationWizardPage() {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                   {t('installation.step2Title')}
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {t('installation.step2Subtitle')}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('common.fullName')}
                 </label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   placeholder={t('installation.fullNamePlaceholder')}
                   autoFocus
                 />
               </div>
 
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-purple-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-purple-500 dark:text-purple-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <div className="text-sm text-purple-800">
+                  <div className="text-sm text-purple-800 dark:text-purple-300">
                     <p className="font-medium mb-1">{t('installation.adminInfo')}</p>
-                    <p className="text-purple-700">
+                    <p className="text-purple-700 dark:text-purple-300">
                       {t('installation.adminDescription')}
                     </p>
                   </div>
@@ -281,22 +281,22 @@ export default function InstallationWizardPage() {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                   {t('installation.step3Title')}
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {t('installation.step3Subtitle')}
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t('installation.yourTimezone')}
                 </label>
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                   autoFocus
                 >
                   {TIMEZONES.map((tz) => (
@@ -307,14 +307,14 @@ export default function InstallationWizardPage() {
                 </select>
               </div>
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <div className="text-sm text-green-800">
+                  <div className="text-sm text-green-800 dark:text-green-300">
                     <p className="font-medium mb-1">{t('installation.allReady')}</p>
-                    <p className="text-green-700">
+                    <p className="text-green-700 dark:text-green-300">
                       {t('installation.allReadyDescription')}
                     </p>
                   </div>
@@ -322,8 +322,8 @@ export default function InstallationWizardPage() {
               </div>
 
               {/* Summary */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <p className="text-xs font-medium text-gray-500 uppercase">{t('installation.summary')}</p>
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-2">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('installation.summary')}</p>
                 <div className="space-y-1">
                   <p className="text-sm"><span className="font-medium">{t('common.email')}:</span> {email}</p>
                   <p className="text-sm"><span className="font-medium">{t('common.name')}:</span> {fullName}</p>
@@ -335,13 +335,13 @@ export default function InstallationWizardPage() {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleBack}
               disabled={step === 1 || loading}
               className={`px-6 py-2 rounded-lg font-medium transition-colors ${step === 1 || loading
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
             >
               {t('common.back')}
@@ -379,7 +379,7 @@ export default function InstallationWizardPage() {
 
         {/* Footer */}
         <div className="text-center mt-6">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {t('installation.footer')}
           </p>
         </div>

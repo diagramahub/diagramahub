@@ -40,17 +40,17 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
           {t('mfa.recoveryCodes.title')}
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {t('mfa.recoveryCodes.description')}
         </p>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-yellow-800">
-            <svg className="w-4 h-4 inline-block mr-1 -mt-0.5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-yellow-800 dark:text-yellow-300">
+            <svg className="w-4 h-4 inline-block mr-1 -mt-0.5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             {t('mfa.recoveryCodes.warning')}
@@ -61,7 +61,7 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
           {codes.map((code, index) => (
             <div
               key={index}
-              className="bg-gray-50 border border-gray-200 rounded px-3 py-2 text-center font-mono text-sm text-gray-800"
+              className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-center font-mono text-sm text-gray-800 dark:text-gray-200"
             >
               {code}
             </div>
@@ -70,7 +70,7 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
 
         <button
           onClick={handleCopyAll}
-          className="w-full mb-4 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+          className="w-full mb-4 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
         >
           {copied ? `✓ ${t('mfa.recoveryCodes.copied')}` : t('mfa.recoveryCodes.copyAll')}
         </button>
@@ -80,9 +80,9 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
             type="checkbox"
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
-            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            className="w-4 h-4 text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
           />
-          <span className="text-sm text-gray-700">
+          <span className="text-sm text-gray-700 dark:text-gray-300">
             {t('mfa.recoveryCodes.confirmSaved')}
           </span>
         </label>

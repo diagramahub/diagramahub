@@ -80,25 +80,25 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
 
   if (setupLoading) {
     return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <p className="text-sm text-gray-600">{t('mfa.totp.loading')}</p>
+      <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">{t('mfa.totp.loading')}</p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-1">
+      <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
           {t('mfa.totp.title')}
         </h4>
-        <p className="text-xs text-gray-600 mb-4">
+        <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
           {t('mfa.totp.description')}
         </p>
 
         {error && (
-          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
@@ -106,29 +106,29 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
           <>
             {/* Step 1: QR Code */}
             <div className="mb-4">
-              <h5 className="text-sm font-medium text-gray-800 mb-1">
+              <h5 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
                 {t('mfa.totp.step1')}
               </h5>
-              <p className="text-xs text-gray-600 mb-3">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                 {t('mfa.totp.step1Description')}
               </p>
               <div className="flex justify-center mb-3">
                 <img
                   src={`data:image/png;base64,${setupData.qr_code_base64}`}
                   alt={t('mfa.totp.qrAlt')}
-                  className="w-48 h-48 border border-gray-200 rounded-lg"
+                  className="w-48 h-48 border border-gray-200 dark:border-gray-700 rounded-lg"
                 />
               </div>
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                 {t('mfa.totp.cantScanQr')}
               </p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 bg-white border border-gray-200 rounded px-3 py-2 font-mono text-xs text-gray-800 break-all select-all">
+                <div className="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all select-all">
                   {setupData.secret_key}
                 </div>
                 <button
                   onClick={handleCopySecret}
-                  className="px-3 py-2 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 transition-colors whitespace-nowrap"
+                  className="px-3 py-2 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors whitespace-nowrap"
                 >
                   {secretCopied ? `✓ ${t('mfa.totp.secretCopied')}` : t('mfa.totp.copySecret')}
                 </button>
@@ -137,10 +137,10 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
 
             {/* Step 2: Verify Code */}
             <div>
-              <h5 className="text-sm font-medium text-gray-800 mb-1">
+              <h5 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
                 {t('mfa.totp.step2')}
               </h5>
-              <p className="text-xs text-gray-600 mb-3">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                 {t('mfa.totp.step2Description')}
               </p>
               <form onSubmit={handleVerifyCode}>
@@ -150,7 +150,7 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder={t('mfa.totp.codePlaceholder')}
                   maxLength={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-center text-lg tracking-widest mb-3"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-center text-lg tracking-widest mb-3 dark:bg-gray-700 dark:text-gray-100"
                   autoFocus
                 />
                 <div className="flex gap-2">
@@ -164,7 +164,7 @@ export default function MfaEnableTotpFlow({ onComplete, onCancel }: MfaEnableTot
                   <button
                     type="button"
                     onClick={onCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     {t('mfa.totp.cancel')}
                   </button>

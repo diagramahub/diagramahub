@@ -101,7 +101,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
   const hasContent = code.trim() && !renderError;
 
   return (
-    <div className="w-full h-full flex flex-col bg-white rounded-lg border border-gray-300 overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-white rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
       {/* Viewport */}
       <div
         ref={viewportRef}
@@ -114,14 +114,14 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
       >
         {renderError ? (
           <div className="w-full h-full flex items-center justify-center">
-            <div className="text-amber-600 text-sm text-center p-4">
+            <div className="text-amber-600 dark:text-amber-400 text-sm text-center p-4">
               <p className="font-medium mb-1">{t('diagramPreview.syntaxError')}</p>
-              <p className="text-xs text-gray-500">{renderError}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{renderError}</p>
             </div>
           </div>
         ) : !code.trim() ? (
           <div className="w-full h-full flex items-center justify-center">
-            <p className="text-sm text-gray-400">{t('diagramPreview.empty')}</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">{t('diagramPreview.empty')}</p>
           </div>
         ) : (
           <div
@@ -139,11 +139,11 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
 
       {/* Zoom controls bar */}
       {hasContent && (
-        <div className="flex items-center justify-center gap-1 px-3 py-1.5 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-center gap-1 px-3 py-1.5 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
           <button
             onClick={handleZoomOut}
             disabled={zoom <= MIN_ZOOM}
-            className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title={t('diagramPreview.zoomOut')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +152,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
           </button>
           <button
             onClick={handleReset}
-            className="px-2 py-0.5 text-xs font-medium text-gray-600 hover:bg-gray-200 rounded transition-colors min-w-[3rem] text-center"
+            className="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors min-w-[3rem] text-center"
             title={t('diagramPreview.zoomReset')}
           >
             {zoomPercent}%
@@ -160,7 +160,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
           <button
             onClick={handleZoomIn}
             disabled={zoom >= MAX_ZOOM}
-            className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title={t('diagramPreview.zoomIn')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

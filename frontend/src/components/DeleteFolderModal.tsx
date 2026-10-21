@@ -42,29 +42,29 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 flex-1">Eliminar carpeta</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex-1">Eliminar carpeta</h3>
           </div>
         </div>
 
         {/* Body */}
         <div className="px-6 py-4 space-y-4">
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             ¿Estás seguro de que quieres eliminar la carpeta <span className="font-semibold">"{folderName}"</span>?
           </p>
 
           {diagramCount > 0 && (
             <>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                <p className="text-sm text-purple-800">
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+                <p className="text-sm text-purple-800 dark:text-purple-300">
                   Esta carpeta contiene <span className="font-semibold">{diagramCount}</span> {diagramCount === 1 ? 'diagrama' : 'diagramas'}.
                 </p>
               </div>
@@ -77,11 +77,11 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
                     name="deleteOption"
                     checked={!deleteDiagrams}
                     onChange={() => setDeleteDiagrams(false)}
-                    className="mt-1 w-4 h-4 text-purple-600 focus:ring-purple-500"
+                    className="mt-1 w-4 h-4 text-purple-600 dark:text-purple-400 focus:ring-purple-500"
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Mover a la raíz</p>
-                    <p className="text-xs text-gray-500">Los diagramas se moverán al nivel principal del proyecto</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Mover a la raíz</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Los diagramas se moverán al nivel principal del proyecto</p>
                   </div>
                 </label>
 
@@ -91,11 +91,11 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
                     name="deleteOption"
                     checked={deleteDiagrams}
                     onChange={() => setDeleteDiagrams(true)}
-                    className="mt-1 w-4 h-4 text-red-600 focus:ring-red-500"
+                    className="mt-1 w-4 h-4 text-red-600 dark:text-red-400 focus:ring-red-500"
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Eliminar todos los diagramas</p>
-                    <p className="text-xs text-gray-500">Se eliminarán permanentemente junto con la carpeta</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Eliminar todos los diagramas</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Se eliminarán permanentemente junto con la carpeta</p>
                   </div>
                 </label>
               </div>
@@ -103,16 +103,16 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
           )}
 
           {diagramCount === 0 && (
-            <p className="text-sm text-gray-500">Esta carpeta está vacía.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Esta carpeta está vacía.</p>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={isConfirming}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancelar
           </button>
