@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -17,10 +18,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText,
+  cancelText,
   isDangerous = false,
 }) => {
+  const { t } = useTranslation();
   const [isConfirming, setIsConfirming] = useState(false);
 
   // Reset confirming state when modal closes
@@ -73,7 +75,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             disabled={isConfirming}
             className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {cancelText}
+            {cancelText ?? t('common.cancel')}
           </button>
           <button
             onClick={handleConfirm}
@@ -90,7 +92,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             )}
-            {isConfirming ? 'Procesando...' : confirmText}
+            {isConfirming ? t('common.processing') : confirmText ?? t('common.confirm')}
           </button>
         </div>
       </div>

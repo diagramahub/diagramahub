@@ -39,7 +39,8 @@
     },
     "tabs": "Pestañas",
     "sidebar": "Barra lateral",
-    "loadingTable": "Cargando tabla"
+    "loadingTable": "Cargando tabla",
+    "processing": "Procesando..."
   },
   "nav": {
     "dashboard": "Panel de control",
@@ -108,7 +109,9 @@
       "digit": "Al menos un número",
       "special": "Al menos un carácter especial",
       "notEmail": "No puede ser igual al correo electrónico"
-    }
+    },
+    "show": "Mostrar contraseña",
+    "hide": "Ocultar contraseña"
   },
   "admin": {
     "users": {
@@ -388,7 +391,17 @@
     "updated": "Carpeta actualizada",
     "deleted": "Carpeta eliminada",
     "empty": "Carpeta vacía",
-    "emptyDescription": "No hay diagramas en esta carpeta"
+    "emptyDescription": "No hay diagramas en esta carpeta",
+    "deleteTitle": "Eliminar carpeta",
+    "deleteConfirm": "¿Estás seguro de que quieres eliminar la carpeta <bold>\"{{name}}\"</bold>?",
+    "containsDiagrams_one": "Esta carpeta contiene <bold>{{count}}</bold> diagrama.",
+    "containsDiagrams_other": "Esta carpeta contiene <bold>{{count}}</bold> diagramas.",
+    "moveToRoot": "Mover a la raíz",
+    "moveToRootDescription": "Los diagramas se moverán al nivel principal del proyecto",
+    "deleteAllDiagrams": "Eliminar todos los diagramas",
+    "deleteAllDiagramsDescription": "Se eliminarán permanentemente junto con la carpeta",
+    "isEmpty": "Esta carpeta está vacía.",
+    "deleting": "Eliminando..."
   },
   "profile": {
     "title": "Mi Perfil",
@@ -622,7 +635,8 @@
     "increaseFontSize": "Aumentar tamaño de texto",
     "decreaseFontSize": "Reducir tamaño de texto",
     "resizePanels": "Redimensionar paneles",
-    "deleteDiagramConfirm": "¿Estás seguro de que quieres eliminar el diagrama \"{{name}}\"? Esta acción no se puede deshacer."
+    "deleteDiagramConfirm": "¿Estás seguro de que quieres eliminar el diagrama \"{{name}}\"? Esta acción no se puede deshacer.",
+    "loadingEditor": "Cargando editor..."
   },
   "projectImport": {
     "title": "Importar diagramas",
@@ -1417,5 +1431,35 @@
   "app": {
     "title": "DiagramaHub — Diagramación con texto plano",
     "description": "Plataforma open-source para crear, organizar y exportar diagramas con texto plano (Mermaid, PlantUML, D2 y DBML)."
+  },
+  "sharedView": {
+    "loading": "Cargando diagrama...",
+    "notFoundTitle": "Enlace no encontrado",
+    "notFoundMessage": "El enlace que buscas no existe o ya no está disponible. Verifica la URL o solicita un nuevo enlace al propietario del diagrama.",
+    "expiredTitle": "Enlace expirado",
+    "expiredMessage": "Este enlace ha expirado y ya no es accesible. Solicita un nuevo enlace al propietario del diagrama.",
+    "unavailableTitle": "Diagrama no disponible",
+    "unavailableMessage": "El diagrama ya no está disponible. Es posible que haya sido eliminado por su propietario.",
+    "errorTitle": "Error",
+    "errorMessage": "Ocurrió un error al cargar el diagrama. Intenta de nuevo más tarde.",
+    "defaultTitle": "Diagrama compartido",
+    "code": "Código",
+    "description": "Descripción",
+    "descriptionFile": "descripción.md",
+    "readOnly": "solo lectura",
+    "copied": "¡Copiado!",
+    "copyDescription": "Copiar descripción",
+    "copyCode": "Copiar código",
+    "createdBy": "Creado por",
+    "protectedTitle": "Diagrama protegido",
+    "protectedSubtitle": "Ingresa el código de acceso para ver este diagrama",
+    "tooManyAttemptsTitle": "Demasiados intentos fallidos",
+    "tryAgainLater": "Intenta de nuevo en 15 minutos",
+    "attemptsRemaining": "Intentos restantes: {{count}}",
+    "verifying": "Verificando...",
+    "verifyCode": "Verificar código",
+    "wrongCode": "Código de acceso incorrecto",
+    "tooManyAttempts": "Demasiados intentos",
+    "verifyError": "Error al verificar el código"
   }
 }

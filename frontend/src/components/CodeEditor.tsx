@@ -1,4 +1,5 @@
 import { Editor } from '@monaco-editor/react';
+import { useTranslation } from 'react-i18next';
 import type { Monaco } from '@monaco-editor/react';
 import { registerD2Language } from '../utils/d2Language';
 import { useTheme } from '../contexts/ThemeContext';
@@ -22,6 +23,7 @@ export default function CodeEditor({
   borderless = false,
   theme: editorThemeProp,
 }: CodeEditorProps) {
+  const { t } = useTranslation();
   const { theme: appTheme } = useTheme();
 
   // Use explicit prop if provided, otherwise auto-detect from ThemeContext
@@ -89,7 +91,7 @@ export default function CodeEditor({
         }}
         loading={
           <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800">
-            <div className="text-sm text-gray-500 dark:text-gray-400">Cargando editor...</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">{t('editor.loadingEditor')}</div>
           </div>
         }
       />

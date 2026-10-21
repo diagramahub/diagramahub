@@ -147,7 +147,7 @@ export default function SharedDiagramPage() {
       const detail = err?.response?.data?.detail || '';
 
       if (status === 403) {
-        setAccessError('Código de acceso incorrecto');
+        setAccessError(t('sharedView.wrongCode'));
         // Parse attempts remaining from detail
         const match = detail.match(/Intentos restantes: (\d+)/);
         if (match) {
@@ -155,13 +155,13 @@ export default function SharedDiagramPage() {
         }
       } else if (status === 429) {
         setAttemptsRemaining(0);
-        setAccessError('Demasiados intentos');
+        setAccessError(t('sharedView.tooManyAttempts'));
       } else if (status === 410) {
         setPageState('expired');
       } else if (status === 404) {
         setPageState('not_found');
       } else {
-        setAccessError('Error al verificar el código');
+        setAccessError(t('sharedView.verifyError'));
       }
     } finally {
       setVerifying(false);
@@ -310,7 +310,7 @@ export default function SharedDiagramPage() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">Cargando diagrama...</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('sharedView.loading')}</p>
         </div>
       </div>
     );
@@ -326,9 +326,9 @@ export default function SharedDiagramPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Enlace no encontrado</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('sharedView.notFoundTitle')}</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            El enlace que buscas no existe o ya no está disponible. Verifica la URL o solicita un nuevo enlace al propietario del diagrama.
+            {t('sharedView.notFoundMessage')}
           </p>
         </div>
       </div>
@@ -345,9 +345,9 @@ export default function SharedDiagramPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Enlace expirado</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('sharedView.expiredTitle')}</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Este enlace ha expirado y ya no es accesible. Solicita un nuevo enlace al propietario del diagrama.
+            {t('sharedView.expiredMessage')}
           </p>
         </div>
       </div>
@@ -364,9 +364,9 @@ export default function SharedDiagramPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Diagrama no disponible</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('sharedView.unavailableTitle')}</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            El diagrama ya no está disponible. Es posible que haya sido eliminado por su propietario.
+            {t('sharedView.unavailableMessage')}
           </p>
         </div>
       </div>
@@ -383,9 +383,9 @@ export default function SharedDiagramPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Error</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{t('sharedView.errorTitle')}</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Ocurrió un error al cargar el diagrama. Intenta de nuevo más tarde.
+            {t('sharedView.errorMessage')}
           </p>
         </div>
       </div>
@@ -423,7 +423,7 @@ export default function SharedDiagramPage() {
           </span>
           <span className="text-gray-300 dark:text-gray-600 flex-shrink-0 hidden sm:inline">/</span>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate hidden sm:inline">
-            {diagram?.title || linkInfo?.diagram_title || 'Diagrama compartido'}
+            {diagram?.title || linkInfo?.diagram_title || t('sharedView.defaultTitle')}
           </span>
         </div>
 
@@ -444,7 +444,7 @@ export default function SharedDiagramPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
-                  <span className="hidden sm:inline">Código</span>
+                  <span className="hidden sm:inline">{t('sharedView.code')}</span>
                 </div>
               </button>
             )}
@@ -462,7 +462,7 @@ export default function SharedDiagramPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="hidden sm:inline">Descripción</span>
+                  <span className="hidden sm:inline">{t('sharedView.description')}</span>
                 </div>
               </button>
             )}
@@ -572,7 +572,7 @@ export default function SharedDiagramPage() {
                 <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="text-xs font-mono text-gray-600 dark:text-gray-400">descripción.md</span>
+                <span className="text-xs font-mono text-gray-600 dark:text-gray-400">{t('sharedView.descriptionFile')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -582,7 +582,7 @@ export default function SharedDiagramPage() {
                       ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
-                  title={descCopied ? '¡Copiado!' : 'Copiar descripción'}
+                  title={descCopied ? t('sharedView.copied') : t('sharedView.copyDescription')}
                 >
                   {descCopied ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -629,7 +629,7 @@ export default function SharedDiagramPage() {
                 <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
                   {diagram.diagram_type === 'plantuml' ? 'diagram.puml' : diagram.diagram_type === 'd2' ? 'diagram.d2' : 'diagram.mmd'}
                 </span>
-                <span className="text-xs text-gray-400 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded">solo lectura</span>
+                <span className="text-xs text-gray-400 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded">{t('sharedView.readOnly')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -639,7 +639,7 @@ export default function SharedDiagramPage() {
                       ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
-                  title={codeCopied ? '¡Copiado!' : 'Copiar código'}
+                  title={codeCopied ? t('sharedView.copied') : t('sharedView.copyCode')}
                 >
                   {codeCopied ? (
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -716,7 +716,7 @@ export default function SharedDiagramPage() {
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span>Creado por <span className="font-medium text-gray-700 dark:text-gray-300">{diagram.owner_name}</span></span>
+                <span>{t('sharedView.createdBy')} <span className="font-medium text-gray-700 dark:text-gray-300">{diagram.owner_name}</span></span>
               </div>
             )}
             <span className="text-xs text-gray-400 dark:text-gray-500 hidden sm:inline">•</span>

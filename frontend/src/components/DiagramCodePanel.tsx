@@ -267,7 +267,7 @@ export default function DiagramCodePanel({
           }}
           loading={
             <div className="flex items-center justify-center h-full bg-gray-900">
-              <div className="text-sm text-gray-500">Cargando editor...</div>
+              <div className="text-sm text-gray-500">{t('editor.loadingEditor')}</div>
             </div>
           }
         />
