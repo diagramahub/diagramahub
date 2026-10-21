@@ -247,7 +247,10 @@ class ApiService {
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        // A 401 ends the session only if there was one: without a token it is a
+        // failed sign-in (wrong password, wrong MFA code), and reloading /login
+        // would wipe the error message before the user sees it.
+        if (error.response?.status === 401 && localStorage.getItem('token')) {
           // Token expired or invalid
           localStorage.removeItem('token');
           localStorage.removeItem('user');
