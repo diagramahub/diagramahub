@@ -89,6 +89,20 @@ When a conversation gets close to the model's context limit, DiagramaHub **summa
 
 The assistant replies in the UI language (Spanish or English), including the labels of the diagrams it generates.
 
+### Prompt history
+
+**History**, in the chat footer, lists the prompts that produced a diagram (not the quick actions), newest first. Search them, click one to put it back in the input, or remove it.
+
+### Diagram from an image
+
+**From image**, in the chat footer, turns a whiteboard photo, a screenshot or a hand-drawn sketch into code of the current diagram's type:
+
+1. Choose, drop or paste (++ctrl+v++ / ++cmd+v++) a PNG, JPEG or WebP image of up to 4 MB.
+2. Optionally add instructions ("left to right", "group by team").
+3. **Generate**, check the preview and **Apply to diagram** (it replaces the current code).
+
+It uses the model selected in the chat, which must read images: **Gemini, OpenAI or Claude**. DeepSeek and MiniMax can't, and the dialog says so. The image is sent to that provider with your API key and is not stored by DiagramaHub.
+
 ## Automatic fixing
 
 With **Fix generated diagrams automatically** (in **Settings → AI Integrations**, on by default), if the Mermaid or D2 code the AI generates cannot be rendered, DiagramaHub asks the model for **one fix** before showing it to you:

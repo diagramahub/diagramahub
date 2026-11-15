@@ -11,6 +11,7 @@ import ChatSessionSelector from './ChatSessionSelector';
 import ChatMessageList from './ChatMessageList';
 import ChatInput from './ChatInput';
 import DiagramPreview from './DiagramPreview';
+import { ImageToDiagramModal } from './ImageToDiagramModal';
 
 interface AIChatPanelProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function AIChatPanel({
   panelWidth,
 }: AIChatPanelProps) {
   const { t, i18n } = useTranslation();
+  const [showImageModal, setShowImageModal] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | undefined>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -558,8 +560,18 @@ export default function AIChatPanel({
           activeProvider={activeProvider}
           activeModel={activeModel}
           onModelChange={handleModelChange}
+          onImageToDiagram={diagramType === 'freehand' ? undefined : () => setShowImageModal(true)}
         />
       )}
+
+      <ImageToDiagramModal
+        isOpen={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        diagramType={diagramType}
+        provider={activeProvider}
+        replacesCode={diagramCode.trim().length > 0}
+        onApply={onAcceptImprovement}
+      />
 
       {/* Modal de preview expandido */}
       {expandedPreview && (

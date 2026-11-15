@@ -1564,5 +1564,30 @@
     "loadError": "Couldn't load the tokens.",
     "createError": "Couldn't create the token.",
     "revokeError": "Couldn't revoke the token."
+  },
+  "imageToDiagram": {
+    "button": "From image",
+    "title": "Diagram from an image",
+    "subtitle": "Upload a whiteboard photo, a screenshot or a sketch and the AI turns it into code of the current diagram.",
+    "drop": "Click, drop an image here or paste it with Ctrl/Cmd+V",
+    "formats": "PNG, JPEG or WebP, up to 4 MB",
+    "previewAlt": "Chosen image",
+    "instructions": "Instructions (optional)",
+    "instructionsPlaceholder": "For example: left to right, group by team",
+    "generate": "Generate",
+    "generating": "Generating…",
+    "result": "Result",
+    "apply": "Apply to diagram",
+    "replaceWarning": "Applying it replaces the diagram's current code.",
+    "providerWithoutImages": "The provider chosen in the chat can't read images. Pick a Gemini, OpenAI or Claude model in the chat's selector.",
+    "errors": {
+      "tooLarge": "The image is over 4 MB.",
+      "notImage": "The file isn't a PNG, JPEG or WebP image.",
+      "notSupported": "This provider can't read images. Use Gemini, OpenAI or Claude.",
+      "truncated": "The reply was cut off before the diagram was complete. Try a simpler image.",
+      "empty": "The AI returned no diagram. Try another image or add instructions.",
+      "noProvider": "You have no active AI provider. Add an API key in Settings.",
+      "generic": "Couldn't generate the diagram."
+    }
   }
 }

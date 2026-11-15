@@ -73,9 +73,29 @@ class GeminiClient(BaseAIClient):
             system_instruction=system_prompt,
         )
 
+    supports_images = True
+
+    async def complete_with_image(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image: bytes,
+        mime_type: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """generate_content with the image as an inline part before the text."""
+        return await self._generate(
+            [types.Part.from_bytes(data=image, mime_type=mime_type), user_prompt],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_instruction=system_prompt,
+        )
+
     async def _generate(
         self,
-        prompt: str,
+        prompt: "str | list[types.Part | str]",
         temperature: float | None = None,
         max_tokens: int | None = None,
         system_instruction: str | None = None,

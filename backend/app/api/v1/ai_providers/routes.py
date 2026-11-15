@@ -2,10 +2,12 @@
 FastAPI routes for AI providers.
 """
 
-from fastapi import APIRouter, Body, Depends, Request, status
+from typing import Optional
+
+from fastapi import APIRouter, Body, Depends, File, Form, Request, UploadFile, status
 from app.api.deps import get_current_user_id
 from .repository import AIProviderRepository
-from .services import AIProviderService
+from .services import MAX_IMAGE_BYTES, AIProviderService
 from .model_catalog import recommended_model
 from .schemas import (
     CreateProviderRequest,
@@ -217,6 +219,32 @@ async def refine_description(
     and returns an updated description.
     """
     return await service.refine_description(user_id, request)
+
+
+@router.post(
+    "/diagram-from-image",
+    response_model=GenerateDiagramResponse,
+    summary="Generate diagram code from an image",
+)
+async def diagram_from_image(
+    image: UploadFile = File(..., description="PNG, JPEG or WebP, up to 4 MB"),
+    diagram_type: str = Form("mermaid", pattern="^(mermaid|plantuml|d2|dbml)$"),
+    language: str = Form("es", pattern="^(es|en)$"),
+    instructions: Optional[str] = Form(None, max_length=500),
+    provider: Optional[AIProviderType] = Form(None),
+    user_id: str = Depends(get_current_user_id),
+    service: AIProviderService = Depends(get_ai_provider_service),
+):
+    """
+    Recreate the diagram in an image (whiteboard photo, screenshot, sketch) as code.
+
+    Uses a provider that accepts images (Gemini, OpenAI, Claude); others answer
+    422 ``images_not_supported``.
+    """
+    data = await image.read(MAX_IMAGE_BYTES + 1)
+    return await service.generate_diagram_from_image(
+        user_id, data, diagram_type, language, instructions, provider
+    )
 
 
 @router.post(

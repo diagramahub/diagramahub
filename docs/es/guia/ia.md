@@ -89,6 +89,20 @@ Cuando una conversación se acerca al límite de contexto del modelo, DiagramaHu
 
 El asistente responde en el idioma de la interfaz (español o inglés), incluidas las etiquetas de los diagramas que genera.
 
+### Historial de prompts
+
+**Historial**, en el pie del chat, lista los prompts que generaron un diagrama (no las acciones rápidas), del más reciente al más antiguo. Puedes buscarlos, hacer clic en uno para volver a ponerlo en el cuadro de texto o quitarlo.
+
+### Diagrama desde una imagen
+
+**Desde imagen**, en el pie del chat, convierte una foto de un pizarrón, una captura o un boceto a mano en código del tipo del diagrama actual:
+
+1. Elige, arrastra o pega (++ctrl+v++ / ++cmd+v++) una imagen PNG, JPEG o WebP de hasta 4 MB.
+2. Si quieres, agrega indicaciones («de izquierda a derecha», «agrupa por equipo»).
+3. **Generar**, revisa la vista previa y **Aplicar al diagrama** (reemplaza el código actual).
+
+Usa el modelo elegido en el chat, que debe leer imágenes: **Gemini, OpenAI o Claude**. DeepSeek y MiniMax no pueden, y el diálogo lo indica. La imagen se envía a ese proveedor con tu API key y DiagramaHub no la guarda.
+
 ## Corrección automática
 
 Con **Corregir automáticamente los diagramas generados** (en **Ajustes → Integraciones de IA**, activado por defecto), si el código Mermaid o D2 que genera la IA no se puede renderizar, DiagramaHub le pide al modelo **una corrección** antes de mostrártelo:

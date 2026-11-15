@@ -2,6 +2,7 @@
 Anthropic Claude client implementation.
 """
 
+import base64
 import json
 import time
 
@@ -52,6 +53,41 @@ class ClaudeClient(BaseAIClient):
         """
         return await self._messages_request(
             [{"role": "user", "content": user_prompt}],
+            system=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    supports_images = True
+
+    async def complete_with_image(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image: bytes,
+        mime_type: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """Messages request with a base64 image block before the text."""
+        return await self._messages_request(
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": mime_type,
+                                "data": base64.b64encode(image).decode("ascii"),
+                            },
+                        },
+                        {"type": "text", "text": user_prompt},
+                    ],
+                }
+            ],
             system=system_prompt,
             temperature=temperature,
             max_tokens=max_tokens,

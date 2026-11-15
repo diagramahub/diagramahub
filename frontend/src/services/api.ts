@@ -481,6 +481,25 @@ class ApiService {
     return response.data;
   }
 
+  async diagramFromImage(data: {
+    image: File;
+    diagramType: string;
+    language: 'es' | 'en';
+    instructions?: string;
+    provider?: string;
+  }): Promise<GenerateDiagramResponse> {
+    const form = new FormData();
+    form.append('image', data.image);
+    form.append('diagram_type', data.diagramType);
+    form.append('language', data.language);
+    if (data.instructions) form.append('instructions', data.instructions);
+    if (data.provider) form.append('provider', data.provider);
+    const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/diagram-from-image', form, {
+      timeout: 120_000,
+    });
+    return response.data;
+  }
+
   async generateDiagram(data: GenerateDiagramRequest): Promise<GenerateDiagramResponse> {
     const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/generate-diagram', data);
     return response.data;

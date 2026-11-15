@@ -8,6 +8,7 @@ from typing import AsyncGenerator, Dict, Any, Optional
 from ..prompts import (
     build_code_system_prompt,
     build_generate_user_prompt,
+    build_image_user_prompt,
     build_improve_user_prompt,
     extract_diagram_code,
 )
@@ -26,6 +27,10 @@ class TruncatedResponseError(ValueError):
 
 class EmptyResponseError(ValueError):
     """The provider answered without any diagram code."""
+
+
+class ImagesNotSupportedError(ValueError):
+    """The provider (or its API in this app) can't take images as input."""
 
 
 class ProviderError(ValueError):
@@ -152,6 +157,60 @@ class BaseAIClient(ABC):
         # Set by each provider's request method: True when the last reply was
         # cut at the output-token limit (finish/stop reason "length").
         self.last_truncated = False
+
+    # Providers whose API this app calls with image input (vision).
+    supports_images: bool = False
+
+    async def complete_with_image(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image: bytes,
+        mime_type: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """Like ``complete`` with an image attached to the user message.
+
+        Providers with ``supports_images`` override it.
+
+        Raises:
+            ImagesNotSupportedError: For providers without image input
+        """
+        raise ImagesNotSupportedError(f"{self.provider_name} doesn't accept images")
+
+    async def generate_diagram_from_image(
+        self,
+        image: bytes,
+        mime_type: str,
+        diagram_type: str,
+        language: str = "es",
+        instructions: Optional[str] = None,
+    ) -> str:
+        """Recreate the diagram in an image as code (same rules as ``generate_diagram``).
+
+        Raises:
+            ImagesNotSupportedError: The provider can't take images
+            TruncatedResponseError / EmptyResponseError: see ``_complete_code``
+        """
+        if not self.supports_images:
+            raise ImagesNotSupportedError(f"{self.provider_name} doesn't accept images")
+        self.last_truncated = False
+        reply = await self.complete_with_image(
+            build_code_system_prompt(diagram_type, language),
+            build_image_user_prompt(instructions),
+            image,
+            mime_type,
+            max_tokens=CODE_MAX_TOKENS,
+            temperature=CODE_TEMPERATURE,
+        )
+        if self.last_truncated:
+            raise TruncatedResponseError("The diagram was cut off at the output limit")
+        code = extract_diagram_code(reply)
+        if not code.strip():
+            raise EmptyResponseError("The model returned no diagram code")
+        return code
 
     @abstractmethod
     async def complete(

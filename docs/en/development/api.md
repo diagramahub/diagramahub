@@ -103,6 +103,7 @@ curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
 | PUT · DELETE | `/ai/providers/{provider_index}` | User |
 | POST | `/ai/test-provider` | User (tests a key without saving it) |
 | POST | `/ai/generate-diagram`, `/ai/improve-diagram` | User |
+| POST | `/ai/diagram-from-image` (multipart: `image`, `diagram_type`, `language`, `instructions`, `provider`) | User |
 | POST | `/ai/generate-description`, `/ai/refine-description` | User |
 
 ### AI chat (`chat_sessions/`)

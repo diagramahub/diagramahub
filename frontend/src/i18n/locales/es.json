@@ -1564,5 +1564,30 @@
     "loadError": "No se pudieron cargar los tokens.",
     "createError": "No se pudo crear el token.",
     "revokeError": "No se pudo revocar el token."
+  },
+  "imageToDiagram": {
+    "button": "Desde imagen",
+    "title": "Diagrama desde una imagen",
+    "subtitle": "Sube una foto de un pizarrón, una captura o un boceto y la IA lo convierte en código del diagrama actual.",
+    "drop": "Haz clic, arrastra una imagen aquí o pégala con Ctrl/Cmd+V",
+    "formats": "PNG, JPEG o WebP, hasta 4 MB",
+    "previewAlt": "Imagen elegida",
+    "instructions": "Indicaciones (opcional)",
+    "instructionsPlaceholder": "Por ejemplo: de izquierda a derecha, agrupa por equipo",
+    "generate": "Generar",
+    "generating": "Generando…",
+    "result": "Resultado",
+    "apply": "Aplicar al diagrama",
+    "replaceWarning": "Aplicarlo reemplaza el código actual del diagrama.",
+    "providerWithoutImages": "El proveedor elegido en el chat no lee imágenes. Elige un modelo de Gemini, OpenAI o Claude en el selector del chat.",
+    "errors": {
+      "tooLarge": "La imagen pasa de 4 MB.",
+      "notImage": "El archivo no es una imagen PNG, JPEG o WebP.",
+      "notSupported": "Este proveedor no lee imágenes. Usa Gemini, OpenAI o Claude.",
+      "truncated": "La respuesta se cortó antes de terminar el diagrama. Intenta con una imagen más simple.",
+      "empty": "La IA no devolvió un diagrama. Intenta con otra imagen o agrega indicaciones.",
+      "noProvider": "No tienes un proveedor de IA activo. Agrega una API key en Configuración.",
+      "generic": "No se pudo generar el diagrama."
+    }
   }
 }

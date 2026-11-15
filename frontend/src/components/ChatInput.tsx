@@ -11,9 +11,11 @@ interface ChatInputProps {
   activeProvider: AIProviderType | null;
   activeModel: string | null;
   onModelChange: (provider: AIProviderType, model: string) => void;
+  /** Opens the "diagram from image" dialog; the button is hidden without it. */
+  onImageToDiagram?: () => void;
 }
 
-export default function ChatInput({ onSend, disabled = false, aiSettings, activeProvider, activeModel, onModelChange }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled = false, aiSettings, activeProvider, activeModel, onModelChange, onImageToDiagram }: ChatInputProps) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const [showProviderMenu, setShowProviderMenu] = useState(false);
@@ -139,13 +141,28 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
 
       {/* Footer: prompt history + provider selector */}
       <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-0.5">
-        <PromptHistoryMenu
-          disabled={disabled}
-          onSelect={(prompt) => {
-            setText(prompt);
-            textareaRef.current?.focus();
-          }}
-        />
+        <div className="flex items-center gap-1">
+          <PromptHistoryMenu
+            disabled={disabled}
+            onSelect={(prompt) => {
+              setText(prompt);
+              textareaRef.current?.focus();
+            }}
+          />
+          {onImageToDiagram && (
+            <button
+              type="button"
+              onClick={onImageToDiagram}
+              disabled={disabled}
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="font-medium">{t('imageToDiagram.button')}</span>
+            </button>
+          )}
+        </div>
         {/* Provider selector */}
         {activeProviders.length > 0 && (
           <div className="relative" ref={providerMenuRef}>

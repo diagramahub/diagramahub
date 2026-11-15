@@ -1011,6 +1011,20 @@ def build_generate_user_prompt(description: str) -> str:
     return f"Create this diagram:\n{description.strip()}"
 
 
+def build_image_user_prompt(instructions: str | None = None) -> str:
+    """User message for "diagram from image": recreate the attached picture as code."""
+    prompt = (
+        "Recreate the diagram in the attached image (a photo of a whiteboard, a screenshot or "
+        "a hand-drawn sketch) as diagram code. Keep its elements, groupings and connections, "
+        "and write the texts exactly as they appear in the image (don't translate them). "
+        "Pick the diagram kind that fits best (flowchart, sequence, class, ER, ...). If part of "
+        "the image is unreadable, make the most reasonable choice instead of leaving it out."
+    )
+    if instructions and instructions.strip():
+        prompt += f"\n\nAdditional instructions:\n{instructions.strip()}"
+    return prompt
+
+
 def build_improve_user_prompt(diagram_code: str, improvement_request: str) -> str:
     """User message for "improve": the current code and the requested change."""
     return (

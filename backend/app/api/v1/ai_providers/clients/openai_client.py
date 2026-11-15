@@ -2,6 +2,7 @@
 OpenAI GPT client implementation.
 """
 
+import base64
 import json
 import time
 
@@ -46,6 +47,34 @@ class OpenAIClient(BaseAIClient):
             [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=max_tokens,
+        )
+
+    supports_images = True
+
+    async def complete_with_image(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image: bytes,
+        mime_type: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """Chat completion with the image as a base64 data URL content part."""
+        data_url = f"data:{mime_type};base64,{base64.b64encode(image).decode('ascii')}"
+        return await self._chat_completion(
+            [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_prompt},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                },
             ],
             max_tokens=max_tokens,
         )
