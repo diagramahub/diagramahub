@@ -722,7 +722,17 @@
     "exporting": "Exportando…",
     "error": "No fue posible exportar. Inténtalo de nuevo.",
     "tooMany": "Demasiadas exportaciones seguidas. Espera un momento e inténtalo de nuevo.",
-    "tooManyRetry": "Demasiadas exportaciones seguidas. Inténtalo de nuevo en {{seconds}} s."
+    "tooManyRetry": "Demasiadas exportaciones seguidas. Inténtalo de nuevo en {{seconds}} s.",
+    "formatPdf": "PDF",
+    "formatPdfHint": "Una página por diagrama, con portada e índice. Se genera en tu navegador; los pizarrones no se incluyen.",
+    "pdfSummary": "{{diagrams}} en el PDF (sin contar pizarrones)",
+    "pdfProgress": "Generando PDF {{done}}/{{total}}…",
+    "pdfExportedOn": "Exportado el {{date}}",
+    "pdfContents": "Contenido",
+    "pdfSketchesSkipped_one": "{{count}} pizarrón no se incluye: ábrelo y expórtalo como PNG.",
+    "pdfSketchesSkipped_other": "{{count}} pizarrones no se incluyen: ábrelos y expórtalos como PNG.",
+    "pdfRenderError": "Este diagrama no se pudo renderizar.",
+    "pdfPage": "pág. {{page}}"
   },
   "fileBrowser": {
     "actionsFor": "Acciones de {{name}}",

@@ -43,7 +43,7 @@ Para cambiar estos datos, usa **Editar proyecto**.
 
 Dentro del editor, el explorador lateral muestra el árbol del proyecto: primero las carpetas y luego los diagramas de la raíz. Desde ahí puedes:
 
-- **Buscar** diagramas por nombre. El contador indica cuántos coinciden («3 de 12 diagramas»). A partir de dos caracteres, una sección **En el contenido** lista también los diagramas cuya descripción o código contiene el texto, con el fragmento resaltado (en los bocetos, los textos del lienzo).
+- **Buscar** diagramas por nombre. El contador indica cuántos coinciden («3 de 12 diagramas»). A partir de dos caracteres, una sección **En el contenido** lista también los diagramas cuya descripción o código contiene el texto, con el fragmento resaltado (en los pizarrones, los textos del lienzo).
 - **Filtrar por tipo** con los botones bajo la búsqueda (MMD, PUML, D2, DBML, DRAW; aparecen cuando el proyecto tiene más de un tipo). El filtro aplica al árbol y a los resultados del contenido.
 - Crear un diagrama con **Nuevo diagrama aquí**, directamente en la raíz o en una carpeta.
 - **Crear carpeta**, renombrarla y elegir su **Color**.

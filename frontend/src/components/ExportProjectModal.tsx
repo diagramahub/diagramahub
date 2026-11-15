@@ -3,6 +3,12 @@ import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { downloadBlob, retryAfterSeconds } from '../utils/download';
 import api, { type ProjectExportFormat, type ProjectExportSummary, type ProjectExportVariant } from '../services/api';
+import { presentationSlides } from '../utils/presentation';
+import { projectPdfFilename } from '../utils/projectPdfPlan';
+import { dateLocale } from '../utils/locale';
+
+/** Server formats plus the PDF, which is built in the browser. */
+type ExportFormat = ProjectExportFormat | 'pdf';
 
 interface FolderOption {
   id: string;
@@ -50,7 +56,8 @@ export default function ExportProjectModal({
   const { t, i18n } = useTranslation();
   const [scope, setScope] = useState<Scope>('project');
   const [folderId, setFolderId] = useState<string>('');
-  const [format, setFormat] = useState<ProjectExportFormat>('zip');
+  const [format, setFormat] = useState<ExportFormat>('zip');
+  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
   const [variant, setVariant] = useState<ProjectExportVariant>('ai');
   const [descriptions, setDescriptions] = useState(true);
   const [summary, setSummary] = useState<ProjectExportSummary | null>(null);
@@ -77,10 +84,34 @@ export default function ExportProjectModal({
   const effectiveFolderId = scope === 'folder' ? folderId || null : null;
   const scopeInvalid = scope === 'folder' && !folderId;
 
+  // The PDF is built in the browser; its summary (diagram/folder counts) comes from the ZIP one.
   const request = useMemo(
-    () => ({ format, variant, descriptions, folderId: effectiveFolderId }),
+    () => ({ format: (format === 'pdf' ? 'zip' : format) as ProjectExportFormat, variant, descriptions, folderId: effectiveFolderId }),
     [format, variant, descriptions, effectiveFolderId],
   );
+
+  const exportPdf = useCallback(async () => {
+    const project = await api.getProject(projectId);
+    const deck = presentationSlides(project, effectiveFolderId);
+    const { generateProjectPdf } = await import('../utils/projectPdf');
+    const exportedOn = new Date().toLocaleDateString(dateLocale(i18n.language), { day: 'numeric', month: 'long', year: 'numeric' });
+    setPdfProgress({ done: 0, total: deck.slides.filter((d) => d.diagram_type !== 'freehand').length });
+    const blob = await generateProjectPdf({
+      projectName: project.name,
+      folderName: deck.title || undefined,
+      diagrams: deck.slides,
+      includeDescriptions: descriptions,
+      texts: {
+        exportedOn: t('projectExport.pdfExportedOn', { date: exportedOn }),
+        contents: t('projectExport.pdfContents'),
+        sketchesSkipped: (count) => t('projectExport.pdfSketchesSkipped', { count }),
+        renderError: t('projectExport.pdfRenderError'),
+        pageLabel: (page) => t('projectExport.pdfPage', { page }),
+      },
+      onProgress: (done, total) => setPdfProgress({ done, total }),
+    });
+    downloadBlob(blob, projectPdfFilename(project.name, deck.title || undefined));
+  }, [projectId, effectiveFolderId, descriptions, i18n.language, t]);
 
   // Live summary of what the current options would download.
   useEffect(() => {
@@ -103,8 +134,12 @@ export default function ExportProjectModal({
     setExporting(true);
     setExportError(null);
     try {
-      const { blob, filename } = await api.downloadProjectExport(projectId, request);
-      downloadBlob(blob, filename);
+      if (format === 'pdf') {
+        await exportPdf();
+      } else {
+        const { blob, filename } = await api.downloadProjectExport(projectId, request);
+        downloadBlob(blob, filename);
+      }
       onClose();
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } })?.response?.status;
@@ -116,8 +151,9 @@ export default function ExportProjectModal({
       )
     } finally {
       setExporting(false);
+      setPdfProgress(null);
     }
-  }, [projectId, request, scopeInvalid, onClose, t]);
+  }, [projectId, request, scopeInvalid, onClose, t, format, exportPdf]);
 
   // Escape (not while downloading), initial focus, focus trap, focus restore
   const panelRef = useDialogA11y(isOpen, onClose, !exporting);
@@ -196,6 +232,13 @@ export default function ExportProjectModal({
                   <span className="block text-xs text-gray-500 dark:text-gray-400">{t('projectExport.formatZipHint')}</span>
                 </span>
               </label>
+              <label className={`${optionClass} ${format === 'pdf' ? optionActive : optionIdle}`}>
+                <input type="radio" name="export-format" className={`${radioClass} mt-0.5`} checked={format === 'pdf'} onChange={() => setFormat('pdf')} />
+                <span className="text-sm text-gray-800 dark:text-gray-200">
+                  {t('projectExport.formatPdf')}
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">{t('projectExport.formatPdfHint')}</span>
+                </span>
+              </label>
               <label className={`${optionClass} ${format === 'markdown' ? optionActive : optionIdle}`}>
                 <input type="radio" name="export-format" className={`${radioClass} mt-0.5`} checked={format === 'markdown'} onChange={() => setFormat('markdown')} />
                 <span className="flex-1 text-sm text-gray-800 dark:text-gray-200">
@@ -244,14 +287,18 @@ export default function ExportProjectModal({
               <span className="text-red-600 dark:text-red-400">{t('projectExport.summaryError')}</span>
             ) : summary ? (
               <span className="text-gray-800 dark:text-gray-200">
-                {t('projectExport.summaryLine', {
-                  diagrams: t('common.counts.diagrams', { count: summary.diagram_count }),
-                  folders: t('common.counts.folders', { count: summary.folder_count }),
-                  size: summary.size_is_upper_bound
-                    ? t('projectExport.sizeUpTo', { size: formatBytes(summary.size_bytes) })
-                    : formatBytes(summary.size_bytes),
-                })}
-                {summary.estimated_tokens != null && (
+                {format === 'pdf'
+                  ? t('projectExport.pdfSummary', {
+                      diagrams: t('common.counts.diagrams', { count: summary.diagram_count }),
+                    })
+                  : t('projectExport.summaryLine', {
+                      diagrams: t('common.counts.diagrams', { count: summary.diagram_count }),
+                      folders: t('common.counts.folders', { count: summary.folder_count }),
+                      size: summary.size_is_upper_bound
+                        ? t('projectExport.sizeUpTo', { size: formatBytes(summary.size_bytes) })
+                        : formatBytes(summary.size_bytes),
+                    })}
+                {format !== 'pdf' && summary.estimated_tokens != null && (
                   <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {t('projectExport.tokens', { tokens: numberFormat.format(summary.estimated_tokens) })}
                   </span>
@@ -292,7 +339,9 @@ export default function ExportProjectModal({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                {t('projectExport.exporting')}
+                {pdfProgress
+                  ? t('projectExport.pdfProgress', { done: pdfProgress.done, total: pdfProgress.total })
+                  : t('projectExport.exporting')}
               </span>
             ) : (
               t('projectExport.export')

@@ -722,7 +722,17 @@
     "exporting": "Exporting…",
     "error": "Unable to export. Please try again.",
     "tooMany": "Too many exports in a row. Wait a moment and try again.",
-    "tooManyRetry": "Too many exports in a row. Try again in {{seconds}} s."
+    "tooManyRetry": "Too many exports in a row. Try again in {{seconds}} s.",
+    "formatPdf": "PDF",
+    "formatPdfHint": "One page per diagram, with a cover and contents. Built in your browser; sketches aren't included.",
+    "pdfSummary": "{{diagrams}} in the PDF (sketches not counted)",
+    "pdfProgress": "Building PDF {{done}}/{{total}}…",
+    "pdfExportedOn": "Exported on {{date}}",
+    "pdfContents": "Contents",
+    "pdfSketchesSkipped_one": "{{count}} sketch isn't included: open it and export it as PNG.",
+    "pdfSketchesSkipped_other": "{{count}} sketches aren't included: open them and export them as PNG.",
+    "pdfRenderError": "This diagram couldn't be rendered.",
+    "pdfPage": "p. {{page}}"
   },
   "fileBrowser": {
     "actionsFor": "Actions for {{name}}",

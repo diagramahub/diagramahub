@@ -57,6 +57,12 @@ Use **Export project** or **Export folder** and choose:
 
         Sketches have no text source. In the Markdown they appear as a note listing the texts they contain.
 
+    === "PDF — one page per diagram"
+
+        A document ready to print or send: a cover with the project (and folder) name, the export date and a table of contents, then one A4 landscape page per diagram, rendered as in the editor. With **Include descriptions**, each page shows its diagram's description under it.
+
+        The PDF is built **in your browser** (up to 100 diagrams), so the dialog shows its progress. **Sketches aren't included**: the cover lists how many were left out; export them one by one as PNG.
+
 Before downloading, the dialog shows a summary of what you will get: number of diagrams, folders and size. In the AI variant it also shows a **token** estimate.
 
 ```mermaid
