@@ -22,6 +22,7 @@ from .schemas import (
     ChatSessionWithMessagesResponse,
 )
 from ..ai_providers.services import AIProviderService
+from ..prompt_history.interfaces import IPromptHistoryRepository
 from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
@@ -180,10 +181,37 @@ class ChatSessionService:
         session_repo: IChatSessionRepository,
         message_repo: IChatMessageRepository,
         ai_service: AIProviderService,
+        prompt_history_repo: Optional[IPromptHistoryRepository] = None,
     ):
         self.session_repo = session_repo
         self.message_repo = message_repo
         self.ai_service = ai_service
+        self.prompt_history_repo = prompt_history_repo
+
+    async def _record_prompt(
+        self,
+        user_id: str,
+        content: str,
+        diagram_code: str,
+        diagram_id: Optional[str],
+        preset_action: Optional[ChatPresetAction],
+    ) -> None:
+        """Save a prompt that produced a diagram to the user's prompt history.
+
+        Preset actions (fix, explain, ...) are skipped: their text is ours, not
+        the user's. An empty current diagram makes it a ``creation``, otherwise
+        an ``improvement``. Never raises: history must not break the chat.
+        """
+        if self.prompt_history_repo is None or preset_action is not None:
+            return
+        text = content.strip()[:5000]
+        if not text:
+            return
+        operation = "improvement" if diagram_code.strip() else "creation"
+        try:
+            await self.prompt_history_repo.upsert(user_id, text, operation, diagram_id)
+        except Exception as exc:
+            logger.warning("Failed to save prompt history: %s", exc)
 
     # ------------------------------------------------------------------ #
     #  Task 5.1 – Core CRUD operations
@@ -554,6 +582,10 @@ class ChatSessionService:
                 model_used=actual_model,
                 generation_time=generation_time,
             )
+            if improved_code:
+                await self._record_prompt(
+                    user_id, content, diagram_code, session.diagram_id, preset_action
+                )
 
             # Update rolling summary in DB after each interaction
             # This persists context for future messages
@@ -951,6 +983,10 @@ class ChatSessionService:
                 model_used=actual_model,
                 generation_time=generation_time,
             )
+            if improved_code:
+                await self._record_prompt(
+                    user_id, content, diagram_code, session.diagram_id, preset_action
+                )
 
             # Update rolling summary
             try:

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UserAISettings, AIProviderType, AI_PROVIDER_NAMES, AI_PROVIDER_MODELS } from '../types/ai';
 import { ChatPresetAction } from '../types/chat';
+import { PromptHistoryMenu } from './PromptHistoryMenu';
 
 interface ChatInputProps {
   onSend: (message: string, presetAction?: ChatPresetAction) => void;
@@ -136,8 +137,15 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
         </button>
       </div>
 
-      {/* Footer: provider selector */}
-      <div className="flex items-center justify-end px-3 pb-2 pt-0.5">
+      {/* Footer: prompt history + provider selector */}
+      <div className="flex items-center justify-between gap-2 px-3 pb-2 pt-0.5">
+        <PromptHistoryMenu
+          disabled={disabled}
+          onSelect={(prompt) => {
+            setText(prompt);
+            textareaRef.current?.focus();
+          }}
+        />
         {/* Provider selector */}
         {activeProviders.length > 0 && (
           <div className="relative" ref={providerMenuRef}>

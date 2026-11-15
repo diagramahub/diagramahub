@@ -1463,5 +1463,18 @@
     "wrongCode": "Incorrect access code",
     "tooManyAttempts": "Too many attempts",
     "verifyError": "Error verifying the code"
+  },
+  "promptHistory": {
+    "button": "History",
+    "title": "Prompt history",
+    "searchPlaceholder": "Search your prompts",
+    "empty": "No prompts yet. The ones that produce a diagram in the chat show up here.",
+    "noResults": "No prompt matches the search.",
+    "error": "Couldn't load the history.",
+    "delete": "Remove from history",
+    "operation": {
+      "creation": "Creation",
+      "improvement": "Improvement"
+    }
   }
 }

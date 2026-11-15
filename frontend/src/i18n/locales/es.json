@@ -1463,5 +1463,18 @@
     "wrongCode": "Código de acceso incorrecto",
     "tooManyAttempts": "Demasiados intentos",
     "verifyError": "Error al verificar el código"
+  },
+  "promptHistory": {
+    "button": "Historial",
+    "title": "Historial de prompts",
+    "searchPlaceholder": "Buscar en tus prompts",
+    "empty": "Aún no hay prompts. Los que generen un diagrama en el chat aparecerán aquí.",
+    "noResults": "Ningún prompt coincide con la búsqueda.",
+    "error": "No se pudo cargar el historial.",
+    "delete": "Borrar del historial",
+    "operation": {
+      "creation": "Creación",
+      "improvement": "Mejora"
+    }
   }
 }
