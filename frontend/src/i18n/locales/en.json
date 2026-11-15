@@ -1511,5 +1511,48 @@
     "empty": "There are no diagrams to present.",
     "loadError": "Couldn't load the project.",
     "back": "Back to the editor"
+  },
+  "apiTokens": {
+    "title": "API tokens",
+    "subtitle": "Access your projects and diagrams from scripts, CI or your own tools, without your password.",
+    "create": "Create token",
+    "creating": "Creating…",
+    "createTitle": "New API token",
+    "createdTitle": "Token created",
+    "name": "Name",
+    "namePlaceholder": "For example: docs CI",
+    "access": "Access",
+    "scope": {
+      "read": "Read only",
+      "write": "Read and write"
+    },
+    "scopeDesc": {
+      "read": "Reads projects, folders, diagrams and links.",
+      "write": "Also creates, changes and deletes."
+    },
+    "expiration": "Expiration",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "never": "Never expires",
+    "reach": "A token can only use the project, folder, diagram and shared link endpoints. The account, security and the tokens themselves always need a signed-in session.",
+    "copyNow": "Copy the token now: it won't be shown again. If you lose it, revoke it and create another.",
+    "tokenLabel": "API token",
+    "usage": "Send it in the Authorization header:",
+    "copy": "Copy token",
+    "copied": "Copied",
+    "done": "Done",
+    "empty": "You have no tokens yet.",
+    "createdOn": "created {{date}}",
+    "expiresOn": "expires {{date}}",
+    "neverExpires": "never expires",
+    "lastUsed": "last used {{date}}",
+    "neverUsed": "never used",
+    "expired": "Expired",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke token",
+    "revokeMessage": "The token \"{{name}}\" will stop working immediately. This can't be undone.",
+    "loadError": "Couldn't load the tokens.",
+    "createError": "Couldn't create the token.",
+    "revokeError": "Couldn't revoke the token."
   }
 }

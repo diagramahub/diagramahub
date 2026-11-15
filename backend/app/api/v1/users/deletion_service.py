@@ -6,6 +6,7 @@ in the correct dependency order.
 """
 
 import logging
+from typing import Optional
 
 from app.api.v1.users.interfaces import IUserRepository
 from app.api.v1.projects.interfaces import IProjectRepository
@@ -14,6 +15,7 @@ from app.api.v1.folders.interfaces import IFolderRepository
 from app.api.v1.subscriptions.interfaces import ISubscriptionRepository
 from app.api.v1.ai_providers.interfaces import IAIProviderRepository
 from app.api.v1.prompt_history.interfaces import IPromptHistoryRepository
+from app.api.v1.api_tokens.interfaces import IApiTokenRepository
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class AccountDeletionService:
         subscription_repository: ISubscriptionRepository,
         ai_provider_repository: IAIProviderRepository,
         prompt_history_repository: IPromptHistoryRepository,
+        api_token_repository: Optional[IApiTokenRepository] = None,
     ):
         self.user_repository = user_repository
         self.project_repository = project_repository
@@ -38,6 +41,7 @@ class AccountDeletionService:
         self.subscription_repository = subscription_repository
         self.ai_provider_repository = ai_provider_repository
         self.prompt_history_repository = prompt_history_repository
+        self.api_token_repository = api_token_repository
 
     async def delete_user_account(self, user_id: str) -> None:
         """Delete all data associated with a user account.
@@ -125,7 +129,17 @@ class AccountDeletionService:
             )
             raise
 
-        # 7. Delete the user document
+        # 7. Delete personal API tokens (they would act for a user that no longer exists)
+        if self.api_token_repository is not None:
+            try:
+                await self.api_token_repository.delete_by_user(user_id)
+            except Exception as e:
+                logger.error(
+                    "Failed to delete data for user_id=%s, collection=api_tokens: %s", user_id, e
+                )
+                raise
+
+        # 8. Delete the user document
         try:
             await self.user_repository.delete_by_id(user_id)
         except Exception as e:

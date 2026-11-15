@@ -97,6 +97,7 @@ import {
   OAuthAuthorizeResponse
 } from '../types/oauth';
 import { API_URL } from '../utils/runtimeConfig';
+import type { ApiToken, CreateApiTokenRequest, CreatedApiToken } from '../types/apiTokens';
 
 export type ProjectExportFormat = 'zip' | 'markdown';
 export type ProjectExportVariant = 'ai' | 'standard';
@@ -579,6 +580,24 @@ class ApiService {
   async downloadInvoice(invoiceId: string): Promise<{ pdf_url: string }> {
     const response = await this.api.get(`/api/v1/subscriptions/invoices/${invoiceId}/pdf-url`);
     return response.data;
+  }
+
+  // ============================================================================
+  // Personal API tokens
+  // ============================================================================
+
+  async listApiTokens(): Promise<ApiToken[]> {
+    const response = await this.api.get<ApiToken[]>('/api/v1/api-tokens');
+    return response.data;
+  }
+
+  async createApiToken(data: CreateApiTokenRequest): Promise<CreatedApiToken> {
+    const response = await this.api.post<CreatedApiToken>('/api/v1/api-tokens', data);
+    return response.data;
+  }
+
+  async revokeApiToken(tokenId: string): Promise<void> {
+    await this.api.delete(`/api/v1/api-tokens/${tokenId}`);
   }
 
   // ============================================================================

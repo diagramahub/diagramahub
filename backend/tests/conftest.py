@@ -32,6 +32,7 @@ from app.api.v1.users.schemas import UserInDB as User
 from app.core.config import settings
 from app.main import app
 from tests.utils import generate_test_password, generate_weak_password
+from app.api.v1.api_tokens.schemas import ApiTokenInDB
 
 # Initialize Faker
 fake = Faker()
@@ -99,6 +100,7 @@ async def test_db() -> AsyncGenerator:
             AuditLogEntry,
             OAuthStateToken,
             MfaTokenAttempt,
+            ApiTokenInDB,
         ],
     )
 

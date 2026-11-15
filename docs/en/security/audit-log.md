@@ -47,6 +47,7 @@ If writing to the log fails, the error goes to the server logs and the user's op
 | `shared_link_created` / `shared_link_updated` / `shared_link_revoked` | A share link was created, changed or revoked (`details`: diagram or link id, access type, changed fields) |
 | `integration_created` / `integration_updated` / `integration_deleted` / `integration_set_default` | An administrator changed an email, payment or OAuth integration (`details`: vendor id and changed field names; never the credentials) |
 | `plan_created` / `plan_updated` / `plan_deleted` / `plan_price_added` | An administrator changed a plan or added a currency price |
+| `api_token_created` / `api_token_revoked` | The user created (`details`: id, scope, expiration) or revoked a personal API token |
 
 ## Querying the log
 

@@ -79,6 +79,8 @@ EVENT_PLAN_CREATED = "plan_created"
 EVENT_PLAN_UPDATED = "plan_updated"
 EVENT_PLAN_DELETED = "plan_deleted"
 EVENT_PLAN_PRICE_ADDED = "plan_price_added"
+EVENT_API_TOKEN_CREATED = "api_token_created"
+EVENT_API_TOKEN_REVOKED = "api_token_revoked"
 
 
 async def log_event(

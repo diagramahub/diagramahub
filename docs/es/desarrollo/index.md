@@ -16,7 +16,7 @@ Todo lo necesario para trabajar en el código de DiagramaHub: cómo está constr
 
     ---
 
-    FastAPI + MongoDB: los 12 módulos, el patrón por capas y la configuración.
+    FastAPI + MongoDB: los 13 módulos, el patrón por capas y la configuración.
 
     [:octicons-arrow-right-24: Ver backend](backend.md)
 

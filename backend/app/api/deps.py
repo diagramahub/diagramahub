@@ -9,12 +9,15 @@ repositories directly for identity lookups. Moved here from
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 
+from app.api.v1.api_tokens.repository import ApiTokenRepository
+from app.api.v1.api_tokens.services import ApiTokenService, is_api_token
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.services import UserService
+from app.core.config import settings
 from app.core.security import decode_access_token
 
 security = HTTPBearer()
@@ -26,14 +29,43 @@ def get_user_service() -> UserService:
     return UserService(repository)
 
 
+async def _email_for_api_token(token: str, request: Request) -> str:
+    """Resolve a personal API token (``dh_pat_…``) to its owner's email.
+
+    Raises:
+        HTTPException 401: Unknown or expired token, or the owner no longer exists
+        HTTPException 403: The token may not call this endpoint or method
+    """
+    unauthorized = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired API token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    path = request.url.path
+    prefix = settings.API_V1_PREFIX
+    api_path = path[len(prefix) :] if path.startswith(prefix) else path
+    principal = await ApiTokenService(ApiTokenRepository()).authenticate(
+        token, request.method, api_path
+    )
+    if principal is None:
+        raise unauthorized
+    user = await UserRepository().get_by_id(principal.user_id)
+    if user is None:
+        raise unauthorized
+    return user.email
+
+
 async def get_current_user_email(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> str:
     """
     Dependency to extract and validate current user from JWT token.
 
     Also validates that the token was not issued before the last password
-    change (session invalidation on password change).
+    change (session invalidation on password change). A personal API token
+    (``dh_pat_…``) is accepted instead of a session on the endpoints it is
+    allowed to call (see ``api_tokens.services``).
 
     Args:
         credentials: HTTP Bearer token from Authorization header
@@ -49,6 +81,9 @@ async def get_current_user_email(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if is_api_token(credentials.credentials):
+        return await _email_for_api_token(credentials.credentials, request)
 
     try:
         token = credentials.credentials

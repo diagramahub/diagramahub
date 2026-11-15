@@ -14,7 +14,7 @@ El backend expone una API REST en JSON. La referencia interactiva y completa (es
 | Tema | Convención |
 |---|---|
 | Prefijo | Todas las rutas cuelgan de `/api/v1` (`settings.API_V1_PREFIX`). Los proveedores de IA, de `/api/v1/ai`. |
-| Autenticación | `Authorization: Bearer <JWT>` obtenido en `POST /users/login` (o tras el MFA / OAuth). |
+| Autenticación | `Authorization: Bearer <JWT>` obtenido en `POST /users/login` (o tras el MFA / OAuth), o un token de API personal (`Bearer dh_pat_…`, ver [Tokens de API](#tokens-de-api-personales-api_tokens)) en las rutas de proyectos, carpetas, diagramas y enlaces compartidos. |
 | Idioma | `Accept-Language: es` o `en`: los mensajes de error y el contenido de IA responden en ese idioma. |
 | Errores | `HTTPException` de FastAPI: cuerpo `{"detail": ...}`, donde `detail` es un texto o un objeto con un código (p. ej. `{"error": "response_truncated"}`). |
 | Validación | `422` con el detalle de Pydantic cuando el cuerpo no cumple el esquema. |
@@ -73,11 +73,25 @@ Las rutas están relativas a `/api/v1`. **Público** = sin token; **Usuario** = 
 | GET · PUT · DELETE | `/folders/{folder_id}` | Usuario |
 | POST | `/projects/{project_id}/diagrams` | Usuario |
 | GET | `/diagrams/recent` | Usuario |
+| GET | `/diagrams/search?q=&project_id=&type=&limit=` | Usuario |
 | GET · PUT · DELETE | `/diagrams/{diagram_id}` | Usuario |
 | POST | `/diagrams/{diagram_id}/move`, `/diagrams/{diagram_id}/duplicate` | Usuario |
 | POST | `/diagrams/{diagram_id}/fix` | Usuario |
 | POST | `/diagrams/convert` | Usuario |
 | POST | `/diagrams/render` | Público (con límite por IP) |
+
+### Tokens de API personales (`api_tokens/`)
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET · POST | `/api-tokens` | Usuario (solo con sesión) |
+| DELETE | `/api-tokens/{token_id}` | Usuario (solo con sesión) |
+
+`POST` devuelve el token (`dh_pat_…`) una sola vez; solo se guarda su hash SHA-256. Un token actúa como su dueño únicamente en `/projects`, `/folders`, `/diagrams` y `/shared-links` (`403` en lo demás); uno de tipo `read`, solo con `GET`. Vigencia: 30, 90 o 365 días, o sin vencimiento.
+
+```bash
+curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
+```
 
 ### IA (`ai_providers/`, montado en `/ai`)
 

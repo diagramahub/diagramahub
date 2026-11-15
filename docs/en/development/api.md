@@ -14,7 +14,7 @@ The backend exposes a JSON REST API. FastAPI generates the full interactive refe
 | Topic | Convention |
 |---|---|
 | Prefix | Every route lives under `/api/v1` (`settings.API_V1_PREFIX`). AI providers under `/api/v1/ai`. |
-| Authentication | `Authorization: Bearer <JWT>` obtained from `POST /users/login` (or after MFA / OAuth). |
+| Authentication | `Authorization: Bearer <JWT>` obtained from `POST /users/login` (or after MFA / OAuth), or a personal API token (`Bearer dh_pat_…`, see [API tokens](#personal-api-tokens-api_tokens)) on the project, folder, diagram and shared link routes. |
 | Language | `Accept-Language: es` or `en`: error messages and AI content answer in that language. |
 | Errors | FastAPI `HTTPException`: body `{"detail": ...}`, where `detail` is a string or an object with a code (e.g. `{"error": "response_truncated"}`). |
 | Validation | `422` with Pydantic's detail when the body doesn't match the schema. |
@@ -73,11 +73,25 @@ Routes are relative to `/api/v1`. **Public** = no token; **User** = JWT; **Admin
 | GET · PUT · DELETE | `/folders/{folder_id}` | User |
 | POST | `/projects/{project_id}/diagrams` | User |
 | GET | `/diagrams/recent` | User |
+| GET | `/diagrams/search?q=&project_id=&type=&limit=` | User |
 | GET · PUT · DELETE | `/diagrams/{diagram_id}` | User |
 | POST | `/diagrams/{diagram_id}/move`, `/diagrams/{diagram_id}/duplicate` | User |
 | POST | `/diagrams/{diagram_id}/fix` | User |
 | POST | `/diagrams/convert` | User |
 | POST | `/diagrams/render` | Public (per-IP limit) |
+
+### Personal API tokens (`api_tokens/`)
+
+| Method | Route | Access |
+|---|---|---|
+| GET · POST | `/api-tokens` | User (session only) |
+| DELETE | `/api-tokens/{token_id}` | User (session only) |
+
+`POST` returns the token (`dh_pat_…`) once; only its SHA-256 hash is stored. A token acts as its owner on `/projects`, `/folders`, `/diagrams` and `/shared-links` only (`403` elsewhere); a `read` token only on `GET`. Expiration: 30, 90 or 365 days, or none.
+
+```bash
+curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
+```
 
 ### AI (`ai_providers/`, mounted at `/ai`)
 

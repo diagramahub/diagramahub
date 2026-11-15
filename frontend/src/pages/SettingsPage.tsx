@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import AIIntegrationsSection from '../components/AIIntegrationsSection';
+import { ApiTokensSection } from '../components/ApiTokensSection';
 import DeleteAccountModal from '../components/DeleteAccountModal';
 import AccountDeletedModal from '../components/AccountDeletedModal';
 import { Subscription } from '../types/subscription';
@@ -68,6 +69,11 @@ export default function SettingsPage() {
           {/* AI Integrations Section */}
           <div className="mb-6">
             <AIIntegrationsSection />
+          </div>
+
+          {/* Personal API tokens */}
+          <div className="mb-6">
+            <ApiTokensSection />
           </div>
 
           {/* Danger Zone */}

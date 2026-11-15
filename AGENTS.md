@@ -123,7 +123,7 @@ diagramahub/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic Settings (env vars)
 │   │   │   └── security.py      # JWT + BCrypt utilities
-│   │   └── api/v1/              # All feature modules (12 modules, see below)
+│   │   └── api/v1/              # All feature modules (13 modules, see below)
 │   ├── tests/
 │   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
 │   │   └── api/v1/              # Tests mirror module structure
@@ -156,7 +156,7 @@ diagramahub/
 ├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-### Backend Module Registry (All 12 Modules)
+### Backend Module Registry (All 13 Modules)
 
 Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
@@ -174,6 +174,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **integrations** | `integrations/` | Admin email/payment/OAuth vendor config | `email_service.py`, `email_vendors/`, `vendor_factory.py` |
 | **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
 | **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
+| **api_tokens** | `api_tokens/` | Personal API tokens (`dh_pat_…`, SHA-256 hash stored; read/write scope; allowed only on projects, folders, diagrams, shared links) | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
 
