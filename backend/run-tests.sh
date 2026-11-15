@@ -32,7 +32,7 @@ case "${1:-}" in
         ;;
     *)
         echo "Running all tests with coverage..."
-        # Coverage floor for the full suite. Measured 65.68% on 2026-11-15; raise it
+        # Coverage floor for the full suite. Measured 67.66% on 2026-11-15; raise it
         # as new tests land. Subset runs (--unit/--integration) are exempt on
         # purpose: partial suites cannot reach the whole-project floor.
         poetry run pytest --cov-fail-under=60 "$@"

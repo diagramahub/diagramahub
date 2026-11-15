@@ -5,6 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.9.0] - 2026-11-15
+
+### Added
+- **Diagram from an image**: "From image" in the AI chat turns a whiteboard photo, a screenshot or a sketch (PNG/JPEG/WebP, up to 4 MB) into code of the current diagram's type, with optional instructions and a preview before applying. `POST /ai/diagram-from-image`; Gemini, OpenAI and Claude (others answer 422 `images_not_supported`). The image type is read from its bytes.
+- **Search in the content**: the explorer also lists diagrams whose code or description contains the text (highlighted snippet; sketch texts for freehand) and filters by type (MMD/PUML/D2/DBML/DRAW). `GET /diagrams/search` (literal, case-insensitive).
+- **Embed and QR for shared links**: opt-in `allow_embed` per link and a minimal public `/embed/<token>` view (protected links ask for the code inside the frame); the share dialog shows the `<iframe>` snippet and a downloadable QR code.
+- **Present a folder or the whole project**: full-screen slides in the explorer's order (arrows/space/page keys, Home/End, N for notes, F for full screen, Esc back to the editor).
+- **PDF of a project or a folder**: cover with contents, one A4 landscape page per diagram (with descriptions when asked), built in the browser (sketches not included).
+- **Personal API tokens** (`api_tokens` module): `dh_pat_…` tokens shown once (SHA-256 stored), read or write scope, 30/90/365 days or no expiry, last use; accepted only on `/projects`, `/folders`, `/diagrams` and `/shared-links`. Settings → API tokens.
+- **Prompt history in the chat**: prompts that produce a diagram are saved (deduplicated) and the chat's History button searches, reuses and removes them.
+- **Encryption key rotation**: `AI_ENCRYPTION_KEY_PREVIOUS` (MultiFernet) and `scripts/rotate_encryption_key.py` (dry run by default) re-encrypt AI keys, integration credentials and TOTP secrets.
+- **CI** (GitHub Actions): backend ruff/black/pytest with the coverage floor against MongoDB and Kroki, pip-audit; frontend lint/Vitest/build/`pnpm audit --prod`; Trivy scans of both images; CodeQL; Dependabot.
+
+### Security
+- Audit log for sensitive actions outside authentication: AI providers, shared links, integrations, plans and API tokens (invariant #7).
+- The production frontend sends a Content-Security-Policy by default, built at start from `VITE_API_URL` and the Sentry DSN (`CSP_CONNECT_SRC_EXTRA`, `CSP_EMBED_FRAME_ANCESTORS`, `CSP_ENABLED=false`); only `/embed/` can be framed. `csp.conf.example` was removed.
+- Passwords are limited to 72 bytes (bcrypt's real limit; bcrypt 5 rejects longer input). Existing longer passwords keep working.
+- Sentry 11 is configured to keep sending no personal data (it collects everything that isn't configured).
+
+### Changed
+- Backend majors: Beanie 2 on PyMongo's async API (Motor, end of life 2026-05-14, removed), FastAPI 0.163, uvicorn 0.54 with `uvicorn-worker`, gunicorn 27, httpx 0.28, qrcode 8, google-genai 3 (pinned to the `v1beta` API), bcrypt 5; pytest 9 + pytest-asyncio 1.5, mypy 2, ruff 0.17 (previous rule set pinned). The backend is formatted with Black.
+- Frontend majors: Vite 8 + @vitejs/plugin-react 6, Vitest 5, TypeScript 6, ESLint 10 (React Compiler lint rules off for now), Mermaid 12 with Mermaid 11's layout/theme/look pinned so saved diagrams keep their look, i18next 27 + react-i18next 18, react-markdown 10, Sentry 11.
+- Infrastructure: nginx-unprivileged 1.30 (1.27 is out of support); compose files pin `yuzutech/kroki:0.36.0` and `mongo:8.0`.
+
 ## [0.8.6] - 2026-11-15
 
 ### Security

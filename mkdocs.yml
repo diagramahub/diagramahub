@@ -114,6 +114,8 @@ nav:
           - Registro de auditoría: es/seguridad/auditoria.md
       - Notas de Versión:
           - es/release-notes/index.md
+          - 0.9.x:
+              - 0.9.0: es/release-notes/0.9.0.md
           - 0.8.x:
               - 0.8.6: es/release-notes/0.8.6.md
               - 0.8.5: es/release-notes/0.8.5.md
@@ -194,6 +196,8 @@ nav:
           - Audit log: en/security/audit-log.md
       - Release Notes:
           - en/release-notes/index.md
+          - 0.9.x:
+              - 0.9.0: en/release-notes/0.9.0.md
           - 0.8.x:
               - 0.8.6: en/release-notes/0.8.6.md
               - 0.8.5: en/release-notes/0.8.5.md

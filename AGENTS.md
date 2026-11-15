@@ -16,14 +16,14 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.8.6
+- **Current version**: 0.9.0
 - **Repo**: https://github.com/diagramahub/diagramahub
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 19 + TypeScript 5.9+ + Vite 7 + TailwindCSS v3 |
+| **Frontend** | React 19 + TypeScript 6 + Vite 8 + TailwindCSS v3 |
 | **Backend** | Python 3.12+ (image: 3.13) + FastAPI + Beanie ODM (MongoDB) + Poetry |
 | **Database** | MongoDB 8 via PyMongo's async API (Beanie 2) |
 | **Diagram rendering** | Mermaid (client-side), PlantUML/DBML/D2 (server-side via Kroki) |
@@ -386,7 +386,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.8.6
+VITE_APP_VERSION=0.9.0
 ```
 
 ---
@@ -413,7 +413,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 - **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
 - **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
 - **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
-- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 65.68% on 2026-11-15). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 67.66% on 2026-11-15). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
 - Tests mirror module structure under `tests/api/v1/`
 
 ### Frontend Tests
@@ -466,7 +466,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.6**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.9.0**.
 
 | Bump | When |
 |------|------|

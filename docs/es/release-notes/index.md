@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.9.0](0.9.0.md) | 2026-11-15 | Funciones: diagrama desde imagen, búsqueda en el contenido, insertar y QR, presentar carpetas, PDF de proyecto, tokens de API; actualizaciones mayores, CI y seguridad |
 | [0.8.6](0.8.6.md) | 2026-11-15 | Mantenimiento: dependencias con avisos de seguridad (backend y frontend) y JWT con PyJWT en lugar de python-jose |
 | [0.8.5](0.8.5.md) | 2026-10-21 | Mantenimiento: avisos en dependencias, el error de inicio de sesión vuelve a mostrarse, modo oscuro completo, página compartida en inglés, lint limpio |
 | [0.8.4](0.8.4.md) | 2026-10-19 | Seguridad (chat de IA, MFA, webhooks, Mermaid, IP tras proxy), configuración y documentación completa |

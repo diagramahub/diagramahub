@@ -3,7 +3,7 @@
 Source of truth for maintaining visual and experience consistency in the frontend.
 Every new component or page must follow the rules in this document.
 
-> Scope: `frontend/` (React 19 + TypeScript + Vite 7 + TailwindCSS v3).
+> Scope: `frontend/` (React 19 + TypeScript 6 + Vite 8 + TailwindCSS v3).
 > For code architecture and backend, see `AGENTS.md`.
 
 ---
@@ -24,7 +24,7 @@ Every new component or page must follow the rules in this document.
 | Area | Technology |
 |------|-----------|
 | Framework | React 19 + TypeScript (strict) |
-| Build | Vite 7 |
+| Build | Vite 8 |
 | Styling | TailwindCSS v3 (`darkMode: 'class'`) + `@tailwindcss/typography` plugin |
 | Routing | `react-router-dom` v7 |
 | HTTP | Axios (via `services/api.ts`) |
