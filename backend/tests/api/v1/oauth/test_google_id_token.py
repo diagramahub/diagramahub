@@ -21,6 +21,7 @@ from app.core.security import (
     decode_access_token,
     decode_mfa_temp_token,
 )
+from tests.utils import generate_test_secret
 
 pytestmark = pytest.mark.unit
 
@@ -41,7 +42,9 @@ def provider(rsa_key: rsa.RSAPrivateKey, monkeypatch: pytest.MonkeyPatch) -> Goo
     public_jwk.update({"kid": KID, "use": "sig", "alg": "RS256"})
 
     instance = GoogleOAuthProvider(
-        client_id=CLIENT_ID, client_secret="secret", redirect_uri="http://localhost/cb"
+        client_id=CLIENT_ID,
+        client_secret=generate_test_secret("gcs"),
+        redirect_uri="http://localhost/cb",
     )
 
     async def fake_discovery() -> dict:
@@ -135,7 +138,7 @@ async def test_hs256_token_is_rejected(provider: GoogleOAuthProvider) -> None:
     """Algorithm confusion: an HMAC token must never pass as RS256."""
     forged = jwt.encode(
         {"iss": "https://accounts.google.com", "aud": CLIENT_ID, "sub": "1", "email": "x@y.z"},
-        "a" * 32,
+        generate_test_secret("hmac"),
         algorithm="HS256",
         headers={"kid": KID},
     )
@@ -163,7 +166,7 @@ def test_expired_access_token_is_rejected() -> None:
 def test_access_token_with_another_secret_is_rejected() -> None:
     forged = jwt.encode(
         {"sub": "user@example.com", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
-        settings.JWT_SECRET + "-not-the-real-one",
+        generate_test_secret("jwt"),
         algorithm=settings.JWT_ALGORITHM,
     )
 
