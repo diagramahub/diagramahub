@@ -14,6 +14,18 @@ if (SENTRY_DSN) {
     release: import.meta.env.VITE_APP_VERSION || __APP_VERSION__,
     integrations: [Sentry.browserTracingIntegration()],
     tracesSampleRate: 0.1,
+    // Sentry 11 collects everything that isn't configured here. Keep what the
+    // SDK sent before (no personal data): no user info, cookies, headers, bodies,
+    // query strings, AI prompts or local variables (diagram code, tokens).
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      genAI: { inputs: false, outputs: false },
+      stackFrameVariables: false,
+    },
   });
 }
 

@@ -185,7 +185,7 @@ const KEEPALIVE_MAX_BODY_BYTES = 60_000;
  * `language` key (see i18n/config.ts). Only `es` / `en` are supported.
  */
 function currentLanguage(): 'es' | 'en' {
-  let stored: string | null = null;
+  let stored: string | null;
   try {
     stored = localStorage.getItem('language');
   } catch {

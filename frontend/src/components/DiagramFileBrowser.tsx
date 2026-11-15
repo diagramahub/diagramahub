@@ -456,7 +456,7 @@ export default function DiagramFileBrowser({
   const renderMenu = () => {
     if (!menu) return null;
 
-    let content: React.ReactNode = null;
+    let content: React.ReactNode;
 
     if (menu.kind === 'diagram') {
       const diagram = findDiagram(menu.id);

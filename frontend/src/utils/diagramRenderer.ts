@@ -59,7 +59,17 @@ async function renderMermaid(source: string): Promise<{ svg: string } | { error:
   // 'strict' runs every HTML label through DOMPurify while Mermaid renders it.
   // 'loose' left labels unsanitized and Mermaid inserts the SVG into the DOM to
   // measure it, so event handlers in a label ran before sanitizeSvg() was applied.
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+  //
+  // layout/theme/look pin Mermaid 11's defaults: Mermaid 12 switched to ELK, the
+  // `redux-color` theme and the `neo` look, which would re-layout and recolour
+  // every saved diagram. A diagram's own %%{init}%% block still overrides them.
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    layout: 'dagre',
+    theme: 'default',
+    look: 'classic',
+  });
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   try {
     const { svg } = await mermaid.render(id, source);
