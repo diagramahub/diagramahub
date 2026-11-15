@@ -23,6 +23,21 @@ También puedes usar la rueda del ratón para el zoom y arrastrar el diagrama pa
 !!! tip "Prepara la vista antes de presentar"
     Cierra los paneles que no necesites (código, descripción, chat) antes de entrar. El zoom y la posición se guardan con cada diagrama. Deja el diagrama encuadrado como quieras mostrarlo y así se abrirá la próxima vez. Para un fondo limpio en pantalla, elige el color y el patrón en **Apariencia** (ver [El editor](editor.md#apariencia)).
 
+## Presentar una carpeta o el proyecto completo
+
+Para recorrer varios diagramas como diapositivas, abre el explorador y usa **Presentar carpeta** en el menú de una carpeta, o el botón **Presentar proyecto** en el encabezado del explorador (primero los diagramas de la raíz y después los de cada carpeta). La presentación ocupa toda la ventana, un diagrama por diapositiva, en el orden del explorador.
+
+| Tecla | Acción |
+|---|---|
+| ++right++ / ++space++ / ++page-down++ | Diagrama siguiente |
+| ++left++ / ++page-up++ | Diagrama anterior |
+| ++home++ / ++end++ | Primer / último diagrama |
+| ++n++ | Mostrar u ocultar las notas (la descripción del diagrama) |
+| ++f++ | Pantalla completa del navegador |
+| ++esc++ | Salir de la presentación (en pantalla completa, primero sale de ella) |
+
+Al salir vuelves al editor, en el último diagrama mostrado.
+
 ## Presentar sin abrir el editor
 
 Si quieres mostrar un diagrama a personas sin cuenta, crea un enlace con **Compartir diagrama**: la vista compartida es de solo lectura. Consulta [Compartir diagramas](compartir.md).

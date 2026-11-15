@@ -38,6 +38,8 @@ interface DiagramFileBrowserProps {
   onExportProject?: () => void;
   /** Export one folder (folder menu). */
   onExportFolder?: (id: string) => void;
+  /** Present a folder (id) or the whole project (null) in full screen. */
+  onPresent?: (folderId: string | null) => void;
   /** Import files into a folder (null = root); `files` is null when the user should pick them. */
   onImportFiles?: (files: File[] | null, folderId: string | null) => void;
   onDragStart: (id: string) => void;
@@ -106,6 +108,7 @@ const ICONS = {
   newFolder: 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
   download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+  present: 'M3 4h18M4 4v10a2 2 0 002 2h12a2 2 0 002-2V4M12 16v4m-4 0h8M10 8l4 2.5-4 2.5V8z',
   upload: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
 };
 
@@ -140,6 +143,7 @@ export default function DiagramFileBrowser({
   onEditFolder,
   onExportProject,
   onExportFolder,
+  onPresent,
   onImportFiles,
   onDragStart,
   onDragOver,
@@ -557,6 +561,12 @@ export default function DiagramFileBrowser({
               {t('projectImport.importHere')}
             </button>
           )}
+          {onPresent && folder.diagrams.length > 0 && (
+            <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onPresent(folder.id); }}>
+              <Icon d={ICONS.present} />
+              {t('presentation.presentFolder')}
+            </button>
+          )}
           {onExportFolder && (
             <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onExportFolder(folder.id); }}>
               <Icon d={ICONS.download} />
@@ -609,6 +619,11 @@ export default function DiagramFileBrowser({
           {onImportFiles && (
             <button onClick={() => onImportFiles(null, null)} className={rowActionClass} aria-label={t('projectImport.importFiles')} title={t('projectImport.importFiles')}>
               <Icon d={ICONS.upload} className="w-4 h-4" />
+            </button>
+          )}
+          {onPresent && (
+            <button onClick={() => onPresent(null)} className={rowActionClass} aria-label={t('presentation.presentProject')} title={t('presentation.presentProject')}>
+              <Icon d={ICONS.present} className="w-4 h-4" />
             </button>
           )}
           {onExportProject && (

@@ -27,6 +27,7 @@ const PlansPage = lazyWithPreload(() => import('./pages/PlansPage'));
 const ProjectsPage = lazyWithPreload(() => import('./pages/ProjectsPage'));
 const SharedDiagramPage = lazyWithPreload(() => import('./pages/SharedDiagramPage'));
 const EmbedDiagramPage = lazyWithPreload(() => import('./pages/EmbedDiagramPage'));
+const FolderPresentationPage = lazyWithPreload(() => import('./pages/FolderPresentationPage'));
 const ForgotPasswordPage = lazyWithPreload(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazyWithPreload(() => import('./pages/ResetPasswordPage'));
 const MfaVerifyPage = lazyWithPreload(() => import('./pages/MfaVerifyPage'));
@@ -54,6 +55,7 @@ const ROUTE_CHUNKS: [RegExp, PreloadableComponent<object>][] = [
   [/^\/mfa-verify/, MfaVerifyPage],
   [/^\/oauth\/callback/, OAuthCallbackPage],
   [/^\/onboarding/, OnboardingWizardPage],
+  [/^\/projects\/[^/]+\/present/, FolderPresentationPage],
   [/^\/projects\/[^/]+/, DiagramEditorPage],
   [/^\/(dashboard\/?)?$/, DashboardPage],
   [/^\/projects-list/, ProjectsPage],
@@ -140,6 +142,16 @@ function App() {
                     element={
                       <PrivateRoute>
                         <OnboardingWizardPage />
+                      </PrivateRoute>
+                    }
+                  />
+
+                  {/* Folder / project presentation — full screen, no Sidebar */}
+                  <Route
+                    path="/projects/:projectId/present"
+                    element={
+                      <PrivateRoute>
+                        <FolderPresentationPage />
                       </PrivateRoute>
                     }
                   />

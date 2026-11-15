@@ -1492,5 +1492,19 @@
   "embed": {
     "notAllowed": "El propietario no permite incrustar este diagrama.",
     "openInDiagramaHub": "Abrir en DiagramaHub"
+  },
+  "presentation": {
+    "presentProject": "Presentar proyecto",
+    "presentFolder": "Presentar carpeta",
+    "counter": "{{current}} de {{total}}",
+    "previous": "Diagrama anterior",
+    "next": "Diagrama siguiente",
+    "notes": "Notas",
+    "fullscreen": "Pantalla completa",
+    "exitFullscreen": "Salir de pantalla completa",
+    "exit": "Salir de la presentación",
+    "empty": "No hay diagramas para presentar.",
+    "loadError": "No se pudo cargar el proyecto.",
+    "back": "Volver al editor"
   }
 }

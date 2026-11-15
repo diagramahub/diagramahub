@@ -3597,6 +3597,7 @@ export default function DiagramEditorPage() {
                   onEditFolder={handleEditFolder}
                   onExportProject={() => setExportProjectModal({ isOpen: true, folderId: null })}
                   onExportFolder={(id) => setExportProjectModal({ isOpen: true, folderId: id })}
+                  onPresent={(folderId) => navigate(`/projects/${projectId}/present${folderId ? `?folder=${folderId}` : ''}`)}
                   onImportFiles={openImport}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
@@ -5660,6 +5661,7 @@ export default function DiagramEditorPage() {
               folders={project?.folders || []}
               currentDiagramId={diagramId}
               onClose={() => setShowFloatingSidebar(false)}
+              onPresent={(folderId) => navigate(`/projects/${projectId}/present${folderId ? `?folder=${folderId}` : ''}`)}
               onNewDiagram={(folderId) => {
                 setShowFloatingSidebar(false);
                 handleNewDiagram(folderId || null);

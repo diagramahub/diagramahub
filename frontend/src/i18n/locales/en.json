@@ -1492,5 +1492,19 @@
   "embed": {
     "notAllowed": "The owner doesn't allow embedding this diagram.",
     "openInDiagramaHub": "Open in DiagramaHub"
+  },
+  "presentation": {
+    "presentProject": "Present project",
+    "presentFolder": "Present folder",
+    "counter": "{{current}} of {{total}}",
+    "previous": "Previous diagram",
+    "next": "Next diagram",
+    "notes": "Notes",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "exit": "Exit presentation",
+    "empty": "There are no diagrams to present.",
+    "loadError": "Couldn't load the project.",
+    "back": "Back to the editor"
   }
 }
