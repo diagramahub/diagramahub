@@ -10,8 +10,8 @@ import logging
 from urllib.parse import urlencode
 
 import httpx
-from jose import jwt as jose_jwt
-from jose.exceptions import JWTError
+import jwt
+from jwt import PyJWTError
 
 from ..interfaces import IOAuthProvider
 from ..schemas import (
@@ -125,7 +125,7 @@ class GoogleOAuthProvider(IOAuthProvider):
         if id_token:
             try:
                 return await self._decode_id_token(id_token)
-            except (JWTError, OAuthUserInfoError) as exc:
+            except (PyJWTError, OAuthUserInfoError) as exc:
                 logger.warning(
                     "id_token decode failed, falling back to userinfo: %s",
                     exc,
@@ -160,14 +160,18 @@ class GoogleOAuthProvider(IOAuthProvider):
         jwks = await self._fetch_jwks(jwks_uri)
 
         try:
-            claims = jose_jwt.decode(
+            signing_key = self._select_signing_key(id_token, jwks)
+            claims = jwt.decode(
                 id_token,
-                jwks,
+                signing_key,
                 algorithms=["RS256"],
                 audience=self.client_id,
                 issuer=list(GOOGLE_ISSUERS),
+                # PyJWT also rejects an `iat` in the future: tolerate small clock skew
+                # between this server and Google.
+                leeway=60,
             )
-        except JWTError as exc:
+        except PyJWTError as exc:
             raise OAuthUserInfoError(f"Invalid id_token: {exc}") from exc
 
         email = claims.get("email")
@@ -183,6 +187,22 @@ class GoogleOAuthProvider(IOAuthProvider):
             profile_picture_url=claims.get("picture"),
             provider_user_id=claims["sub"],
         )
+
+    @staticmethod
+    def _select_signing_key(id_token: str, jwks: dict) -> jwt.PyJWK:
+        """Return the key from ``jwks`` that signed ``id_token`` (matched by ``kid``).
+
+        Raises:
+            PyJWTError: If the header or the key set is malformed, or no key matches.
+        """
+        kid = jwt.get_unverified_header(id_token).get("kid")
+        keys = jwt.PyJWKSet.from_dict(jwks).keys
+        if kid is None and len(keys) == 1:
+            return keys[0]
+        for key in keys:
+            if key.key_id == kid:
+                return key
+        raise jwt.InvalidTokenError("No matching signing key for id_token")
 
     async def _fetch_userinfo(self, access_token: str) -> ProviderUserInfo:
         """Fetch user info from Google's userinfo endpoint."""

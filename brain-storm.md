@@ -2,127 +2,94 @@
 
 Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
+**Estado** (revisado contra el código de la versión 0.8.5):
+
+- ✅ Implementado
+- 🟡 Parcial: existe algo relacionado, pero no lo que describe la idea
+- ⬜ Pendiente
+
+---
+
+## ✅ Implementado
+
+### 🔧 **Auto-Fix de Diagramas Rotos con IA** (antes PRIORIDAD ALTA)
+
+Implementado: `POST /api/v1/diagrams/{id}/fix` (`diagrams/fix_service.py`, prompts por tipo en `diagrams/fix_prompts.py`). El editor muestra un diff antes/después con la explicación y el resumen de cambios (`DiagramDiffView`) antes de aplicar el código corregido. El reintento automático está desactivado para PlantUML y DBML (invariante #8).
+
 ---
 
 ## 🚀 Ideas Propuestas
 
 ### 1. **Colaboración en Tiempo Real**
-- Edición simultánea de diagramas (como Google Docs)
-- Comentarios y anotaciones en diagramas específicos
-- Sistema de permisos (viewer, editor, admin)
-- Historial de cambios con diff visual
+- ⬜ Edición simultánea de diagramas (como Google Docs)
+- ⬜ Comentarios y anotaciones en diagramas específicos
+- ⬜ Sistema de permisos (viewer, editor, admin): solo hay roles globales `admin`/`user`, no permisos por diagrama o proyecto
+- ⬜ Historial de cambios con diff visual
 
 ### 2. **Versionado y Control de Cambios**
-- Git-like versioning para diagramas
-- Branches y merge de diagramas
-- Comparación visual entre versiones
-- Rollback a versiones anteriores
+- ⬜ Git-like versioning para diagramas
+- ⬜ Branches y merge de diagramas
+- ⬜ Comparación visual entre versiones: el diff visual existe solo para el auto-fix con IA
+- ⬜ Rollback a versiones anteriores
 
 ### 3. **Plantillas y Biblioteca de Componentes**
-- Marketplace de plantillas prediseñadas
-- Biblioteca de componentes reutilizables (AWS icons, UML patterns, etc.)
-- Snippets personalizados por usuario/equipo
-- Import/export de plantillas
+- ⬜ Marketplace de plantillas prediseñadas
+- ⬜ Biblioteca de componentes reutilizables (AWS icons, UML patterns, etc.)
+- ⬜ Snippets personalizados por usuario/equipo
+- ⬜ Import/export de plantillas
 
 ### 4. **Integración con Herramientas de Desarrollo**
-- Plugin para VS Code
-- CLI para generar diagramas desde terminal
-- Webhook para auto-actualizar diagramas desde código
-- Integración con GitHub/GitLab (diagramas en PRs)
+- ⬜ Plugin para VS Code
+- ⬜ CLI para generar diagramas desde terminal
+- ⬜ Webhook para auto-actualizar diagramas desde código
+- ⬜ Integración con GitHub/GitLab (diagramas en PRs)
 
 ### 5. **Análisis y Validación Inteligente**
-- Validación de sintaxis en tiempo real con sugerencias
-- Detección de errores lógicos en diagramas (ciclos infinitos, nodos huérfanos)
-- Sugerencias de optimización de diagramas
-- Análisis de complejidad
+- ✅ Validación de sintaxis en tiempo real con sugerencias: la vista previa muestra el error al renderizar y ofrece "Arreglar con IA"; el backend valida con `diagrams/syntax_validator.py` (Kroki para D2/PlantUML/DBML)
+- ⬜ Detección de errores lógicos en diagramas (ciclos infinitos, nodos huérfanos)
+- 🟡 Sugerencias de optimización de diagramas: existe "mejorar diagrama" con IA (`/ai/improve-diagram` y el chat), pero no sugerencias automáticas
+- ⬜ Análisis de complejidad
 
 ### 6. **Presentación y Compartir Mejorado**
-- Modo presentación con navegación por slides
-- Links públicos con contraseña
-- Embeds para sitios web (iframe)
-- QR codes para compartir rápido
+- 🟡 Modo presentación con navegación por slides: hay vista a pantalla completa, sin navegación entre diagramas
+- ✅ Links públicos con contraseña: enlaces `public` o `protected` (código de acceso), con expiración de 5/10/30 días o ilimitada
+- ⬜ Embeds para sitios web (iframe): bloqueados hoy por `X-Frame-Options: DENY` y `frame-ancestors 'none'`
+- ⬜ QR codes para compartir rápido
 
 ### 7. **Exportación Avanzada**
-- PDF con múltiples diagramas
-- PowerPoint/Google Slides
-- Confluence/Notion integration
-- Animated GIFs de diagramas secuenciales
+- 🟡 PDF con múltiples diagramas: PDF por diagrama; el proyecto o carpeta completo se exporta como ZIP o Markdown, no PDF
+- ⬜ PowerPoint/Google Slides
+- ⬜ Confluence/Notion integration
+- ⬜ Animated GIFs de diagramas secuenciales
 
 ### 8. **IA Generativa Avanzada**
-- Generar diagramas desde imágenes/screenshots
-- Convertir entre tipos de diagramas (flowchart → sequence)
-- Traducción automática de diagramas a otros idiomas
-- Generar documentación técnica desde diagramas
+- 🟡 Generar diagramas desde imágenes/screenshots: existe "Sketch → Mermaid" (determinista) desde el pizarrón; no se aceptan imágenes subidas
+- 🟡 Convertir entre tipos de diagramas (flowchart → sequence): existe conversión con IA entre lenguajes (Mermaid ↔ PlantUML ↔ D2 ↔ DBML, `POST /diagrams/convert`), no entre tipos de diagrama
+- ⬜ Traducción automática de diagramas a otros idiomas
+- 🟡 Generar documentación técnica desde diagramas: la IA genera la descripción de un diagrama y el proyecto se exporta como Markdown "AI-context", pero no hay documentación técnica generada
 
 ### 9. **Workspace y Equipos**
-- Espacios de trabajo compartidos
-- Facturación por equipos
-- Roles y permisos granulares
-- Activity feed del equipo
+- ⬜ Espacios de trabajo compartidos
+- ⬜ Facturación por equipos: la suscripción es por usuario
+- ⬜ Roles y permisos granulares
+- 🟡 Activity feed del equipo: existe el audit log de seguridad (admin), no un feed de actividad
 
 ### 10. **Búsqueda y Descubrimiento**
-- Búsqueda full-text en contenido de diagramas
-- Filtros avanzados (por tipo, fecha, autor, tags)
-- Diagramas relacionados/similares
-- Búsqueda visual (buscar por forma/estructura)
+- 🟡 Búsqueda full-text en contenido de diagramas: el explorador busca por título de diagrama y nombre de carpeta, no en el contenido
+- ⬜ Filtros avanzados (por tipo, fecha, autor, tags): no existen tags
+- ⬜ Diagramas relacionados/similares
+- ⬜ Búsqueda visual (buscar por forma/estructura)
 
 ### 11. **Integraciones con Terceros**
-- Slack/Discord notifications
-- Jira/Linear para diagramas de flujo de trabajo
-- Figma/Miro import
-- API REST pública para integraciones custom
+- ⬜ Slack/Discord notifications
+- ⬜ Jira/Linear para diagramas de flujo de trabajo
+- 🟡 Figma/Miro import: se importa `.excalidraw` (convertido a sketch), no Figma ni Miro
+- 🟡 API REST pública para integraciones custom: la API REST existe (Swagger en `/docs`), pero solo con la sesión JWT; no hay tokens de API
 
 ### 12. **Modo Offline y Sincronización**
-- PWA con soporte offline
-- Sincronización automática al reconectar
-- Conflictos de merge inteligentes
-
----
-
-## ⭐ Funcionalidades Priorizadas
-
-### 🔧 **Auto-Fix de Diagramas Rotos con IA** (PRIORIDAD ALTA)
-
-**Descripción:**
-Cuando un diagrama tiene errores de sintaxis o renderizado, habilitar un botón "Arreglar con IA" que automáticamente detecte y corrija el problema.
-
-**Flujo de Usuario:**
-1. Usuario edita un diagrama y este falla al renderizar
-2. Aparece un botón "🔧 Arreglar con IA" junto al mensaje de error
-3. Al hacer clic, el sistema:
-   - Lee el código del diagrama actual
-   - Detecta el tipo de diagrama (Mermaid/PlantUML)
-   - Envía al modelo de IA seleccionado con un prompt especializado
-   - El modelo analiza el error y retorna el código corregido
-   - Se aplica automáticamente el código corregido
-   - Se muestra un resumen de qué estaba fallando
-
-**Componentes Técnicos:**
-
-**Backend:**
-- Nuevo endpoint: `POST /api/v1/diagrams/{id}/fix`
-- Servicio: `DiagramFixService`
-- Prompts especializados por tipo de diagrama:
-  - Mermaid: Validación de sintaxis, nodos, flechas, subgrafos
-  - PlantUML: Validación de sintaxis UML, relaciones, componentes
-
-**Frontend:**
-- Botón "Arreglar con IA" en el editor cuando hay error
-- Modal de progreso mientras se procesa
-- Diff visual mostrando cambios antes/después
-- Resumen del problema detectado y solución aplicada
-
-**Prompts Inteligentes:**
-- Contexto del tipo de diagrama
-- Error específico capturado (si está disponible)
-- Mejores prácticas del tipo de diagrama
-- Instrucciones para mantener la intención original del usuario
-
-**Beneficios:**
-- Reduce frustración del usuario
-- Acelera el aprendizaje de sintaxis
-- Aprovecha la IA existente en la plataforma
-- Diferenciador competitivo
+- ⬜ PWA con soporte offline
+- ⬜ Sincronización automática al reconectar
+- ⬜ Conflictos de merge inteligentes
 
 ---
 
@@ -135,4 +102,4 @@ Cuando un diagrama tiene errores de sintaxis o renderizado, habilitar un botón 
 
 ---
 
-**Última actualización:** 2026-02-21
+**Última actualización:** 2026-11-15
