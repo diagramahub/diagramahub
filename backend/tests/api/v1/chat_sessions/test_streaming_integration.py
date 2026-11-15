@@ -9,6 +9,7 @@ Tests the full streaming flow with mocked AI providers, verifying:
 - Phase event emission
 - Coexistence with existing REST endpoint
 """
+
 import json
 
 import pytest
@@ -35,9 +36,7 @@ class TestStreamingEndpoint:
         assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_stream_endpoint_validates_request_body(
-        self, client: AsyncClient
-    ):
+    async def test_stream_endpoint_validates_request_body(self, client: AsyncClient):
         """The streaming endpoint validates the request body schema (before auth)."""
         response = await client.post(
             "/api/v1/chat-sessions/fake-session-id/messages/stream",
@@ -50,9 +49,7 @@ class TestStreamingEndpoint:
         assert response.status_code in (401, 422)
 
     @pytest.mark.asyncio
-    async def test_stream_endpoint_validates_content_min_length(
-        self, client: AsyncClient
-    ):
+    async def test_stream_endpoint_validates_content_min_length(self, client: AsyncClient):
         """The streaming endpoint rejects empty content."""
         response = await client.post(
             "/api/v1/chat-sessions/fake-session-id/messages/stream",

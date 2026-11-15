@@ -1,6 +1,7 @@
 """
 OAuth state token repository implementation using Beanie ODM.
 """
+
 from datetime import datetime
 from typing import Optional
 
@@ -12,9 +13,7 @@ from app.core.clock import utcnow
 class OAuthStateRepository(IOAuthStateRepository):
     """Concrete implementation of the OAuth state token repository."""
 
-    async def create(
-        self, state: str, provider: str, expires_at: datetime
-    ) -> OAuthStateToken:
+    async def create(self, state: str, provider: str, expires_at: datetime) -> OAuthStateToken:
         """Persist a new OAuth state token for CSRF protection."""
         now = utcnow()
         oauth_state = OAuthStateToken(

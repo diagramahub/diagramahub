@@ -1,6 +1,7 @@
 """
 Tests unitarios para SyntaxValidator — validación D2, DBML y enrutamiento.
 """
+
 import pytest
 
 from app.api.v1.diagrams.syntax_validator import SyntaxValidator
@@ -149,7 +150,11 @@ class TestValidateDbml:
         code = "// just a comment\nsome random text"
         result = await SyntaxValidator.validate_dbml(code)
         assert result.is_valid is False
-        assert "Table" in result.error_message or "Enum" in result.error_message or "Ref" in result.error_message
+        assert (
+            "Table" in result.error_message
+            or "Enum" in result.error_message
+            or "Ref" in result.error_message
+        )
 
     @pytest.mark.asyncio
     async def test_unbalanced_open_brace(self):

@@ -50,9 +50,11 @@ async def test_checkout_uses_stripe_price_id_not_inline_price_data():
     mock_session.id = "cs_test_session_456"
     mock_session.url = "https://checkout.stripe.com/pay/cs_test_session_456"
 
-    with patch("stripe.Customer.list", return_value=mock_customer_list), \
-         patch("stripe.Customer.create", return_value=mock_customer), \
-         patch("stripe.checkout.Session.create", return_value=mock_session) as mock_session_create:
+    with (
+        patch("stripe.Customer.list", return_value=mock_customer_list),
+        patch("stripe.Customer.create", return_value=mock_customer),
+        patch("stripe.checkout.Session.create", return_value=mock_session) as mock_session_create,
+    ):
 
         # Act: call create_checkout_session for a $2 USD paid plan
         # After the fix, SubscriptionService extracts stripe_price_id from
@@ -87,9 +89,9 @@ async def test_checkout_uses_stripe_price_id_not_inline_price_data():
         )
 
         # Verify the specific stripe_price_id is used
-        assert first_item.get("price") == "price_test_usd_123", (
-            f"Expected price='price_test_usd_123', got price='{first_item.get('price')}'"
-        )
+        assert (
+            first_item.get("price") == "price_test_usd_123"
+        ), f"Expected price='price_test_usd_123', got price='{first_item.get('price')}'"
 
         # The EXPECTED (fixed) behavior: no inline price_data
         assert "price_data" not in first_item, (

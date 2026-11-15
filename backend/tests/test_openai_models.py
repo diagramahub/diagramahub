@@ -3,6 +3,7 @@ Test script para verificar compatibilidad de modelos OpenAI configurados.
 Ejecutar dentro del contenedor:
   docker exec diagramahub-backend python tests/test_openai_models.py
 """
+
 import asyncio
 import sys
 import os
@@ -66,7 +67,10 @@ async def run_model_check(api_key: str, model: str):
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a diagram expert. Return only mermaid code, no markdown fences."},
+            {
+                "role": "system",
+                "content": "You are a diagram expert. Return only mermaid code, no markdown fences.",
+            },
             {"role": "user", "content": SIMPLE_DIAGRAM_PROMPT},
         ],
         "max_completion_tokens": 1024,
@@ -79,9 +83,11 @@ async def run_model_check(api_key: str, model: str):
         elapsed = time.time() - t0
 
         if resp.status_code != 200:
-            print_result("Generate diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed)
+            print_result(
+                "Generate diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed
+            )
             return
-        
+
         data = resp.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         if not content:
@@ -99,8 +105,14 @@ async def run_model_check(api_key: str, model: str):
     payload2 = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a diagram expert. Return only the improved mermaid code, no markdown fences."},
-            {"role": "user", "content": f"Here is a mermaid diagram:\n\n{diagram_code}\n\n{IMPROVE_PROMPT}"},
+            {
+                "role": "system",
+                "content": "You are a diagram expert. Return only the improved mermaid code, no markdown fences.",
+            },
+            {
+                "role": "user",
+                "content": f"Here is a mermaid diagram:\n\n{diagram_code}\n\n{IMPROVE_PROMPT}",
+            },
         ],
         "max_completion_tokens": 1024,
     }
@@ -112,7 +124,9 @@ async def run_model_check(api_key: str, model: str):
         elapsed = time.time() - t0
 
         if resp.status_code != 200:
-            print_result("Improve diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed)
+            print_result(
+                "Improve diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed
+            )
             return
 
         data = resp.json()
@@ -197,7 +211,9 @@ async def main():
                 try:
                     api_key = decrypt_key(p["api_key"])
                     model = p.get("model", "gpt-4o-mini")
-                    openai_configs.append({"api_key": api_key, "model": model, "user_id": doc.get("user_id", "?")})
+                    openai_configs.append(
+                        {"api_key": api_key, "model": model, "user_id": doc.get("user_id", "?")}
+                    )
                 except Exception as e:
                     print(f"⚠️  Could not decrypt key for user {doc.get('user_id', '?')}: {e}")
 

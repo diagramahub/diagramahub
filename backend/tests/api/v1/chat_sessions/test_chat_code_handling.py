@@ -32,7 +32,10 @@ def test_split_reply_handles_unclosed_blocks_and_bare_code() -> None:
 
 
 def test_split_reply_without_code_keeps_the_text() -> None:
-    assert split("Claro, ¿qué quieres cambiar?", "mermaid") == (None, "Claro, ¿qué quieres cambiar?")
+    assert split("Claro, ¿qué quieres cambiar?", "mermaid") == (
+        None,
+        "Claro, ¿qué quieres cambiar?",
+    )
 
 
 @pytest.mark.parametrize(
@@ -45,7 +48,9 @@ def test_split_reply_without_code_keeps_the_text() -> None:
         ("create a login flow", "code"),
     ],
 )
-def test_requests_that_start_with_an_action_are_code_even_with_questions(message: str, mode: str) -> None:
+def test_requests_that_start_with_an_action_are_code_even_with_questions(
+    message: str, mode: str
+) -> None:
     assert ChatSessionService._detect_response_mode(message) == mode
 
 
@@ -70,7 +75,9 @@ from unittest.mock import patch  # noqa: E402
 
 from app.api.v1.ai_providers.clients.base import BaseAIClient  # noqa: E402
 
-BROKEN = "<<<DIAGRAM>>>\nflowchart TD\n  subgraph a\n  A-->B\n<<<END_DIAGRAM>>>"  # unbalanced subgraph
+BROKEN = (
+    "<<<DIAGRAM>>>\nflowchart TD\n  subgraph a\n  A-->B\n<<<END_DIAGRAM>>>"  # unbalanced subgraph
+)
 CUT_FIX = "<<<DIAGRAM>>>\nflowchart TD\n  subgraph a\n  A-->B\n  end\n  B-->"  # cut mid-reply
 
 
@@ -80,14 +87,24 @@ class _RetryClient(BaseAIClient):
     def __init__(self):
         super().__init__("k" * 20, "fake", {})
 
-    async def complete(self, system_prompt, user_prompt, *, max_tokens=None, temperature=None):  # noqa: ANN001, ANN201
+    async def complete(
+        self, system_prompt, user_prompt, *, max_tokens=None, temperature=None
+    ):  # noqa: ANN001, ANN201
         return BROKEN
 
     async def complete_chat(self, system_prompt, messages, language="es"):  # noqa: ANN001, ANN201
         self.last_truncated = len(messages) > 1  # the retry carries the error message
         return CUT_FIX if self.last_truncated else BROKEN
 
-    async def chat_with_context_stream(self, messages, diagram_code, diagram_type, language="es", system_prompt=None, max_tokens=None):  # noqa: ANN001, ANN201
+    async def chat_with_context_stream(
+        self,
+        messages,
+        diagram_code,
+        diagram_type,
+        language="es",
+        system_prompt=None,
+        max_tokens=None,
+    ):  # noqa: ANN001, ANN201
         self.last_truncated = False
         yield BROKEN
 
@@ -102,7 +119,9 @@ class _RetryClient(BaseAIClient):
 
 
 class _Sessions:
-    session = SimpleNamespace(id="s1", status="active", summary=None, title="t", user_id="u", diagram_id="d")
+    session = SimpleNamespace(
+        id="s1", status="active", summary=None, title="t", user_id="u", diagram_id="d"
+    )
 
     async def get_session_by_id(self, _sid):  # noqa: ANN001, ANN201
         return self.session
@@ -110,16 +129,26 @@ class _Sessions:
     async def update_session_last_provider(self, *a, **k):  # noqa: ANN002, ANN003, ANN201
         return self.session
 
-    update_session_summary = update_session_title = update_session_status = update_session_last_provider
+    update_session_summary = update_session_title = update_session_status = (
+        update_session_last_provider
+    )
 
 
 class _Messages:
     def __init__(self):
         self.items = []
 
-    async def create_message(self, session_id, role, content, **extra):  # noqa: ANN001, ANN003, ANN201
-        msg = SimpleNamespace(id=f"m{len(self.items)}", session_id=session_id, role=role, content=content,
-                              created_at=None, **{"improved_code": None, "improvement_status": None, **extra})
+    async def create_message(
+        self, session_id, role, content, **extra
+    ):  # noqa: ANN001, ANN003, ANN201
+        msg = SimpleNamespace(
+            id=f"m{len(self.items)}",
+            session_id=session_id,
+            role=role,
+            content=content,
+            created_at=None,
+            **{"improved_code": None, "improvement_status": None, **extra},
+        )
         self.items.append(msg)
         return msg
 
@@ -132,7 +161,9 @@ class _Messages:
 
 class _AIService:
     async def get_active_provider_config(self, *_a):  # noqa: ANN002, ANN201
-        return SimpleNamespace(provider=SimpleNamespace(value="openai"), api_key="k", model="fake", parameters={})
+        return SimpleNamespace(
+            provider=SimpleNamespace(value="openai"), api_key="k", model="fake", parameters={}
+        )
 
     async def get_user_settings(self, _uid):  # noqa: ANN001, ANN201
         return SimpleNamespace(auto_fix_generated=True)
@@ -146,11 +177,17 @@ async def test_streaming_never_offers_a_truncated_retry_as_the_new_diagram() -> 
     import json
 
     service = _service()
-    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=_RetryClient()):
+    with patch(
+        "app.api.v1.chat_sessions.services.AIClientFactory.create_client",
+        return_value=_RetryClient(),
+    ):
         events = [
             json.loads(line[6:])
-            async for raw in service.stream_message("s1", "u", "Crea un flujo", "flowchart TD", "mermaid")
-            for line in raw.splitlines() if line.startswith("data: ")
+            async for raw in service.stream_message(
+                "s1", "u", "Crea un flujo", "flowchart TD", "mermaid"
+            )
+            for line in raw.splitlines()
+            if line.startswith("data: ")
         ]
     done = next(e for e in events if e["type"] == "done")
     saved = service.message_repo.items[-1]
@@ -161,8 +198,12 @@ async def test_streaming_never_offers_a_truncated_retry_as_the_new_diagram() -> 
 
 async def test_send_message_never_offers_a_truncated_retry_as_the_new_diagram() -> None:
     service = _service()
-    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=_RetryClient()), patch.object(
-        ChatSessionService, "_message_to_response", lambda self, msg: msg
+    with (
+        patch(
+            "app.api.v1.chat_sessions.services.AIClientFactory.create_client",
+            return_value=_RetryClient(),
+        ),
+        patch.object(ChatSessionService, "_message_to_response", lambda self, msg: msg),
     ):
         saved = await service.send_message("s1", "u", "Crea un flujo", "flowchart TD", "mermaid")
     assert saved.improved_code is None and saved.improvement_status is None
@@ -185,21 +226,34 @@ class _ReplyClient(_RetryClient):
         self.last_truncated = self.truncated
         return self.reply
 
-    async def chat_with_context_stream(self, messages, diagram_code, diagram_type, language="es", system_prompt=None, max_tokens=None):  # noqa: ANN001, ANN201
+    async def chat_with_context_stream(
+        self,
+        messages,
+        diagram_code,
+        diagram_type,
+        language="es",
+        system_prompt=None,
+        max_tokens=None,
+    ):  # noqa: ANN001, ANN201
         self.last_truncated = self.truncated
         yield self.reply
 
 
-async def _stream(service, client, content, diagram_type="mermaid", preset=None):  # noqa: ANN001, ANN202
+async def _stream(
+    service, client, content, diagram_type="mermaid", preset=None
+):  # noqa: ANN001, ANN202
     import json
 
-    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=client):
+    with patch(
+        "app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=client
+    ):
         return [
             json.loads(line[6:])
             async for raw in service.stream_message(
                 "s1", "u", content, "flowchart TD", diagram_type, preset_action=preset
             )
-            for line in raw.splitlines() if line.startswith("data: ")
+            for line in raw.splitlines()
+            if line.startswith("data: ")
         ]
 
 
@@ -218,7 +272,9 @@ def test_real_requests_that_were_taken_for_questions_are_code(message: str) -> N
     assert ChatSessionService._detect_response_mode(message) == "code"
 
 
-@pytest.mark.parametrize("message", ["¿Qué hace este diagrama?", "Explica el flujo", "La empresa es grande"])
+@pytest.mark.parametrize(
+    "message", ["¿Qué hace este diagrama?", "Explica el flujo", "La empresa es grande"]
+)
 def test_questions_stay_text(message: str) -> None:
     assert ChatSessionService._detect_response_mode(message) == "text"
 
@@ -233,7 +289,9 @@ def test_reply_offers_a_diagram_only_with_markers_or_a_whole_tagged_block() -> N
     assert not offers(f"Ejemplo:\n```text\n{CODE}\n```", "mermaid")
     # "Explain": the markers still win; a quoted block of the current diagram does not
     assert offers(f"<<<DIAGRAM>>>\n{CODE}\n<<<END_DIAGRAM>>>", "mermaid", ChatPresetAction.EXPLAIN)
-    assert not offers(f"Este diagrama:\n```mermaid\n{CODE}\n```", "mermaid", ChatPresetAction.EXPLAIN)
+    assert not offers(
+        f"Este diagrama:\n```mermaid\n{CODE}\n```", "mermaid", ChatPresetAction.EXPLAIN
+    )
 
 
 async def test_streaming_a_question_answered_with_the_diagram_offers_the_preview() -> None:
@@ -252,10 +310,16 @@ async def test_streaming_a_question_answered_with_the_diagram_offers_the_preview
 async def test_send_message_a_question_answered_with_the_diagram_offers_the_preview() -> None:
     service = _service()
     reply = f"Claro:\n```mermaid\n{CODE}\n```\nListo."
-    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=_ReplyClient(reply)), patch.object(
-        ChatSessionService, "_message_to_response", lambda self, msg: msg
+    with (
+        patch(
+            "app.api.v1.chat_sessions.services.AIClientFactory.create_client",
+            return_value=_ReplyClient(reply),
+        ),
+        patch.object(ChatSessionService, "_message_to_response", lambda self, msg: msg),
     ):
-        saved = await service.send_message("s1", "u", "¿Lo puedes poner en azul?", "flowchart TD", "mermaid")
+        saved = await service.send_message(
+            "s1", "u", "¿Lo puedes poner en azul?", "flowchart TD", "mermaid"
+        )
     assert saved.improved_code == CODE
     assert "```" not in saved.content
 
@@ -279,7 +343,9 @@ async def test_every_chat_reply_gets_the_code_budget() -> None:
 
 async def test_a_text_answer_stays_text() -> None:
     service = _service()
-    await _stream(service, _ReplyClient("Es un flujo de compra con 3 pasos."), "¿Qué hace este diagrama?")
+    await _stream(
+        service, _ReplyClient("Es un flujo de compra con 3 pasos."), "¿Qué hace este diagrama?"
+    )
     saved = service.message_repo.items[-1]
     assert saved.improved_code is None and saved.content == "Es un flujo de compra con 3 pasos."
 
@@ -290,7 +356,15 @@ async def test_a_text_answer_stays_text() -> None:
 class _FailingClient(_ReplyClient):
     """The provider rejects the request (no credits)."""
 
-    async def chat_with_context_stream(self, messages, diagram_code, diagram_type, language="es", system_prompt=None, max_tokens=None):  # noqa: ANN001, ANN201
+    async def chat_with_context_stream(
+        self,
+        messages,
+        diagram_code,
+        diagram_type,
+        language="es",
+        system_prompt=None,
+        max_tokens=None,
+    ):  # noqa: ANN001, ANN201
         from app.api.v1.ai_providers.clients.base import provider_error
 
         raise provider_error("OpenAI", 402, "insufficient_quota")
@@ -305,13 +379,16 @@ class _NoProviderAIService(_AIService):
 async def _stream_lang(service, client, language):  # noqa: ANN001, ANN202
     import json
 
-    with patch("app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=client):
+    with patch(
+        "app.api.v1.chat_sessions.services.AIClientFactory.create_client", return_value=client
+    ):
         return [
             json.loads(line[6:])
             async for raw in service.stream_message(
                 "s1", "u", "Crea un flujo", "flowchart TD", "mermaid", language=language
             )
-            for line in raw.splitlines() if line.startswith("data: ")
+            for line in raw.splitlines()
+            if line.startswith("data: ")
         ]
 
 
@@ -327,7 +404,9 @@ def test_provider_errors_speak_the_users_language() -> None:
 
 
 @pytest.mark.parametrize(("language", "expected"), [("en", "no credits"), ("es", "créditos")])
-async def test_a_provider_failure_is_reported_in_the_users_language(language: str, expected: str) -> None:
+async def test_a_provider_failure_is_reported_in_the_users_language(
+    language: str, expected: str
+) -> None:
     service = _service()
     events = await _stream_lang(service, _FailingClient("x"), language)
     error = next(e for e in events if e["type"] == "error")
@@ -336,9 +415,12 @@ async def test_a_provider_failure_is_reported_in_the_users_language(language: st
 
 
 @pytest.mark.parametrize(
-    ("language", "expected"), [("en", "No AI provider is configured."), ("es", "No hay proveedor de IA configurado.")]
+    ("language", "expected"),
+    [("en", "No AI provider is configured."), ("es", "No hay proveedor de IA configurado.")],
 )
-async def test_missing_provider_is_reported_in_the_users_language(language: str, expected: str) -> None:
+async def test_missing_provider_is_reported_in_the_users_language(
+    language: str, expected: str
+) -> None:
     service = ChatSessionService(_Sessions(), _Messages(), _NoProviderAIService())
     events = await _stream_lang(service, _ReplyClient("x"), language)
     assert next(e for e in events if e["type"] == "error")["message"] == expected
@@ -346,7 +428,9 @@ async def test_missing_provider_is_reported_in_the_users_language(language: str,
 
 async def test_an_explain_reply_with_markers_offers_the_preview() -> None:
     service = _service()
-    reply = f"Este flujo va de inicio a fin. Lo ordené así:\n<<<DIAGRAM>>>\n{CODE}\n<<<END_DIAGRAM>>>"
+    reply = (
+        f"Este flujo va de inicio a fin. Lo ordené así:\n<<<DIAGRAM>>>\n{CODE}\n<<<END_DIAGRAM>>>"
+    )
     events = await _stream(service, _ReplyClient(reply), "Explica", preset=ChatPresetAction.EXPLAIN)
     saved = service.message_repo.items[-1]
     assert [e["mode"] for e in events if e["type"] == "mode"] == ["text", "code"]
@@ -356,7 +440,9 @@ async def test_an_explain_reply_with_markers_offers_the_preview() -> None:
 async def test_a_cut_explain_reply_with_markers_shows_the_notice() -> None:
     service = _service()
     reply = "Así queda:\n<<<DIAGRAM>>>\nflowchart TD\n    A[Inicio] --> B[Pa"
-    await _stream(service, _ReplyClient(reply, truncated=True), "Explica", preset=ChatPresetAction.EXPLAIN)
+    await _stream(
+        service, _ReplyClient(reply, truncated=True), "Explica", preset=ChatPresetAction.EXPLAIN
+    )
     saved = service.message_repo.items[-1]
     assert saved.improved_code is None
     assert "se cortó" in saved.content and "flowchart" not in saved.content

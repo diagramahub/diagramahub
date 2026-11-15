@@ -5,6 +5,7 @@ Los tags <think> deben eliminarse ANTES de limpiar los fences de markdown:
 si la respuesta empieza con <think>, clean_code_response no reconoce el fence
 anclado al inicio y el código convertido conservaría los ``` delimiters.
 """
+
 import pytest
 
 from app.api.v1.ai_providers.prompts import clean_ai_code_response
@@ -27,12 +28,7 @@ class TestCleanAiCodeResponse:
         assert "```" not in result
 
     def test_think_tags_before_fenced_d2_block(self):
-        raw = (
-            "<think>razonamiento interno</think>\n"
-            "```d2\n"
-            "x -> y: hello\n"
-            "```"
-        )
+        raw = "<think>razonamiento interno</think>\n" "```d2\n" "x -> y: hello\n" "```"
         result = clean_ai_code_response(raw)
         assert result == "x -> y: hello"
 

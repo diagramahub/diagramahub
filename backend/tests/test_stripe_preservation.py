@@ -28,7 +28,6 @@ from app.api.v1.subscriptions.constants import STATUS_ACTIVE
 from tests.utils.security import generate_test_secret
 from app.core.clock import utcnow
 
-
 # ---------------------------------------------------------------------------
 # Hypothesis strategies
 # ---------------------------------------------------------------------------
@@ -60,17 +59,20 @@ webhook_signatures = st.text(
     max_size=60,
 ).filter(lambda s: s.strip() != "")
 
-event_types = st.sampled_from([
-    "checkout.session.completed",
-    "customer.subscription.updated",
-    "customer.subscription.deleted",
-    "invoice.payment_failed",
-])
+event_types = st.sampled_from(
+    [
+        "checkout.session.completed",
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+        "invoice.payment_failed",
+    ]
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_plan_in_db(
     name: str = "Gratuito",
@@ -126,6 +128,7 @@ def _make_subscription_in_db(
 # 1. Free plan creation preservation
 # ===========================================================================
 
+
 class TestFreePlanCreationPreservation:
     """
     **Validates: Requirements 3.1, 3.2**
@@ -170,9 +173,11 @@ class TestFreePlanCreationPreservation:
             max_diagrams=10,
         )
 
-        with patch("stripe.Product.create") as mock_product, \
-             patch("stripe.Price.create") as mock_price, \
-             patch("stripe.checkout.Session.create") as mock_session:
+        with (
+            patch("stripe.Product.create") as mock_product,
+            patch("stripe.Price.create") as mock_price,
+            patch("stripe.checkout.Session.create") as mock_session,
+        ):
 
             result = await service.create_plan(plan_data, admin_user_id="admin_001")
 
@@ -189,6 +194,7 @@ class TestFreePlanCreationPreservation:
 # ===========================================================================
 # 2. Free subscription creation preservation
 # ===========================================================================
+
 
 class TestFreeSubscriptionCreationPreservation:
     """
@@ -231,9 +237,11 @@ class TestFreeSubscriptionCreationPreservation:
             payment_provider=mock_payment,
         )
 
-        with patch("stripe.Customer.list") as mock_cust_list, \
-             patch("stripe.Customer.create") as mock_cust_create, \
-             patch("stripe.checkout.Session.create") as mock_session:
+        with (
+            patch("stripe.Customer.list") as mock_cust_list,
+            patch("stripe.Customer.create") as mock_cust_create,
+            patch("stripe.checkout.Session.create") as mock_session,
+        ):
 
             result = await service.create_free_subscription(user_id)
 
@@ -253,6 +261,7 @@ class TestFreeSubscriptionCreationPreservation:
 # ===========================================================================
 # 3. Cancellation preservation
 # ===========================================================================
+
 
 class TestCancellationPreservation:
     """
@@ -305,6 +314,7 @@ class TestCancellationPreservation:
 # 4. Webhook validation preservation
 # ===========================================================================
 
+
 class TestWebhookValidationPreservation:
     """
     **Validates: Requirements 3.4, 3.5**
@@ -325,9 +335,7 @@ class TestWebhookValidationPreservation:
         deadline=None,
     )
     @pytest.mark.asyncio
-    async def test_validate_webhook_calls_construct_event(
-        self, payload, signature, event_type
-    ):
+    async def test_validate_webhook_calls_construct_event(self, payload, signature, event_type):
         """
         **Validates: Requirements 3.4, 3.5**
 
@@ -346,14 +354,10 @@ class TestWebhookValidationPreservation:
         mock_event.type = event_type
         mock_event.data.object = {"id": "evt_data_obj"}
 
-        with patch(
-            "stripe.Webhook.construct_event", return_value=mock_event
-        ) as mock_construct:
+        with patch("stripe.Webhook.construct_event", return_value=mock_event) as mock_construct:
             result = await provider.validate_webhook(payload, signature)
 
-            mock_construct.assert_called_once_with(
-                payload, signature, webhook_secret
-            )
+            mock_construct.assert_called_once_with(payload, signature, webhook_secret)
 
         assert result["event_id"] == "evt_123"
         assert result["event_type"] == event_type

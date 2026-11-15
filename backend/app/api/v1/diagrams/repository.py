@@ -9,7 +9,6 @@ from .interfaces import IDiagramRepository
 from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
 from app.core.clock import utcnow
 
-
 # Fields that only describe how a diagram is being viewed, not its content.
 PRESENTATION_FIELDS = frozenset({"viewport_zoom", "viewport_x", "viewport_y", "user_preferences"})
 
@@ -79,16 +78,23 @@ class DiagramRepository(IDiagramRepository):
         """``{project_id: {diagram_type: count}}`` from one aggregation (no content loaded)."""
         if not project_ids:
             return {}
-        rows = await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).aggregate(
-            [
-                {
-                    "$group": {
-                        "_id": {"p": "$project_id", "t": {"$ifNull": ["$diagram_type", "mermaid"]}},
-                        "n": {"$sum": 1},
+        rows = (
+            await DiagramInDB.find(In(DiagramInDB.project_id, project_ids))
+            .aggregate(
+                [
+                    {
+                        "$group": {
+                            "_id": {
+                                "p": "$project_id",
+                                "t": {"$ifNull": ["$diagram_type", "mermaid"]},
+                            },
+                            "n": {"$sum": 1},
+                        }
                     }
-                }
-            ]
-        ).to_list()
+                ]
+            )
+            .to_list()
+        )
         counts: dict[str, dict[str, int]] = {}
         for row in rows:
             counts.setdefault(row["_id"]["p"], {})[row["_id"]["t"] or "mermaid"] = row["n"]
@@ -201,7 +207,5 @@ class DiagramRepository(IDiagramRepository):
         """Move the diagrams of a folder to the project root, scoped to the folder's project."""
         result = await DiagramInDB.find(
             DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
-        ).update(
-            {"$set": {"folder_id": None, "updated_at": utcnow()}}
-        )
+        ).update({"$set": {"folder_id": None, "updated_at": utcnow()}})
         return result.modified_count if result else 0

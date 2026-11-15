@@ -99,7 +99,21 @@ _LEADING_CODE_VERBS = {
 }
 
 # Pronouns Spanish glues to an imperative: "agrégale", "hazlo", "corrígelo"
-_ENCLITICS = ("selos", "selas", "selo", "sela", "les", "los", "las", "nos", "le", "lo", "la", "me", "te")
+_ENCLITICS = (
+    "selos",
+    "selas",
+    "selo",
+    "sela",
+    "les",
+    "los",
+    "las",
+    "nos",
+    "le",
+    "lo",
+    "la",
+    "me",
+    "te",
+)
 
 # Words that open a request naming the diagram to draw ("Diagrama de flujo de…")
 _LEADING_DIAGRAM_NOUNS = {"diagrama", "diagram", "flujo", "flowchart", "esquema", "modelo"}
@@ -109,9 +123,7 @@ def _strip_accents(text: str) -> str:
     """Lowercase ASCII-ish form: "agrégale" → "agregale"."""
     import unicodedata
 
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
-    )
+    return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
 
 
 def _is_code_verb(word: str) -> bool:
@@ -906,7 +918,9 @@ class ChatSessionService:
                     if not improved_code:
                         break
 
-                if response_mode == "code" and not (improved_code is None and client.last_truncated):
+                if response_mode == "code" and not (
+                    improved_code is None and client.last_truncated
+                ):
                     # Text the model wrote around the code (the code itself is shown apart)
                     display_text = code_display
                     if not display_text:
@@ -1241,7 +1255,11 @@ class ChatSessionService:
                 whole = "@startuml" in code
             elif diagram_type == "mermaid":
                 first = next(
-                    (ln.strip() for ln in code.splitlines() if ln.strip() and not ln.strip().startswith("%%")),
+                    (
+                        ln.strip()
+                        for ln in code.splitlines()
+                        if ln.strip() and not ln.strip().startswith("%%")
+                    ),
                     "",
                 )
                 whole = bool(

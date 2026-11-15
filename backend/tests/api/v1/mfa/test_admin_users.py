@@ -118,4 +118,7 @@ class TestAdminUsersListing:
         sheet = workbook.active
         headers = [cell.value for cell in sheet[1]]
         assert "License Usage" in headers
-        assert sheet.cell(row=2, column=headers.index("License Usage") + 1).value == "1 project / 2 diagrams"
+        assert (
+            sheet.cell(row=2, column=headers.index("License Usage") + 1).value
+            == "1 project / 2 diagrams"
+        )

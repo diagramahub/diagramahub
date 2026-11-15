@@ -1,6 +1,7 @@
 """
 Pydantic schemas and Beanie documents for the OAuth module.
 """
+
 from datetime import datetime
 from typing import Optional
 

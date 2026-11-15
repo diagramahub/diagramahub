@@ -4,6 +4,7 @@ Property-based tests for AI chat streaming.
 Validates correctness properties defined in the design document using Hypothesis.
 Each test runs a minimum of 100 iterations with randomized inputs.
 """
+
 import json
 
 import pytest
@@ -15,7 +16,6 @@ from app.api.v1.chat_sessions.sse_events import (
     token_event,
     done_event,
 )
-
 
 # =============================================================================
 # Property 1: SSE Event Serialization Round-Trip
@@ -29,10 +29,12 @@ from app.api.v1.chat_sessions.sse_events import (
 
 @pytest.mark.property
 @given(
-    data=st.fixed_dictionaries({
-        "type": st.sampled_from(["token", "phase", "done", "error"]),
-        "content": st.text(min_size=0, max_size=1000),
-    })
+    data=st.fixed_dictionaries(
+        {
+            "type": st.sampled_from(["token", "phase", "done", "error"]),
+            "content": st.text(min_size=0, max_size=1000),
+        }
+    )
 )
 @settings(max_examples=200)
 def test_property_1_sse_round_trip_arbitrary_dict(data: dict):
@@ -86,9 +88,7 @@ def _build_openai_sse_lines(tokens: list[str]) -> list[str]:
     """Build OpenAI-format SSE lines from a list of token strings."""
     lines = []
     for token in tokens:
-        chunk = {
-            "choices": [{"delta": {"content": token}, "index": 0}]
-        }
+        chunk = {"choices": [{"delta": {"content": token}, "index": 0}]}
         lines.append(f"data: {json.dumps(chunk)}")
     lines.append("data: [DONE]")
     return lines
@@ -133,9 +133,7 @@ def test_property_2_openai_stream_parsing(tokens: list[str]):
 @pytest.mark.property
 @given(
     tokens=st.lists(st.text(min_size=1, max_size=50), min_size=1, max_size=10),
-    extra_lines_after_done=st.lists(
-        st.text(min_size=1, max_size=30), min_size=0, max_size=5
-    ),
+    extra_lines_after_done=st.lists(st.text(min_size=1, max_size=30), min_size=0, max_size=5),
 )
 @settings(max_examples=100)
 def test_property_2_openai_stops_at_done(tokens: list[str], extra_lines_after_done: list[str]):
@@ -218,13 +216,15 @@ def _simulate_fallback(response_text: str, message_id: str = "abc123") -> list[s
     """Simulate the non-streaming fallback SSE output."""
     events = []
     events.append(token_event(response_text))
-    events.append(done_event(
-        message_id=message_id,
-        improved_code=None,
-        provider_used="openai",
-        model_used="gpt-4.1-mini",
-        generation_time=1.5,
-    ))
+    events.append(
+        done_event(
+            message_id=message_id,
+            improved_code=None,
+            provider_used="openai",
+            model_used="gpt-4.1-mini",
+            generation_time=1.5,
+        )
+    )
     return events
 
 
@@ -281,12 +281,13 @@ def _has_marker(text: str) -> bool:
 def _extract_diagram_code_python(full_text: str) -> str | None:
     """Python implementation of diagram code extraction (mirrors frontend logic)."""
     import re
+
     normalized = full_text
     normalized = normalized.replace("<<<DIAGRAMA>>>", "<<<DIAGRAM>>>")
     normalized = normalized.replace("<<<FIN_DIAGRAMA>>>", "<<<END_DIAGRAM>>>")
     normalized = normalized.replace("<<<END_DIAGRAMA>>>", "<<<END_DIAGRAM>>>")
-    normalized = re.sub(r'<<<DIAGRAM>>>\s*\n?```\w*\s*\n?', '<<<DIAGRAM>>>\n', normalized)
-    normalized = re.sub(r'\n?```\s*\n?<<<END_DIAGRAM>>>', '\n<<<END_DIAGRAM>>>', normalized)
+    normalized = re.sub(r"<<<DIAGRAM>>>\s*\n?```\w*\s*\n?", "<<<DIAGRAM>>>\n", normalized)
+    normalized = re.sub(r"\n?```\s*\n?<<<END_DIAGRAM>>>", "\n<<<END_DIAGRAM>>>", normalized)
 
     start_marker = "<<<DIAGRAM>>>"
     end_marker = "<<<END_DIAGRAM>>>"
@@ -295,11 +296,11 @@ def _extract_diagram_code_python(full_text: str) -> str | None:
     end_idx = normalized.find(end_marker)
 
     if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        code = normalized[start_idx + len(start_marker):end_idx].strip()
+        code = normalized[start_idx + len(start_marker) : end_idx].strip()
         return code or None
 
     if start_idx != -1 and end_idx == -1:
-        code = normalized[start_idx + len(start_marker):].strip()
+        code = normalized[start_idx + len(start_marker) :].strip()
         return code or None
 
     return None
@@ -388,11 +389,12 @@ def test_property_7_truncated_stream_extraction(before_text: str, diagram_code: 
 def _extract_fenced_code_block(text: str, diagram_type: str) -> str | None:
     """Python implementation of fallback fenced code block detection."""
     import re
+
     # Only if no diagram markers
     if "<<<DIAGRAM>>>" in text or "<<<END_DIAGRAM>>>" in text:
         return None
 
-    pattern = r'```(?:' + re.escape(diagram_type) + r'|mermaid|plantuml|d2|dbml)?\s*\n([\s\S]*?)```'
+    pattern = r"```(?:" + re.escape(diagram_type) + r"|mermaid|plantuml|d2|dbml)?\s*\n([\s\S]*?)```"
     match = re.search(pattern, text)
     if match and len(match.group(1).strip()) > 20:
         return match.group(1).strip()
@@ -437,7 +439,9 @@ def test_property_8_fallback_fenced_code_block(
     message_id=st.text(min_size=1, max_size=30, alphabet=st.characters(categories=("L", "N"))),
     provider_used=st.sampled_from(["openai", "claude", "gemini", "deepseek", "minimax"]),
     model_used=st.text(min_size=1, max_size=40, alphabet=st.characters(categories=("L", "N", "P"))),
-    generation_time=st.floats(min_value=0.01, max_value=300.0, allow_nan=False, allow_infinity=False),
+    generation_time=st.floats(
+        min_value=0.01, max_value=300.0, allow_nan=False, allow_infinity=False
+    ),
     improved_code=st.one_of(st.none(), st.text(min_size=1, max_size=200)),
 )
 @settings(max_examples=200)

@@ -9,6 +9,7 @@ Tests cover:
 - Error mapping: KrokiTimeoutError → HTTP 504
 - Public access: no authentication required
 """
+
 import pytest
 from unittest.mock import AsyncMock
 
@@ -22,7 +23,6 @@ from app.api.v1.diagrams.kroki_client import (
 )
 from app.api.v1.diagrams.routes import get_kroki_client
 from app.api.v1.diagrams.rate_limiter import render_rate_limiter
-
 
 RENDER_URL = "/api/v1/diagrams/render"
 
@@ -108,7 +108,8 @@ class TestRenderDiagramEndpoint:
         """KrokiRenderError with status 400 maps to HTTP 400 with user-friendly message."""
         mock_client = AsyncMock()
         mock_client.render.side_effect = KrokiRenderError(
-            status_code=400, detail="Error 400: SyntaxError: Could not parse input at line 5:3. Expected something.\n    at parse"
+            status_code=400,
+            detail="Error 400: SyntaxError: Could not parse input at line 5:3. Expected something.\n    at parse",
         )
 
         app.dependency_overrides[get_kroki_client] = lambda: mock_client
@@ -170,9 +171,9 @@ class TestRenderDiagramEndpoint:
                     RENDER_URL,
                     json={"source": "test", "diagram_type": dtype},
                 )
-                assert response.status_code == 200, (
-                    f"Type '{dtype}' should be accepted but got {response.status_code}"
-                )
+                assert (
+                    response.status_code == 200
+                ), f"Type '{dtype}' should be accepted but got {response.status_code}"
         finally:
             app.dependency_overrides.pop(get_kroki_client, None)
 

@@ -8,6 +8,7 @@ Rate limiting and account lockout protection for the users module.
 The sliding-window implementation lives in ``app/core/rate_limit.py`` and is
 in-memory (resets on restart). A multi-instance deployment needs Redis.
 """
+
 import time
 from dataclasses import dataclass
 
@@ -17,6 +18,7 @@ from app.core.rate_limit import SlidingWindowRateLimiter
 @dataclass
 class AccountLockoutEntry:
     """Track failed login attempts for an email."""
+
     failed_count: int = 0
     locked_until: float = 0.0
     last_attempt: float = 0.0

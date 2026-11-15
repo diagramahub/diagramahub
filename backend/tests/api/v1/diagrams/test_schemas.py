@@ -1,13 +1,14 @@
 """
 Tests for diagram configuration models.
 """
+
 from app.api.v1.diagrams.schemas import (
     MermaidConfig,
     PlantUMLConfig,
     DiagramConfig,
     DiagramBase,
     DiagramCreate,
-    DiagramUpdate
+    DiagramUpdate,
 )
 
 
@@ -32,7 +33,7 @@ class TestMermaidConfig:
             look="handDrawn",
             handDrawnSeed=42,
             fontFamily="Arial",
-            fontSize=14
+            fontSize=14,
         )
         assert config.theme == "dark"
         assert config.layout == "elk"
@@ -52,10 +53,7 @@ class TestPlantUMLConfig:
 
     def test_custom_values(self):
         """Test custom values for PlantUMLConfig."""
-        skinparam = {
-            "backgroundColor": "#ffffff",
-            "sequenceParticipant": "underline"
-        }
+        skinparam = {"backgroundColor": "#ffffff", "sequenceParticipant": "underline"}
         config = PlantUMLConfig(skinparam=skinparam)
         assert config.skinparam == skinparam
 
@@ -71,10 +69,7 @@ class TestDiagramConfig:
 
     def test_custom_values(self):
         """Test custom values for DiagramConfig."""
-        config = DiagramConfig(
-            background_color="#f0f0f0",
-            background_pattern="grid"
-        )
+        config = DiagramConfig(background_color="#f0f0f0", background_pattern="grid")
         assert config.background_color == "#f0f0f0"
         assert config.background_pattern == "grid"
 
@@ -85,11 +80,7 @@ class TestDiagramModels:
     def test_diagram_base_with_config(self):
         """Test DiagramBase with config field."""
         config = DiagramConfig(background_color="#f5f5f5", background_pattern="dots")
-        diagram = DiagramBase(
-            title="Test Diagram",
-            content="graph TD\nA-->B",
-            config=config
-        )
+        diagram = DiagramBase(title="Test Diagram", content="graph TD\nA-->B", config=config)
         assert diagram.title == "Test Diagram"
         assert diagram.content == "graph TD\nA-->B"
         assert diagram.config.background_color == "#f5f5f5"
@@ -97,9 +88,7 @@ class TestDiagramModels:
 
     def test_diagram_create_default_config(self):
         """Test DiagramCreate with default config."""
-        diagram = DiagramCreate(
-            title="New Diagram"
-        )
+        diagram = DiagramCreate(title="New Diagram")
         assert diagram.title == "New Diagram"
         assert diagram.config.background_color == "#ffffff"
         assert diagram.config.background_pattern == "plain"
@@ -107,10 +96,7 @@ class TestDiagramModels:
     def test_diagram_update_with_config(self):
         """Test DiagramUpdate with config changes."""
         config = DiagramConfig(background_color="#e0e0e0", background_pattern="grid")
-        update = DiagramUpdate(
-            title="Updated Title",
-            config=config
-        )
+        update = DiagramUpdate(title="Updated Title", config=config)
         assert update.title == "Updated Title"
         assert update.config.background_color == "#e0e0e0"
         assert update.config.background_pattern == "grid"

@@ -291,7 +291,8 @@ class ConvertDiagramRequest(BaseModel):
         ..., description="Tipo de diagrama destino (mermaid, plantuml, d2, dbml)"
     )
     provider: Optional[str] = Field(
-        None, description="Proveedor de IA específico a usar (opcional, usa default si no se indica)"
+        None,
+        description="Proveedor de IA específico a usar (opcional, usa default si no se indica)",
     )
     model: Optional[str] = Field(
         None, description="Modelo específico a usar con el proveedor seleccionado (opcional)"

@@ -1,6 +1,7 @@
 """
 Pydantic models for shared links module.
 """
+
 from datetime import datetime
 from typing import Optional
 
@@ -12,6 +13,7 @@ from app.core.clock import utcnow
 
 class SharedLinkInDB(Document):
     """Shared link document stored in MongoDB."""
+
     diagram_id: str
     user_id: str
     token: str
@@ -34,6 +36,7 @@ class SharedLinkInDB(Document):
 
 class AccessLogInDB(Document):
     """Access log document stored in MongoDB."""
+
     token: str
     ip_hash: str
     result: str  # "success" | "expired" | "invalid_code" | "blocked" | "not_found"
@@ -42,11 +45,13 @@ class AccessLogInDB(Document):
     class Settings:
         name = "shared_link_access_logs"
         indexes = [
-            IndexModel([
-                ("ip_hash", ASCENDING),
-                ("token", ASCENDING),
-                ("created_at", DESCENDING),
-            ]),
+            IndexModel(
+                [
+                    ("ip_hash", ASCENDING),
+                    ("token", ASCENDING),
+                    ("created_at", DESCENDING),
+                ]
+            ),
             "created_at",
         ]
 
@@ -56,6 +61,7 @@ class AccessLogInDB(Document):
 
 class SharedLinkCreate(BaseModel):
     """Internal model for creating a shared link in the repository."""
+
     diagram_id: str
     user_id: str
     token: str
@@ -67,6 +73,7 @@ class SharedLinkCreate(BaseModel):
 
 class SharedLinkUpdate(BaseModel):
     """Internal model for updating a shared link in the repository."""
+
     access_type: Optional[str] = None
     access_code_hash: Optional[str] = None
     allow_copy_code: Optional[bool] = None
@@ -75,6 +82,7 @@ class SharedLinkUpdate(BaseModel):
 
 class AccessLogCreate(BaseModel):
     """Internal model for creating an access log entry."""
+
     token: str
     ip_hash: str
     result: str
@@ -85,10 +93,9 @@ class AccessLogCreate(BaseModel):
 
 class CreateSharedLinkRequest(BaseModel):
     """Request model for creating a shared link."""
+
     diagram_id: str
-    expiration_days: Optional[int] = Field(
-        30, description="5, 10, 30 or None for unlimited"
-    )
+    expiration_days: Optional[int] = Field(30, description="5, 10, 30 or None for unlimited")
     access_type: str = Field("public", pattern="^(public|protected)$")
     access_code: Optional[str] = Field(None, min_length=4, max_length=20)
     allow_copy_code: bool = False
@@ -96,6 +103,7 @@ class CreateSharedLinkRequest(BaseModel):
 
 class UpdateSharedLinkRequest(BaseModel):
     """Request model for updating a shared link."""
+
     expiration_days: Optional[int] = None
     access_type: Optional[str] = Field(None, pattern="^(public|protected)$")
     access_code: Optional[str] = None
@@ -104,6 +112,7 @@ class UpdateSharedLinkRequest(BaseModel):
 
 class VerifyAccessCodeRequest(BaseModel):
     """Request model for verifying an access code."""
+
     access_code: str = Field(..., min_length=1, max_length=20)
 
 
@@ -112,6 +121,7 @@ class VerifyAccessCodeRequest(BaseModel):
 
 class SharedLinkResponse(BaseModel):
     """Response model for shared link (owner view)."""
+
     id: str
     diagram_id: str
     token: str
@@ -129,6 +139,7 @@ class SharedLinkResponse(BaseModel):
 
 class SharedLinkInfoResponse(BaseModel):
     """Public info response for a shared link."""
+
     requires_code: bool
     is_expired: bool
     diagram_title: str
@@ -136,6 +147,7 @@ class SharedLinkInfoResponse(BaseModel):
 
 class SharedDiagramResponse(BaseModel):
     """Response model for a shared diagram (visitor view)."""
+
     title: str
     description: Optional[str] = None
     content: Optional[str] = None  # None if allow_copy_code is False

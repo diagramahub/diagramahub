@@ -87,9 +87,7 @@ class DiagramService:
 
         # One sorted + limited query with a summary projection, instead of loading
         # every diagram (with its full content) of every project and sorting here.
-        recent = await self.diagram_repository.get_recent_by_project_ids(
-            list(project_map), limit
-        )
+        recent = await self.diagram_repository.get_recent_by_project_ids(list(project_map), limit)
 
         return [
             {

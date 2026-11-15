@@ -1,6 +1,7 @@
 """
 Main FastAPI application entry point.
 """
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -27,7 +28,10 @@ from app.api.v1.chat_sessions.schemas import ChatSessionInDB, ChatMessageInDB
 from app.api.v1.subscriptions.routes import router as subscriptions_router
 from app.api.v1.subscriptions.webhook_routes import router as webhooks_router
 from app.api.v1.subscriptions.schemas import (
-    PlanInDB, SubscriptionInDB, StripeConfigInDB, WebhookEventInDB
+    PlanInDB,
+    SubscriptionInDB,
+    StripeConfigInDB,
+    WebhookEventInDB,
 )
 from app.api.v1.shared_links.schemas import SharedLinkInDB, AccessLogInDB
 from app.api.v1.shared_links.routes import router as shared_links_router
@@ -134,10 +138,10 @@ async def lifespan(app: FastAPI):
     await init_beanie(
         database=database,
         document_models=[
-            UserInDB, 
-            ProjectInDB, 
-            DiagramInDB, 
-            FolderInDB, 
+            UserInDB,
+            ProjectInDB,
+            DiagramInDB,
+            FolderInDB,
             UserAISettingsInDB,
             PlanInDB,
             SubscriptionInDB,
@@ -180,6 +184,7 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # Security Headers Middleware (OWASP A05)
 # ---------------------------------------------------------------------------
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to every response."""
@@ -235,6 +240,7 @@ if _is_production:
             content={"detail": "Internal server error"},
         )
 
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -262,14 +268,20 @@ app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(projects_router, prefix=settings.API_V1_PREFIX)
 app.include_router(diagrams_router, prefix=settings.API_V1_PREFIX)
 app.include_router(folders_router, prefix=settings.API_V1_PREFIX)
-app.include_router(ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"])
+app.include_router(
+    ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"]
+)
 app.include_router(subscriptions_router, prefix=settings.API_V1_PREFIX, tags=["Subscriptions"])
 app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX, tags=["Webhooks"])
 app.include_router(prompt_history_router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat_sessions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(shared_links_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links"])
-app.include_router(shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"])
-app.include_router(integrations_router, prefix=settings.API_V1_PREFIX, tags=["Integrations (Admin)"])
+app.include_router(
+    shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"]
+)
+app.include_router(
+    integrations_router, prefix=settings.API_V1_PREFIX, tags=["Integrations (Admin)"]
+)
 app.include_router(mfa_router, prefix=settings.API_V1_PREFIX, tags=["MFA"])
 app.include_router(oauth_router, prefix=settings.API_V1_PREFIX, tags=["OAuth"])
 

@@ -4,6 +4,7 @@
 render (Kroki), so it is bounded per IP to keep a single client from saturating
 the renderer.
 """
+
 from app.core.rate_limit import SlidingWindowRateLimiter
 
 # 60 renders per IP per minute: enough to open a project holding many

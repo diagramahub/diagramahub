@@ -12,6 +12,7 @@ Tests cover:
 Sensitive sample values are generated dynamically (never hardcoded) — the
 sanitizer's behavior depends only on the field name, not the value.
 """
+
 import pytest
 
 from app.main import sanitize_sentry_event, _MASK
@@ -27,11 +28,7 @@ class TestSanitizeSentryEvent:
     """Tests for the sanitize_sentry_event before_send callback."""
 
     def test_masks_authorization_header(self):
-        event = {
-            "request": {
-                "headers": {"Authorization": f"Bearer {generate_test_token()}"}
-            }
-        }
+        event = {"request": {"headers": {"Authorization": f"Bearer {generate_test_token()}"}}}
         result = sanitize_sentry_event(event, {})
         assert result is not None
         assert result["request"]["headers"]["Authorization"] == _MASK
@@ -39,7 +36,9 @@ class TestSanitizeSentryEvent:
     def test_masks_cookie_header(self):
         event = {
             "request": {
-                "headers": {"Cookie": f"session={generate_test_token()}; token={generate_test_token()}"}
+                "headers": {
+                    "Cookie": f"session={generate_test_token()}; token={generate_test_token()}"
+                }
             }
         }
         result = sanitize_sentry_event(event, {})
@@ -137,6 +136,7 @@ class TestSanitizeSentryEvent:
 
     def test_returns_none_on_sanitization_failure(self):
         """If sanitization raises, the event should be discarded (return None)."""
+
         # Use a dict subclass for headers that raises when iterating keys
         class ExplodingDict(dict):
             def __init__(self):

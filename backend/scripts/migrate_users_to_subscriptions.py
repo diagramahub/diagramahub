@@ -8,6 +8,7 @@ It's idempotent - can be run multiple times without creating duplicates.
 Usage:
     python migrate_users_to_subscriptions.py [--dry-run] [--verbose]
 """
+
 import asyncio
 import sys
 import argparse
@@ -34,17 +35,14 @@ async def migrate_users(dry_run: bool = False, verbose: bool = False):
     # Connect to MongoDB
     client = AsyncMongoClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]
-    
+
     # Initialize Beanie
-    await init_beanie(
-        database=database,
-        document_models=[UserInDB, PlanInDB, SubscriptionInDB]
-    )
-    
+    await init_beanie(database=database, document_models=[UserInDB, PlanInDB, SubscriptionInDB])
+
     # Create services
     plan_repository = PlanRepository()
     subscription_repository = SubscriptionRepository()
-    
+
     # Create payment provider (puede ser None si no está configurado)
     try:
         payment_provider = StripePaymentProvider.from_env()
@@ -52,26 +50,24 @@ async def migrate_users(dry_run: bool = False, verbose: bool = False):
         payment_provider = None
         if verbose:
             print("⚠ Stripe not configured, continuing without payment provider")
-    
+
     subscription_service = SubscriptionService(
         repository=subscription_repository,
         plan_repository=plan_repository,
-        payment_provider=payment_provider
+        payment_provider=payment_provider,
     )
-    
-    migration_service = MigrationService(
-        subscription_service=subscription_service
-    )
-    
+
+    migration_service = MigrationService(subscription_service=subscription_service)
+
     # Get statistics before migration
     users = await UserInDB.find_all().to_list()
     print(f"Found {len(users)} users in database")
     print()
-    
+
     if dry_run:
         print("🔍 DRY RUN MODE - No changes will be made")
         print()
-        
+
         # Count users without subscription
         users_without_sub = 0
         for user in users:
@@ -80,78 +76,67 @@ async def migrate_users(dry_run: bool = False, verbose: bool = False):
                 users_without_sub += 1
                 if verbose:
                     print(f"  Would migrate: {user.email}")
-        
+
         print(f"Would migrate {users_without_sub} users")
         print(f"Already have subscription: {len(users) - users_without_sub} users")
-        
+
     else:
         # Confirm before proceeding
         print("⚠️  This will create FREE subscriptions for all users without one.")
         response = input("Continue? (yes/no): ")
-        
-        if response.lower() not in ['yes', 'y']:
+
+        if response.lower() not in ["yes", "y"]:
             print("Migration cancelled")
             await client.close()
             return 1
-        
+
         print()
         print("Starting migration...")
         print()
-        
+
         # Run migration
         stats = await migration_service.migrate_existing_users()
-        
+
         # Print results
         print("Migration completed!")
         print()
         print(f"  Total users: {stats['total_users']}")
         print(f"  ✓ Migrated: {stats['migrated']}")
         print(f"  ✓ Already had subscription: {stats['already_had_subscription']}")
-        if stats['errors'] > 0:
+        if stats["errors"] > 0:
             print(f"  ✗ Errors: {stats['errors']}")
-    
+
     # Close connection
     await client.close()
-    
+
     return 0
 
 
 async def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Migrate existing users to subscription system"
-    )
+    parser = argparse.ArgumentParser(description="Migrate existing users to subscription system")
     parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show what would be done without making changes"
+        "--dry-run", action="store_true", help="Show what would be done without making changes"
     )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Show detailed output"
-    )
-    
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed output")
+
     args = parser.parse_args()
-    
+
     print("=" * 60)
     print("User Subscription Migration")
     print("=" * 60)
     print(f"Database: {settings.DATABASE_NAME}")
     print()
-    
+
     try:
-        exit_code = await migrate_users(
-            dry_run=args.dry_run,
-            verbose=args.verbose
-        )
+        exit_code = await migrate_users(dry_run=args.dry_run, verbose=args.verbose)
         print()
         print("Done!")
         return exit_code
     except Exception as e:
         print(f"✗ Error: {str(e)}")
         import traceback
+
         traceback.print_exc()
         return 1
 

@@ -5,6 +5,7 @@ Hosts the admin aggregation pipelines, Excel export, and MFA-reset business
 logic that used to live inline in ``mfa/routes.py`` so that routes stay
 focused on HTTP concerns (Dependency Inversion).
 """
+
 import io
 import logging
 import re
@@ -40,9 +41,7 @@ class MfaAdminService:
         """
         self.repository = repository
         self.ai_provider_repository = (
-            ai_provider_repository
-            if ai_provider_repository is not None
-            else AIProviderRepository()
+            ai_provider_repository if ai_provider_repository is not None else AIProviderRepository()
         )
 
     async def list_users(self, page: int, page_size: int, search: str) -> dict:
@@ -65,9 +64,7 @@ class MfaAdminService:
         query = UserInDB.find()
         if search:
             pattern = re.compile(re.escape(search), re.IGNORECASE)
-            query = UserInDB.find(
-                {"$or": [{"email": pattern}, {"full_name": pattern}]}
-            )
+            query = UserInDB.find({"$or": [{"email": pattern}, {"full_name": pattern}]})
 
         total = await query.count()
 
@@ -108,9 +105,7 @@ class MfaAdminService:
                     user_id = project_owner_by_id[project_id]
                     diagram_type = str(group["_id"].get("diagram_type") or "unknown").lower()
                     count = group["count"]
-                    diagram_counts_by_user[user_id] = (
-                        diagram_counts_by_user.get(user_id, 0) + count
-                    )
+                    diagram_counts_by_user[user_id] = diagram_counts_by_user.get(user_id, 0) + count
                     type_counts = diagram_type_counts_by_user.setdefault(user_id, {})
                     type_counts[diagram_type] = type_counts.get(diagram_type, 0) + count
         except Exception:
@@ -119,7 +114,8 @@ class MfaAdminService:
         items = []
         for u in users:
             unused_codes = sum(
-                1 for c in u.recovery_codes
+                1
+                for c in u.recovery_codes
                 if not (c.used if hasattr(c, "used") else c.get("used", False))
             )
             last_login_at = u.last_login_at.isoformat() if u.last_login_at else None
@@ -142,9 +138,7 @@ class MfaAdminService:
 
             connected_ai_models = []
             try:
-                ai_settings = await self.ai_provider_repository.get_user_settings(
-                    str(u.id)
-                )
+                ai_settings = await self.ai_provider_repository.get_user_settings(str(u.id))
                 if ai_settings and ai_settings.providers:
                     for provider in ai_settings.providers:
                         if not provider.is_active:
@@ -171,24 +165,26 @@ class MfaAdminService:
             diagram_count = diagram_counts_by_user.get(user_id, 0)
             diagram_type_counts = diagram_type_counts_by_user.get(user_id, {})
 
-            items.append({
-                "id": str(u.id),
-                "email": u.email,
-                "full_name": u.full_name,
-                "role": u.role,
-                "is_active": u.is_active,
-                "mfa_enabled": u.mfa_enabled,
-                "mfa_methods": u.mfa_methods,
-                "mfa_default_method": u.mfa_default_method,
-                "recovery_codes_remaining": unused_codes,
-                "created_at": u.created_at.isoformat() if u.created_at else None,
-                "plan_name": plan_name,
-                "project_count": project_count,
-                "diagram_count": diagram_count,
-                "diagram_type_counts": diagram_type_counts,
-                "connected_ai_models": connected_ai_models,
-                "last_login_at": last_login_at,
-            })
+            items.append(
+                {
+                    "id": str(u.id),
+                    "email": u.email,
+                    "full_name": u.full_name,
+                    "role": u.role,
+                    "is_active": u.is_active,
+                    "mfa_enabled": u.mfa_enabled,
+                    "mfa_methods": u.mfa_methods,
+                    "mfa_default_method": u.mfa_default_method,
+                    "recovery_codes_remaining": unused_codes,
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                    "plan_name": plan_name,
+                    "project_count": project_count,
+                    "diagram_count": diagram_count,
+                    "diagram_type_counts": diagram_type_counts,
+                    "connected_ai_models": connected_ai_models,
+                    "last_login_at": last_login_at,
+                }
+            )
 
         return {
             "items": items,
@@ -267,23 +263,36 @@ class MfaAdminService:
         # Headers
         if lang == "en":
             headers = [
-                "Email", "Full Name", "Role", "Plan", "License Usage", "Active",
-                "MFA Enabled", "MFA Methods", "Default Method",
-                "Recovery Codes Remaining", "Created At",
+                "Email",
+                "Full Name",
+                "Role",
+                "Plan",
+                "License Usage",
+                "Active",
+                "MFA Enabled",
+                "MFA Methods",
+                "Default Method",
+                "Recovery Codes Remaining",
+                "Created At",
             ]
         else:
             headers = [
-                "Correo", "Nombre completo", "Rol", "Plan", "Uso de licencia",
-                "Activo", "MFA Habilitado", "Métodos MFA",
-                "Método predeterminado", "Códigos de recuperación",
+                "Correo",
+                "Nombre completo",
+                "Rol",
+                "Plan",
+                "Uso de licencia",
+                "Activo",
+                "MFA Habilitado",
+                "Métodos MFA",
+                "Método predeterminado",
+                "Códigos de recuperación",
                 "Fecha de registro",
             ]
 
         # Style
         header_font = Font(bold=True, color="FFFFFF", size=11)
-        header_fill = PatternFill(
-            start_color="7C3AED", end_color="7C3AED", fill_type="solid"
-        )
+        header_fill = PatternFill(start_color="7C3AED", end_color="7C3AED", fill_type="solid")
         header_alignment = Alignment(horizontal="center", vertical="center")
         thin_border = Border(
             bottom=Side(style="thin", color="E5E7EB"),
@@ -298,12 +307,11 @@ class MfaAdminService:
         # Data rows
         for row_idx, u in enumerate(users, 2):
             unused_codes = sum(
-                1 for c in u.recovery_codes
+                1
+                for c in u.recovery_codes
                 if not (c.used if hasattr(c, "used") else c.get("used", False))
             )
-            methods_str = ", ".join(
-                ("Email" if m == "email" else "TOTP") for m in u.mfa_methods
-            )
+            methods_str = ", ".join(("Email" if m == "email" else "TOTP") for m in u.mfa_methods)
             default_str = ""
             if u.mfa_default_method:
                 default_str = "Email" if u.mfa_default_method == "email" else "TOTP"
@@ -332,9 +340,7 @@ class MfaAdminService:
                 from app.api.v1.projects.schemas import ProjectInDB
                 from app.api.v1.diagrams.schemas import DiagramInDB
 
-                user_projects = await ProjectInDB.find(
-                    ProjectInDB.user_id == str(u.id)
-                ).to_list()
+                user_projects = await ProjectInDB.find(ProjectInDB.user_id == str(u.id)).to_list()
                 if user_projects:
                     project_count = len(user_projects)
                     project_ids = [str(p.id) for p in user_projects]

@@ -4,6 +4,7 @@ TOTP (Time-based One-Time Password) service for MFA.
 Encapsulates pyotp logic for generating secrets, QR codes, and verifying TOTP codes
 according to RFC 6238.
 """
+
 import base64
 import io
 
@@ -27,9 +28,7 @@ class TotpService:
         return pyotp.random_base32()
 
     @staticmethod
-    def generate_qr_uri(
-        secret: str, email: str, issuer: str = "Diagramahub"
-    ) -> str:
+    def generate_qr_uri(secret: str, email: str, issuer: str = "Diagramahub") -> str:
         """Generate an ``otpauth://`` URI for QR code scanning.
 
         Args:

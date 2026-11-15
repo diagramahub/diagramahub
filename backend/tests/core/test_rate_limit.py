@@ -4,6 +4,7 @@ Unit tests for the shared sliding-window rate limiter.
 This primitive backs the per-IP abuse protection used by login, registration,
 password reset, MFA verification and public diagram rendering.
 """
+
 import pytest
 
 from app.core.rate_limit import SlidingWindowRateLimiter
@@ -47,9 +48,7 @@ class TestSlidingWindowRateLimiter:
         assert limiter.is_allowed("10.0.0.1")[0] is True
 
         # Age the recorded timestamp instead of sleeping through the window.
-        limiter._requests["10.0.0.1"] = [
-            t - 61 for t in limiter._requests["10.0.0.1"]
-        ]
+        limiter._requests["10.0.0.1"] = [t - 61 for t in limiter._requests["10.0.0.1"]]
 
         assert limiter.is_allowed("10.0.0.1")[0] is True
 

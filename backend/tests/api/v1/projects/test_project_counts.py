@@ -19,7 +19,9 @@ async def _project_with(client: AsyncClient, name: str, types: list[str]) -> str
 
 @pytest.mark.integration
 async def test_project_list_counts_diagrams_per_type(authenticated_client: AsyncClient) -> None:
-    with_diagrams = await _project_with(authenticated_client, "A", ["mermaid", "plantuml", "mermaid"])
+    with_diagrams = await _project_with(
+        authenticated_client, "A", ["mermaid", "plantuml", "mermaid"]
+    )
 
     projects = {p["id"]: p for p in (await authenticated_client.get("/api/v1/projects")).json()}
     single = (await authenticated_client.get(f"/api/v1/projects/{with_diagrams}")).json()
@@ -30,7 +32,9 @@ async def test_project_list_counts_diagrams_per_type(authenticated_client: Async
 
 
 @pytest.mark.integration
-async def test_quota_usage_counts_all_projects_of_the_user(authenticated_client: AsyncClient) -> None:
+async def test_quota_usage_counts_all_projects_of_the_user(
+    authenticated_client: AsyncClient,
+) -> None:
     await _project_with(authenticated_client, "A", ["mermaid", "d2"])
     await _project_with(authenticated_client, "B", ["dbml"])
     me = (await authenticated_client.get("/api/v1/users/me")).json()

@@ -4,6 +4,7 @@ Integration tests for the audit log entries wired up in this release.
 Covers password_reset_requested and account_deleted. The MFA enable/disable
 events live next to their routes in ``tests/api/v1/mfa/test_audit_events.py``.
 """
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -41,9 +42,7 @@ class TestPasswordResetRequestedAudit:
     """Requesting a password reset leaves a trail for SOC2-style review."""
 
     @pytest.mark.asyncio
-    async def test_requesting_a_reset_is_recorded(
-        self, client: AsyncClient, registered_user: dict
-    ):
+    async def test_requesting_a_reset_is_recorded(self, client: AsyncClient, registered_user: dict):
         with _mock_email_service():
             response = await client.post(
                 "/api/v1/users/reset-password-request",
@@ -68,9 +67,9 @@ class TestPasswordResetRequestedAudit:
             )
 
         assert response.status_code == 200
-        assert await AuditLogEntry.find(
-            AuditLogEntry.event == "password_reset_requested"
-        ).count() == 0
+        assert (
+            await AuditLogEntry.find(AuditLogEntry.event == "password_reset_requested").count() == 0
+        )
 
 
 @pytest.mark.integration
@@ -101,8 +100,6 @@ class TestAccountDeletedAudit:
         )
         assert response.status_code == 200
 
-        entries = await AuditLogEntry.find(
-            AuditLogEntry.event == "account_deleted"
-        ).to_list()
+        entries = await AuditLogEntry.find(AuditLogEntry.event == "account_deleted").to_list()
         assert len(entries) == 1
         assert entries[0].user_email == victim["email"]

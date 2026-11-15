@@ -4,6 +4,7 @@ Integration tests for the MFA audit log entries.
 Enabling and disabling a second factor are the account-security events a
 reviewer looks for, so both must leave a trail with the method used.
 """
+
 import pyotp
 import pytest
 from httpx import AsyncClient
@@ -18,9 +19,7 @@ class TestMfaAuditEvents:
     """TOTP activation and deactivation write audit entries."""
 
     @pytest.mark.asyncio
-    async def test_enabling_mfa_is_recorded(
-        self, authenticated_client: AsyncClient
-    ):
+    async def test_enabling_mfa_is_recorded(self, authenticated_client: AsyncClient):
         """Completing TOTP activation writes mfa_enabled with the method."""
         setup = await authenticated_client.post("/api/v1/mfa/setup-totp")
         assert setup.status_code == 200
@@ -33,9 +32,7 @@ class TestMfaAuditEvents:
         assert enable.status_code == 200
         assert enable.json()["codes"]
 
-        entries = await AuditLogEntry.find(
-            AuditLogEntry.event == "mfa_enabled"
-        ).to_list()
+        entries = await AuditLogEntry.find(AuditLogEntry.event == "mfa_enabled").to_list()
         assert len(entries) == 1
         assert entries[0].details == "method: totp"
 
@@ -58,9 +55,7 @@ class TestMfaAuditEvents:
         )
         assert disable.status_code == 200
 
-        entries = await AuditLogEntry.find(
-            AuditLogEntry.event == "mfa_disabled"
-        ).to_list()
+        entries = await AuditLogEntry.find(AuditLogEntry.event == "mfa_disabled").to_list()
         assert len(entries) == 1
         assert entries[0].details == "method: totp"
 
@@ -94,16 +89,12 @@ class TestSecondMethodAuditTrail:
         # No new codes are issued for a second method...
         assert enable.json()["codes"] is None
         # ...but the activation is still recorded.
-        entries = await AuditLogEntry.find(
-            AuditLogEntry.event == "mfa_enabled"
-        ).to_list()
+        entries = await AuditLogEntry.find(AuditLogEntry.event == "mfa_enabled").to_list()
         assert len(entries) == 1
         assert entries[0].details == "method: totp"
 
     @pytest.mark.asyncio
-    async def test_adding_email_mfa_after_totp_is_recorded(
-        self, authenticated_client: AsyncClient
-    ):
+    async def test_adding_email_mfa_after_totp_is_recorded(self, authenticated_client: AsyncClient):
         """The email activation route shares the ordering rule."""
         setup = await authenticated_client.post("/api/v1/mfa/setup-totp")
         secret = setup.json()["secret_key"]
@@ -114,9 +105,7 @@ class TestSecondMethodAuditTrail:
         assert first.status_code == 200
         assert first.json()["codes"]  # the first method issues the codes
 
-        with patch(
-            "app.api.v1.mfa.routes._send_mfa_email", new=AsyncMock()
-        ) as send_email:
+        with patch("app.api.v1.mfa.routes._send_mfa_email", new=AsyncMock()) as send_email:
             start = await authenticated_client.post("/api/v1/mfa/enable-email")
         assert start.status_code == 200
         emailed_code = send_email.await_args.args[1]

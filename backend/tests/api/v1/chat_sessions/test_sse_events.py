@@ -3,6 +3,7 @@ Tests for SSE event formatters.
 
 Covers unit tests and property-based tests for the sse_events module.
 """
+
 import json
 
 import pytest

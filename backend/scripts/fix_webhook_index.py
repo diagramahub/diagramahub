@@ -3,6 +3,7 @@
 Script to fix webhook_events index conflict.
 Drops the old index and lets Beanie recreate it with unique constraint.
 """
+
 import asyncio
 import sys
 from pymongo import AsyncMongoClient
@@ -15,24 +16,24 @@ async def fix_webhook_index():
     client = AsyncMongoClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]
     collection = database["webhook_events"]
-    
+
     try:
         # List existing indexes
         indexes = await collection.list_indexes().to_list(length=None)
         print("\nExisting indexes on webhook_events:")
         for idx in indexes:
             print(f"  - {idx['name']}: {idx.get('key', {})}")
-        
+
         # Drop the conflicting index
-        if any(idx['name'] == 'event_id_1' for idx in indexes):
+        if any(idx["name"] == "event_id_1" for idx in indexes):
             print("\nDropping index 'event_id_1'...")
-            await collection.drop_index('event_id_1')
+            await collection.drop_index("event_id_1")
             print("✓ Index dropped successfully")
         else:
             print("\n✓ No conflicting index found")
-        
+
         print("\nDone! You can now restart the backend.")
-        
+
     except Exception as e:
         print(f"\n✗ Error: {e}", file=sys.stderr)
         sys.exit(1)

@@ -23,23 +23,37 @@ from app.api.v1.projects.export_builders import (
 AT = datetime(2026, 10, 1, 12, 0, 0)
 
 
-def _diagram(title: str, dtype: str = "mermaid", content: str = "graph TD\n  A-->B", description=None) -> ExportDiagram:
+def _diagram(
+    title: str, dtype: str = "mermaid", content: str = "graph TD\n  A-->B", description=None
+) -> ExportDiagram:
     return ExportDiagram(
-        id=f"id-{title}", title=title, diagram_type=dtype, content=content,
-        description=description, created_at=AT, updated_at=AT,
+        id=f"id-{title}",
+        title=title,
+        diagram_type=dtype,
+        content=content,
+        description=description,
+        created_at=AT,
+        updated_at=AT,
     )
 
 
 def _tree(**overrides) -> ExportTree:
     base = dict(
-        project_id="p1", project_name="Mi proyecto", project_emoji="📁",
+        project_id="p1",
+        project_name="Mi proyecto",
+        project_emoji="📁",
         project_description="Sistema de pagos",
         root_diagrams=[_diagram("Borrador", description="Un borrador")],
         folders=[
-            ExportFolder(id="f1", name="Arquitectura", color="#8B5CF6", diagrams=[
-                _diagram("Flujo de login", description="Login con MFA"),
-                _diagram("Pagos", "plantuml", "@startuml\nA->B\n@enduml"),
-            ]),
+            ExportFolder(
+                id="f1",
+                name="Arquitectura",
+                color="#8B5CF6",
+                diagrams=[
+                    _diagram("Flujo de login", description="Login con MFA"),
+                    _diagram("Pagos", "plantuml", "@startuml\nA->B\n@enduml"),
+                ],
+            ),
             ExportFolder(id="f2", name="Vacía", color=None, diagrams=[]),
         ],
         exported_at=AT,
@@ -56,7 +70,7 @@ def _tree(**overrides) -> ExportTree:
     ("raw", "expected"),
     [
         ("Flujo de login", "Flujo de login"),
-        ("a/b\\c:d*e?f\"g<h>i|j", "abcdefghij"),
+        ('a/b\\c:d*e?f"g<h>i|j', "abcdefghij"),
         ("../../etc/passwd", "etcpasswd"),
         ("  .hidden.  ", "hidden"),
         ("", "untitled"),
@@ -85,10 +99,18 @@ def test_unique_name_suffixes_case_insensitively() -> None:
 
 @pytest.mark.unit
 def test_freehand_texts_extracts_labels_in_order_and_ignores_garbage() -> None:
-    content = json.dumps({"version": 1, "elements": [
-        {"type": "rectangle", "text": " Inicio "}, {"type": "arrow"},
-        {"type": "text", "text": "Fin"}, {"type": "text", "text": "   "}, "junk",
-    ]})
+    content = json.dumps(
+        {
+            "version": 1,
+            "elements": [
+                {"type": "rectangle", "text": " Inicio "},
+                {"type": "arrow"},
+                {"type": "text", "text": "Fin"},
+                {"type": "text", "text": "   "},
+                "junk",
+            ],
+        }
+    )
     assert freehand_texts(content) == ["Inicio", "Fin"]
     assert freehand_texts("not json") == []
     assert freehand_texts("[]") == []
@@ -128,8 +150,12 @@ def test_markdown_standard_variant_is_a_plain_document() -> None:
 
 @pytest.mark.unit
 def test_markdown_without_descriptions_and_with_freehand() -> None:
-    sketch = _diagram("Boceto", "freehand", json.dumps({"elements": [{"text": "Caja A"}]}), description="desc")
-    md = build_markdown(_tree(root_diagrams=[sketch], folders=[]), variant="ai", include_descriptions=False)
+    sketch = _diagram(
+        "Boceto", "freehand", json.dumps({"elements": [{"text": "Caja A"}]}), description="desc"
+    )
+    md = build_markdown(
+        _tree(root_diagrams=[sketch], folders=[]), variant="ai", include_descriptions=False
+    )
 
     assert "**Description**" not in md and "Project description" not in md
     assert "freehand sketch" in md and "- Caja A" in md and "```" not in md
@@ -139,7 +165,9 @@ def test_markdown_without_descriptions_and_with_freehand() -> None:
 @pytest.mark.unit
 def test_markdown_scoped_to_folder_titles_the_folder() -> None:
     folder = ExportFolder(id="f1", name="Arquitectura", color=None, diagrams=[_diagram("X")])
-    md = build_markdown(_tree(root_diagrams=[], folders=[folder], scope_folder_name="Arquitectura"), variant="ai")
+    md = build_markdown(
+        _tree(root_diagrams=[], folders=[folder], scope_folder_name="Arquitectura"), variant="ai"
+    )
     assert md.startswith("# Folder: Arquitectura\n")
     assert "project: Mi proyecto" in md
 
@@ -174,18 +202,31 @@ def test_zip_layout_manifest_and_descriptions() -> None:
         "Mi proyecto/Vacía/",
     }
     assert entries["Mi proyecto/Arquitectura/Pagos.puml"] == b"@startuml\nA->B\n@enduml"
-    assert entries["Mi proyecto/Arquitectura/Flujo de login.md"].decode() == "# Flujo de login\n\nLogin con MFA\n"
+    assert (
+        entries["Mi proyecto/Arquitectura/Flujo de login.md"].decode()
+        == "# Flujo de login\n\nLogin con MFA\n"
+    )
 
     manifest = json.loads(entries["Mi proyecto/manifest.json"])
     assert manifest["format"] == "diagramahub-export" and manifest["format_version"] == 1
-    assert manifest["project"] == {"id": "p1", "name": "Mi proyecto", "emoji": "📁", "description": "Sistema de pagos"}
+    assert manifest["project"] == {
+        "id": "p1",
+        "name": "Mi proyecto",
+        "emoji": "📁",
+        "description": "Sistema de pagos",
+    }
     assert [f["path"] for f in manifest["folders"]] == ["Arquitectura", "Vacía"]
     assert manifest["folders"][0]["color"] == "#8B5CF6"
     pagos = next(d for d in manifest["diagrams"] if d["title"] == "Pagos")
     assert pagos == {
-        "id": "id-Pagos", "title": "Pagos", "type": "plantuml", "path": "Arquitectura/Pagos.puml",
-        "folder": "Arquitectura", "folder_id": "f1",
-        "created_at": AT.isoformat(), "updated_at": AT.isoformat(),
+        "id": "id-Pagos",
+        "title": "Pagos",
+        "type": "plantuml",
+        "path": "Arquitectura/Pagos.puml",
+        "folder": "Arquitectura",
+        "folder_id": "f1",
+        "created_at": AT.isoformat(),
+        "updated_at": AT.isoformat(),
     }
     readme = entries["Mi proyecto/README.md"].decode()
     assert "| `Arquitectura/Pagos.puml` | Pagos | PlantUML | 2026-10-01 |" in readme
@@ -201,10 +242,18 @@ def test_zip_without_descriptions_has_no_md_siblings() -> None:
 
 @pytest.mark.unit
 def test_zip_sanitizes_names_and_resolves_collisions() -> None:
-    folder = ExportFolder(id="f1", name="../Ops: prod", color=None, diagrams=[
-        _diagram("Pagos"), _diagram("pagos"), _diagram("Pagos", "d2", "a -> b"),
-        _diagram("a/b?c", "dbml", "Table t {}"), _diagram("Boceto", "freehand", "{}"),
-    ])
+    folder = ExportFolder(
+        id="f1",
+        name="../Ops: prod",
+        color=None,
+        diagrams=[
+            _diagram("Pagos"),
+            _diagram("pagos"),
+            _diagram("Pagos", "d2", "a -> b"),
+            _diagram("a/b?c", "dbml", "Table t {}"),
+            _diagram("Boceto", "freehand", "{}"),
+        ],
+    )
     entries = _entries(build_zip(_tree(root_diagrams=[], folders=[folder])))
     names = sorted(n for n in entries if n.count("/") == 2 and not n.endswith("/"))
     assert names == [
@@ -220,4 +269,6 @@ def test_zip_sanitizes_names_and_resolves_collisions() -> None:
 @pytest.mark.unit
 def test_download_filename() -> None:
     assert download_filename(_tree(), "zip") == "Mi proyecto-20261001.zip"
-    assert download_filename(_tree(scope_folder_name="Ops/prod"), "markdown") == "Opsprod-20261001.md"
+    assert (
+        download_filename(_tree(scope_folder_name="Ops/prod"), "markdown") == "Opsprod-20261001.md"
+    )
