@@ -193,12 +193,13 @@ written when the container starts, from the same variables as `config.js`:
 - Monaco loads from jsDelivr (`cdn.jsdelivr.net` in scripts, styles, fonts and workers) and
   Mermaid needs inline styles (`style-src 'unsafe-inline'`). Images accept any `https:` origin
   (profile pictures).
-- `frame-ancestors 'none'`: the app can't be embedded in another site.
+- `frame-ancestors 'none'`: the app can't be embedded in another site, except the `/embed/<token>` view of links whose owner allows embedding.
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `CSP_ENABLED` | `true` | `false` sends no CSP (for example, while diagnosing a proxy). |
 | `CSP_CONNECT_SRC_EXTRA` | empty | Extra origins for `connect-src`, separated by spaces. |
+| `CSP_EMBED_FRAME_ANCESTORS` | `*` | Sites allowed to frame `/embed/<token>`, the only framable page (for links whose owner allows embedding). For example `https://blog.example.com https://wiki.example.com`. |
 
 If something is blocked, the browser console names the directive and the blocked URL.
 

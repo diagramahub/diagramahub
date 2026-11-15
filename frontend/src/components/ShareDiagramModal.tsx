@@ -4,6 +4,7 @@ import { dateLocale } from '../utils/locale';
 import api from '../services/api';
 import { SharedLink, CreateSharedLinkRequest } from '../types/sharing';
 import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
+import { ShareEmbedAndQr } from './ShareEmbedAndQr';
 
 interface ShareDiagramModalProps {
   isOpen: boolean;
@@ -54,6 +55,8 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
   const [accessType, setAccessType] = useState<'public' | 'protected'>('public');
   const [accessCode, setAccessCode] = useState('');
   const [allowCopyCode, setAllowCopyCode] = useState(false);
+  const [allowEmbed, setAllowEmbed] = useState(false);
+  const [togglingEmbed, setTogglingEmbed] = useState(false);
 
   // Existing link state
   const [existingLink, setExistingLink] = useState<SharedLink | null>(null);
@@ -77,6 +80,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
         setExistingLink(link);
         setAccessType(link.access_type);
         setAllowCopyCode(link.allow_copy_code);
+        setAllowEmbed(link.allow_embed ?? false);
         if (link.access_code) {
           setPlainAccessCode(link.access_code);
         }
@@ -105,6 +109,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       setAccessType('public');
       setAccessCode('');
       setAllowCopyCode(false);
+      setAllowEmbed(false);
       setError(null);
       setLinkCopied(false);
       setCodeCopied(false);
@@ -120,6 +125,7 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
         expiration_days: expiration,
         access_type: accessType,
         allow_copy_code: allowCopyCode,
+        allow_embed: allowEmbed,
       };
       if (accessType === 'protected') {
         data.access_code = accessCode || undefined;
@@ -149,11 +155,27 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
       setAccessType('public');
       setAccessCode('');
       setAllowCopyCode(false);
+      setAllowEmbed(false);
     } catch (err: unknown) {
       const detail = apiErrorMessage(err);
       setError(typeof detail === 'string' ? detail : t('sharing.revokeError'));
     } finally {
       setRevoking(false);
+    }
+  };
+
+  const handleToggleEmbed = async () => {
+    if (!existingLink) return;
+    setTogglingEmbed(true);
+    setError(null);
+    try {
+      const updated = await api.updateSharedLink(existingLink.id, { allow_embed: !existingLink.allow_embed });
+      setExistingLink(updated);
+      setAllowEmbed(updated.allow_embed);
+    } catch {
+      setError(t('sharing.updateError'));
+    } finally {
+      setTogglingEmbed(false);
     }
   };
 
@@ -362,6 +384,14 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                 </div>
               </div>
 
+              <ShareEmbedAndQr
+                shareUrl={existingLink.share_url}
+                allowEmbed={existingLink.allow_embed ?? false}
+                onToggleEmbed={handleToggleEmbed}
+                togglingEmbed={togglingEmbed}
+                fileName={diagramTitle || ''}
+              />
+
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
@@ -494,6 +524,34 @@ const ShareDiagramModal: React.FC<ShareDiagramModalProps> = ({
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                       allowCopyCode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Allow embedding toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <label htmlFor="allow-embed-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('sharing.allowEmbed')}
+                  </label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t('sharing.allowEmbedDesc')}
+                  </p>
+                </div>
+                <button
+                  id="allow-embed-toggle"
+                  type="button"
+                  role="switch"
+                  aria-checked={allowEmbed}
+                  onClick={() => setAllowEmbed(!allowEmbed)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
+                    allowEmbed ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      allowEmbed ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>

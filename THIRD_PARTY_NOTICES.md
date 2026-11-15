@@ -10,6 +10,7 @@ build or test time are not listed.
 |---|---|---|---|---|
 | [roughjs](https://github.com/rough-stuff/rough) | 4.6.x | MIT | hand-drawn rendering of shapes, lines and arrows in the freehand canvas | Copyright (c) 2019 Preet Shihn |
 | [perfect-freehand](https://github.com/steveruizok/perfect-freehand) | 1.2.x | MIT | smooth, pressure-sensitive freehand strokes | Copyright (c) 2021 Stephen Ruiz Jr |
+| [qrcode](https://github.com/soldair/node-qrcode) | 1.5.x | MIT | QR codes of shared links | Copyright (c) 2012 Ryan Day |
 | [Caveat](https://github.com/googlefonts/caveat) (font) | from google/fonts `ofl/caveat` | SIL Open Font License 1.1 | handwriting font for freehand sketches (`frontend/public/fonts/caveat/`) | Copyright 2014 The Caveat Project Authors. Reserved Font Name "Caveat". License text in `frontend/public/fonts/caveat/OFL.txt` |
 
 Notes

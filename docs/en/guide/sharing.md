@@ -14,6 +14,7 @@ You can share a diagram with anyone through a **link**. Whoever opens it does no
 | **Access code** | Protected links only. 4 to 20 characters. Type one or use **Generate**. If you leave it empty, one is generated automatically. |
 | **Link expiration** | 5, 10 or 30 days, or **Unlimited**. The default is 30 days. |
 | **Allow copying diagram code** | When on, visitors can see and copy the source code. |
+| **Allow embedding** | When on, other sites can show the diagram in an `<iframe>` (see [Embed in a website](#embed-in-a-website)). Off by default. |
 
 4. Click **Generate link** and use **Copy link**.
 
@@ -25,6 +26,16 @@ You can share a diagram with anyone through a **link**. Whoever opens it does no
 Each diagram has at most **one active link**. If you generate a new one, the previous link stops working. While a link is active, the editor says "This diagram has an active shared link".
 
 The link always shows the **current version** of the diagram: if you edit it, visitors see the changes the next time they open the link.
+
+## Embed in a website
+
+With **Allow embedding** on (you can change it on an existing link too), **Share diagram** shows an **Embed code**: an `<iframe>` you paste into a blog, a wiki or any page. It loads a minimal view of the diagram, with its title and an **Open in DiagramaHub** link. A protected link asks for the access code inside the frame.
+
+If you turn embedding off, the frame shows a message instead of the diagram. Revoking the link or letting it expire stops the embed too.
+
+## QR code
+
+On an existing link, **Show QR** displays a QR code of the link and **Download PNG** saves it, for slides, posters or opening the diagram from a phone.
 
 ## Revoke a link
 

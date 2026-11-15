@@ -164,6 +164,7 @@ class SharedLinkService:
             access_type=request.access_type,
             access_code_hash=access_code_hash,
             allow_copy_code=request.allow_copy_code,
+            allow_embed=request.allow_embed,
             expires_at=expires_at,
         )
 
@@ -177,6 +178,7 @@ class SharedLinkService:
             access_type=link.access_type,
             access_code=generated_code,
             allow_copy_code=link.allow_copy_code,
+            allow_embed=link.allow_embed,
             expires_at=link.expires_at,
             is_active=link.is_active,
             created_at=link.created_at,
@@ -202,6 +204,7 @@ class SharedLinkService:
             share_url=_build_share_url(link.token),
             access_type=link.access_type,
             allow_copy_code=link.allow_copy_code,
+            allow_embed=link.allow_embed,
             expires_at=link.expires_at,
             is_active=link.is_active,
             created_at=link.created_at,
@@ -234,6 +237,8 @@ class SharedLinkService:
 
         if request.allow_copy_code is not None:
             update_data.allow_copy_code = request.allow_copy_code
+        if request.allow_embed is not None:
+            update_data.allow_embed = request.allow_embed
 
         # Handle access code update
         generated_code: Optional[str] = None
@@ -264,6 +269,7 @@ class SharedLinkService:
             access_type=updated_link.access_type,
             access_code=generated_code,
             allow_copy_code=updated_link.allow_copy_code,
+            allow_embed=updated_link.allow_embed,
             expires_at=updated_link.expires_at,
             is_active=updated_link.is_active,
             created_at=updated_link.created_at,
@@ -321,6 +327,7 @@ class SharedLinkService:
             requires_code=link.access_type == "protected",
             is_expired=is_expired,
             diagram_title=diagram.title,
+            allow_embed=link.allow_embed,
         )
 
     async def _get_owner_display_name(self, user_id: str) -> Optional[str]:
@@ -386,6 +393,7 @@ class SharedLinkService:
             rendered_content=diagram.content,
             config=diagram.config.model_dump() if diagram.config else {},
             allow_copy_code=link.allow_copy_code,
+            allow_embed=link.allow_embed,
             owner_name=owner_name,
         )
 

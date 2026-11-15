@@ -1147,7 +1147,19 @@
     "generateError": "Error generating link",
     "revokeError": "Error revoking link",
     "enterCodePlaceholder": "Enter the code",
-    "sharedViewLabel": "Shared view"
+    "sharedViewLabel": "Shared view",
+    "allowEmbed": "Allow embedding",
+    "allowEmbedDesc": "Other sites can show the diagram in an iframe",
+    "updateError": "Couldn't update the link",
+    "embedCode": "Embed code",
+    "copyEmbedCode": "Copy code",
+    "qrTitle": "QR code",
+    "qrDesc": "Open the link from a phone or in a presentation",
+    "qrShow": "Show QR",
+    "qrHide": "Hide QR",
+    "qrAlt": "QR code of the shared link",
+    "qrDownload": "Download PNG",
+    "qrError": "Couldn't generate the QR code"
   },
   "export": {
     "error": {
@@ -1476,5 +1488,9 @@
       "creation": "Creation",
       "improvement": "Improvement"
     }
+  },
+  "embed": {
+    "notAllowed": "The owner doesn't allow embedding this diagram.",
+    "openInDiagramaHub": "Open in DiagramaHub"
   }
 }

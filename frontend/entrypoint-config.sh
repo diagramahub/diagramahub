@@ -31,7 +31,9 @@ EOF
 #   script/style/font/worker cdn.jsdelivr.net — Monaco loads from jsDelivr
 #   style-src 'unsafe-inline'                — Mermaid styles inside its SVGs
 #   img-src https:                           — profile pictures (Google)
-#   frame-ancestors 'none'                   — the app is never framed
+#   frame-ancestors 'none'                   — the app is never framed...
+#   ...except /embed/<token> (csp-embed.conf): CSP_EMBED_FRAME_ANCESTORS,
+#      default '*'; the page itself refuses links whose owner didn't opt in.
 # CSP_CONNECT_SRC_EXTRA adds space-separated origins (e.g. a proxy).
 # ---------------------------------------------------------------------------
 dh_origin() {
@@ -40,8 +42,10 @@ dh_origin() {
 }
 
 CSP_FILE=/etc/nginx/csp/csp.conf
+CSP_EMBED_FILE=/etc/nginx/csp/csp-embed.conf
 if [ "${CSP_ENABLED:-true}" = "false" ]; then
     : > "$CSP_FILE"
+    : > "$CSP_EMBED_FILE"
 else
     connect_src="'self'"
     api_origin=$(dh_origin "${VITE_API_URL:-http://localhost:5172}")
@@ -52,7 +56,12 @@ else
     # Only origin characters may reach the header (no quotes, ';' or newlines).
     connect_src=$(printf '%s' "$connect_src" | tr -cd "A-Za-z0-9:/.*' _-")
 
-    cat > "$CSP_FILE" <<CSP
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src ${connect_src}; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
-CSP
+    embed_ancestors=$(printf '%s' "${CSP_EMBED_FRAME_ANCESTORS:-*}" | tr -cd "A-Za-z0-9:/.*' _-")
+
+    dh_csp() {
+        # $1: frame-ancestors value
+        printf '%s\n' "add_header Content-Security-Policy \"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src ${connect_src}; worker-src 'self' blob: https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors $1\" always;"
+    }
+    dh_csp "'none'" > "$CSP_FILE"
+    dh_csp "$embed_ancestors" > "$CSP_EMBED_FILE"
 fi

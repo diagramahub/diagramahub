@@ -195,12 +195,13 @@ defecto. Se escribe al arrancar el contenedor, con las mismas variables que `con
 - Monaco se carga desde jsDelivr (`cdn.jsdelivr.net` en scripts, estilos, fuentes y *workers*)
   y Mermaid necesita estilos en línea (`style-src 'unsafe-inline'`). Las imágenes aceptan
   cualquier origen `https:` (fotos de perfil).
-- `frame-ancestors 'none'`: la app no se puede incrustar en otro sitio.
+- `frame-ancestors 'none'`: la app no se puede incrustar en otro sitio, salvo la vista `/embed/<token>` de los enlaces cuyo dueño permite incrustar.
 
 | Variable | Por defecto | Para qué |
 |---|---|---|
 | `CSP_ENABLED` | `true` | `false` no envía CSP (por ejemplo, mientras diagnosticas un proxy). |
 | `CSP_CONNECT_SRC_EXTRA` | vacío | Orígenes extra para `connect-src`, separados por espacios. |
+| `CSP_EMBED_FRAME_ANCESTORS` | `*` | Sitios que pueden enmarcar `/embed/<token>`, la única página que admite iframe (para enlaces cuyo dueño permite incrustar). Por ejemplo `https://blog.example.com https://wiki.example.com`. |
 
 Si algo se bloquea, la consola del navegador indica la directiva y la URL bloqueada.
 

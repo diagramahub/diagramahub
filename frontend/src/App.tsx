@@ -26,6 +26,7 @@ const UserManagementPage = lazyWithPreload(() => import('./pages/UserManagementP
 const PlansPage = lazyWithPreload(() => import('./pages/PlansPage'));
 const ProjectsPage = lazyWithPreload(() => import('./pages/ProjectsPage'));
 const SharedDiagramPage = lazyWithPreload(() => import('./pages/SharedDiagramPage'));
+const EmbedDiagramPage = lazyWithPreload(() => import('./pages/EmbedDiagramPage'));
 const ForgotPasswordPage = lazyWithPreload(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazyWithPreload(() => import('./pages/ResetPasswordPage'));
 const MfaVerifyPage = lazyWithPreload(() => import('./pages/MfaVerifyPage'));
@@ -44,6 +45,7 @@ function hasStoredSession(): boolean {
 // Which page chunk each URL needs. Keep in sync with <Routes> below.
 const ROUTE_CHUNKS: [RegExp, PreloadableComponent<object>][] = [
   [/^\/shared\//, SharedDiagramPage],
+  [/^\/embed\//, EmbedDiagramPage],
   [/^\/setup/, InstallationWizardPage],
   [/^\/login/, LoginPage],
   [/^\/register/, RegisterPage],
@@ -113,6 +115,8 @@ function App() {
       <Routes>
         {/* Public route — no AuthProvider, no PrivateRoute */}
         <Route path="/shared/:token" element={<SharedDiagramPage />} />
+        {/* Public, framable (nginx): the minimal view for <iframe> embeds */}
+        <Route path="/embed/:token" element={<EmbedDiagramPage />} />
 
         {/* All other routes wrapped in AuthProvider */}
         <Route

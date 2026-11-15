@@ -1250,7 +1250,19 @@
     "generateError": "Error al generar el enlace",
     "revokeError": "Error al revocar el enlace",
     "enterCodePlaceholder": "Ingresa el código",
-    "sharedViewLabel": "Vista compartida"
+    "sharedViewLabel": "Vista compartida",
+    "allowEmbed": "Permitir incrustar",
+    "allowEmbedDesc": "Otros sitios pueden mostrar el diagrama en un iframe",
+    "updateError": "No se pudo actualizar el enlace",
+    "embedCode": "Código para insertar",
+    "copyEmbedCode": "Copiar código",
+    "qrTitle": "Código QR",
+    "qrDesc": "Abre el enlace desde un teléfono o en una presentación",
+    "qrShow": "Mostrar QR",
+    "qrHide": "Ocultar QR",
+    "qrAlt": "Código QR del enlace compartido",
+    "qrDownload": "Descargar PNG",
+    "qrError": "No se pudo generar el código QR"
   },
   "export": {
     "error": {
@@ -1476,5 +1488,9 @@
       "creation": "Creación",
       "improvement": "Mejora"
     }
+  },
+  "embed": {
+    "notAllowed": "El propietario no permite incrustar este diagrama.",
+    "openInDiagramaHub": "Abrir en DiagramaHub"
   }
 }

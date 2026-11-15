@@ -20,6 +20,8 @@ class SharedLinkInDB(Document):
     access_type: str  # "public" | "protected"
     access_code_hash: Optional[str] = None
     allow_copy_code: bool = False
+    # The owner opts in to embedding the diagram in other sites (/embed/<token>).
+    allow_embed: bool = False
     expires_at: Optional[datetime] = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
@@ -68,6 +70,7 @@ class SharedLinkCreate(BaseModel):
     access_type: str
     access_code_hash: Optional[str] = None
     allow_copy_code: bool = False
+    allow_embed: bool = False
     expires_at: Optional[datetime] = None
 
 
@@ -77,6 +80,7 @@ class SharedLinkUpdate(BaseModel):
     access_type: Optional[str] = None
     access_code_hash: Optional[str] = None
     allow_copy_code: Optional[bool] = None
+    allow_embed: Optional[bool] = None
     expires_at: Optional[datetime] = None
 
 
@@ -99,6 +103,7 @@ class CreateSharedLinkRequest(BaseModel):
     access_type: str = Field("public", pattern="^(public|protected)$")
     access_code: Optional[str] = Field(None, min_length=4, max_length=20)
     allow_copy_code: bool = False
+    allow_embed: bool = False
 
 
 class UpdateSharedLinkRequest(BaseModel):
@@ -108,6 +113,7 @@ class UpdateSharedLinkRequest(BaseModel):
     access_type: Optional[str] = Field(None, pattern="^(public|protected)$")
     access_code: Optional[str] = None
     allow_copy_code: Optional[bool] = None
+    allow_embed: Optional[bool] = None
 
 
 class VerifyAccessCodeRequest(BaseModel):
@@ -129,6 +135,7 @@ class SharedLinkResponse(BaseModel):
     access_type: str
     access_code: Optional[str] = None  # Plain code shown to owner on creation only
     allow_copy_code: bool
+    allow_embed: bool = False
     expires_at: Optional[datetime]
     is_active: bool
     created_at: datetime
@@ -143,6 +150,7 @@ class SharedLinkInfoResponse(BaseModel):
     requires_code: bool
     is_expired: bool
     diagram_title: str
+    allow_embed: bool = False
 
 
 class SharedDiagramResponse(BaseModel):
@@ -155,4 +163,5 @@ class SharedDiagramResponse(BaseModel):
     rendered_content: str
     config: dict
     allow_copy_code: bool
+    allow_embed: bool = False
     owner_name: Optional[str] = None  # Display name of the diagram owner

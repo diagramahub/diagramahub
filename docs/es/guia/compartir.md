@@ -14,6 +14,7 @@ Puedes compartir un diagrama con cualquier persona mediante un **enlace**. Quien
 | **Código de acceso** | Solo para enlaces protegidos. Entre 4 y 20 caracteres. Escribe uno o usa **Generar**. Si lo dejas vacío, se genera uno automáticamente. |
 | **Vigencia del enlace** | 5, 10 o 30 días, o **Ilimitado**. El valor predeterminado es 30 días. |
 | **Permitir copiar código del diagrama** | Si lo activas, el visitante puede ver y copiar el código fuente. |
+| **Permitir incrustar** | Si lo activas, otros sitios pueden mostrar el diagrama en un `<iframe>` (ver [Insertar en un sitio web](#insertar-en-un-sitio-web)). Desactivado por defecto. |
 
 4. Pulsa **Generar enlace** y usa **Copiar enlace**.
 
@@ -25,6 +26,16 @@ Puedes compartir un diagrama con cualquier persona mediante un **enlace**. Quien
 Cada diagrama tiene como máximo **un enlace activo**. Si generas uno nuevo, el anterior deja de funcionar. Mientras haya un enlace activo, el editor lo indica con «Este diagrama tiene un enlace compartido activo».
 
 El enlace muestra siempre la **versión actual** del diagrama: si lo editas, el visitante verá los cambios la próxima vez que abra el enlace.
+
+## Insertar en un sitio web
+
+Con **Permitir incrustar** activo (también puedes cambiarlo en un enlace existente), **Compartir diagrama** muestra un **Código para insertar**: un `<iframe>` que pegas en un blog, una wiki o cualquier página. Carga una vista mínima del diagrama, con su título y un enlace **Abrir en DiagramaHub**. Un enlace protegido pide el código de acceso dentro del marco.
+
+Si desactivas la opción, el marco muestra un aviso en lugar del diagrama. Revocar el enlace o dejar que venza también detiene la inserción.
+
+## Código QR
+
+En un enlace existente, **Mostrar QR** muestra un código QR del enlace y **Descargar PNG** lo guarda, para diapositivas, carteles o para abrir el diagrama desde un teléfono.
 
 ## Revocar un enlace
 
