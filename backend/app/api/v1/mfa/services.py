@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from jose import JWTError
+from jwt import PyJWTError
 
 from app.api.v1.mfa.interfaces import IMfaRepository
 from app.api.v1.mfa.totp_service import TotpService
@@ -351,7 +351,7 @@ class MfaService:
         # Decode the temporary MFA token
         try:
             payload = decode_mfa_temp_token(mfa_token)
-        except JWTError:
+        except PyJWTError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=(

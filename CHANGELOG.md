@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.6] - 2026-11-15
+
+### Security
+- JWT library: `python-jose` replaced by PyJWT 2.15. `python-jose` carries a critical algorithm-confusion advisory with no fixed release, and its `ecdsa` dependency a Minerva timing advisory with no fix either. Neither was exploitable here (our tokens are HS256 with the server secret; Google id_tokens were restricted to RS256), but both packages leave the image. Google id_tokens are verified with the JWKS key matching the token's `kid`, with 60 s of clock-skew leeway (PyJWT also rejects an `iat` in the future).
+- Backend dependencies with advisories: certifi 2026.10.23 (critical: emSign roots with compromised intermediates), pillow 13.0 (used only to draw the MFA QR code), pymongo 4.20, urllib3 2.8, dnspython 2.9.2, pyasn1 0.6.5; black 26.10.1 (dev).
+- Frontend dependencies with advisories: axios 1.21.1 with `follow-redirects` 1.16.3 (high, production), vite 7.3.8 (dev server), vitest 4.1.12, and `source-map-js` 1.2.2 / `postcss-selector-parser` 6.1.6 as pnpm overrides (pulled in by Tailwind 3). `pnpm audit --prod` reports no known vulnerabilities; the remaining full-audit entry is `minimatch` inside `typescript-eslint` (lint only, the fix needs minimatch 11).
+
+### Changed
+- Dependencies within their current major: react / react-dom 19.3.1, react-router-dom 7.18.5, dompurify 3.4.18, i18next-browser-languagedetector 8.3, postcss 8.5.33, autoprefixer 10.6, typescript-eslint 8.72; pydantic 2.14.3, pydantic-settings 2.16.3, python-multipart 0.0.33, email-validator 2.4, pyotp 2.11.2, sentry-sdk 2.75, resend 2.53.2, hypothesis 6.170.
+- `brain-storm.md` marks each idea as implemented, partial or pending against the code (AI auto-fix, live syntax errors with a fix suggestion and protected share links are done).
+
+### Removed
+- `frontend/src/components/FixDiagramButton.tsx`: unused; the "Fix with AI" button lives in `DiagramCodePanel`.
+
 ## [0.8.5] - 2026-10-21
 
 ### Security

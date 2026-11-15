@@ -7,8 +7,8 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import bcrypt
+import jwt
 from cryptography.fernet import Fernet
-from jose import JWTError, jwt
 
 from app.core.config import settings
 
@@ -171,7 +171,7 @@ def decode_access_token(token: str) -> dict[str, Any]:
         Decoded token payload
 
     Raises:
-        jose.JWTError: If token is invalid or expired
+        jwt.PyJWTError: If token is invalid or expired
     """
     return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
 
@@ -226,11 +226,11 @@ def decode_mfa_temp_token(token: str) -> dict:
         Full claims dictionary from the token
 
     Raises:
-        jose.JWTError: If the token is invalid, expired, or not an MFA temp token
+        jwt.PyJWTError: If the token is invalid, expired, or not an MFA temp token
     """
     payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
     if payload.get("type") != "mfa_temp":
-        raise JWTError("Invalid MFA token type")
+        raise jwt.InvalidTokenError("Invalid MFA token type")
     return payload
 
 

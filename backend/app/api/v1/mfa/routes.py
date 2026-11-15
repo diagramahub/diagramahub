@@ -9,7 +9,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
-from jose import JWTError
+from jwt import PyJWTError
 
 from app.api.v1.mfa.admin_service import MfaAdminService
 from app.api.v1.mfa.repository import MfaRepository
@@ -338,7 +338,7 @@ async def switch_method(
     # Decode the temporary MFA token
     try:
         payload = decode_mfa_temp_token(request.mfa_token)
-    except JWTError:
+    except PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de verificación MFA inválido o expirado. Inicie sesión nuevamente",
@@ -380,7 +380,7 @@ async def resend_email_code(
     # Decode the temporary MFA token
     try:
         payload = decode_mfa_temp_token(request.mfa_token)
-    except JWTError:
+    except PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de verificación MFA inválido o expirado. Inicie sesión nuevamente",

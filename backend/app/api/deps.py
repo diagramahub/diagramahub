@@ -11,7 +11,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from jwt import PyJWTError
 
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.services import UserService
@@ -53,10 +53,10 @@ async def get_current_user_email(
     try:
         token = credentials.credentials
         payload = decode_access_token(token)
-        email: str = payload.get("sub")
+        email: str | None = payload.get("sub")
         if email is None:
             raise credentials_exception
-    except JWTError:
+    except PyJWTError:
         raise credentials_exception
 
     # Session invalidation: check if password was changed after token was issued.
