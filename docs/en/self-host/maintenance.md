@@ -104,6 +104,7 @@ docker exec -it diagramahub-backend python -m scripts.<name> [options]
 | `migrate_users_to_subscriptions` | Gives the `FREE` plan to users without a subscription. Idempotent. | `--dry-run`, `--verbose` |
 | `fix_misfiled_diagrams` | Before 0.8.1 a diagram could end up filed under another project's folder. Moves them back to their project's root. Deletes nothing. | No options: report only. `--apply`: fix. |
 | `fix_webhook_index` | Drops an old `webhook_events` index that conflicts with the current unique index. Restart the backend afterwards. | — |
+| `rotate_encryption_key` | Re-encrypts AI API keys, integration credentials and TOTP secrets with the current `AI_ENCRYPTION_KEY`. See [Rotating the encryption key](#rotating-the-encryption-key). | No options: report only. `--apply`: re-encrypt. |
 
 Example:
 
@@ -113,6 +114,25 @@ docker exec -it diagramahub-backend python -m scripts.fix_misfiled_diagrams
 # Fix them
 docker exec -it diagramahub-backend python -m scripts.fix_misfiled_diagrams --apply
 ```
+
+### Rotating the encryption key
+
+Rotate `AI_ENCRYPTION_KEY` if it may have leaked, or as routine hygiene. The instance keeps working during the whole process.
+
+1. Generate a new key:
+   ```bash
+   docker exec diagramahub-backend python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+2. In `backend/.env`, set the new key as `AI_ENCRYPTION_KEY` and move the old one to `AI_ENCRYPTION_KEY_PREVIOUS`. Restart the backend.
+3. Re-encrypt the stored secrets (check the report first):
+   ```bash
+   docker exec -it diagramahub-backend python -m scripts.rotate_encryption_key
+   docker exec -it diagramahub-backend python -m scripts.rotate_encryption_key --apply
+   ```
+4. Remove `AI_ENCRYPTION_KEY_PREVIOUS` and restart the backend.
+
+!!! warning "Back up before rotating"
+    Take a database backup and keep the old key until step 4 is done. Values that no configured key can decrypt are reported and left untouched; the script exits with code 1 if there are any.
 
 ## Logs
 

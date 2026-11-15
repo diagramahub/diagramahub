@@ -171,7 +171,7 @@ class MfaRepository(IMfaRepository):
         self, token_hash: str, expires_at: datetime
     ) -> tuple[int, bool]:
         """Reservar un intento de verificación de forma atómica (antes de validar el código)."""
-        result = await MfaTokenAttempt.get_motor_collection().find_one_and_update(
+        result = await MfaTokenAttempt.get_pymongo_collection().find_one_and_update(
             {"token_hash": token_hash},
             {
                 "$inc": {"attempts": 1},
@@ -180,11 +180,13 @@ class MfaRepository(IMfaRepository):
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
+        # upsert + ReturnDocument.AFTER always returns the document.
+        assert result is not None
         return int(result["attempts"]), bool(result.get("consumed", False))
 
     async def consume_token(self, token_hash: str) -> bool:
         """Marcar el token MFA temporal como usado; False si ya lo estaba."""
-        result = await MfaTokenAttempt.get_motor_collection().update_one(
+        result = await MfaTokenAttempt.get_pymongo_collection().update_one(
             {"token_hash": token_hash, "consumed": False},
             {"$set": {"consumed": True}},
         )

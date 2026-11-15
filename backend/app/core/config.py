@@ -36,6 +36,16 @@ class Settings(BaseSettings):
     # oauth/). Kept so existing .env files that still set it keep loading.
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     AI_ENCRYPTION_KEY: str | None = None  # For encrypting AI provider API keys
+    # Key rotation: comma-separated keys that were AI_ENCRYPTION_KEY before. They
+    # still decrypt existing data; new data is always encrypted with the current
+    # key. Re-encrypt with `python -m scripts.rotate_encryption_key --apply`, then
+    # remove them.
+    AI_ENCRYPTION_KEY_PREVIOUS: str = ""
+
+    @property
+    def previous_encryption_keys(self) -> list[str]:
+        """Parse AI_ENCRYPTION_KEY_PREVIOUS into a list (empty entries dropped)."""
+        return [k.strip() for k in self.AI_ENCRYPTION_KEY_PREVIOUS.split(",") if k.strip()]
 
     # CORS - use FRONTEND_URL as default origin, override with comma-separated URLs
     BACKEND_CORS_ORIGINS: str = ""

@@ -10,7 +10,6 @@ Tests the full streaming flow with mocked AI providers, verifying:
 - Coexistence with existing REST endpoint
 """
 import json
-from unittest.mock import AsyncMock, patch, MagicMock
 
 import pytest
 from httpx import AsyncClient

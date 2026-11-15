@@ -29,6 +29,7 @@ minúsculas.
 | `JWT_ALGORITHM` | `HS256` | No | Algoritmo de firma de los JWT. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No | **Sin efecto.** Se acepta para no romper archivos `.env` existentes, pero la duración de la sesión la fija cada inicio de sesión (ver [Autenticación](../seguridad/autenticacion.md)). |
 | `AI_ENCRYPTION_KEY` | vacío | **Sí, en la práctica** | Clave Fernet que cifra en la base de datos las API keys de los proveedores de IA, la configuración de las integraciones (Resend, Stripe, Google) y los secretos TOTP del MFA. Si falta, esas operaciones fallan. |
+| `AI_ENCRYPTION_KEY_PREVIOUS` | vacío | No | Claves que antes fueron `AI_ENCRYPTION_KEY`, separadas por comas. Siguen descifrando los datos existentes mientras [rotas la clave](mantenimiento.md#rotar-la-clave-de-cifrado); los datos nuevos siempre usan la clave actual. |
 
 Genera ambos secretos así:
 

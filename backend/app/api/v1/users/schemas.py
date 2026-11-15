@@ -1,6 +1,7 @@
 """
 Pydantic schemas for user-related data validation.
 """
+
 from datetime import datetime
 from enum import Enum
 from typing import Optional
@@ -8,7 +9,7 @@ from typing import Optional
 from beanie import Document
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 from app.core.clock import utcnow
-
+from app.core.security import BCRYPT_MAX_BYTES
 
 # Set of allowed special characters for password policy
 _SPECIAL_CHARACTERS = set("!@#$%^&*()_+-=[]{}|;:',.<>?/~")
@@ -24,14 +25,19 @@ OAUTH_SIGNUP_TOLERANCE_SECONDS = 5
 def _validate_password_strength(password: str) -> str:
     """Validate password strength against the security policy.
 
-    Checks: min 12 chars, max 128 chars, at least one uppercase,
-    one lowercase, one digit, and one special character.
+    Checks: min 12 chars, max 128 chars and 72 bytes in UTF-8 (bcrypt's limit),
+    at least one uppercase, one lowercase, one digit, and one special character.
     Does NOT check email comparison — that is handled by model validators.
     """
     if len(password) < 12:
         raise ValueError("Password must be at least 12 characters long")
     if len(password) > 128:
         raise ValueError("Password must be at most 128 characters long")
+    if len(password.encode("utf-8")) > BCRYPT_MAX_BYTES:
+        raise ValueError(
+            f"Password must be at most {BCRYPT_MAX_BYTES} bytes long "
+            "(accented letters and emoji take more than one byte)"
+        )
     if not any(char.isupper() for char in password):
         raise ValueError("Password must contain at least one uppercase letter")
     if not any(char.islower() for char in password):
@@ -48,22 +54,25 @@ def _validate_password_strength(password: str) -> str:
 
 class UserRole(str, Enum):
     """User role enumeration."""
+
     ADMIN = "admin"
     USER = "user"
 
 
 class UserBase(BaseModel):
     """Base user schema with common attributes."""
+
     email: EmailStr
     full_name: Optional[str] = None
     is_active: bool = True
     profile_picture: Optional[str] = None  # Base64 encoded image
-    timezone: Optional[str] = 'UTC'  # User's preferred timezone
+    timezone: Optional[str] = "UTC"  # User's preferred timezone
     role: UserRole = UserRole.USER  # User role (admin or user)
 
 
 class UserCreate(UserBase):
     """Schema for user registration."""
+
     password: str = Field(..., min_length=12, max_length=128)
 
     @field_validator("password")
@@ -82,6 +91,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     """Schema for updating user information."""
+
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     profile_picture: Optional[str] = None  # Base64 encoded image
@@ -90,12 +100,14 @@ class UserUpdate(BaseModel):
 
 class RecoveryCodeEntry(BaseModel):
     """Model for a hashed MFA recovery code."""
+
     hash: str
     used: bool = False
 
 
 class OAuthProviderEntry(BaseModel):
     """Linked OAuth provider identity."""
+
     provider: str  # e.g., "google", "github"
     provider_user_id: str  # Provider's unique user ID
     linked_at: datetime = Field(default_factory=utcnow)
@@ -103,11 +115,12 @@ class OAuthProviderEntry(BaseModel):
 
 class UserInDB(Document):
     """User model for database storage using Beanie."""
+
     email: EmailStr
     hashed_password: str
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None  # Base64 encoded image
-    timezone: str = 'UTC'  # User's preferred timezone (default UTC)
+    timezone: str = "UTC"  # User's preferred timezone (default UTC)
     role: UserRole = UserRole.USER  # User role (admin or user)
     is_active: bool = True
     created_at: datetime = Field(default_factory=utcnow)
@@ -210,11 +223,12 @@ class UserInDB(Document):
 
 class UserResponse(BaseModel):
     """Schema for user response (excludes sensitive data)."""
+
     id: str
     email: EmailStr
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None  # Base64 encoded image
-    timezone: str = 'UTC'  # User's preferred timezone
+    timezone: str = "UTC"  # User's preferred timezone
     role: UserRole = UserRole.USER  # User role (admin or user)
     is_active: bool
     created_at: datetime
@@ -227,17 +241,20 @@ class UserResponse(BaseModel):
 
 class Token(BaseModel):
     """Schema for JWT token response."""
+
     access_token: str
     token_type: str = "bearer"
 
 
 class TokenData(BaseModel):
     """Schema for decoded token data."""
+
     email: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
     """Schema for login request."""
+
     email: EmailStr
     password: str
 
@@ -249,6 +266,7 @@ class SimplifiedChangePasswordRequest(BaseModel):
     OAuth-only accounts have nothing to confirm against, so the service rejects
     them and points at the password reset flow instead.
     """
+
     current_password: Optional[str] = Field(
         default=None,
         max_length=128,
@@ -265,11 +283,13 @@ class SimplifiedChangePasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     """Schema for password reset request."""
+
     email: EmailStr
 
 
 class ResetPasswordConfirm(BaseModel):
     """Schema for password reset confirmation."""
+
     email: EmailStr
     token: str
     new_password: str = Field(..., min_length=12, max_length=128)
@@ -290,4 +310,5 @@ class ResetPasswordConfirm(BaseModel):
 
 class DeleteAccountRequest(BaseModel):
     """Schema for account deletion request. Requires a confirmation phrase."""
+
     confirmation_phrase: str

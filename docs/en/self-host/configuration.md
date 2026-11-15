@@ -29,6 +29,7 @@ Variables are defined in `backend/app/core/config.py` and are case-sensitive.
 | `JWT_ALGORITHM` | `HS256` | No | JWT signing algorithm. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No | **No effect.** Accepted so existing `.env` files keep working, but each sign-in sets the session lifetime (see [Authentication](../security/authentication.md)). |
 | `AI_ENCRYPTION_KEY` | empty | **Yes, in practice** | Fernet key that encrypts in the database the AI providers' API keys, the integrations' configuration (Resend, Stripe, Google) and the MFA TOTP secrets. If missing, those operations fail. |
+| `AI_ENCRYPTION_KEY_PREVIOUS` | empty | No | Comma-separated keys that were `AI_ENCRYPTION_KEY` before. They still decrypt existing data while you [rotate the key](maintenance.md#rotating-the-encryption-key); new data always uses the current key. |
 
 Generate both secrets like this:
 

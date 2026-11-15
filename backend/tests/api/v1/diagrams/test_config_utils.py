@@ -1,11 +1,9 @@
 """
 Unit tests for Mermaid config embedding and parsing utilities.
 """
-import pytest
 from app.api.v1.diagrams.config_utils import (
     MermaidConfigEmbedder,
-    MermaidConfigParser,
-    ParseResult
+    MermaidConfigParser
 )
 from app.api.v1.diagrams.schemas import MermaidConfig
 

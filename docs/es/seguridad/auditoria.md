@@ -43,6 +43,10 @@ Si una escritura del registro falla, el error se anota en los logs del servidor 
 | `oauth_login_failed` | Falló un login OAuth (por ejemplo, correo no verificado o validación del token) |
 | `oauth_account_linked` | Una cuenta existente se vinculó a un proveedor OAuth |
 | `account_deleted` | El usuario eliminó su cuenta |
+| `ai_provider_added` / `ai_provider_updated` / `ai_provider_removed` | El usuario agregó, cambió o quitó un proveedor de IA (`details`: proveedor, o índice y nombres de los campos cambiados; nunca la llave) |
+| `shared_link_created` / `shared_link_updated` / `shared_link_revoked` | Se creó, cambió o revocó un enlace compartido (`details`: id del diagrama o del enlace, tipo de acceso, campos cambiados) |
+| `integration_created` / `integration_updated` / `integration_deleted` / `integration_set_default` | Un administrador cambió una integración de email, pago u OAuth (`details`: id del proveedor y nombres de los campos cambiados; nunca las credenciales) |
+| `plan_created` / `plan_updated` / `plan_deleted` / `plan_price_added` | Un administrador cambió un plan o agregó un precio en otra moneda |
 
 ## Consultar el registro
 

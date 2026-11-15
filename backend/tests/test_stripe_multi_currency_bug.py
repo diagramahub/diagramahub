@@ -13,7 +13,7 @@ Validates: Requirements 1.1, 1.3, 2.1, 2.3
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from app.api.v1.subscriptions.payment_providers.stripe_provider import (
     StripePaymentProvider,

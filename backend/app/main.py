@@ -8,7 +8,7 @@ from beanie import init_beanie
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from app.api.v1.users.routes import router as users_router
 from app.api.v1.users.schemas import UserInDB
@@ -127,7 +127,7 @@ async def lifespan(app: FastAPI):
         logger.info("Sentry initialized (environment=%s)", settings.APP_ENV)
 
     # Startup: Initialize MongoDB connection
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client: AsyncMongoClient = AsyncMongoClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]
 
     # Initialize Beanie with document models
@@ -158,7 +158,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown: Close MongoDB connection
-    client.close()
+    await client.close()
 
 
 # ---------------------------------------------------------------------------

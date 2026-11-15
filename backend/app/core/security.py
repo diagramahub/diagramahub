@@ -8,9 +8,13 @@ from typing import Any
 
 import bcrypt
 import jwt
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, MultiFernet
 
 from app.core.config import settings
+
+# bcrypt only uses the first 72 bytes of its input; bcrypt 5 raises instead of
+# silently truncating. New passwords are validated against this limit.
+BCRYPT_MAX_BYTES = 72
 
 
 class _BcryptContext:
@@ -22,32 +26,49 @@ class _BcryptContext:
 
     @staticmethod
     def hash(secret: str) -> str:
-        """Hash a secret using bcrypt (salt auto-generated)."""
-        return bcrypt.hashpw(secret.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        """Hash a secret using bcrypt (salt auto-generated).
+
+        Raises:
+            ValueError: If the secret is longer than ``BCRYPT_MAX_BYTES`` in UTF-8.
+        """
+        encoded = secret.encode("utf-8")
+        if len(encoded) > BCRYPT_MAX_BYTES:
+            raise ValueError(f"Secret exceeds bcrypt's {BCRYPT_MAX_BYTES}-byte limit")
+        return bcrypt.hashpw(encoded, bcrypt.gensalt()).decode("utf-8")
 
     @staticmethod
     def verify(secret: str, hash: str) -> bool:
-        """Verify a secret against a bcrypt hash."""
-        return bcrypt.checkpw(secret.encode("utf-8"), hash.encode("utf-8"))
+        """Verify a secret against a bcrypt hash.
+
+        Input past 72 bytes is cut, as bcrypt < 5 did silently when the hash was
+        made, so passwords set before the limit was enforced keep working.
+        """
+        encoded = secret.encode("utf-8")[:BCRYPT_MAX_BYTES]
+        return bcrypt.checkpw(encoded, hash.encode("utf-8"))
 
 
 # Password hashing context — drop-in replacement for passlib's CryptContext
 pwd_context = _BcryptContext()
 
 
-def get_cipher() -> Fernet:
+def get_cipher() -> MultiFernet:
     """
-    Get Fernet cipher instance for encryption/decryption.
+    Get the cipher for encryption/decryption.
+
+    Encrypts with ``AI_ENCRYPTION_KEY`` and decrypts with it or with any key in
+    ``AI_ENCRYPTION_KEY_PREVIOUS``, so the key can be rotated without downtime.
+    ``MultiFernet.rotate`` re-encrypts a token with the current key.
 
     Returns:
-        Fernet cipher instance
+        MultiFernet cipher instance
 
     Raises:
         ValueError: If AI_ENCRYPTION_KEY is not configured
     """
     if not settings.AI_ENCRYPTION_KEY:
         raise ValueError("AI_ENCRYPTION_KEY not configured in environment variables")
-    return Fernet(settings.AI_ENCRYPTION_KEY.encode())
+    keys = [settings.AI_ENCRYPTION_KEY, *settings.previous_encryption_keys]
+    return MultiFernet([Fernet(key.encode()) for key in keys])
 
 
 def encrypt_api_key(api_key: str) -> str:

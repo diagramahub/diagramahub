@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import LanguageSelector from '../components/LanguageSelector';
 import { apiErrorMessage } from '../utils/apiError';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
 
 const TIMEZONES = [
   { value: 'America/Mexico_City', label: 'Ciudad de México (GMT-6)' },
@@ -46,6 +47,7 @@ export default function InstallationWizardPage() {
   const validatePassword = (pwd: string): string | null => {
     // Same policy as the backend (users/schemas.py): 12+ chars, upper, lower, digit, special.
     if (pwd.length < 12) return t('validation.passwordMin');
+    if (exceedsPasswordMaxBytes(pwd)) return t('validation.passwordMaxBytes');
     if (!/[A-Z]/.test(pwd)) return t('validation.passwordUppercase');
     if (!/[a-z]/.test(pwd)) return t('validation.passwordLowercase');
     if (!/[0-9]/.test(pwd)) return t('validation.passwordNumber');

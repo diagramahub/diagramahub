@@ -2,7 +2,7 @@
 Unit tests for the ResendAdapter.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

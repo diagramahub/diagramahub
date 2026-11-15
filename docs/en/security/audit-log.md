@@ -43,6 +43,10 @@ If writing to the log fails, the error goes to the server logs and the user's op
 | `oauth_login_failed` | An OAuth sign-in failed (for example, unverified email or token validation) |
 | `oauth_account_linked` | An existing account was linked to an OAuth provider |
 | `account_deleted` | The user deleted their account |
+| `ai_provider_added` / `ai_provider_updated` / `ai_provider_removed` | The user added, changed or removed an AI provider (`details`: provider, or index and changed field names; never the key) |
+| `shared_link_created` / `shared_link_updated` / `shared_link_revoked` | A share link was created, changed or revoked (`details`: diagram or link id, access type, changed fields) |
+| `integration_created` / `integration_updated` / `integration_deleted` / `integration_set_default` | An administrator changed an email, payment or OAuth integration (`details`: vendor id and changed field names; never the credentials) |
+| `plan_created` / `plan_updated` / `plan_deleted` / `plan_price_added` | An administrator changed a plan or added a currency price |
 
 ## Querying the log
 

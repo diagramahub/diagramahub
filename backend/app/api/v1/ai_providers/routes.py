@@ -2,7 +2,7 @@
 FastAPI routes for AI providers.
 """
 
-from fastapi import APIRouter, Depends, status, Body
+from fastapi import APIRouter, Body, Depends, Request, status
 from app.api.deps import get_current_user_id
 from .repository import AIProviderRepository
 from .services import AIProviderService
@@ -24,6 +24,7 @@ from .schemas import (
     RefineDescriptionRequest,
     RefineDescriptionResponse,
 )
+from app.api.v1.users import audit_log
 
 router = APIRouter()
 
@@ -58,6 +59,7 @@ async def get_ai_settings(
 )
 async def add_provider(
     request: CreateProviderRequest,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -75,7 +77,14 @@ async def add_provider(
         display_name=request.display_name,
     )
 
-    return await service.add_provider(user_id, provider_config)
+    result = await service.add_provider(user_id, provider_config)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_AI_PROVIDER_ADDED,
+        user_id,
+        http_request,
+        details=f"provider={request.provider.value}",
+    )
+    return result
 
 
 @router.put(
@@ -86,6 +95,7 @@ async def add_provider(
 async def update_provider(
     provider_index: int,
     request: UpdateProviderRequest,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -95,7 +105,16 @@ async def update_provider(
     Specify the index of the provider to update (0-based). Only the
     provided fields are changed.
     """
-    return await service.update_provider(user_id, provider_index, request)
+    result = await service.update_provider(user_id, provider_index, request)
+    # Field names only: never the values (the API key among them).
+    changed = sorted(request.model_dump(exclude_unset=True))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_AI_PROVIDER_UPDATED,
+        user_id,
+        http_request,
+        details=f"index={provider_index} fields={','.join(changed) or '-'}",
+    )
+    return result
 
 
 @router.delete(
@@ -105,6 +124,7 @@ async def update_provider(
 )
 async def remove_provider(
     provider_index: int,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -113,7 +133,14 @@ async def remove_provider(
 
     Specify the index of the provider to remove (0-based).
     """
-    return await service.remove_provider(user_id, provider_index)
+    result = await service.remove_provider(user_id, provider_index)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_AI_PROVIDER_REMOVED,
+        user_id,
+        http_request,
+        details=f"index={provider_index}",
+    )
+    return result
 
 
 @router.put(

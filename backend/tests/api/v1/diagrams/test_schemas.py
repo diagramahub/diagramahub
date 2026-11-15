@@ -1,16 +1,13 @@
 """
 Tests for diagram configuration models.
 """
-import pytest
 from app.api.v1.diagrams.schemas import (
     MermaidConfig,
     PlantUMLConfig,
     DiagramConfig,
     DiagramBase,
     DiagramCreate,
-    DiagramUpdate,
-    DiagramInDB,
-    DiagramResponse
+    DiagramUpdate
 )
 
 

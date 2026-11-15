@@ -27,7 +27,12 @@ class GeminiClient(BaseAIClient):
         self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
         super().__init__(api_key, model or recommended_model("gemini"), parameters or {})
-        self.client = genai.Client(api_key=self.api_key)
+        # google-genai 3 defaults to the `v1` API, where preview models and the
+        # `*-latest` aliases are missing; keep `v1beta`, the default of earlier SDKs.
+        self.client = genai.Client(
+            api_key=self.api_key,
+            http_options=types.HttpOptions(api_version="v1beta"),
+        )
 
     def _gen_config(
         self,

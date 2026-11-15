@@ -25,7 +25,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 |-------|-----------|
 | **Frontend** | React 19 + TypeScript 5.9+ + Vite 7 + TailwindCSS v3 |
 | **Backend** | Python 3.12+ (image: 3.13) + FastAPI + Beanie ODM (MongoDB) + Poetry |
-| **Database** | MongoDB 8 via Motor async driver |
+| **Database** | MongoDB 8 via PyMongo's async API (Beanie 2) |
 | **Diagram rendering** | Mermaid (client-side), PlantUML/DBML/D2 (server-side via Kroki) |
 | **Payments** | Stripe SDK |
 | **AI Clients** | google-genai, httpx (OpenAI/Claude/DeepSeek/MiniMax) |
@@ -289,7 +289,7 @@ When creating a new module, you MUST:
 ### Auth & Security
 - JWT + BCrypt. Tokens in `localStorage`.
 - Two roles: `admin`, `user` (default)
-- Password policy: **min 12 chars**, uppercase + lowercase + digit + special character
+- Password policy: **min 12 chars, max 128 chars and 72 bytes** (bcrypt only uses 72 bytes; `verify` still cuts longer input so pre-0.9 passwords keep working), uppercase + lowercase + digit + special character
 - Rate limiting: 10 login attempts/IP/minute. Lockout: 15 min after 5 failures.
 - Session invalidation on password change (`pca` claim in JWT)
 - MFA: email codes + TOTP (both active simultaneously, configurable default). 8 recovery codes.
@@ -319,7 +319,7 @@ When creating a new module, you MUST:
 
 ### Security Audit Log
 - MongoDB collection with 90-day TTL auto-cleanup
-- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked
+- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked; AI provider added/updated/removed, shared link created/updated/revoked, integration created/updated/deleted/set default, plan created/updated/deleted/price added (`audit_log.log_event_for_user_id` from the route)
 
 ## Key Invariants (Must Preserve)
 

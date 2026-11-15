@@ -119,7 +119,7 @@ Implementado: `POST /api/v1/diagrams/{id}/fix` (`diagrams/fix_service.py`, promp
 - ⬜ Espacios de trabajo compartidos
 - ⬜ Facturación por equipos: la suscripción es por usuario
 - ⬜ Roles y permisos granulares
-- 🟡 Activity feed del equipo: existe el audit log de seguridad (admin), no un feed de actividad
+- 🟡 Activity feed del equipo: existe el audit log de seguridad (consultable en MongoDB, sin vista en la app), no un feed de actividad
 
 ### 10. **Búsqueda y Descubrimiento**
 - 🟡 Búsqueda full-text en contenido de diagramas: el explorador busca por título de diagrama y nombre de carpeta, no en el contenido

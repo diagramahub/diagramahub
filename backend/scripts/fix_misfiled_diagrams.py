@@ -22,12 +22,13 @@ import sys
 from typing import Any
 
 from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from pymongo import AsyncMongoClient
+from pymongo.asynchronous.database import AsyncDatabase
 
 from app.core.config import settings
 
 
-async def repair_misfiled_diagrams(db: AsyncIOMotorDatabase, apply: bool) -> dict[str, Any]:
+async def repair_misfiled_diagrams(db: AsyncDatabase, apply: bool) -> dict[str, Any]:
     """Find (and with ``apply`` fix) diagrams filed under a folder outside their project.
 
     Args:
@@ -77,11 +78,11 @@ async def main() -> int:
     parser.add_argument("--apply", action="store_true", help="write the fix (default: dry run)")
     args = parser.parse_args()
 
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client = AsyncMongoClient(settings.MONGO_URI)
     try:
         report = await repair_misfiled_diagrams(client[settings.DATABASE_NAME], args.apply)
     finally:
-        client.close()
+        await client.close()
 
     mode = "APPLY" if args.apply else "DRY RUN"
     print(f"[{mode}] database: {settings.DATABASE_NAME}")

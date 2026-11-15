@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 import { apiErrorStatus } from '../utils/apiError';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
 
 const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -41,6 +42,7 @@ const ResetPasswordPage: React.FC = () => {
   const validatePassword = (password: string): string[] => {
     const errors: string[] = [];
     if (password.length < 12) errors.push(t('validation.passwordMin'));
+    if (exceedsPasswordMaxBytes(password)) errors.push(t('validation.passwordMaxBytes'));
     if (!/[A-Z]/.test(password)) errors.push(t('validation.passwordUppercase'));
     if (!/[a-z]/.test(password)) errors.push(t('validation.passwordLowercase'));
     if (!/\d/.test(password)) errors.push(t('validation.passwordNumber'));

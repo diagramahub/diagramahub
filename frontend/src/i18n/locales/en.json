@@ -93,6 +93,7 @@
     "required": "This field is required",
     "emailInvalid": "Invalid email",
     "passwordMin": "Password must be at least 12 characters",
+    "passwordMaxBytes": "Password can't be longer than 72 bytes (accented letters and emoji take more than one)",
     "passwordUppercase": "Password must contain at least one uppercase letter",
     "passwordLowercase": "Password must contain at least one lowercase letter",
     "passwordNumber": "Password must contain at least one number",
@@ -104,6 +105,7 @@
   "password": {
     "strength": {
       "minLength": "At least 12 characters",
+      "maxBytes": "At most 72 bytes (accents and emoji count as two or more)",
       "uppercase": "At least one uppercase letter",
       "lowercase": "At least one lowercase letter",
       "digit": "At least one number",

@@ -8,6 +8,7 @@ import PremiumAvatar from '../components/PremiumAvatar';
 import MfaSetupSection from '../components/mfa/MfaSetupSection';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 import { apiErrorMessage } from '../utils/apiError';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
 
 // Lista de zonas horarias comunes
 const TIMEZONES = [
@@ -145,6 +146,10 @@ export default function ProfilePage() {
     }
     if (newPassword.length < 12) {
       setError(t('profile.passwordTooShort'));
+      return;
+    }
+    if (exceedsPasswordMaxBytes(newPassword)) {
+      setError(t('validation.passwordMaxBytes'));
       return;
     }
     if (!/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/~]/.test(newPassword)) {

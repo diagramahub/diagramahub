@@ -45,7 +45,7 @@ Every token carries the `pca` claim (*password changed at*). When users change o
 
 Validated on the server at registration, password change and password reset:
 
-- Between **12 and 128** characters.
+- Between **12 and 128** characters, and at most **72 bytes** in UTF-8: BCrypt only uses the first 72 bytes, so longer passwords are rejected (accented letters take two bytes, emoji four). Passwords set before 0.9.0 that were longer keep working.
 - At least one **uppercase** letter, one **lowercase** letter, one **digit** and one **special character** (`!@#$%^&*()_+-=[]{}|;:',.<>?/~`).
 - It can't be the same as the user's email.
 

@@ -16,12 +16,11 @@ from pathlib import Path
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from beanie import init_beanie
 
 from app.core.config import settings
 from app.api.v1.users.schemas import UserInDB
-from app.api.v1.users.repository import UserRepository
 from app.api.v1.subscriptions.schemas import PlanInDB, SubscriptionInDB
 from app.api.v1.subscriptions.plan_repository import PlanRepository
 from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
@@ -33,7 +32,7 @@ from app.api.v1.subscriptions.payment_providers.stripe_provider import StripePay
 async def migrate_users(dry_run: bool = False, verbose: bool = False):
     """Migrate existing users to subscription system."""
     # Connect to MongoDB
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client = AsyncMongoClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]
     
     # Initialize Beanie
@@ -92,7 +91,7 @@ async def migrate_users(dry_run: bool = False, verbose: bool = False):
         
         if response.lower() not in ['yes', 'y']:
             print("Migration cancelled")
-            client.close()
+            await client.close()
             return 1
         
         print()
@@ -112,7 +111,7 @@ async def migrate_users(dry_run: bool = False, verbose: bool = False):
             print(f"  ✗ Errors: {stats['errors']}")
     
     # Close connection
-    client.close()
+    await client.close()
     
     return 0
 

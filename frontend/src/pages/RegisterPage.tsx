@@ -7,6 +7,7 @@ import OAuthButtons from '../components/OAuthButtons';
 import LanguageSelector from '../components/LanguageSelector';
 import AnimatedBackground from '../components/AnimatedBackground';
 import ThemeToggleButton from '../components/ThemeToggleButton';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
 
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -34,6 +35,11 @@ const RegisterPage: React.FC = () => {
     // Validate password strength
     if (password.length < 12) {
       setError(t('validation.passwordMin'));
+      return;
+    }
+
+    if (exceedsPasswordMaxBytes(password)) {
+      setError(t('validation.passwordMaxBytes'));
       return;
     }
 

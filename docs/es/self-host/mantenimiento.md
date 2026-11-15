@@ -105,6 +105,7 @@ docker exec -it diagramahub-backend python -m scripts.<nombre> [opciones]
 | `migrate_users_to_subscriptions` | Asigna el plan `FREE` a los usuarios que no tienen suscripción. Idempotente. | `--dry-run`, `--verbose` |
 | `fix_misfiled_diagrams` | Antes de 0.8.1 un diagrama podía quedar asignado a una carpeta de otro proyecto. Los devuelve a la raíz de su proyecto. No borra nada. | Sin opciones: solo reporta. `--apply`: corrige. |
 | `fix_webhook_index` | Elimina un índice antiguo de `webhook_events` que choca con el índice único actual. Reinicia el backend después. | — |
+| `rotate_encryption_key` | Vuelve a cifrar las API keys de IA, las credenciales de las integraciones y los secretos TOTP con la `AI_ENCRYPTION_KEY` actual. Ver [Rotar la clave de cifrado](#rotar-la-clave-de-cifrado). | Sin opciones: solo reporta. `--apply`: vuelve a cifrar. |
 
 Ejemplo:
 
@@ -114,6 +115,25 @@ docker exec -it diagramahub-backend python -m scripts.fix_misfiled_diagrams
 # Corregirlos
 docker exec -it diagramahub-backend python -m scripts.fix_misfiled_diagrams --apply
 ```
+
+### Rotar la clave de cifrado
+
+Rota `AI_ENCRYPTION_KEY` si pudo haberse filtrado, o como higiene periódica. La instancia sigue funcionando durante todo el proceso.
+
+1. Genera una clave nueva:
+   ```bash
+   docker exec diagramahub-backend python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+2. En `backend/.env`, pon la clave nueva en `AI_ENCRYPTION_KEY` y mueve la anterior a `AI_ENCRYPTION_KEY_PREVIOUS`. Reinicia el backend.
+3. Vuelve a cifrar los secretos guardados (revisa primero el reporte):
+   ```bash
+   docker exec -it diagramahub-backend python -m scripts.rotate_encryption_key
+   docker exec -it diagramahub-backend python -m scripts.rotate_encryption_key --apply
+   ```
+4. Quita `AI_ENCRYPTION_KEY_PREVIOUS` y reinicia el backend.
+
+!!! warning "Respalda antes de rotar"
+    Haz un respaldo de la base de datos y conserva la clave anterior hasta terminar el paso 4. Los valores que ninguna clave configurada puede descifrar se reportan y se dejan como están; en ese caso el script termina con código 1.
 
 ## Logs
 

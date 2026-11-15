@@ -8,7 +8,7 @@ focused on HTTP concerns (Dependency Inversion).
 import io
 import logging
 import re
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import HTTPException, status
 from openpyxl import Workbook
@@ -91,7 +91,7 @@ class MfaAdminService:
                 )
 
             if project_owner_by_id:
-                pipeline = [
+                pipeline: list[dict[str, Any]] = [
                     {"$match": {"project_id": {"$in": list(project_owner_by_id)}}},
                     {
                         "$group": {
@@ -100,9 +100,8 @@ class MfaAdminService:
                         }
                     },
                 ]
-                grouped_diagrams = await DiagramInDB.get_motor_collection().aggregate(
-                    pipeline
-                ).to_list(None)
+                cursor = await DiagramInDB.get_pymongo_collection().aggregate(pipeline)
+                grouped_diagrams = await cursor.to_list(None)
 
                 for group in grouped_diagrams:
                     project_id = group["_id"]["project_id"]

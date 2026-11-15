@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from beanie import init_beanie
 
 from app.core.config import settings
@@ -20,7 +20,6 @@ from app.api.v1.subscriptions.constants import (
     FREE_PLAN_NAME,
     FREE_PLAN_CODE,
     FREE_PLAN_DESCRIPTION,
-    FREE_PLAN_PRICE,
     FREE_PLAN_MAX_PROJECTS,
     FREE_PLAN_MAX_DIAGRAMS
 )
@@ -29,7 +28,7 @@ from app.api.v1.subscriptions.constants import (
 async def create_free_plan():
     """Create FREE plan if it doesn't exist."""
     # Connect to MongoDB
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client = AsyncMongoClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]
     
     # Initialize Beanie
@@ -66,7 +65,7 @@ async def create_free_plan():
     print(f"  - Price: ${free_plan.price_usd}/month (derived from prices dict)")
     
     # Close connection
-    client.close()
+    await client.close()
     
     return free_plan
 

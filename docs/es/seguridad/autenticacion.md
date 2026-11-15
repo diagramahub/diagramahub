@@ -45,7 +45,7 @@ Cada token incluye el claim `pca` (*password changed at*). Cuando el usuario cam
 
 Se valida en el servidor al registrarse, cambiar y restablecer la contraseña:
 
-- Entre **12 y 128** caracteres.
+- Entre **12 y 128** caracteres, y como máximo **72 bytes** en UTF-8: BCrypt solo usa los primeros 72 bytes, así que las contraseñas más largas se rechazan (las letras con acento ocupan dos bytes y los emoji cuatro). Las contraseñas más largas definidas antes de 0.9.0 siguen funcionando.
 - Al menos una **mayúscula**, una **minúscula**, un **dígito** y un **carácter especial** (`!@#$%^&*()_+-=[]{}|;:',.<>?/~`).
 - No puede ser igual al correo del usuario.
 

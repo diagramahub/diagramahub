@@ -11,7 +11,7 @@ import time
 # Add backend root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from cryptography.fernet import Fernet
 
 # ── Config ──────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ async def main():
     print("=" * 60)
 
     # Connect to MongoDB and find OpenAI providers
-    client = AsyncIOMotorClient(MONGO_URI)
+    client = AsyncMongoClient(MONGO_URI)
     db = client[DATABASE_NAME]
     collection = db["user_ai_settings"]
 
@@ -204,7 +204,7 @@ async def main():
     if not openai_configs:
         print("\n⚠️  No active OpenAI providers found in the database.")
         print("   Make sure you have configured an OpenAI provider in DiagramaHub settings.")
-        client.close()
+        await client.close()
         return
 
     print(f"\nFound {len(openai_configs)} active OpenAI config(s):")
@@ -223,7 +223,7 @@ async def main():
     print(f"\n{'=' * 60}")
     print("✅ Test complete")
     print("=" * 60)
-    client.close()
+    await client.close()
 
 
 if __name__ == "__main__":
