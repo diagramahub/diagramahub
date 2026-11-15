@@ -1589,5 +1589,49 @@
       "noProvider": "No tienes un proveedor de IA activo. Agrega una API key en Configuración.",
       "generic": "No se pudo generar el diagrama."
     }
+  },
+  "mermaidOptions": {
+    "themes": {
+      "redux-color": "Redux color (predeterminado)",
+      "redux": "Redux",
+      "redux-dark-color": "Redux oscuro color",
+      "redux-dark": "Redux oscuro",
+      "neo": "Neo",
+      "neo-dark": "Neo oscuro",
+      "default": "Clásico",
+      "base": "Base (personalizable)",
+      "dark": "Oscuro",
+      "forest": "Bosque",
+      "neutral": "Neutral"
+    },
+    "layouts": {
+      "elk": "ELK (predeterminado)",
+      "dagre": "Dagre"
+    },
+    "looks": {
+      "neo": "Neo (predeterminado)",
+      "classic": "Clásico",
+      "handDrawn": "A mano"
+    },
+    "curve": "Tipo de líneas",
+    "curves": {
+      "default": "Predeterminado",
+      "basis": "Suaves (basis)",
+      "linear": "Rectas (linear)",
+      "step": "Escalones (step)",
+      "stepBefore": "Escalones antes",
+      "stepAfter": "Escalones después"
+    },
+    "globalStyles": "Estilos globales",
+    "font": "Fuente",
+    "fontDefault": "Predeterminada",
+    "fontSize": "Tamaño de fuente (px)",
+    "fontSizes": {
+      "12": "12 px (pequeño)",
+      "14": "14 px (normal)",
+      "16": "16 px (mediano)",
+      "18": "18 px (grande)",
+      "20": "20 px (muy grande)"
+    }
   }
 }

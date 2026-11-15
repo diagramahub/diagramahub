@@ -64,6 +64,14 @@ import { configInitBlockManager } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
 import { apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
+import {
+  MERMAID_CURVES,
+  MERMAID_DEFAULTS,
+  MERMAID_FONT_SIZES,
+  MERMAID_LAYOUTS,
+  MERMAID_LOOKS,
+  MERMAID_THEMES,
+} from "../utils/mermaidOptions";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -86,10 +94,10 @@ export default function DiagramEditorPage() {
   );
   const [diagramTitle, setDiagramTitle] = useState("New Diagram");
   const [diagramDescription, setDiagramDescription] = useState("");
-  const [diagramTheme, setDiagramTheme] = useState("default");
-  const [diagramLayout, setDiagramLayout] = useState("dagre");
-  const [diagramLook, setDiagramLook] = useState("classic");
-  const [diagramCurve, setDiagramCurve] = useState("basis");
+  const [diagramTheme, setDiagramTheme] = useState<string>(MERMAID_DEFAULTS.theme);
+  const [diagramLayout, setDiagramLayout] = useState<string>(MERMAID_DEFAULTS.layout);
+  const [diagramLook, setDiagramLook] = useState<string>(MERMAID_DEFAULTS.look);
+  const [diagramCurve, setDiagramCurve] = useState<string>(MERMAID_DEFAULTS.curve);
   const [diagramFontFamily, setDiagramFontFamily] = useState("");
   const [diagramFontSize, setDiagramFontSize] = useState("16");
   const [plantUMLTheme, setPlantUMLTheme] = useState("");
@@ -1000,15 +1008,15 @@ export default function DiagramEditorPage() {
               setDiagramFontSize(
                 parseResult.config.fontSize?.toString() || "16",
               );
-              setDiagramCurve(parseResult.config.curve || "basis");
+              setDiagramCurve(parseResult.config.curve || MERMAID_DEFAULTS.curve);
             } else {
               // Fallback to default values if no init block found
-              setDiagramTheme("default");
-              setDiagramLayout("dagre");
-              setDiagramLook("classic");
+              setDiagramTheme(MERMAID_DEFAULTS.theme);
+              setDiagramLayout(MERMAID_DEFAULTS.layout);
+              setDiagramLook(MERMAID_DEFAULTS.look);
               setDiagramFontFamily("");
               setDiagramFontSize("16");
-              setDiagramCurve("basis");
+              setDiagramCurve(MERMAID_DEFAULTS.curve);
             }
 
             // Keep the full content (with init block if present)
@@ -3713,13 +3721,11 @@ export default function DiagramEditorPage() {
                                 }
                                 className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                               >
-                                <option value="default">Default</option>
-                                <option value="base">
-                                  Base (Personalizable)
-                                </option>
-                                <option value="dark">Dark</option>
-                                <option value="forest">Forest</option>
-                                <option value="neutral">Neutral</option>
+                                {MERMAID_THEMES.map((theme) => (
+                                  <option key={theme} value={theme}>
+                                    {t(`mermaidOptions.themes.${theme}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div>
@@ -3733,8 +3739,11 @@ export default function DiagramEditorPage() {
                                 }
                                 className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                               >
-                                <option value="dagre">Dagre</option>
-                                <option value="elk">ELK</option>
+                                {MERMAID_LAYOUTS.map((layout) => (
+                                  <option key={layout} value={layout}>
+                                    {t(`mermaidOptions.layouts.${layout}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div>
@@ -3746,18 +3755,16 @@ export default function DiagramEditorPage() {
                                 onChange={(e) => setDiagramLook(e.target.value)}
                                 className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                               >
-                                <option value="classic">
-                                  Classic (Tradicional)
-                                </option>
-                                <option value="neo">Neo (Moderno)</option>
-                                <option value="handDrawn">
-                                  Hand Drawn (Sketch)
-                                </option>
+                                {MERMAID_LOOKS.map((look) => (
+                                  <option key={look} value={look}>
+                                    {t(`mermaidOptions.looks.${look}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Tipo de Líneas
+                                {t("mermaidOptions.curve")}
                               </label>
                               <select
                                 value={diagramCurve}
@@ -3766,27 +3773,23 @@ export default function DiagramEditorPage() {
                                 }
                                 className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                               >
-                                <option value="basis">Suaves (Basis)</option>
-                                <option value="linear">Rectas (Linear)</option>
-                                <option value="step">Escalones (Step)</option>
-                                <option value="stepBefore">
-                                  Escalones Antes
-                                </option>
-                                <option value="stepAfter">
-                                  Escalones Después
-                                </option>
+                                {MERMAID_CURVES.map((curve) => (
+                                  <option key={curve || "default"} value={curve}>
+                                    {t(`mermaidOptions.curves.${curve || "default"}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
 
                             {/* Global Styling Options */}
                             <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                                Estilos Globales
+                                {t("mermaidOptions.globalStyles")}
                               </p>
                               <div className="space-y-3">
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Fuente
+                                    {t("mermaidOptions.font")}
                                   </label>
                                   <select
                                     value={diagramFontFamily}
@@ -3795,7 +3798,7 @@ export default function DiagramEditorPage() {
                                     }
                                     className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                                   >
-                                    <option value="">Por defecto</option>
+                                    <option value="">{t("mermaidOptions.fontDefault")}</option>
                                     <option value="Arial, sans-serif">
                                       Arial
                                     </option>
@@ -3821,7 +3824,7 @@ export default function DiagramEditorPage() {
                                 </div>
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Tamaño de Fuente (px)
+                                    {t("mermaidOptions.fontSize")}
                                   </label>
                                   <select
                                     value={diagramFontSize}
@@ -3830,13 +3833,11 @@ export default function DiagramEditorPage() {
                                     }
                                     className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
                                   >
-                                    <option value="12">12px (Pequeño)</option>
-                                    <option value="14">14px (Normal)</option>
-                                    <option value="16">16px (Mediano)</option>
-                                    <option value="18">18px (Grande)</option>
-                                    <option value="20">
-                                      20px (Muy Grande)
-                                    </option>
+                                    {MERMAID_FONT_SIZES.map((size) => (
+                                      <option key={size} value={size}>
+                                        {t(`mermaidOptions.fontSizes.${size}`)}
+                                      </option>
+                                    ))}
                                   </select>
                                 </div>
                               </div>
@@ -5749,11 +5750,11 @@ export default function DiagramEditorPage() {
                       onChange={(e) => setDiagramTheme(e.target.value)}
                       className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600"
                     >
-                      <option value="default">Default</option>
-                      <option value="dark">Dark</option>
-                      <option value="forest">Forest</option>
-                      <option value="neutral">Neutral</option>
-                      <option value="base">Base</option>
+                      {MERMAID_THEMES.map((theme) => (
+                        <option key={theme} value={theme}>
+                          {t(`mermaidOptions.themes.${theme}`)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -5765,8 +5766,11 @@ export default function DiagramEditorPage() {
                       onChange={(e) => setDiagramLayout(e.target.value)}
                       className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600"
                     >
-                      <option value="dagre">Dagre</option>
-                      <option value="elk">ELK</option>
+                      {MERMAID_LAYOUTS.map((layout) => (
+                        <option key={layout} value={layout}>
+                          {t(`mermaidOptions.layouts.${layout}`)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </>

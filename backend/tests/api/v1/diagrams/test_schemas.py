@@ -16,11 +16,11 @@ class TestMermaidConfig:
     """Test MermaidConfig model."""
 
     def test_default_values(self):
-        """Test default values for MermaidConfig."""
+        """Defaults follow Mermaid 12 (ELK, redux-color, neo)."""
         config = MermaidConfig()
-        assert config.theme == "default"
-        assert config.layout == "dagre"
-        assert config.look == "classic"
+        assert config.theme == "redux-color"
+        assert config.layout == "elk"
+        assert config.look == "neo"
         assert config.handDrawnSeed is None
         assert config.fontFamily is None
         assert config.fontSize is None

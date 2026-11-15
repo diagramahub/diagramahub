@@ -7,7 +7,12 @@ import re
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
-from .schemas import MermaidConfig
+from .schemas import (
+    MERMAID_DEFAULT_LAYOUT,
+    MERMAID_DEFAULT_LOOK,
+    MERMAID_DEFAULT_THEME,
+    MermaidConfig,
+)
 
 
 @dataclass
@@ -82,19 +87,15 @@ class MermaidConfigEmbedder:
         if theme_variables:
             init_json["themeVariables"] = theme_variables
 
-        # Add flowchart configuration
-        flowchart_config: Dict[str, Any] = {}
+        # Layout engine and look are top-level init keys (Mermaid 12 bundles ELK)
+        if config.layout:
+            init_json["layout"] = config.layout
+        if config.look:
+            init_json["look"] = config.look
 
-        # Curve type - prioritize explicit curve setting, otherwise use layout
+        # Edge curve only when chosen explicitly
         if config.curve:
-            flowchart_config["curve"] = config.curve
-        elif config.layout == "dagre":
-            flowchart_config["curve"] = "basis"
-        elif config.layout == "elk":
-            flowchart_config["curve"] = "linear"
-
-        if flowchart_config:
-            init_json["flowchart"] = flowchart_config
+            init_json["flowchart"] = {"curve": config.curve}
 
         # Add handDrawnSeed only if look is "handDrawn"
         if config.look == "handDrawn" and config.handDrawnSeed is not None:
@@ -192,7 +193,7 @@ class MermaidConfigParser:
             MermaidConfig object with values from init JSON
         """
         # Extract theme
-        theme = init_json.get("theme", "default")
+        theme = init_json.get("theme") or MERMAID_DEFAULT_THEME
 
         # Extract flowchart configuration
         flowchart_config = init_json.get("flowchart", {})
@@ -202,19 +203,15 @@ class MermaidConfigParser:
         if isinstance(flowchart_config, dict):
             curve = flowchart_config.get("curve")
 
-        # Extract layout from flowchart curve (for backward compatibility)
-        layout = "dagre"  # default
-        if curve:
-            if curve == "linear":
-                layout = "elk"
-            elif curve == "basis":
-                layout = "dagre"
-
-        # Extract look based on presence of handDrawnSeed
-        look = "classic"  # default
+        # Layout and look: explicit keys; blocks written before 0.9.0 had neither,
+        # so they get Mermaid 12's defaults (a legacy handDrawnSeed means handDrawn).
+        layout = init_json.get("layout")
+        if not isinstance(layout, str) or not layout:
+            layout = MERMAID_DEFAULT_LAYOUT
         hand_drawn_seed = init_json.get("handDrawnSeed")
-        if hand_drawn_seed is not None:
-            look = "handDrawn"
+        look = init_json.get("look")
+        if not isinstance(look, str) or not look:
+            look = "handDrawn" if hand_drawn_seed is not None else MERMAID_DEFAULT_LOOK
 
         # Extract theme variables
         theme_variables = init_json.get("themeVariables", {})

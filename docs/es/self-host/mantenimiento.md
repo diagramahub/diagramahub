@@ -105,6 +105,7 @@ docker exec -it diagramahub-backend python -m scripts.<nombre> [opciones]
 | `migrate_users_to_subscriptions` | Asigna el plan `FREE` a los usuarios que no tienen suscripción. Idempotente. | `--dry-run`, `--verbose` |
 | `fix_misfiled_diagrams` | Antes de 0.8.1 un diagrama podía quedar asignado a una carpeta de otro proyecto. Los devuelve a la raíz de su proyecto. No borra nada. | Sin opciones: solo reporta. `--apply`: corrige. |
 | `fix_webhook_index` | Elimina un índice antiguo de `webhook_events` que choca con el índice único actual. Reinicia el backend después. | — |
+| `migrate_mermaid12` | Lleva los diagramas Mermaid guardados antes de 0.9.0 al aspecto de Mermaid 12: tema `default` → `redux-color`, agrega el layout ELK y el estilo neo, quita la curva `basis` predeterminada. Los demás temas y ajustes se conservan. | Sin opciones: solo reporta. `--apply`: reescribe. |
 | `rotate_encryption_key` | Vuelve a cifrar las API keys de IA, las credenciales de las integraciones y los secretos TOTP con la `AI_ENCRYPTION_KEY` actual. Ver [Rotar la clave de cifrado](#rotar-la-clave-de-cifrado). | Sin opciones: solo reporta. `--apply`: vuelve a cifrar. |
 
 Ejemplo:

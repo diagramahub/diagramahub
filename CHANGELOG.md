@@ -26,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 - Backend majors: Beanie 2 on PyMongo's async API (Motor, end of life 2026-05-14, removed), FastAPI 0.163, uvicorn 0.54 with `uvicorn-worker`, gunicorn 27, httpx 0.28, qrcode 8, google-genai 3 (pinned to the `v1beta` API), bcrypt 5; pytest 9 + pytest-asyncio 1.5, mypy 2, ruff 0.17 (previous rule set pinned). The backend is formatted with Black.
-- Frontend majors: Vite 8 + @vitejs/plugin-react 6, Vitest 5, TypeScript 6, ESLint 10 (React Compiler lint rules off for now), Mermaid 12 with Mermaid 11's layout/theme/look pinned so saved diagrams keep their look, i18next 27 + react-i18next 18, react-markdown 10, Sentry 11.
+- Frontend majors: Vite 8 + @vitejs/plugin-react 6, Vitest 5, TypeScript 6, ESLint 10 (React Compiler lint rules off for now), i18next 27 + react-i18next 18, react-markdown 10, Sentry 11.
+- **Mermaid 12, adopted with its defaults**: ELK layout (now bundled), the `redux-color` theme and the `neo` look for new diagrams; the Appearance panel offers the new themes (Redux, Redux color, Neo and their dark variants) and an explicit default line type. The init block now writes `layout` and `look` (before, the chosen layout and the hand-drawn look never reached Mermaid). Blocks written before 0.9.0 get Mermaid 12's layout and look; `scripts/migrate_mermaid12.py` (dry run by default) also moves their old default theme. The appearance labels were hardcoded in Spanish; they are translated now.
 - Infrastructure: nginx-unprivileged 1.30 (1.27 is out of support); compose files pin `yuzutech/kroki:0.36.0` and `mongo:8.0`.
 
 ## [0.8.6] - 2026-11-15

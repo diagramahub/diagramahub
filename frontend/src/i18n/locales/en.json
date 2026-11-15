@@ -1589,5 +1589,49 @@
       "noProvider": "You have no active AI provider. Add an API key in Settings.",
       "generic": "Couldn't generate the diagram."
     }
+  },
+  "mermaidOptions": {
+    "themes": {
+      "redux-color": "Redux color (default)",
+      "redux": "Redux",
+      "redux-dark-color": "Redux dark color",
+      "redux-dark": "Redux dark",
+      "neo": "Neo",
+      "neo-dark": "Neo dark",
+      "default": "Classic",
+      "base": "Base (customizable)",
+      "dark": "Dark",
+      "forest": "Forest",
+      "neutral": "Neutral"
+    },
+    "layouts": {
+      "elk": "ELK (default)",
+      "dagre": "Dagre"
+    },
+    "looks": {
+      "neo": "Neo (default)",
+      "classic": "Classic",
+      "handDrawn": "Hand-drawn"
+    },
+    "curve": "Line type",
+    "curves": {
+      "default": "Default",
+      "basis": "Smooth (basis)",
+      "linear": "Straight (linear)",
+      "step": "Steps (step)",
+      "stepBefore": "Steps before",
+      "stepAfter": "Steps after"
+    },
+    "globalStyles": "Global styles",
+    "font": "Font",
+    "fontDefault": "Default",
+    "fontSize": "Font size (px)",
+    "fontSizes": {
+      "12": "12 px (small)",
+      "14": "14 px (normal)",
+      "16": "16 px (medium)",
+      "18": "18 px (large)",
+      "20": "20 px (extra large)"
+    }
   }
 }

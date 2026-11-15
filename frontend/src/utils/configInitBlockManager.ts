@@ -1,7 +1,13 @@
 /**
  * Manager for Mermaid config init block embedding and parsing.
  * Handles conversion between MermaidConfig objects and Mermaid init block syntax.
+ *
+ * Mermaid 12: `layout` and `look` are written as top-level init keys (ELK is
+ * bundled). Blocks written before 0.9.0 had neither (layout was guessed from
+ * the curve and the look from handDrawnSeed); they now get Mermaid 12's
+ * defaults, except that a legacy handDrawnSeed still means the handDrawn look.
  */
+import { MERMAID_DEFAULTS } from './mermaidOptions';
 
 export interface MermaidConfig {
   theme: string;
@@ -26,6 +32,8 @@ export interface InitJson {
     [key: string]: unknown;
   };
   handDrawnSeed?: number;
+  layout?: string;
+  look?: string;
   [key: string]: unknown;
 }
 
@@ -122,20 +130,17 @@ export class ConfigInitBlockManager {
       initJson.themeVariables = themeVariables;
     }
 
-    // Add flowchart configuration
-    const flowchartConfig: { [key: string]: unknown } = {};
-    
-    // Curve type - prioritize explicit curve setting, otherwise use layout
-    if (config.curve) {
-      flowchartConfig.curve = config.curve;
-    } else if (config.layout === 'dagre') {
-      flowchartConfig.curve = 'basis';
-    } else if (config.layout === 'elk') {
-      flowchartConfig.curve = 'linear';
+    // Layout engine and look (top-level keys in Mermaid 12)
+    if (config.layout) {
+      initJson.layout = config.layout;
+    }
+    if (config.look) {
+      initJson.look = config.look;
     }
 
-    if (Object.keys(flowchartConfig).length > 0) {
-      initJson.flowchart = flowchartConfig;
+    // Edge curve only when chosen explicitly
+    if (config.curve) {
+      initJson.flowchart = { curve: config.curve };
     }
 
     // Add handDrawnSeed only if look is "handDrawn"
@@ -151,7 +156,7 @@ export class ConfigInitBlockManager {
    */
   initJsonToConfig(initJson: InitJson): MermaidConfig {
     // Extract theme
-    const theme = initJson.theme || 'default';
+    const theme = initJson.theme || MERMAID_DEFAULTS.theme;
 
     // Extract flowchart configuration
     const flowchartConfig = initJson.flowchart || {};
@@ -159,21 +164,14 @@ export class ConfigInitBlockManager {
     // Extract curve type
     const curve = flowchartConfig.curve;
     
-    // Extract layout from flowchart curve (for backward compatibility)
-    let layout = 'dagre'; // default
-    if (curve) {
-      if (curve === 'linear') {
-        layout = 'elk';
-      } else if (curve === 'basis') {
-        layout = 'dagre';
-      }
-    }
-
-    // Extract look based on presence of handDrawnSeed
-    let look = 'classic'; // default
-    if (initJson.handDrawnSeed !== undefined) {
-      look = 'handDrawn';
-    }
+    // Layout and look: explicit keys, or Mermaid 12's defaults for older blocks
+    const layout = typeof initJson.layout === 'string' && initJson.layout ? initJson.layout : MERMAID_DEFAULTS.layout;
+    const look =
+      typeof initJson.look === 'string' && initJson.look
+        ? initJson.look
+        : initJson.handDrawnSeed !== undefined
+          ? 'handDrawn'
+          : MERMAID_DEFAULTS.look;
 
     // Extract theme variables
     const themeVariables = initJson.themeVariables || {};

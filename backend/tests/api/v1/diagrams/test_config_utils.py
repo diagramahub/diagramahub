@@ -68,24 +68,33 @@ class TestMermaidConfigEmbedder:
         assert result.startswith("%%{init:")
         assert result.endswith("%%")
 
-    def test_config_to_init_json_dagre_layout(self):
-        """Test conversion of config with dagre layout."""
+    def test_config_to_init_json_writes_layout_and_look(self):
+        """Layout and look are top-level init keys (Mermaid 12)."""
         embedder = MermaidConfigEmbedder()
         config = MermaidConfig(theme="base", layout="dagre", look="classic")
 
         init_json = embedder.config_to_init_json(config)
 
         assert init_json["theme"] == "base"
-        assert init_json["flowchart"]["curve"] == "basis"
+        assert init_json["layout"] == "dagre"
+        assert init_json["look"] == "classic"
+        assert "flowchart" not in init_json  # no curve unless chosen
 
-    def test_config_to_init_json_elk_layout(self):
-        """Test conversion of config with elk layout."""
+    def test_config_to_init_json_explicit_curve(self):
+        """An explicit curve goes under flowchart."""
         embedder = MermaidConfigEmbedder()
-        config = MermaidConfig(theme="base", layout="elk", look="classic")
+        config = MermaidConfig(theme="base", layout="elk", look="neo", curve="linear")
 
         init_json = embedder.config_to_init_json(config)
 
+        assert init_json["layout"] == "elk"
         assert init_json["flowchart"]["curve"] == "linear"
+
+    def test_defaults_follow_mermaid_12(self):
+        """New diagrams default to ELK, redux-color and neo."""
+        init_json = MermaidConfigEmbedder().config_to_init_json(MermaidConfig())
+
+        assert init_json == {"theme": "redux-color", "layout": "elk", "look": "neo"}
 
     def test_config_to_init_json_no_handdrawn_seed_for_classic(self):
         """Test that handDrawnSeed is not included for classic look."""
@@ -114,7 +123,10 @@ class TestMermaidConfigParser:
         assert result.success is True
         assert result.config is not None
         assert result.config.theme == "base"
-        assert result.config.layout == "dagre"
+        # Written before 0.9.0 (no layout key): Mermaid 12's default
+        assert result.config.layout == "elk"
+        assert result.config.look == "neo"
+        assert result.config.curve == "basis"
         assert result.error is None
 
     def test_parse_config_no_init_block(self):
@@ -230,3 +242,35 @@ class TestMermaidConfigParser:
 
         assert result.success is True
         assert result.config.fontFamily == "Times New Roman"
+
+
+class TestMermaid12Keys:
+    """Explicit layout/look keys round-trip; legacy blocks get Mermaid 12 defaults."""
+
+    def test_explicit_layout_and_look_are_read(self):
+        content = '%%{init: {"theme":"neo-dark","layout":"dagre","look":"classic"}}%%\ngraph TD'
+
+        result = MermaidConfigParser().parse_config(content)
+
+        assert result.config.theme == "neo-dark"
+        assert result.config.layout == "dagre"
+        assert result.config.look == "classic"
+
+    def test_round_trip(self):
+        config = MermaidConfig(theme="redux", layout="dagre", look="handDrawn", handDrawnSeed=7)
+        embedded = MermaidConfigEmbedder().embed_config("graph LR\nA-->B", config)
+
+        parsed = MermaidConfigParser().parse_config(embedded).config
+
+        assert (parsed.theme, parsed.layout, parsed.look, parsed.handDrawnSeed) == (
+            "redux",
+            "dagre",
+            "handDrawn",
+            7,
+        )
+
+    def test_block_without_theme_uses_the_mermaid_12_theme(self):
+        result = MermaidConfigParser().parse_config('%%{init: {"look":"neo"}}%%\ngraph TD')
+
+        assert result.config.theme == "redux-color"
+        assert result.config.layout == "elk"

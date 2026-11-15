@@ -10,15 +10,26 @@ from pydantic import ConfigDict, BaseModel, Field
 from pymongo import ASCENDING, DESCENDING, IndexModel
 from app.core.clock import utcnow
 
+MERMAID_DEFAULT_THEME = "redux-color"
+MERMAID_DEFAULT_LAYOUT = "elk"
+MERMAID_DEFAULT_LOOK = "neo"
+
 
 class MermaidConfig(BaseModel):
     """Mermaid diagram configuration."""
 
+    # Defaults follow Mermaid 12: ELK layout, the `redux-color` theme and the `neo` look.
     theme: str = Field(
-        default="default", description="Mermaid theme (default, dark, forest, neutral, base)"
+        default=MERMAID_DEFAULT_THEME,
+        description=(
+            "Mermaid theme (redux-color, redux, redux-dark, redux-dark-color, neo, neo-dark, "
+            "default, dark, forest, neutral, base)"
+        ),
     )
-    layout: str = Field(default="dagre", description="Layout engine (dagre, elk)")
-    look: str = Field(default="classic", description="Visual style (classic, handDrawn)")
+    layout: str = Field(default=MERMAID_DEFAULT_LAYOUT, description="Layout engine (elk, dagre)")
+    look: str = Field(
+        default=MERMAID_DEFAULT_LOOK, description="Visual style (neo, classic, handDrawn)"
+    )
     handDrawnSeed: Optional[int] = Field(
         default=None, description="Seed for handDrawn look randomization"
     )

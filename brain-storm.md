@@ -26,7 +26,7 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 **Actualizaciones mayores**
 - ✅ Backend: Beanie 2 y retiro de Motor (fin de vida 2026-05-14), FastAPI, uvicorn + `uvicorn-worker`, gunicorn, httpx, qrcode, google-genai 3, bcrypt 5
 - ✅ Pruebas y calidad: pytest 9 + pytest-asyncio 1.x, ruff, mypy
-- ✅ Frontend: ESLint 10, Vitest 5, Vite 8 + plugin-react 6, TypeScript 6, Mermaid 12 (conservando el aspecto actual de los diagramas existentes), i18next 27 / react-i18next 18, react-markdown 10, Sentry 11
+- ✅ Frontend: ESLint 10, Vitest 5, Vite 8 + plugin-react 6, TypeScript 6, Mermaid 12 con sus valores predeterminados (ELK, Redux color, neo) y migración de los diagramas existentes, i18next 27 / react-i18next 18, react-markdown 10, Sentry 11
 - ✅ Infraestructura: nginx-unprivileged 1.30, versiones fijas de Kroki y MongoDB
 
 **Seguridad**
