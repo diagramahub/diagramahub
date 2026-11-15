@@ -5,7 +5,7 @@ Follows the Dependency Inversion Principle (SOLID).
 
 from abc import ABC, abstractmethod
 from typing import Optional
-from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
+from .schemas import DiagramInDB, DiagramCreate, DiagramSearchHit, DiagramSummary, DiagramUpdate
 
 
 class IDiagramRepository(ABC):
@@ -46,6 +46,18 @@ class IDiagramRepository(ABC):
         self, project_ids: list[str], limit: int
     ) -> list[DiagramSummary]:
         """Most recently updated diagrams across projects, newest first (summary fields only)."""
+        pass
+
+    @abstractmethod
+    async def search(
+        self,
+        project_ids: list[str],
+        text: str,
+        diagram_type: Optional[str],
+        limit: int,
+    ) -> list[DiagramSearchHit]:
+        """Diagrams of these projects whose title, description or content contains ``text``
+        (case-insensitive), optionally of one type, most recently updated first."""
         pass
 
     @abstractmethod

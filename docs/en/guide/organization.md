@@ -43,7 +43,8 @@ To change these details, use **Edit project**.
 
 Inside the editor, the side browser shows the project tree: folders first, then the diagrams in the root. From there you can:
 
-- **Search** diagrams by name. The counter shows how many match ("3 of 12 diagrams").
+- **Search** diagrams by name. The counter shows how many match ("3 of 12 diagrams"). From two characters on, an **In the content** section also lists diagrams whose description or code contains the text, with the matching fragment highlighted (in sketches, the texts on the canvas).
+- **Filter by type** with the chips under the search box (MMD, PUML, D2, DBML, DRAW; shown when the project has more than one type). The filter applies to the tree and to the content results.
 - Create a diagram with **New diagram here**, right in the root or in a folder.
 - **Create folder**, rename it and pick its **Color**.
 - Drag files from your computer to [import them](export-import.md#import-diagrams) into the root or a folder.

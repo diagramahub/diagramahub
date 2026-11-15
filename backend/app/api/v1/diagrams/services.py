@@ -2,6 +2,8 @@
 Business logic layer for diagrams.
 """
 
+import json
+import re
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -12,6 +14,8 @@ from .schemas import (
     DiagramUpdate,
     DiagramResponse,
     DiagramDuplicate,
+    DiagramSearchHit,
+    DiagramSearchResult,
     RenderDiagramRequest,
 )
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
@@ -20,6 +24,45 @@ from .rate_limiter import render_rate_limiter
 from ..folders.interfaces import IFolderRepository
 from ..projects.interfaces import IProjectRepository
 from ..shared_links.interfaces import ISharedLinkRepository
+
+SNIPPET_RADIUS = 60
+_FREEHAND_TEXT = re.compile(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"')
+
+
+def _snippet(text: str, needle: str) -> str:
+    """Up to ~120 characters of ``text`` around the first match of ``needle``."""
+    flat = " ".join(text.split())
+    at = flat.lower().find(needle.lower())
+    if at < 0:
+        return ""
+    start = max(0, at - SNIPPET_RADIUS)
+    end = min(len(flat), at + len(needle) + SNIPPET_RADIUS)
+    return ("…" if start else "") + flat[start:end] + ("…" if end < len(flat) else "")
+
+
+def _json_string(raw: str) -> str:
+    """Decode the body of a JSON string literal; '' if it is malformed."""
+    try:
+        value = json.loads(f'"{raw}"')
+    except ValueError:
+        return ""
+    return value if isinstance(value, str) else ""
+
+
+def _locate_match(hit: DiagramSearchHit, needle: str) -> tuple[str, str]:
+    """Where ``needle`` matched (title, description or content) and a snippet.
+
+    For sketches the snippet comes from the texts on the canvas, not its JSON.
+    """
+    lowered = needle.lower()
+    if lowered in hit.title.lower():
+        return "title", ""
+    if hit.description and lowered in hit.description.lower():
+        return "description", _snippet(hit.description, needle)
+    content = hit.content
+    if hit.diagram_type == "freehand":
+        content = " · ".join(t for t in map(_json_string, _FREEHAND_TEXT.findall(content)) if t)
+    return "content", _snippet(content, needle)
 
 
 class DiagramService:
@@ -101,6 +144,63 @@ class DiagramService:
             }
             for d in recent
         ]
+
+    async def search_diagrams(
+        self,
+        user_id: str,
+        text: str,
+        project_id: Optional[str] = None,
+        diagram_type: Optional[str] = None,
+        limit: int = 30,
+    ) -> list[DiagramSearchResult]:
+        """
+        Search the user's diagrams by title, description and content.
+
+        Args:
+            user_id: ID of the requesting user
+            text: Text to find (matched literally, case-insensitive)
+            project_id: Limit the search to this project (must be the user's)
+            diagram_type: Limit the search to one diagram type
+            limit: Maximum number of results
+
+        Returns:
+            Matches, most recently updated first, each with where the text was
+            found and a snippet around it
+
+        Raises:
+            HTTPException 404: If ``project_id`` is not one of the user's projects
+        """
+        projects = await self.project_repository.get_by_user_id(user_id)
+        project_map = {str(p.id): p for p in projects}
+        if project_id is not None:
+            if project_id not in project_map:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+                )
+            scope = [project_id]
+        else:
+            scope = list(project_map)
+
+        hits = await self.diagram_repository.search(scope, text, diagram_type, limit)
+        results = []
+        for hit in hits:
+            matched_in, snippet = _locate_match(hit, text)
+            project = project_map.get(hit.project_id)
+            results.append(
+                DiagramSearchResult(
+                    id=str(hit.id),
+                    title=hit.title,
+                    diagram_type=hit.diagram_type,
+                    project_id=hit.project_id,
+                    project_name=project.name if project else "",
+                    project_emoji=(project.emoji if project else None) or "📁",
+                    folder_id=hit.folder_id,
+                    matched_in=matched_in,
+                    snippet=snippet,
+                    updated_at=hit.updated_at or hit.created_at,
+                )
+            )
+        return results
 
     def validate_render_request(self, request: RenderDiagramRequest, client_ip: str) -> str:
         """

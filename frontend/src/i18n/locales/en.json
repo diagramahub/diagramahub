@@ -745,7 +745,12 @@
     "deleteDiagramError": "Unable to delete the diagram. Please try again.",
     "createFolderError": "Unable to create the folder. Please try again.",
     "renameFolderError": "Unable to rename the folder. Please try again.",
-    "deleteFolderError": "Unable to delete the folder. Please try again."
+    "deleteFolderError": "Unable to delete the folder. Please try again.",
+    "inContent": "In the content",
+    "searchingContent": "Searching the content…",
+    "contentSearchError": "Couldn't search the content.",
+    "filterByType": "Filter by type",
+    "allTypes": "All"
   },
   "errors": {
     "genericError": "An error occurred",

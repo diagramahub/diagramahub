@@ -41,6 +41,20 @@ export type Diagram = {
   updated_at: string;
 }
 
+/** A diagram found by GET /diagrams/search. */
+export type DiagramSearchResult = {
+  id: string;
+  title: string;
+  diagram_type: string;
+  project_id: string;
+  project_name: string;
+  project_emoji: string;
+  folder_id?: string | null;
+  matched_in: 'title' | 'description' | 'content';
+  snippet: string;
+  updated_at: string;
+}
+
 export type Folder = {
   id: string;
   name: string;

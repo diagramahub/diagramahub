@@ -3,9 +3,9 @@ FastAPI routes for diagrams.
 """
 
 import logging
-from typing import NoReturn
+from typing import NoReturn, Optional
 
-from fastapi import APIRouter, Depends, Request, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from app.api.deps import get_current_user_id
 from app.api.v1.users.repository import UserRepository
@@ -39,6 +39,8 @@ from .schemas import (
     RenderDiagramRequest,
     ConvertDiagramRequest,
     ConvertDiagramResponse,
+    DiagramSearchResult,
+    SEARCHABLE_DIAGRAM_TYPES,
 )
 from .conversion_service import DiagramConversionService
 
@@ -160,6 +162,21 @@ async def get_recent_diagrams(
 ):
     """Get the 4 most recently updated diagrams for the current user."""
     return await service.get_recent_diagrams(user_id, limit=4)
+
+
+@router.get("/diagrams/search", response_model=list[DiagramSearchResult])
+async def search_diagrams(
+    q: str = Query(..., min_length=2, max_length=100, description="Text to find"),
+    project_id: Optional[str] = Query(None, description="Search only this project"),
+    diagram_type: Optional[str] = Query(
+        None, alias="type", pattern="^(" + "|".join(SEARCHABLE_DIAGRAM_TYPES) + ")$"
+    ),
+    limit: int = Query(30, ge=1, le=50),
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+) -> list[DiagramSearchResult]:
+    """Search the user's diagrams by title, description and content (case-insensitive)."""
+    return await service.search_diagrams(user_id, q.strip(), project_id, diagram_type, limit)
 
 
 @router.post("/diagrams/render")

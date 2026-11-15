@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PinIcon } from './PinIcon';
+import { ContentSearchResults } from './ContentSearchResults';
 
 interface DiagramItem {
   id: string;
@@ -166,6 +167,7 @@ export default function DiagramFileBrowser({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renamingDiagramId, setRenamingDiagramId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -176,18 +178,32 @@ export default function DiagramFileBrowser({
   const isFileDrag = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
 
   const query = searchQuery.toLowerCase().trim();
-  const isSearching = query.length > 0;
+  const isSearching = query.length > 0 || typeFilter !== null;
+
+  // Types present in the project, for the filter chips.
+  const presentTypes = useMemo(() => {
+    const types = new Set<string>();
+    diagrams.forEach(d => types.add(d.diagram_type || 'mermaid'));
+    folders.forEach(f => f.diagrams.forEach(d => types.add(d.diagram_type || 'mermaid')));
+    return Object.keys(DIAGRAM_BADGES).filter(type => types.has(type));
+  }, [diagrams, folders]);
 
   const filteredData = useMemo(() => {
-    if (!query) return { diagrams, folders };
-    const matches = (d: DiagramItem) => d.title.toLowerCase().includes(query);
+    if (!isSearching) return { diagrams, folders };
+    const ofType = (d: DiagramItem) => !typeFilter || (d.diagram_type || 'mermaid') === typeFilter;
+    const matches = (d: DiagramItem) => ofType(d) && (!query || d.title.toLowerCase().includes(query));
     const fd = diagrams.filter(matches);
     const ff = folders
-      // A folder whose name matches keeps all its diagrams; otherwise only the matching ones.
-      .map(f => (f.name.toLowerCase().includes(query) ? f : { ...f, diagrams: f.diagrams.filter(matches) }))
-      .filter(f => f.name.toLowerCase().includes(query) || f.diagrams.length > 0);
+      // A folder whose name matches keeps all its diagrams (of the chosen type); otherwise only the matching ones.
+      .map(f => (query && f.name.toLowerCase().includes(query) ? { ...f, diagrams: f.diagrams.filter(ofType) } : { ...f, diagrams: f.diagrams.filter(matches) }))
+      .filter(f => f.diagrams.length > 0 || (!typeFilter && !!query && f.name.toLowerCase().includes(query)));
     return { diagrams: fd, folders: ff };
-  }, [diagrams, folders, query]);
+  }, [diagrams, folders, query, typeFilter, isSearching]);
+
+  const titleMatchIds = useMemo(
+    () => new Set([...filteredData.diagrams, ...filteredData.folders.flatMap(f => f.diagrams)].map(d => d.id)),
+    [filteredData],
+  );
 
   const totalDiagrams = diagrams.length + folders.reduce((acc, f) => acc + f.diagrams.length, 0);
   const shownDiagrams = filteredData.diagrams.length + filteredData.folders.reduce((acc, f) => acc + f.diagrams.length, 0);
@@ -677,6 +693,40 @@ export default function DiagramFileBrowser({
             </button>
           )}
         </div>
+        {presentTypes.length > 1 && (
+          <div role="group" aria-label={t('fileBrowser.filterByType')} className="flex flex-wrap gap-1 mt-1.5">
+            <button
+              type="button"
+              onClick={() => setTypeFilter(null)}
+              aria-pressed={typeFilter === null}
+              className={`px-1.5 py-0.5 text-[10px] font-semibold rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                typeFilter === null
+                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {t('fileBrowser.allTypes')}
+            </button>
+            {presentTypes.map(type => {
+              const badge = DIAGRAM_BADGES[type];
+              const selected = typeFilter === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTypeFilter(selected ? null : type)}
+                  aria-pressed={selected}
+                  title={badge.name}
+                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                    selected ? badge.className : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {badge.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* File tree — the whole area is the project-root drop zone */}
@@ -811,6 +861,16 @@ export default function DiagramFileBrowser({
 
         {/* Root diagrams */}
         {filteredData.diagrams.map(d => renderDiagramRow(d, 1))}
+
+        {/* Matches inside descriptions and code (the tree only matches titles) */}
+        <ContentSearchResults
+          projectId={projectId}
+          query={searchQuery.trim()}
+          diagramType={typeFilter}
+          excludeIds={titleMatchIds}
+          onOpen={handleSelectDiagram}
+          badgeFor={(type) => DIAGRAM_BADGES[type] || FALLBACK_BADGE}
+        />
 
         {/* Empty state */}
         {!hasContent && (

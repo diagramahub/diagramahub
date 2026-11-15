@@ -745,7 +745,12 @@
     "deleteDiagramError": "No fue posible eliminar el diagrama. Inténtalo de nuevo.",
     "createFolderError": "No fue posible crear la carpeta. Inténtalo de nuevo.",
     "renameFolderError": "No fue posible renombrar la carpeta. Inténtalo de nuevo.",
-    "deleteFolderError": "No fue posible eliminar la carpeta. Inténtalo de nuevo."
+    "deleteFolderError": "No fue posible eliminar la carpeta. Inténtalo de nuevo.",
+    "inContent": "En el contenido",
+    "searchingContent": "Buscando en el contenido…",
+    "contentSearchError": "No se pudo buscar en el contenido.",
+    "filterByType": "Filtrar por tipo",
+    "allTypes": "Todos"
   },
   "errors": {
     "genericError": "Ocurrió un error",

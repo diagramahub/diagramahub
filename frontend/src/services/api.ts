@@ -29,7 +29,8 @@ import {
   Folder,
   FolderWithDiagrams,
   CreateFolderRequest,
-  UpdateFolderRequest
+  UpdateFolderRequest,
+  DiagramSearchResult
 } from '../types/project';
 import {
   UserAISettings,
@@ -334,6 +335,11 @@ class ApiService {
   }
 
   // Diagram endpoints
+  async searchDiagrams(params: { q: string; project_id?: string; type?: string; limit?: number }): Promise<DiagramSearchResult[]> {
+    const response = await this.api.get<DiagramSearchResult[]>('/api/v1/diagrams/search', { params });
+    return response.data;
+  }
+
   async getDiagram(diagramId: string): Promise<Diagram> {
     const response = await this.api.get<Diagram>(`/api/v1/diagrams/${diagramId}`);
     return response.data;

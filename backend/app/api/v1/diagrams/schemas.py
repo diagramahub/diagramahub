@@ -186,6 +186,51 @@ class DiagramSummary(BaseModel):
         }
 
 
+class DiagramSearchHit(BaseModel):
+    """Fields a search needs to match and build a snippet (no config/preferences)."""
+
+    id: PydanticObjectId = Field(alias="_id")
+    title: str
+    content: str = ""
+    description: Optional[str] = None
+    diagram_type: str
+    project_id: str
+    folder_id: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Settings:
+        projection = {
+            "_id": 1,
+            "title": 1,
+            "content": 1,
+            "description": 1,
+            "diagram_type": 1,
+            "project_id": 1,
+            "folder_id": 1,
+            "created_at": 1,
+            "updated_at": 1,
+        }
+
+
+SEARCHABLE_DIAGRAM_TYPES = ("mermaid", "plantuml", "d2", "dbml", "freehand")
+
+
+class DiagramSearchResult(BaseModel):
+    """One diagram found by a search, with where the text matched."""
+
+    id: str
+    title: str
+    diagram_type: str
+    project_id: str
+    project_name: str
+    project_emoji: str
+    folder_id: Optional[str] = None
+    matched_in: str  # "title" | "description" | "content"
+    snippet: str  # text around the first match ("" for title matches)
+    updated_at: datetime
+
+
 class DiagramResponse(BaseModel):
     """Model for diagram API responses."""
 

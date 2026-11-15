@@ -2,11 +2,12 @@
 Concrete implementation of diagram repository.
 """
 
+import re
 from typing import Optional
 from beanie import PydanticObjectId
 from beanie.operators import In
 from .interfaces import IDiagramRepository
-from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
+from .schemas import DiagramInDB, DiagramCreate, DiagramSearchHit, DiagramSummary, DiagramUpdate
 from app.core.clock import utcnow
 
 # Fields that only describe how a diagram is being viewed, not its content.
@@ -118,6 +119,34 @@ class DiagramRepository(IDiagramRepository):
             .sort(-DiagramInDB.updated_at)
             .limit(limit)
             .project(DiagramSummary)
+            .to_list()
+        )
+
+    async def search(
+        self,
+        project_ids: list[str],
+        text: str,
+        diagram_type: Optional[str],
+        limit: int,
+    ) -> list[DiagramSearchHit]:
+        """Case-insensitive substring search over title, description and content.
+
+        The text is escaped, so it is matched literally (no regex from users).
+        """
+        if not project_ids or not text or limit <= 0:
+            return []
+        pattern = {"$regex": re.escape(text), "$options": "i"}
+        query: dict = {
+            "project_id": {"$in": project_ids},
+            "$or": [{"title": pattern}, {"description": pattern}, {"content": pattern}],
+        }
+        if diagram_type:
+            query["diagram_type"] = diagram_type
+        return (
+            await DiagramInDB.find(query)
+            .sort(-DiagramInDB.updated_at)
+            .limit(limit)
+            .project(DiagramSearchHit)
             .to_list()
         )
 
