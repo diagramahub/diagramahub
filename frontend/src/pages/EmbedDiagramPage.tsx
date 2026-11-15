@@ -5,6 +5,7 @@ import api from '../services/api';
 import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
 import type { SharedDiagram } from '../types/sharing';
+import { fitSvgToContainer } from '../utils/fitSvg';
 import AccessCodeForm from '../components/AccessCodeForm';
 import FreehandCanvas from '../components/FreehandCanvas';
 import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
@@ -107,6 +108,7 @@ export default function EmbedDiagramPage() {
           'svg' in result
             ? sanitizeSvg(result.svg)
             : `<p class="p-4 text-center text-amber-600">⚠️ ${escapeHtml(result.error)}</p>`;
+        fitSvgToContainer(diagramRef.current);
       })
       .catch(() => {
         if (!cancelled && diagramRef.current) {
@@ -168,7 +170,7 @@ export default function EmbedDiagramPage() {
             ref={diagramRef}
             role="img"
             aria-label={diagram?.title}
-            className="w-full h-full flex items-center justify-center p-3 bg-white [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:h-auto"
+            className="w-full h-full flex items-center justify-center p-3 bg-white"
           />
         )}
       </main>

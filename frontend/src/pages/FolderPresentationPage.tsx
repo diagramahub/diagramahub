@@ -9,6 +9,7 @@ import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
 import FreehandCanvas from '../components/FreehandCanvas';
 import { presentationSlides } from '../utils/presentation';
+import { fitSvgToContainer } from '../utils/fitSvg';
 
 /**
  * Full-screen presentation of a folder (or the whole project): one diagram per
@@ -125,6 +126,7 @@ export default function FolderPresentationPage() {
           'svg' in result
             ? sanitizeSvg(result.svg)
             : `<p class="p-4 text-center text-amber-600">⚠️ ${escapeHtml(result.error)}</p>`;
+        fitSvgToContainer(slideRef.current);
       })
       .catch(() => {
         if (!cancelled && slideRef.current) {
@@ -219,7 +221,7 @@ export default function FolderPresentationPage() {
                 ref={slideRef}
                 role="img"
                 aria-label={current.title}
-                className="w-full h-full flex items-center justify-center p-6 [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:h-auto"
+                className="w-full h-full flex items-center justify-center p-6"
               />
             )}
           </div>
