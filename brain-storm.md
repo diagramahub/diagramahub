@@ -10,6 +10,53 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
 ---
 
+## 🗺️ Mapa de versiones
+
+### 0.9.0 (en curso, rama `release/0.9.0`)
+
+**Funciones**
+- ⬜ Diagrama desde imagen con IA (foto de pizarrón o captura → código), con los proveedores que aceptan imágenes
+- ⬜ Búsqueda en el contenido de los diagramas y filtro por tipo
+- ⬜ Embed (iframe) y código QR para los enlaces compartidos
+- ⬜ Presentación de una carpeta completa (navegar entre diagramas)
+- ⬜ PDF de un proyecto o carpeta con varios diagramas
+- ⬜ Tokens de API personales (base para una CLI o extensión de VS Code)
+- ⬜ Pantalla de historial de prompts (la API ya existe)
+
+**Actualizaciones mayores**
+- ⬜ Backend: Beanie 2 y retiro de Motor (fin de vida 2026-05-14), FastAPI, uvicorn + `uvicorn-worker`, gunicorn, httpx, qrcode, google-genai 3, bcrypt 5
+- ⬜ Pruebas y calidad: pytest 9 + pytest-asyncio 1.x, ruff, mypy
+- ⬜ Frontend: ESLint 10, Vitest 5, Vite 8 + plugin-react 6, TypeScript 6, Mermaid 12 (conservando el aspecto actual de los diagramas existentes), i18next 27 / react-i18next 18, react-markdown 10, Sentry 11
+- ⬜ Infraestructura: nginx-unprivileged 1.30, versiones fijas de Kroki y MongoDB
+
+**Seguridad**
+- ⬜ CI en GitHub Actions: pruebas, lint, auditoría de dependencias, CodeQL, escaneo de imágenes y Dependabot
+- ⬜ Auditoría de acciones sensibles fuera de la autenticación (integraciones, planes, llaves de IA, enlaces compartidos)
+- ⬜ Content-Security-Policy activa por defecto en el frontend
+- ⬜ Límite explícito de 72 bytes para contraseñas (bcrypt)
+- ⬜ Rotación de la llave de cifrado (`AI_ENCRYPTION_KEY`)
+
+### 0.10.0: Comunidad
+
+Portal donde los usuarios publican sus diagramas y que reemplaza la idea de una galería de plantillas (ver §3):
+
+- ⬜ Publicar un diagrama en el portal (y retirarlo)
+- ⬜ Fork: copiar un diagrama público a la cuenta propia
+- ⬜ Estrellas
+- ⬜ Comentarios públicos
+- ⬜ Categorías y exploración por categoría
+- ⬜ Compartir desde el portal
+
+### Pendiente sin versión asignada
+
+- ⬜ Historial de versiones de cada diagrama (§2)
+- ⬜ Sesión en cookie httpOnly, logout en el servidor y lista de sesiones activas
+- ⬜ Stripe SDK 17
+- ⬜ Passkeys (WebAuthn) como método MFA
+- ⬜ TypeScript 7, Tailwind CSS 4, MongoDB 9
+
+---
+
 ## ✅ Implementado
 
 ### 🔧 **Auto-Fix de Diagramas Rotos con IA** (antes PRIORIDAD ALTA)
@@ -33,7 +80,7 @@ Implementado: `POST /api/v1/diagrams/{id}/fix` (`diagrams/fix_service.py`, promp
 - ⬜ Rollback a versiones anteriores
 
 ### 3. **Plantillas y Biblioteca de Componentes**
-- ⬜ Marketplace de plantillas prediseñadas
+- ⬜ Marketplace de plantillas prediseñadas: se cubrirá con el portal de Comunidad (0.10.0)
 - ⬜ Biblioteca de componentes reutilizables (AWS icons, UML patterns, etc.)
 - ⬜ Snippets personalizados por usuario/equipo
 - ⬜ Import/export de plantillas
