@@ -11,7 +11,7 @@ El `docker-compose.yml` de la raíz es un enlace simbólico a uno de los dos mod
 | | `local-full` | `external-mongodb` |
 |---|---|---|
 | Pensado para | Desarrollo, pruebas, instalaciones pequeñas | Producción |
-| MongoDB | Contenedor `mongo:8` con volumen `mongodb_data`, puerto `27017` publicado | Externo, vía `MONGO_URI` (Atlas, servidor propio) |
+| MongoDB | Contenedor `mongo:8.0` con volumen `mongodb_data`, puerto `27017` publicado | Externo, vía `MONGO_URI` (Atlas, servidor propio) |
 | Kroki | Contenedor interno | Contenedor interno |
 | Backend | `APP_ENV=development`: uvicorn con recarga en caliente, Swagger en `/docs` | `APP_ENV=production` (por defecto de la imagen): gunicorn con `WORKERS` procesos, sin Swagger |
 | Frontend | *Target* `development`: servidor de Vite con HMR y código montado | *Target* `production`: build estático servido por Nginx sin root |
@@ -187,14 +187,22 @@ Para consultar Swagger en una instancia de producción, levanta una copia con
 
 ## Content-Security-Policy del frontend
 
-La CSP del frontend está desactivada por defecto: una política demasiado estricta rompe el
-editor (Mermaid inyecta estilos en línea y Monaco carga *workers* desde jsDelivr).
-`frontend/csp.conf.example` trae una política probada como punto de partida:
+Desde 0.9.0 la imagen de producción del frontend envía una Content-Security-Policy por
+defecto. Se escribe al arrancar el contenedor, con las mismas variables que `config.js`:
 
-1. Reemplaza `API_ORIGIN` por el origen real de tu API.
-2. Agrega la línea `add_header` a `frontend/headers.conf`.
-3. Reconstruye la imagen y verifica en la consola del navegador el editor, el render y las
-   exportaciones.
+- `connect-src` permite el origen de la propia app, el origen de `VITE_API_URL` (nada extra si
+  es relativa) y, si Sentry está configurado, el origen de `VITE_SENTRY_DSN`.
+- Monaco se carga desde jsDelivr (`cdn.jsdelivr.net` en scripts, estilos, fuentes y *workers*)
+  y Mermaid necesita estilos en línea (`style-src 'unsafe-inline'`). Las imágenes aceptan
+  cualquier origen `https:` (fotos de perfil).
+- `frame-ancestors 'none'`: la app no se puede incrustar en otro sitio.
+
+| Variable | Por defecto | Para qué |
+|---|---|---|
+| `CSP_ENABLED` | `true` | `false` no envía CSP (por ejemplo, mientras diagnosticas un proxy). |
+| `CSP_CONNECT_SRC_EXTRA` | vacío | Orígenes extra para `connect-src`, separados por espacios. |
+
+Si algo se bloquea, la consola del navegador indica la directiva y la URL bloqueada.
 
 ## Checklist de endurecimiento
 
@@ -209,7 +217,7 @@ editor (Mermaid inyecta estilos en línea y Monaco carga *workers* desde jsDeliv
       por correo ([Integraciones](integraciones.md)).
 - [ ] La cuenta de administrador con MFA activado.
 - [ ] Respaldos automáticos de la base de datos ([Mantenimiento](mantenimiento.md)).
-- [ ] (Opcional) CSP del frontend habilitada y validada.
+- [ ] CSP del frontend activa (por defecto) y el editor, el render y las exportaciones revisados en la consola del navegador.
 - [ ] (Opcional) Sentry configurado para backend y frontend.
 
 Más contexto sobre los controles de la plataforma en [Seguridad](../seguridad/index.md).

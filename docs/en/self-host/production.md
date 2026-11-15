@@ -11,7 +11,7 @@ installer creates it depending on whether you choose local or external MongoDB.
 | | `local-full` | `external-mongodb` |
 |---|---|---|
 | Meant for | Development, testing, small installs | Production |
-| MongoDB | `mongo:8` container with the `mongodb_data` volume, port `27017` published | External, through `MONGO_URI` (Atlas, your own server) |
+| MongoDB | `mongo:8.0` container with the `mongodb_data` volume, port `27017` published | External, through `MONGO_URI` (Atlas, your own server) |
 | Kroki | Internal container | Internal container |
 | Backend | `APP_ENV=development`: uvicorn with hot reload, Swagger at `/docs` | `APP_ENV=production` (image default): gunicorn with `WORKERS` processes, no Swagger |
 | Frontend | `development` target: Vite dev server with HMR and mounted source | `production` target: static build served by non-root Nginx |
@@ -185,13 +185,22 @@ non-public environment.
 
 ## Frontend Content-Security-Policy
 
-The frontend CSP is disabled by default: a policy that is too strict breaks the editor
-(Mermaid injects inline styles and Monaco loads workers from jsDelivr).
-`frontend/csp.conf.example` ships a tested starting point:
+Since 0.9.0 the production frontend image sends a Content-Security-Policy by default. It is
+written when the container starts, from the same variables as `config.js`:
 
-1. Replace `API_ORIGIN` with your API's real origin.
-2. Append the `add_header` line to `frontend/headers.conf`.
-3. Rebuild the image and check the editor, rendering and exports in the browser console.
+- `connect-src` allows the app's own origin, the origin of `VITE_API_URL` (nothing extra if it
+  is relative) and, when Sentry is configured, the origin of `VITE_SENTRY_DSN`.
+- Monaco loads from jsDelivr (`cdn.jsdelivr.net` in scripts, styles, fonts and workers) and
+  Mermaid needs inline styles (`style-src 'unsafe-inline'`). Images accept any `https:` origin
+  (profile pictures).
+- `frame-ancestors 'none'`: the app can't be embedded in another site.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `CSP_ENABLED` | `true` | `false` sends no CSP (for example, while diagnosing a proxy). |
+| `CSP_CONNECT_SRC_EXTRA` | empty | Extra origins for `connect-src`, separated by spaces. |
+
+If something is blocked, the browser console names the directive and the blocked URL.
 
 ## Hardening checklist
 
@@ -206,7 +215,7 @@ The frontend CSP is disabled by default: a policy that is too strict breaks the 
       ([Integrations](integrations.md)).
 - [ ] The administrator account with MFA enabled.
 - [ ] Automatic database backups ([Maintenance](maintenance.md)).
-- [ ] (Optional) Frontend CSP enabled and validated.
+- [ ] Frontend CSP active (default) and the editor, rendering and exports checked in the browser console.
 - [ ] (Optional) Sentry configured for backend and frontend.
 
 More context on the platform's controls in [Security](../security/index.md).

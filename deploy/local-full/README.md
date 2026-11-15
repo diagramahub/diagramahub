@@ -61,11 +61,11 @@ docker volume ls | grep mongodb
 
 # Backup data
 docker run --rm -v diagramahub_mongodb_data:/data -v $(pwd):/backup \
-  mongo:8 tar czf /backup/mongodb-backup.tar.gz /data
+  mongo:8.0 tar czf /backup/mongodb-backup.tar.gz /data
 
 # Restore data
 docker run --rm -v diagramahub_mongodb_data:/data -v $(pwd):/backup \
-  mongo:8 tar xzf /backup/mongodb-backup.tar.gz -C /
+  mongo:8.0 tar xzf /backup/mongodb-backup.tar.gz -C /
 ```
 
 ## Common Operations

@@ -18,7 +18,7 @@ diagramahub/
 |---|---|---|
 | Frontend | React 19 + Vite 7 | UI, client-side Mermaid rendering |
 | Backend | FastAPI + Python 3.11 | API, business logic, Kroki proxy |
-| [Kroki](https://kroki.io/) | `yuzutech/kroki` Docker image | Server-side rendering for PlantUML, D2, and 20+ diagram types |
+| [Kroki](https://kroki.io/) | `yuzutech/kroki` Docker image (pinned in the compose files) | Server-side rendering for PlantUML, D2, and 20+ diagram types |
 | MongoDB | MongoDB 8 (or external) | Data storage |
 
 ## Backend

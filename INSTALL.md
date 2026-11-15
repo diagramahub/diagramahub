@@ -368,7 +368,7 @@ sudo certbot --nginx -d diagramahub.yourdomain.com
 ### 3. Security Considerations
 
 - **JWT_SECRET**: Ensure your `JWT_SECRET` is a strong, random string (at least 32 chars).
-- **Content-Security-Policy**: the frontend image ships a tested starting point in `frontend/csp.conf.example` (disabled by default). Enable it per deployment after validating the editor and export flows — see the file for instructions.
+- **Content-Security-Policy**: the production frontend image sends a CSP by default, built at start from `VITE_API_URL` and `VITE_SENTRY_DSN`. `CSP_CONNECT_SRC_EXTRA` adds origins and `CSP_ENABLED=false` turns it off (see the production guide in the docs).
 - **MongoDB**: If using local MongoDB, ensure port `27017` is **NOT** exposed to the public internet (use a firewall like UFW).
 - **Backups**: Regularly backup your `mongodb_data` volume.
 
