@@ -26,9 +26,9 @@ export default function AccessCodeForm({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-8">
           {/* Icon */}
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center">
@@ -69,7 +69,7 @@ export default function AccessCodeForm({
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder={t('sharing.enterCodePlaceholder')}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-center text-lg tracking-widest font-mono focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-colors dark:bg-gray-700 dark:text-gray-100"
+                  className="input h-10 text-center text-lg tracking-widest font-mono"
                   autoFocus
                   disabled={loading}
                   maxLength={20}
@@ -90,7 +90,7 @@ export default function AccessCodeForm({
               <button
                 type="submit"
                 disabled={!code.trim() || loading}
-                className="w-full py-3 px-4 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="btn btn-primary w-full flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>

@@ -81,7 +81,7 @@ export default function MfaEnableEmailFlow({ onComplete, onCancel }: MfaEnableEm
             <button
               onClick={handleSendCode}
               disabled={loading}
-              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary"
             >
               {loading ? t('mfa.email.sendingCode') : t('mfa.email.sendCode')}
             </button>
@@ -111,14 +111,14 @@ export default function MfaEnableEmailFlow({ onComplete, onCancel }: MfaEnableEm
               onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder={t('mfa.email.codePlaceholder')}
               maxLength={6}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-center text-lg tracking-widest mb-3"
+              className="input font-mono text-center text-lg tracking-widest mb-3"
               autoFocus
             />
             <div className="flex gap-2">
               <button
                 type="submit"
                 disabled={loading || code.length !== 6}
-                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="btn btn-primary"
               >
                 {loading ? t('mfa.email.verifying') : t('mfa.email.verifyCode')}
               </button>

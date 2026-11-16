@@ -148,7 +148,7 @@ export default function FolderPresentationPage() {
         <button
           type="button"
           onClick={() => navigate(projectId ? `/projects/${projectId}` : '/')}
-          className="px-6 py-3 border border-gray-600 rounded-lg font-semibold text-gray-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+          className="btn border border-gray-600 text-gray-200 hover:bg-white/10"
         >
           {t('presentation.back')}
         </button>

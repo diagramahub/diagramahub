@@ -28,10 +28,10 @@ interface ExportProjectModalProps {
 type Scope = 'project' | 'folder';
 
 const radioClass =
-  'h-4 w-4 border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700';
+  'h-4 w-4 border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800';
 const optionClass =
   'flex items-start gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors';
-const optionIdle = 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40';
+const optionIdle = 'border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/40';
 const optionActive = 'border-purple-500 bg-purple-50 dark:bg-purple-900/20';
 
 function formatBytes(bytes: number): string {
@@ -164,9 +164,9 @@ export default function ExportProjectModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="export-project-title">
-      <div ref={panelRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[90vh]">
+      <div ref={panelRef} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-lg w-full overflow-y-auto max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="min-w-0">
             <h3 id="export-project-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {t('projectExport.title')}
@@ -206,7 +206,7 @@ export default function ExportProjectModal({
                       value={folderId}
                       onChange={(e) => setFolderId(e.target.value)}
                       aria-label={t('projectExport.scopeFolder')}
-                      className="mt-2 w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="input mt-2"
                     >
                       {folders.map((f) => (
                         <option key={f.id} value={f.id}>{f.name}</option>
@@ -273,13 +273,13 @@ export default function ExportProjectModal({
               type="checkbox"
               checked={descriptions}
               onChange={(e) => setDescriptions(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700"
+              className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800"
             />
             {t('projectExport.includeDescriptions')}
           </label>
 
           {/* Summary */}
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm" aria-live="polite">
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm" aria-live="polite">
             <span className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">{t('projectExport.summary')}</span>
             {scopeInvalid ? (
               <span className="text-gray-500 dark:text-gray-400">{t('projectExport.noFolders')}</span>
@@ -318,12 +318,12 @@ export default function ExportProjectModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-2xl flex gap-3 justify-end">
           <button
             type="button"
             onClick={onClose}
             disabled={exporting}
-            className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="btn btn-secondary"
           >
             {t('common.cancel')}
           </button>
@@ -331,7 +331,7 @@ export default function ExportProjectModal({
             type="button"
             onClick={handleExport}
             disabled={exporting || scopeInvalid || !summary}
-            className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="btn btn-primary"
           >
             {exporting ? (
               <span className="flex items-center justify-center">

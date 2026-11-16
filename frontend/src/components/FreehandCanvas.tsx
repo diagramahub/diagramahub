@@ -1804,35 +1804,35 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   ];
 
   // Small style buttons used in the context panel
-  const iconBtnCls = "w-6 h-6 flex items-center justify-center rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700";
+  const iconBtnCls = "w-6 h-6 flex items-center justify-center rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800";
   const iconBtnActiveCls = "w-6 h-6 flex items-center justify-center rounded bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300";
 
   // ─── Render ───
   return (
-    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-900 relative">
+    <div className="flex flex-col h-full bg-gray-50 dark:bg-gray-950 relative">
       {/* Toolbar — hidden in read-only mode */}
       {!readOnly && (
-      <div className="flex items-center gap-1 px-3 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="flex items-center gap-1 px-3 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-0.5">
           <button onClick={undo} disabled={!canUndo} title={`${t("freehand.undo")} (${shortcutLabel("Z")})`} aria-label={t("freehand.undo")}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+            className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"/></svg>
           </button>
           <button onClick={redo} disabled={!canRedo} title={`${t("freehand.redo")} (${shortcutLabel("Z", true)})`} aria-label={t("freehand.redo")}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+            className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
           </button>
-          <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 mx-0.5" />
+          <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-0.5" />
         </div>
         <div className="flex items-center gap-0.5">
           {tools.map((tool) => (
             <button key={tool.id} onClick={() => setActiveTool(tool.id)}
-              className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${activeTool === tool.id ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+              className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${activeTool === tool.id ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               title={`${tool.label} (${tool.shortcut})`} aria-label={tool.label}>{tool.svg}</button>
           ))}
         </div>
         <div className="flex-1" />
-        <button onClick={() => setConfirmClear(true)} disabled={elements.length === 0} className="disabled:opacity-40 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md" aria-label={t("freehand.clearAll")}>{t("freehand.clearAll")}</button>
+        <button onClick={() => setConfirmClear(true)} disabled={elements.length === 0} className="disabled:opacity-40 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md" aria-label={t("freehand.clearAll")}>{t("freehand.clearAll")}</button>
         <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">{elements.length} {t("freehand.elements")}</span>
       </div>
       )}
@@ -1880,7 +1880,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         ];
 
         return (
-        <div className="absolute z-30 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 max-h-[70vh] overflow-y-auto" style={{ top, left, width: PANEL_W }}>
+        <div className="absolute z-30 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg p-3 max-h-[70vh] overflow-y-auto" style={{ top, left, width: PANEL_W }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
               {selectedIds.size > 1 ? `${selectedIds.size} ${t("freehand.elementsSelected")}` : t("freehand.style")}
@@ -1894,7 +1894,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             const allLocked = selected.length > 0 && selected.every((el) => el.locked);
             return (
               <button onClick={toggleLockSelected} aria-pressed={allLocked} title={`${allLocked ? t("freehand.unlock") : t("freehand.lock")} (${shortcutLabel("L", true)})`}
-                className={`mb-2 w-full flex items-center gap-2 px-2 py-1 text-xs rounded ${allLocked ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                className={`mb-2 w-full flex items-center gap-2 px-2 py-1 text-xs rounded ${allLocked ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d={allLocked ? "M8 11V7a4 4 0 018 0v4" : "M8 11V7a4 4 0 017.5-2"}/></svg>
                 {allLocked ? t("freehand.unlock") : t("freehand.lock")}
               </button>
@@ -1906,7 +1906,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
           {/* Alignment & distribution (2+ selected) */}
           {selectedIds.size >= 2 && (
-            <div className="mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
               <div className="flex gap-1">
                 {alignActions.map((a) => (
                   <button key={a.id} onClick={a.run} title={a.label} aria-label={a.label} className={iconBtnCls}>{a.svg}</button>
@@ -1917,14 +1917,14 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
           {/* Group / ungroup */}
           {(selectedIds.size >= 2 || allSameGroup) && (
-            <div className="mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="mb-2 pb-2 border-b border-gray-100 dark:border-gray-800">
               {allSameGroup ? (
-                <button onClick={ungroupSelected} title={t("freehand.ungroup")} className="w-full flex items-center gap-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <button onClick={ungroupSelected} title={t("freehand.ungroup")} className="w-full flex items-center gap-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7M17 14v7"/></svg>
                   {t("freehand.ungroup")}
                 </button>
               ) : (
-                <button onClick={groupSelected} title={t("freehand.group")} className="w-full flex items-center gap-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                <button onClick={groupSelected} title={t("freehand.group")} className="w-full flex items-center gap-2 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M8 10v1a3 3 0 003 3h3M16 8v-1a3 3 0 00-3-3h-3"/></svg>
                   {t("freehand.group")}
                 </button>
@@ -1938,7 +1938,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             <div className="flex flex-wrap gap-1">
               {FREEHAND_COLORS.map((c) => (
                 <button key={c} onClick={() => onStrokeColor(c)}
-                  className={`w-5 h-5 rounded-full border-2 ${strokeColor === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-600"}`}
+                  className={`w-5 h-5 rounded-full border-2 ${strokeColor === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-700"}`}
                   style={{ backgroundColor: c }} aria-label={c} />
               ))}
             </div>
@@ -1955,7 +1955,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
                   const label = t(`freehand.sketch${key.charAt(0).toUpperCase()}${key.slice(1)}`);
                   return (
                     <button key={key} onClick={() => onSketchStyle(value)} role="radio" aria-checked={active} title={label}
-                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
                       {label}
                     </button>
                   );
@@ -1970,11 +1970,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.fill")}</span>
               <div className="flex flex-wrap gap-1">
                 <button onClick={() => onFillColor("transparent")}
-                  className={`w-5 h-5 rounded-full border-2 ${fillColor === "transparent" ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-600"}`}
+                  className={`w-5 h-5 rounded-full border-2 ${fillColor === "transparent" ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-700"}`}
                   style={{ background: "repeating-conic-gradient(#ccc 0% 25%, transparent 0% 50%) 50% / 8px 8px" }} aria-label={t("freehand.noFill")} />
                 {FREEHAND_COLORS.slice(0, 7).map((c) => (
                   <button key={c} onClick={() => onFillColor(c)}
-                    className={`w-5 h-5 rounded-full border-2 ${fillColor === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-600"}`}
+                    className={`w-5 h-5 rounded-full border-2 ${fillColor === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-700"}`}
                     style={{ backgroundColor: c }} aria-label={c} />
                 ))}
               </div>
@@ -1990,7 +1990,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
                   const active = (single.fillStyle ?? "hachure") === value;
                   return (
                     <button key={value} onClick={() => onFillStyle(value)} role="radio" aria-checked={active}
-                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
                       {t(`freehand.${key}`)}
                     </button>
                   );
@@ -2010,7 +2010,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
                   return (
                     <button key={family} onClick={() => onFontFamily(family)} role="radio" aria-checked={active} title={label}
                       style={{ fontFamily: FREEHAND_FONT_FAMILIES[family] }}
-                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}>
+                      className={`px-2 h-6 rounded text-[11px] ${active ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}>
                       {label}
                     </button>
                   );
@@ -2026,7 +2026,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               <div className="flex gap-1">
                 {FREEHAND_STROKE_WIDTHS.map((w) => (
                   <button key={w} onClick={() => onStrokeWidth(w)}
-                    className={`w-7 h-6 flex items-center justify-center rounded text-xs ${strokeWidth === w ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                    className={`w-7 h-6 flex items-center justify-center rounded text-xs ${strokeWidth === w ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
                     aria-label={`${w}px`}>{w}</button>
                 ))}
               </div>
@@ -2133,43 +2133,43 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         {/* Context Menu */}
         {contextMenu && selectedIds.size > 0 && (
           <div
-            className="absolute z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 w-44"
+            className="absolute z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-1 w-44"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               {t("common.copy")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("C")}</span>
             </button>
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el })); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el })); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M6 3v2M18 3v2M6 19v2M18 19v2M3 6h2M3 18h2M19 6h2M19 18h2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
               {t("common.cut")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("X")}</span>
             </button>
-            <button onClick={() => { duplicateSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { duplicateSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
               {t("freehand.duplicate")}
             </button>
-            <button onClick={() => { toggleLockSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { toggleLockSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
               {elements.filter((el) => selectedIds.has(el.id)).every((el) => el.locked) ? t("freehand.unlock") : t("freehand.lock")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("L", true)}</span>
             </button>
-            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
-            <button onClick={() => { bringToFront(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
+            <button onClick={() => { bringToFront(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M5 11l7-7 7 7M5 19l7-7 7 7"/></svg>
               {t("freehand.bringToFront")}
             </button>
-            <button onClick={() => { bringForward(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { bringForward(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
               {t("freehand.bringForward")}
             </button>
-            <button onClick={() => { sendBackward(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { sendBackward(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
               {t("freehand.sendBackward")}
             </button>
-            <button onClick={() => { sendToBack(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <button onClick={() => { sendToBack(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M5 13l7 7 7-7M5 5l7 7 7-7"/></svg>
               {t("freehand.sendToBack")}
             </button>
-            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+            <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
             <button onClick={() => { handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
               {t("common.delete")}<span className="ml-auto text-[10px] text-gray-400">Del</span>

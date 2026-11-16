@@ -50,7 +50,7 @@ export default function AboutPage() {
   ];
 
   return (
-    <main className="min-h-full overflow-hidden bg-gray-50 px-4 py-6 dark:bg-gray-900 sm:px-6 lg:px-8">
+    <main className="min-h-full overflow-hidden bg-gray-50 px-4 py-6 dark:bg-gray-950 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-5xl">
         <div className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-violet-800 via-purple-700 to-fuchsia-700 px-6 py-10 text-white shadow-2xl sm:px-10 sm:py-14">
           <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-fuchsia-400/30 blur-3xl" />
@@ -74,12 +74,12 @@ export default function AboutPage() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
+          <article className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-8">
             <span className="inline-flex rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">{t('about.whatIsTitle')}</span>
             <p className="mt-4 text-lg leading-8 text-gray-700 dark:text-gray-200">{t('about.whatIsDescription')}</p>
             <div className="mt-6 flex flex-wrap gap-2">
               {['Mermaid', 'PlantUML', 'D2', 'DBML'].map((technology) => (
-                <span key={technology} className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300">{technology}</span>
+                <span key={technology} className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">{technology}</span>
               ))}
             </div>
           </article>
@@ -97,7 +97,7 @@ export default function AboutPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('about.highlightsTitle')}</h2>
           <div className="mt-3 grid gap-4 md:grid-cols-3">
             {highlights.map((highlight) => (
-              <article key={highlight.key} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
+              <article key={highlight.key} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-gray-800 dark:bg-gray-900">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-lg font-semibold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">{highlight.icon}</span>
                 <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">{t(`about.highlights.${highlight.key}.title`)}</h3>
                 <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">{t(`about.highlights.${highlight.key}.description`)}</p>
@@ -106,7 +106,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-8">
+        <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:p-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-purple-600 dark:text-purple-400">DiagramaHub</p>
@@ -116,7 +116,7 @@ export default function AboutPage() {
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-3">
             {links.map((link) => (
-              <a key={link.key} href={link.href} target={link.href.startsWith('http') ? '_blank' : undefined} rel={link.href.startsWith('http') ? 'noreferrer' : undefined} className="group rounded-xl border border-gray-200 p-4 transition-colors hover:border-purple-300 hover:bg-purple-50 dark:border-gray-700 dark:hover:border-purple-700 dark:hover:bg-purple-900/20">
+              <a key={link.key} href={link.href} target={link.href.startsWith('http') ? '_blank' : undefined} rel={link.href.startsWith('http') ? 'noreferrer' : undefined} className="group rounded-xl border border-gray-200 p-4 transition-colors hover:border-purple-300 hover:bg-purple-50 dark:border-gray-800 dark:hover:border-purple-700 dark:hover:bg-purple-900/20">
                 <div className="flex items-center justify-between text-purple-600 dark:text-purple-400"><span>{link.icon}</span><ArrowUpRightIcon /></div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{t(`about.${link.key}`)}</p>
                 <p className="mt-1 truncate text-sm font-medium text-gray-800 dark:text-gray-100">{link.value}</p>

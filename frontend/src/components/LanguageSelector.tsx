@@ -73,7 +73,7 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
       role="menuitemradio"
       aria-checked={currentLanguage.code === language.code}
       onClick={() => handleLanguageChange(language.code)}
-      className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors ${currentLanguage.code === language.code ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'text-gray-700 dark:text-gray-200'
+      className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${currentLanguage.code === language.code ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'text-gray-700 dark:text-gray-200'
         }`}
     >
       <span className="text-lg">{language.flag}</span>
@@ -95,7 +95,7 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
       <button
         ref={triggerRef}
         onClick={toggle}
-        className={`w-full flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+        className={`w-full flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
           compact ? 'justify-center px-3 py-2' : 'gap-2 px-3 py-2'
         }`}
         title={compact ? undefined : t('sidebar.language')}
@@ -123,7 +123,7 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
       </button>
 
       {isOpen && !compact && (
-        <div role="menu" className="absolute left-0 bottom-full mb-2 w-full bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-50">
+        <div role="menu" className="absolute left-0 bottom-full mb-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
           {options}
         </div>
       )}
@@ -132,7 +132,7 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
         <div
           ref={menuRef}
           role="menu"
-          className="fixed w-44 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-[9999]"
+          className="fixed w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-[9999]"
           style={{ left: menuPos.left, bottom: menuPos.bottom }}
         >
           {options}

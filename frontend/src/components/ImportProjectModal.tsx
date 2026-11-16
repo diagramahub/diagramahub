@@ -156,9 +156,9 @@ export default function ImportProjectModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="import-project-title">
-      <div ref={panelRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full overflow-y-auto max-h-[90vh]">
+      <div ref={panelRef} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-lg w-full overflow-y-auto max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="min-w-0">
             <h3 id="import-project-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('projectImport.title')}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -182,7 +182,7 @@ export default function ImportProjectModal({
             }}
             onDrop={(e) => { e.preventDefault(); setDragging(false); if (!busy) addFiles(e.dataTransfer.files); }}
             className={`rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
-              dragging ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-300 dark:border-gray-600'
+              dragging ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-300 dark:border-gray-700'
             }`}
           >
             <svg className="w-8 h-8 mx-auto text-gray-400 dark:text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -194,7 +194,7 @@ export default function ImportProjectModal({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className="mt-3 inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+              className="mt-3 inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
             >
               {t('projectImport.chooseFiles')}
             </button>
@@ -203,7 +203,7 @@ export default function ImportProjectModal({
 
           {/* Selected files */}
           {files.length > 0 && (
-            <ul className="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 text-sm max-h-32 overflow-y-auto" aria-label={t('projectImport.selectedFiles')}>
+            <ul className="divide-y divide-gray-100 dark:divide-gray-800 rounded-lg border border-gray-200 dark:border-gray-800 text-sm max-h-32 overflow-y-auto" aria-label={t('projectImport.selectedFiles')}>
               {files.map((file, index) => (
                 <li key={`${file.name}:${file.size}`} className="flex items-center justify-between gap-2 px-3 py-1.5">
                   <span className="truncate text-gray-800 dark:text-gray-200">{file.name}</span>
@@ -220,7 +220,7 @@ export default function ImportProjectModal({
 
           {/* Preview */}
           {(loadingPreview || preview) && (
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 px-4 py-3 text-sm space-y-2" aria-live="polite">
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 px-4 py-3 text-sm space-y-2" aria-live="polite">
               <span className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('projectImport.preview')}</span>
               {loadingPreview || !preview ? (
                 <span className="text-gray-500 dark:text-gray-400">{t('common.loading')}</span>
@@ -239,7 +239,7 @@ export default function ImportProjectModal({
                     <ul className="max-h-40 overflow-y-auto space-y-1" aria-label={t('projectImport.diagramsList')}>
                       {preview.diagrams.map((d) => (
                         <li key={d.source} className="flex items-center gap-2 text-xs">
-                          <span className={`w-9 text-center rounded text-[9px] font-bold leading-4 flex-shrink-0 ${TYPE_BADGES[d.diagram_type] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{TYPE_LABELS[d.diagram_type] ?? d.diagram_type}</span>
+                          <span className={`w-9 text-center rounded text-[9px] font-bold leading-4 flex-shrink-0 ${TYPE_BADGES[d.diagram_type] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>{TYPE_LABELS[d.diagram_type] ?? d.diagram_type}</span>
                           <span className="truncate text-gray-800 dark:text-gray-200" title={d.source}>{d.folder ? `${d.folder}/` : ''}{d.title}</span>
                           {d.has_description && <span className="text-gray-400 flex-shrink-0">{t('projectImport.withDescription')}</span>}
                           {d.warnings.length > 0 && (
@@ -279,11 +279,11 @@ export default function ImportProjectModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex gap-3 justify-end">
-          <button type="button" onClick={onClose} disabled={busy} className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-2xl flex gap-3 justify-end">
+          <button type="button" onClick={onClose} disabled={busy} className="btn btn-secondary">
             {t('common.cancel')}
           </button>
-          <button type="button" onClick={handleImport} disabled={!canImport} className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+          <button type="button" onClick={handleImport} disabled={!canImport} className="btn btn-primary">
             {busy ? (
               <span className="flex items-center justify-center">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">

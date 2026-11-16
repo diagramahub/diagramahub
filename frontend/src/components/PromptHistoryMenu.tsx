@@ -100,7 +100,7 @@ export function PromptHistoryMenu({ onSelect, disabled = false }: PromptHistoryM
         disabled={disabled}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+        className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -112,9 +112,9 @@ export function PromptHistoryMenu({ onSelect, disabled = false }: PromptHistoryM
         <div
           role="dialog"
           aria-label={t('promptHistory.title')}
-          className="absolute bottom-full left-0 mb-1 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30"
+          className="absolute bottom-full left-0 mb-1 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-30"
         >
-          <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+          <div className="p-2 border-b border-gray-100 dark:border-gray-800">
             <input
               ref={searchRef}
               type="search"
@@ -122,7 +122,7 @@ export function PromptHistoryMenu({ onSelect, disabled = false }: PromptHistoryM
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('promptHistory.searchPlaceholder')}
               aria-label={t('promptHistory.searchPlaceholder')}
-              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+              className="w-full px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
 
@@ -143,7 +143,7 @@ export function PromptHistoryMenu({ onSelect, disabled = false }: PromptHistoryM
                 <button
                   type="button"
                   onClick={() => handleSelect(entry)}
-                  className="flex-1 min-w-0 text-left px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 min-w-0 text-left px-2 py-1.5 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <span className="block text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{entry.prompt_text}</span>
                   <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500">

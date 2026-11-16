@@ -458,7 +458,7 @@
   "settings": {
     "title": "Settings",
     "comingSoon": "Coming soon",
-    "comingSoonDescription": "We're working on new configuration options to improve your experience. Soon you'll be able to customize themes, notifications and much more.",
+    "pageDescription": "AI integrations, API tokens and your account.",
     "futureFeatures": "Upcoming features",
     "appearance": "Appearance",
     "appearanceDescription": "Customize the theme and appearance of the application",

@@ -65,7 +65,7 @@ const VendorLogo = ({ vendorType, size = 'md' }: { vendorType: string; size?: 's
   const label = VENDOR_CATALOG.find(c => c.vendor_type === vendorType)?.label || vendorType;
   const sizeClasses = { sm: 'w-8 h-8', md: 'w-10 h-10', lg: 'w-12 h-12' };
   return (
-    <div className={`${sizeClasses[size]} rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0`}>
+    <div className={`${sizeClasses[size]} rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-center overflow-hidden flex-shrink-0`}>
       {logo ? (
         <img src={logo} alt={label} className="w-3/4 h-3/4 object-contain" />
       ) : (
@@ -234,14 +234,14 @@ export default function IntegrationsSection() {
 
   /* ── badge helpers ───────────────────────────────────────────── */
   const statusBadge = (v: VendorConfigResponse) => {
-    if (v.is_default) return <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full">{t('integrations.status.default')}</span>;
-    if (v.is_active_payment) return <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full">{t('integrations.status.activePayment')}</span>;
-    if (v.is_active_oauth) return <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full">{t('integrations.status.activeOAuth')}</span>;
+    if (v.is_default) return <span className="badge">{t('integrations.status.default')}</span>;
+    if (v.is_active_payment) return <span className="badge">{t('integrations.status.activePayment')}</span>;
+    if (v.is_active_oauth) return <span className="badge">{t('integrations.status.activeOAuth')}</span>;
     return <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full">{t('integrations.status.configured')}</span>;
   };
 
   const categoryBadge = (cat: string) => (
-    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full capitalize">{cat === 'email' ? t('integrations.categories.email') : cat === 'oauth' ? t('integrations.categories.oauth') : t('integrations.categories.payment')}</span>
+    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full capitalize">{cat === 'email' ? t('integrations.categories.email') : cat === 'oauth' ? t('integrations.categories.oauth') : t('integrations.categories.payment')}</span>
   );
 
   /* ── loading ─────────────────────────────────────────────────── */
@@ -278,7 +278,7 @@ export default function IntegrationsSection() {
       {/* Tabs + Filter row */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <div className="flex border-b border-gray-200 dark:border-gray-800">
           <button
             onClick={() => setActiveTab('available')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'available' ? 'border-purple-600 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -300,7 +300,7 @@ export default function IntegrationsSection() {
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors ${categoryFilter === cat ? 'bg-purple-600 text-white border-purple-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500'}`}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${categoryFilter === cat ? 'bg-purple-600 text-white border-purple-600' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500'}`}
             >
               {cat === 'all' ? t('integrations.filterAll') : cat === 'email' ? t('integrations.categories.email') : cat === 'oauth' ? t('integrations.categories.oauth') : t('integrations.categories.payment')}
             </button>
@@ -314,7 +314,7 @@ export default function IntegrationsSection() {
           {VENDOR_CATALOG.filter(c => categoryFilter === 'all' || c.category === categoryFilter).map(entry => {
             const isConnected = connectedTypes.has(entry.vendor_type);
             return (
-              <div key={entry.vendor_type} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
+              <div key={entry.vendor_type} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -359,7 +359,7 @@ export default function IntegrationsSection() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredConnected.map(vendor => (
-                <div key={vendor.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div key={vendor.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 flex flex-col justify-between hover:shadow-md transition-shadow">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
@@ -392,7 +392,7 @@ export default function IntegrationsSection() {
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
+                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
                     <button onClick={() => handleTest(vendor.id)} disabled={testingId === vendor.id}
                       className="flex-1 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 disabled:opacity-50 flex items-center justify-center gap-1">
                       {testingId === vendor.id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" /> : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
@@ -419,7 +419,7 @@ export default function IntegrationsSection() {
                         {t('integrations.activateOAuth')}
                       </button>
                     )}
-                    <button onClick={() => openEdit(vendor)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title={t('integrations.editVendor')}>
+                    <button onClick={() => openEdit(vendor)} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg" title={t('integrations.editVendor')}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
                     <button onClick={() => setDeleteConfirmId(vendor.id)} disabled={deletingId === vendor.id} className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" title={t('integrations.deleteVendor')}>
@@ -437,7 +437,7 @@ export default function IntegrationsSection() {
       {/* ── CONNECT / EDIT MODAL ───────────────────────────────────── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={resetForm}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 w-full max-w-md mx-4 p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-5">
               <VendorLogo vendorType={connectingVendor?.vendor_type || ''} size="lg" />
               <div>
@@ -455,7 +455,7 @@ export default function IntegrationsSection() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t(f.label)}</label>
                   <input type={f.type || 'text'} value={formConfig[f.key] || ''} onChange={e => setFormConfig({ ...formConfig, [f.key]: e.target.value })}
                     placeholder={editingVendor ? t('integrations.form.leaveBlankToKeep') : t(f.placeholder)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" />
+                    className="input" />
                 </div>
               ))}
 
@@ -463,12 +463,12 @@ export default function IntegrationsSection() {
 
               <div className="flex items-center gap-3 pt-2">
                 <button type="submit" disabled={formSaving}
-                  className="flex-1 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                  className="btn btn-primary flex-1 flex items-center justify-center gap-2">
                   {formSaving && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
                   {editingVendor ? t('common.save') : t('integrations.connect')}
                 </button>
                 <button type="button" onClick={resetForm}
-                  className="flex-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                  className="flex-1 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
                   {t('common.cancel')}
                 </button>
               </div>

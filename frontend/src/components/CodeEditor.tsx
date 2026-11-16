@@ -43,7 +43,7 @@ export default function CodeEditor({
   };
 
   return (
-    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 dark:border-gray-700 rounded overflow-hidden'}>
+    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 dark:border-gray-800 rounded overflow-hidden'}>
       <Editor
         beforeMount={handleEditorWillMount}
         height={height}
@@ -90,7 +90,7 @@ export default function CodeEditor({
           },
         }}
         loading={
-          <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800">
+          <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
             <div className="text-sm text-gray-500 dark:text-gray-400">{t('editor.loadingEditor')}</div>
           </div>
         }

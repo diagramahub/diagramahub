@@ -466,7 +466,7 @@ export default function AIChatPanel({
 
   return (
     <div
-      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto flex-shrink-0"
+      className="fixed inset-0 sm:static sm:inset-auto flex flex-col h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 animate-slide-in-right overflow-hidden relative z-40 sm:z-auto flex-shrink-0"
       style={{
         width: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : (panelWidth ?? 400),
         minWidth: typeof window !== 'undefined' && window.innerWidth < 640 ? '100%' : (panelWidth ?? 400),
@@ -478,7 +478,7 @@ export default function AIChatPanel({
       }}
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between flex-shrink-0">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between flex-shrink-0">
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
           <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -499,7 +499,7 @@ export default function AIChatPanel({
       </div>
 
       {/* Session selector */}
-      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <ChatSessionSelector
           sessions={sessions}
           activeSessionId={activeSessionId}
@@ -549,7 +549,7 @@ export default function AIChatPanel({
 
       {/* Input */}
       {isFinalized ? (
-        <div className="px-3 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 text-center flex-shrink-0">
+        <div className="px-3 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 text-center flex-shrink-0">
           <p className="text-xs text-gray-500 dark:text-gray-400">{t('chat.finalizedReadOnly')}</p>
         </div>
       ) : (
@@ -576,8 +576,8 @@ export default function AIChatPanel({
       {/* Modal de preview expandido */}
       {expandedPreview && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setExpandedPreview(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-[95vw] h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('chat.previewTitle')}</span>
               <button
                 type="button"

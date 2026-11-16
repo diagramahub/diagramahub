@@ -114,18 +114,18 @@ const ProjectsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            <h1 className="page-title">
               {t('dashboard.title')}
             </h1>
           </div>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center gap-2 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex-shrink-0"
+            className="btn btn-primary flex items-center gap-2 flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -137,7 +137,7 @@ const ProjectsPage: React.FC = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
             <Skeleton variant="table" />
           </div>
         ) : projects.length === 0 ? (
@@ -148,10 +148,10 @@ const ProjectsPage: React.FC = () => {
             onAction={() => setIsCreateModalOpen(true)}
           />
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
                   <tr>
                     <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400 w-12"></th>
                     <th className="px-4 py-3 font-medium text-gray-500 dark:text-gray-400">
@@ -171,12 +171,12 @@ const ProjectsPage: React.FC = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {projects.map((project) => (
                     <tr
                       key={project.id}
                       onClick={() => handleProjectClick(project.id)}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer transition-colors"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800/30 cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3">
                         <span className="text-xl">{project.emoji}</span>

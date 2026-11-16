@@ -42,7 +42,7 @@ const MfaBanner: React.FC = () => {
   }
 
   return (
-    <div className="text-white px-4 py-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #5b21b6 0%, #7c3aed 40%, #4c1d95 70%, #6d28d9 100%)' }}>
+    <div className="bg-purple-600 text-white px-4 py-2.5">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <svg

@@ -458,7 +458,7 @@
   "settings": {
     "title": "Ajustes",
     "comingSoon": "Próximamente",
-    "comingSoonDescription": "Estamos trabajando en nuevas opciones de configuración para mejorar tu experiencia. Pronto podrás personalizar temas, notificaciones y mucho más.",
+    "pageDescription": "Integraciones de IA, tokens de API y tu cuenta.",
     "futureFeatures": "Próximas funcionalidades",
     "appearance": "Apariencia",
     "appearanceDescription": "Personaliza el tema y la apariencia de la aplicación",

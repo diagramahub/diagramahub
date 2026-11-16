@@ -138,9 +138,9 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-900">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {plan ? 'Editar Plan' : 'Crear Nuevo Plan'}
           </h2>
@@ -169,7 +169,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+              className="input"
               placeholder={t('admin.plans.namePlaceholder')}
             />
           </div>
@@ -184,7 +184,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               type="text"
               value={code}
               onChange={(e) => handleCodeChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 font-mono"
+              className="input font-mono"
               placeholder={t('admin.plans.codePlaceholder')}
               disabled={isFreePlan}
             />
@@ -205,7 +205,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+              className="input h-auto py-2"
               placeholder={t('admin.plans.descriptionPlaceholder')}
             />
           </div>
@@ -224,7 +224,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 min="0"
                 value={priceUsd}
                 onChange={(e) => setPriceUsd(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                 placeholder="0.00"
                 disabled={hasSubscribers}
               />
@@ -260,7 +260,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                         min="0.01"
                         value={amount}
                         onChange={(e) => setCurrencyPrices(prev => ({...prev, [currency]: e.target.value}))}
-                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100"
                         placeholder="0.00"
                       />
                     </div>
@@ -287,7 +287,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                   <select
                     value={newCurrency}
                     onChange={(e) => setNewCurrency(e.target.value)}
-                    className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                    className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100"
                   >
                     <option value="">{t('admin.plans.selectCurrency')}</option>
                     {availableCurrencies.map(c => (
@@ -328,7 +328,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                   type="checkbox"
                   checked={unlimitedProjects}
                   onChange={(e) => setUnlimitedProjects(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-gray-300 dark:border-gray-700 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Ilimitados</span>
               </label>
@@ -339,7 +339,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 min="0"
                 value={maxProjects}
                 onChange={(e) => setMaxProjects(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                className="input"
                 placeholder={t('admin.plans.projectsPlaceholder')}
               />
             )}
@@ -356,7 +356,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                   type="checkbox"
                   checked={unlimitedDiagrams}
                   onChange={(e) => setUnlimitedDiagrams(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
+                  className="rounded border-gray-300 dark:border-gray-700 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Ilimitados</span>
               </label>
@@ -367,7 +367,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
                 min="0"
                 value={maxDiagrams}
                 onChange={(e) => setMaxDiagrams(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                className="input"
                 placeholder={t('admin.plans.diagramsPlaceholder')}
               />
             )}
@@ -375,7 +375,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
 
           {/* Status (only in edit mode, not for free plan) */}
           {plan && !isFreePlan && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado del plan</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -385,7 +385,7 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
@@ -393,18 +393,18 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary flex-1"
             >
               {loading ? 'Guardando...' : plan ? 'Actualizar Plan' : 'Crear Plan'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Cancelar
             </button>

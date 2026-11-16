@@ -64,7 +64,7 @@ export default function CurrencyPriceTable({ plan, onPriceChanged }: CurrencyPri
         </thead>
         <tbody>
           {priceEntries.map(([currency, amount]) => (
-            <tr key={currency} className="border-t border-gray-100 dark:border-gray-700">
+            <tr key={currency} className="border-t border-gray-100 dark:border-gray-800">
               <td className="py-1.5 pr-2">
                 {CURRENCY_FLAGS[currency] ?? '🏳️'}
               </td>

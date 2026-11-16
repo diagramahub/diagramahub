@@ -34,7 +34,7 @@ export default function DiagramPreviewInline({
   };
 
   return (
-    <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
       <div className="relative h-48 group/preview">
         <DiagramPreview code={code} diagramType={diagramType} />
         {/* Botones flotantes */}
@@ -42,7 +42,7 @@ export default function DiagramPreviewInline({
           <button
             type="button"
             onClick={handleCopy}
-            className="p-1.5 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
+            className="p-1.5 bg-white/90 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white dark:hover:bg-gray-800 shadow-sm"
             title={copied ? t('chat.copied') : t('chat.copyCode')}
           >
             {copied ? (
@@ -59,7 +59,7 @@ export default function DiagramPreviewInline({
             <button
               type="button"
               onClick={onExpand}
-              className="p-1.5 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
+              className="p-1.5 bg-white/90 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-800 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white dark:hover:bg-gray-800 shadow-sm"
               title={t('chat.preview.expand')}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,7 +70,7 @@ export default function DiagramPreviewInline({
         </div>
       </div>
       {status === 'pending' && (
-        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-950/50 border-t border-gray-200 dark:border-gray-800">
           <button
             type="button"
             onClick={onAccept}
@@ -81,7 +81,7 @@ export default function DiagramPreviewInline({
           <button
             type="button"
             onClick={onReject}
-            className="flex-1 px-3 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 rounded-md hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+            className="flex-1 px-3 py-1.5 text-xs font-medium text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-900 border border-orange-300 dark:border-orange-700 rounded-md hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
           >
             {t('chat.preview.reject')}
           </button>
@@ -94,7 +94,7 @@ export default function DiagramPreviewInline({
             <button
               type="button"
               onClick={onRestore}
-              className="px-2 py-1 text-[10px] font-medium text-green-700 dark:text-green-300 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+              className="px-2 py-1 text-[10px] font-medium text-green-700 dark:text-green-300 bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
               title={t('chat.preview.restoreTitle')}
             >
               {t('chat.preview.restore')}
@@ -109,7 +109,7 @@ export default function DiagramPreviewInline({
             <button
               type="button"
               onClick={onRestore}
-              className="px-2 py-1 text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+              className="px-2 py-1 text-[10px] font-medium text-orange-600 dark:text-orange-400 bg-white dark:bg-gray-900 border border-orange-300 dark:border-orange-700 rounded hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
               title={t('chat.preview.useTitle')}
             >
               {t('chat.preview.use')}

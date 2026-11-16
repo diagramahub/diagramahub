@@ -16,12 +16,10 @@ import { DiagramThumbnail } from '../components/community/DiagramThumbnail';
 import { CommunityAvatar } from '../components/community/CommunityAvatar';
 import { TYPE_BADGES } from '../components/community/typeBadges';
 
-const primary =
-  'bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors';
-const secondary =
-  'px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+const primary = 'btn btn-primary';
+const secondary = 'btn btn-secondary';
 const field =
-  'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100';
+  'input';
 
 /** A published diagram: preview, code, actions and public comments. */
 export default function CommunityDiagramPage() {
@@ -162,7 +160,7 @@ export default function CommunityDiagramPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${badge.className}`}>{badge.label}</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+            <span className="badge">
               {t(`community.categories.${pub.category}`)}
             </span>
             {pub.featured && (
@@ -171,7 +169,7 @@ export default function CommunityDiagramPage() {
               </span>
             )}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{pub.title}</h1>
+          <h1 className="page-title mt-1">{pub.title}</h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1.5 flex-wrap">
             <CommunityAvatar name={pub.owner_name} />
             {pub.owner_name} · {t('community.publishedOn', { date: formatDate(pub.published_at) })} · {t(`community.licenses.${pub.license}`)}
@@ -186,11 +184,11 @@ export default function CommunityDiagramPage() {
             content={pub.content}
             diagramType={pub.diagram_type}
             title={pub.title}
-            className="h-96 p-4 rounded-xl border border-gray-200 dark:border-gray-700"
+            className="h-96 p-4 rounded-xl border border-gray-200 dark:border-gray-800"
           />
           <details className="mt-3">
             <summary className="cursor-pointer text-sm font-medium text-purple-600 dark:text-purple-400">{t('community.viewCode')}</summary>
-            <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-lg p-3 overflow-x-auto">{pub.content}</pre>
+            <pre className="mt-2 text-xs bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 rounded-lg p-3 overflow-x-auto">{pub.content}</pre>
           </details>
           {pub.description && (
             <div className="mt-4 prose prose-sm max-w-none dark:prose-invert prose-a:text-purple-600">
@@ -200,7 +198,7 @@ export default function CommunityDiagramPage() {
           {pub.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {pub.tags.map((tag) => (
-                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                   #{tag}
                 </span>
               ))}
@@ -225,7 +223,7 @@ export default function CommunityDiagramPage() {
                 <textarea id="comment-text" rows={2} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('community.commentPlaceholder')} className={`${field} resize-none`} />
                 <div className="flex justify-between items-center mt-2 gap-2">
                   <span className="text-xs text-gray-400 dark:text-gray-500">{t('community.commentHint')}</span>
-                  <button type="submit" disabled={posting || !text.trim()} className="bg-purple-600 text-white btn-glass py-2 px-4 rounded-lg text-sm font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-400">
+                  <button type="submit" disabled={posting || !text.trim()} className="btn btn-primary">
                     {t('community.comment')}
                   </button>
                 </div>
@@ -265,14 +263,14 @@ export default function CommunityDiagramPage() {
             {t('community.copyLink')}
           </button>
 
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 p-4 text-sm space-y-2">
+          <div className="rounded-lg bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 p-4 text-sm space-y-2">
             <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">{t('community.views')}</span><span className="font-medium">{compactCount(pub.views_count)}</span></div>
             <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">{t('community.forks')}</span><span className="font-medium">{compactCount(pub.forks_count)}</span></div>
             <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">{t('community.updated')}</span><span className="font-medium">{formatDate(pub.updated_at)}</span></div>
           </div>
 
           {pub.more_from_owner.length > 0 && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-4">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{t('community.moreFromAuthor')}</p>
               <ul className="space-y-1 text-sm">
                 {pub.more_from_owner.map((m) => (
@@ -285,7 +283,7 @@ export default function CommunityDiagramPage() {
           )}
 
           {pub.is_owner && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-2">
+            <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-2">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('community.owner.title')}</p>
               {pub.source_diagram_id && (
                 <button type="button" onClick={async () => { try { setPub(await apiService.updatePublication(pub.id, { refresh_content: true })); notify(t('community.owner.refreshed')); } catch { notify(t('community.owner.sourceGone')); } }} className="w-full text-left text-sm text-purple-600 dark:text-purple-400 hover:underline">
@@ -355,7 +353,7 @@ function CommentItem({ comment, language, onReply, onDelete, onReport, reply = f
   return (
     <div className="flex gap-2">
       <CommunityAvatar name={comment.author_name} />
-      <div className={`flex-1 min-w-0 rounded-lg px-3 py-2 ${reply ? 'bg-purple-50 dark:bg-purple-900/20' : 'bg-gray-50 dark:bg-gray-900/50'}`}>
+      <div className={`flex-1 min-w-0 rounded-lg px-3 py-2 ${reply ? 'bg-purple-50 dark:bg-purple-900/20' : 'bg-gray-50 dark:bg-gray-950/50'}`}>
         <p className="text-xs text-gray-700 dark:text-gray-300">
           <strong>{comment.author_name}</strong>
           {comment.is_publication_owner && (
@@ -406,8 +404,8 @@ function ForkDialog({ publication, onClose, onForked }: { publication: Publicati
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="fork-title" className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="fork-title" className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 id="fork-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('community.fork')}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('community.forkDescription')}</p>
         </div>
@@ -428,7 +426,7 @@ function ForkDialog({ publication, onClose, onForked }: { publication: Publicati
           <p className="text-xs text-gray-500 dark:text-gray-400">{t('community.forkAttribution')}</p>
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
         </div>
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
           <button type="button" onClick={onClose} disabled={busy} className={secondary}>{t('common.cancel')}</button>
           <button type="button" onClick={submit} disabled={busy || !projectId} className={primary}>{busy ? t('community.forking') : t('community.forkConfirm')}</button>
         </div>
@@ -457,8 +455,8 @@ function ReportDialog({ target, onClose, onSent }: { target: { type: 'diagram' |
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="report-title" className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="report-title" className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 id="report-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('community.reportTitle')}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('community.reportDescription')}</p>
         </div>
@@ -467,9 +465,9 @@ function ReportDialog({ target, onClose, onSent }: { target: { type: 'diagram' |
           <textarea id="report-reason" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className={`${field} resize-none`} />
           {error && <p className="text-sm text-red-600 dark:text-red-400 mt-2" role="alert">{t('community.actionError')}</p>}
         </div>
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
           <button type="button" onClick={onClose} disabled={busy} className={secondary}>{t('common.cancel')}</button>
-          <button type="button" onClick={submit} disabled={busy || reason.trim().length < 3} className="bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-400">
+          <button type="button" onClick={submit} disabled={busy || reason.trim().length < 3} className="btn btn-destructive">
             {t('community.reportSend')}
           </button>
         </div>

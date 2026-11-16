@@ -91,7 +91,7 @@ export default function AIIntegrationsSection() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
         <div className="px-6 py-12 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
@@ -102,9 +102,9 @@ export default function AIIntegrationsSection() {
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
         {/* Header */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('ai.title')}</h3>
@@ -112,7 +112,7 @@ export default function AIIntegrationsSection() {
             </div>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center space-x-2 self-start sm:self-auto flex-shrink-0"
+              className="btn btn-primary flex items-center space-x-2 self-start sm:self-auto flex-shrink-0"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -126,7 +126,7 @@ export default function AIIntegrationsSection() {
         <div className="px-4 sm:px-6 py-4">
           {!settings?.providers.length ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
                 <svg
                   className="w-8 h-8 text-gray-400 dark:text-gray-500"
                   fill="none"
@@ -145,7 +145,7 @@ export default function AIIntegrationsSection() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">{t('ai.noProvidersDescription')}</p>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                className="btn btn-primary"
               >
                 {t('ai.addProvider')}
               </button>
@@ -171,7 +171,7 @@ export default function AIIntegrationsSection() {
                   <div
                     key={originalIndex}
                     className={`p-4 border rounded-lg ${
-                      isDefault ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700'
+                      isDefault ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-800'
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -186,7 +186,7 @@ export default function AIIntegrationsSection() {
                             {provider.display_name || AI_PROVIDER_NAMES[provider.provider]}
                           </h4>
                           {isDefault && (
-                            <span className="px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                            <span className="badge">
                               {t('ai.status.default')}
                             </span>
                           )}
@@ -199,7 +199,7 @@ export default function AIIntegrationsSection() {
                             className={`px-2 py-1 text-xs font-medium rounded-full ${
                               provider.is_active
                                 ? 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30'
-                                : 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700'
+                                : 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800'
                             }`}
                           >
                             {provider.is_active ? t('ai.status.active') : t('ai.status.inactive')}
@@ -218,7 +218,7 @@ export default function AIIntegrationsSection() {
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             <span className="font-medium">{t('ai.form.apiKey')}:</span>{' '}
-                            <code className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
+                            <code className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
                               {provider.api_key}
                             </code>
                           </p>
@@ -230,7 +230,7 @@ export default function AIIntegrationsSection() {
                         <button
                           onClick={() => handleEditProvider(provider, originalIndex)}
                           disabled={actionLoading !== null}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
                           title={t('ai.editProvider')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +249,7 @@ export default function AIIntegrationsSection() {
                             className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
                               isDefault
                                 ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                             }`}
                             title={t('ai.form.isDefault')}
                           >
@@ -271,7 +271,7 @@ export default function AIIntegrationsSection() {
                         <button
                           onClick={() => setRemoveIndex(originalIndex)}
                           disabled={actionLoading === `remove-${originalIndex}`}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
                           title={t('ai.removeProvider')}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -292,11 +292,11 @@ export default function AIIntegrationsSection() {
           )}
         </div>
         {/* Preferences */}
-        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-800">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-700 rounded focus:ring-purple-500"
               checked={settings?.auto_fix_generated !== false}
               disabled={!settings}
               onChange={(e) => handleAutoFixChange(e.target.checked)}

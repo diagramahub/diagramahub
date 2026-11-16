@@ -163,7 +163,7 @@ export default function ChatMessageList({
                 ? 'bg-purple-600 text-white'
                 : msg.role === 'error'
                 ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-400'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
             }`}
           >
             {/* Botón eliminar */}
@@ -171,7 +171,7 @@ export default function ChatMessageList({
               <button
                 type="button"
                 onClick={() => onDeleteMessage(msg.id)}
-                className={`absolute -top-2 ${msg.role === 'user' ? '-left-2' : '-right-2'} p-0.5 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm`}
+                className={`absolute -top-2 ${msg.role === 'user' ? '-left-2' : '-right-2'} p-0.5 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm`}
                 title={t('chat.deleteMessage')}
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +215,7 @@ export default function ChatMessageList({
               <button
                 type="button"
                 onClick={() => onRetry(msg.id)}
-                className="mt-2 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-red-300 dark:border-red-700 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                className="btn btn-danger btn-sm mt-2"
               >
                 ↻ {t('chat.retry')}
               </button>
@@ -232,7 +232,7 @@ export default function ChatMessageList({
       {/* Indicador de carga */}
       {isLoading && (
         <div className="flex items-start">
-          <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-3">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3">
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
               <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -245,7 +245,7 @@ export default function ChatMessageList({
       {/* Streaming response */}
       {streamingContent !== undefined && (
         <div className="flex items-start">
-          <div className="bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-3 max-w-[90%]">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3 max-w-[90%]">
             {/* Phase indicator — shown when no content yet or diagram is generating */}
             {streamingPhase && (!streamingContent || streamingHideContent) && (
               <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">

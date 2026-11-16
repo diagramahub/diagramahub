@@ -9,11 +9,9 @@ import ConfirmModal from './ConfirmModal';
 const EXPIRATIONS: CreateApiTokenRequest['expires_in_days'][] = [30, 90, 365, null];
 
 const inputClass =
-  'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100';
-const primaryButtonClass =
-  'bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors';
-const secondaryButtonClass =
-  'px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+  'input';
+const primaryButtonClass = 'btn btn-primary';
+const secondaryButtonClass = 'btn btn-secondary';
 
 /** Settings section to create, list and revoke personal API tokens. */
 export function ApiTokensSection() {
@@ -107,8 +105,8 @@ export function ApiTokensSection() {
   const expired = (tk: ApiToken) => tk.expires_at !== null && new Date(tk.expires_at) <= new Date();
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('apiTokens.title')}</h3>
@@ -131,7 +129,7 @@ export function ApiTokensSection() {
         ) : tokens.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-gray-400">{t('apiTokens.empty')}</p>
         ) : (
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-800">
             {tokens.map((tk) => (
               <li key={tk.id} className="py-3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
                 <div className="min-w-0">
@@ -147,7 +145,7 @@ export function ApiTokensSection() {
                       {t(`apiTokens.scope.${tk.scope}`)}
                     </span>
                     {expired(tk) && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                         {t('apiTokens.expired')}
                       </span>
                     )}
@@ -165,7 +163,7 @@ export function ApiTokensSection() {
                 <button
                   type="button"
                   onClick={() => setToRevoke(tk)}
-                  className="self-start sm:self-auto px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                  className="btn btn-danger btn-sm self-start sm:self-auto"
                 >
                   {t('apiTokens.revoke')}
                 </button>
@@ -177,8 +175,8 @@ export function ApiTokensSection() {
 
       {showCreate && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="api-token-dialog-title">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <h3 id="api-token-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {created ? t('apiTokens.createdTitle') : t('apiTokens.createTitle')}
               </h3>
@@ -196,14 +194,14 @@ export function ApiTokensSection() {
                     value={created.token}
                     onFocus={(e) => e.currentTarget.select()}
                     aria-label={t('apiTokens.tokenLabel')}
-                    className={`${inputClass} font-mono text-xs bg-gray-50 dark:bg-gray-700`}
+                    className={`${inputClass} font-mono text-xs bg-gray-50 dark:bg-gray-800`}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400">{t('apiTokens.usage')}</p>
-                  <code className="block text-[11px] bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 rounded px-2 py-1.5 overflow-x-auto">
+                  <code className="block text-[11px] bg-gray-50 dark:bg-gray-950 text-gray-700 dark:text-gray-300 rounded px-2 py-1.5 overflow-x-auto">
                     curl -H "Authorization: Bearer {created.token_hint}" …/api/v1/projects
                   </code>
                 </div>
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
                   <button type="button" onClick={handleCopy} className={secondaryButtonClass}>
                     {copied ? t('apiTokens.copied') : t('apiTokens.copy')}
                   </button>
@@ -269,7 +267,7 @@ export function ApiTokensSection() {
                   <p className="text-xs text-gray-500 dark:text-gray-400">{t('apiTokens.reach')}</p>
                   {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
                 </div>
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
                   <button type="button" onClick={closeCreate} disabled={creating} className={secondaryButtonClass}>
                     {t('common.cancel')}
                   </button>

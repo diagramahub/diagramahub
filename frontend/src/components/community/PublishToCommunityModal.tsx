@@ -16,11 +16,9 @@ interface PublishToCommunityModalProps {
 
 const PUBLISHABLE = new Set(['mermaid', 'plantuml', 'd2', 'dbml']);
 const field =
-  'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100';
-const primary =
-  'bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors';
-const secondary =
-  'px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+  'input';
+const primary = 'btn btn-primary';
+const secondary = 'btn btn-secondary';
 
 /** Publish the current diagram to the community, or manage its publication. */
 export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramType, description }: PublishToCommunityModalProps) {
@@ -109,15 +107,15 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
 
   const checkbox = (id: string, checked: boolean, onChange: (v: boolean) => void, label: string, disabled = false) => (
     <label htmlFor={id} className={`flex items-start gap-2 text-sm ${disabled ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
-      <input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700" />
+      <input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800" />
       {label}
     </label>
   );
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="publish-title" className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="publish-title" className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-xl w-full max-h-[90vh] flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 id="publish-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">{t('community.publish.title')}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('community.publish.subtitle')}</p>
         </div>
@@ -176,15 +174,15 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
           {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end flex-wrap">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-2 justify-end flex-wrap">
+          {publishable && !loading && existing && (
+            <button type="button" onClick={unpublish} disabled={busy} className="btn btn-danger sm:mr-auto">
+              {t('community.owner.unpublish')}
+            </button>
+          )}
           <button type="button" onClick={onClose} disabled={busy} className={secondary}>{t('common.close')}</button>
           {publishable && !loading && existing && (
-            <>
-              <button type="button" onClick={unpublish} disabled={busy} className="px-6 py-3 rounded-lg font-semibold text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-400">
-                {t('community.owner.unpublish')}
-              </button>
-              <button type="button" onClick={refresh} disabled={busy} className={primary}>{t('community.owner.refresh')}</button>
-            </>
+            <button type="button" onClick={refresh} disabled={busy} className={primary}>{t('community.owner.refresh')}</button>
           )}
           {publishable && !loading && !existing && (
             <button type="button" onClick={publish} disabled={busy || parsedTags.length > MAX_TAGS} className={primary}>

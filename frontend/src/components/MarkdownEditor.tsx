@@ -75,7 +75,7 @@ export default function MarkdownEditor({
       {isEditing ? (
         <>
           {/* Edit mode header */}
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
               Editando descripción · Markdown
             </span>
@@ -111,7 +111,7 @@ export default function MarkdownEditor({
       ) : (
         <>
           {/* Read-only mode header */}
-          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
             <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
               {t('editor.description')}
             </span>
@@ -138,9 +138,9 @@ export default function MarkdownEditor({
             </button>
           </div>
           {/* Markdown preview */}
-          <div className="flex-1 overflow-auto bg-white dark:bg-gray-800">
+          <div className="flex-1 overflow-auto bg-white dark:bg-gray-900">
             <div
-              className="prose prose-sm max-w-none p-4 text-gray-800 dark:text-gray-200 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-700 dark:prose-code:text-purple-300 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/30 prose-code:px-1 prose-code:rounded prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600"
+              className="prose prose-sm max-w-none p-4 text-gray-800 dark:text-gray-200 prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-700 dark:prose-code:text-purple-300 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/30 prose-code:px-1 prose-code:rounded prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-700"
               style={fontSize ? { fontSize: `${fontSize}px` } : undefined}
             >
               {value ? (

@@ -189,19 +189,19 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <div className="max-w-7xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Header with logout */}
         <div className="mb-6 sm:mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{t('profile.title')}</h1>
+            <h1 className="page-title">{t('profile.title')}</h1>
             <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">
               {t('profile.subtitle')}
             </p>
           </div>
           <div className="relative">
             {showLogoutConfirm && (
-              <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 p-3 z-50">
+              <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-3 z-50">
                 <p className="text-xs text-gray-600 dark:text-gray-300 mb-2">{t('auth.logoutConfirm')}</p>
                 <div className="flex gap-2">
                   <button
@@ -212,7 +212,7 @@ export default function ProfilePage() {
                   </button>
                   <button
                     onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                   >
                     {t('common.cancel')}
                   </button>
@@ -245,8 +245,8 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 mb-6">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.profileInformation')}</h2>
             {!isEditingProfile && (
               <button
@@ -299,9 +299,9 @@ export default function ProfilePage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('profile.profilePicture')}</label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                     {imagePreview ? (
-                      <img src={imagePreview} alt={t('profile.profilePicture')} className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600" />
+                      <img src={imagePreview} alt={t('profile.profilePicture')} className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700" />
                     ) : (
-                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-2xl font-semibold">
+                      <div className="w-24 h-24 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200 flex items-center justify-center text-2xl font-semibold">
                         {getUserInitials()}
                       </div>
                     )}
@@ -309,12 +309,12 @@ export default function ProfilePage() {
                       <div className="flex gap-3">
                         <label className="cursor-pointer">
                           <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                          <span className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                          <span className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             {t('profile.uploadPhoto')}
                           </span>
                         </label>
                         {imagePreview && (
-                          <button type="button" onClick={handleRemoveImage} className="px-4 py-2 border border-red-300 dark:border-red-600 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                          <button type="button" onClick={handleRemoveImage} className="btn btn-danger btn-sm">
                             {t('profile.removePhoto')}
                           </button>
                         )}
@@ -325,25 +325,25 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.fullName')}</label>
-                  <input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder={t('installation.fullNamePlaceholder')} />
+                  <input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="input" placeholder={t('installation.fullNamePlaceholder')} />
                 </div>
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.emailAddress')}</label>
-                  <input id="email" type="email" value={email} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:text-gray-400" disabled />
+                  <input id="email" type="email" value={email} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 dark:text-gray-400" disabled />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.emailCannotChange')}</p>
                 </div>
                 <div>
                   <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.timezone')}</label>
-                  <select id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                  <select id="timezone" value={timezone} onChange={(e) => setTimezone(e.target.value)} className="input">
                     {TIMEZONES.map((tz) => (<option key={tz.value} value={tz.value}>{tz.label}</option>))}
                   </select>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.timezoneHint')}</p>
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={loading} className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                  <button type="submit" disabled={loading} className="btn btn-primary">
                     {loading ? t('profile.saving') : t('profile.saveChanges')}
                   </button>
-                  <button type="button" onClick={() => { setIsEditingProfile(false); setFullName(user?.full_name || ''); setProfilePicture(user?.profile_picture); setImagePreview(user?.profile_picture); setTimezone(user?.timezone || 'UTC'); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <button type="button" onClick={() => { setIsEditingProfile(false); setFullName(user?.full_name || ''); setProfilePicture(user?.profile_picture); setImagePreview(user?.profile_picture); setTimezone(user?.timezone || 'UTC'); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                     {t('profile.cancelEdit')}
                   </button>
                 </div>
@@ -353,8 +353,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Security — Change Password */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.accountSecurity')}</h2>
             {!isChangingPassword && user?.can_change_password !== false && (
               <button onClick={() => setIsChangingPassword(true)} className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium">
@@ -376,23 +376,23 @@ export default function ProfilePage() {
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
                   <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.currentPassword')}</label>
-                  <input id="currentPassword" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
+                  <input id="currentPassword" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="input" placeholder="••••••••" />
                 </div>
                 <div>
                   <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.newPassword')}</label>
-                  <input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
+                  <input id="newPassword" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="input" placeholder="••••••••" />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('profile.passwordMinLength')}</p>
                   <PasswordStrengthIndicator password={newPassword} email={user?.email} />
                 </div>
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('profile.confirmNewPassword')}</label>
-                  <input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="••••••••" />
+                  <input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input" placeholder="••••••••" />
                 </div>
                 <div className="flex gap-3 pt-2">
-                  <button type="submit" disabled={loading} className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                  <button type="submit" disabled={loading} className="btn btn-primary">
                     {loading ? t('profile.updating') : t('profile.updatePassword')}
                   </button>
-                  <button type="button" onClick={() => { setIsChangingPassword(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                  <button type="button" onClick={() => { setIsChangingPassword(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setError(''); }} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
                     {t('profile.cancelEdit')}
                   </button>
                 </div>
@@ -405,8 +405,8 @@ export default function ProfilePage() {
         <MfaSetupSection />
 
         {/* Linked Accounts Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mt-6">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 mt-6">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
             <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('profile.linkedAccounts')}</h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('profile.linkedAccountsDescription')}</p>
           </div>
@@ -414,10 +414,10 @@ export default function ProfilePage() {
             {user?.oauth_providers && user.oauth_providers.length > 0 ? (
               <div className="space-y-4">
                 {user.oauth_providers.map((entry, index) => (
-                  <div key={`${entry.provider}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <div key={`${entry.provider}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3">
                       {entry.provider === 'google' ? (
-                        <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-500 flex items-center justify-center">
                           <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -426,7 +426,7 @@ export default function ProfilePage() {
                           </svg>
                         </div>
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                           <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">{entry.provider.charAt(0).toUpperCase()}</span>
                         </div>
                       )}

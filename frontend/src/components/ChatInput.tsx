@@ -75,7 +75,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
   const canSend = text.trim().length > 0 && !disabled;
 
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
+    <div className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
       <div
         className="flex flex-nowrap gap-2 px-3 pt-3 pb-5 overflow-x-auto overflow-y-hidden"
         style={{ scrollbarGutter: 'stable both-edges' }}
@@ -123,7 +123,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
           onKeyDown={handleKeyDown}
           disabled={disabled}
           rows={1}
-          className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:bg-gray-50 dark:disabled:bg-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+          className="input h-auto py-2 flex-1 resize-none disabled:opacity-50 disabled:bg-gray-50"
           style={{ maxHeight: '120px' }}
         />
         <button
@@ -154,7 +154,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
               type="button"
               onClick={onImageToDiagram}
               disabled={disabled}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -169,7 +169,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
             <button
               type="button"
               onClick={() => { setShowProviderMenu(!showProviderMenu); }}
-              className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
             >
               {activeProvider && (
                 <img
@@ -188,12 +188,12 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
 
             {/* Provider/model dropdown hacia arriba */}
             {showProviderMenu && (
-              <div className="absolute bottom-full right-0 mb-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30 py-1 max-h-72 overflow-y-auto">
+              <div className="absolute bottom-full right-0 mb-1 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-30 py-1 max-h-72 overflow-y-auto">
                 {activeProviders.map((p) => {
                   const models = AI_PROVIDER_MODELS[p.provider] || [{ id: p.model }];
                   return (
                     <div key={p.provider}>
-                      <div className="px-3 py-1.5 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700">
+                      <div className="px-3 py-1.5 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800">
                         <img
                           src={`/images/ai-providers/${p.provider}.svg`}
                           alt={p.provider}
@@ -210,7 +210,7 @@ export default function ChatInput({ onSend, disabled = false, aiSettings, active
                             key={`${p.provider}-${m.id}`}
                             type="button"
                             onClick={() => { onModelChange(p.provider, m.id); setShowProviderMenu(false); }}
-                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                            className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
                               isSelected ? 'bg-purple-50 dark:bg-purple-900/20' : ''
                             }`}
                           >

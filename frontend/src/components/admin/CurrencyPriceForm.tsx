@@ -49,9 +49,9 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Agregar precio en moneda
           </h2>
@@ -79,7 +79,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
               id="currency"
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="input"
             >
               {availableCurrencies.map((c) => (
                 <option key={c} value={c}>
@@ -101,7 +101,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
               min="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="input"
               placeholder="0.00"
             />
           </div>
@@ -111,7 +111,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
             <button
               type="submit"
               disabled={loading || availableCurrencies.length === 0}
-              className="flex-1 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="btn btn-primary flex-1 flex items-center justify-center gap-2"
             >
               {loading && (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -124,7 +124,7 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               Cancelar
             </button>

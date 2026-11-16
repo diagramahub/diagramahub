@@ -147,9 +147,9 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="export-diagram-title">
-      <div ref={panelRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full mx-auto overflow-y-auto max-h-[90vh]">
+      <div ref={panelRef} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full mx-auto overflow-y-auto max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 id="export-diagram-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t('editor.exportDiagram')}
           </h3>
@@ -179,8 +179,8 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                   className={`group flex flex-col items-center justify-center gap-2 px-3 py-4 rounded-xl border-2 transition-all ${
                     isSelected
                       ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-                  } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 dark:disabled:hover:border-gray-700 disabled:hover:bg-transparent`}
+                      : 'border-gray-200 dark:border-gray-800 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                  } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200 dark:disabled:hover:border-gray-800 disabled:hover:bg-transparent`}
                 >
                   <span className={format.accent}>
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,13 +200,13 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
 
           {/* Contextual options for the selected format */}
           {selectedFormat === 'svg' ? (
-            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 px-4 py-3">
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 px-4 py-3">
               <p className="text-[11px] text-gray-400 dark:text-gray-500">
                 {t('editor.svgVectorNote')}
               </p>
             </div>
           ) : (
-            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/40 px-4 py-3 space-y-2.5">
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-800/40 px-4 py-3 space-y-2.5">
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 {t('editor.exportOptions')}
               </p>
@@ -217,7 +217,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                   onChange={(e) =>
                     setExportOptions({ ...exportOptions, includeDescription: e.target.checked })
                   }
-                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-700 rounded focus:ring-purple-500"
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   {t('editor.includeDescription')}
@@ -230,7 +230,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                   onChange={(e) =>
                     setExportOptions({ ...exportOptions, includeProjectInfo: e.target.checked })
                   }
-                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                  className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-700 rounded focus:ring-purple-500"
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
                   {t('editor.includeProjectInfo')}
@@ -245,7 +245,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                     onChange={(e) =>
                       setExportOptions({ ...exportOptions, transparentBackground: e.target.checked })
                     }
-                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-700 rounded focus:ring-purple-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
                     {t('editor.transparentBackground')}
@@ -258,7 +258,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                     {t('editor.pngResolution')}
                   </p>
-                  <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                  <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                     {([1, 2, 3] as const).map((scale) => (
                       <button
                         key={scale}
@@ -268,7 +268,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
                         className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors ${
                           pngScale === scale
                             ? 'bg-purple-600 text-white'
-                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                       >
                         {t(`editor.pngScale${scale}x`)}
@@ -289,7 +289,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
               else onExportMarkdown();
             }}
             disabled={isBusy}
-                        className="w-full flex items-center justify-center bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        className="btn btn-primary w-full flex items-center justify-center"
           >
             {isBusy ? (
               <Spinner />
@@ -310,7 +310,7 @@ const ExportDiagramModal: React.FC<ExportDiagramModalProps> = ({
           <button
             onClick={onDownloadSource}
             disabled={isBusy}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

@@ -52,8 +52,8 @@ class RouteErrorBoundaryBase extends Component<RouteErrorBoundaryProps, RouteErr
     if (!error) return children;
     const chunk = isChunkLoadError(error);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4" role="alert">
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 max-w-md w-full text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4" role="alert">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-6 max-w-md w-full text-center">
           <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {chunk ? t('errorBoundary.chunkTitle') : t('errorBoundary.title')}
           </h1>
@@ -63,7 +63,7 @@ class RouteErrorBoundaryBase extends Component<RouteErrorBoundaryProps, RouteErr
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-5 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+            className="btn btn-primary mt-5"
           >
             {t('errorBoundary.reload')}
           </button>

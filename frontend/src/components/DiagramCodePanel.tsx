@@ -166,16 +166,16 @@ export default function DiagramCodePanel({
         { token: 'delimiter', foreground: '94a3b8' },
       ],
       colors: {
-        'editor.background': '#1f2937',
+        'editor.background': '#111827',
         'editor.foreground': '#e2e8f0',
-        'editor.lineHighlightBackground': '#2d3748',
+        'editor.lineHighlightBackground': '#1f2937',
         'editor.selectionBackground': '#7c3aed40',
         'editor.inactiveSelectionBackground': '#7c3aed20',
         'editorCursor.foreground': '#a78bfa',
         'editorLineNumber.foreground': '#4b5563',
         'editorLineNumber.activeForeground': '#a78bfa',
         'editor.selectionHighlightBackground': '#7c3aed30',
-        'editorIndentGuide.background1': '#374151',
+        'editorIndentGuide.background1': '#1f2937',
         'editorIndentGuide.activeBackground1': '#7c3aed50',
         'editorBracketMatch.background': '#7c3aed30',
         'editorBracketMatch.border': '#7c3aed',
@@ -189,7 +189,7 @@ export default function DiagramCodePanel({
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-950 overflow-hidden">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-400">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,7 +276,7 @@ export default function DiagramCodePanel({
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 text-xs font-mono text-gray-600 dark:text-gray-400 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1 bg-gray-100 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 text-xs font-mono text-gray-600 dark:text-gray-400 flex-shrink-0">
         <div className="flex items-center gap-2">
           {hasError ? (
             <span className="flex items-center gap-1 text-red-400">

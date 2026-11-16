@@ -52,7 +52,7 @@ export default function CancelSubscriptionModal({
         />
 
         {/* Modal */}
-        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full p-6">
+        <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-lg w-full p-6">
           {/* Header */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -69,7 +69,7 @@ export default function CancelSubscriptionModal({
               </p>
 
               {/* Option 1: End of Period (Recommended) */}
-              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer mb-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer mb-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 style={{ borderColor: cancellationType === 'end_of_period' ? '#3B82F6' : '#E5E7EB' }}>
                 <input
                   type="radio"
@@ -95,7 +95,7 @@ export default function CancelSubscriptionModal({
               </label>
 
               {/* Option 2: Immediate */}
-              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              <label className="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 style={{ borderColor: cancellationType === 'immediate' ? '#3B82F6' : '#E5E7EB' }}>
                 <input
                   type="radio"
@@ -136,14 +136,14 @@ export default function CancelSubscriptionModal({
             <button
               onClick={onClose}
               disabled={cancelling}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-secondary flex-1"
             >
               {t('subscription.cancellation.cancelButton')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={cancelling}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-destructive flex-1"
             >
               {cancelling ? t('subscription.cancellation.cancelling') : t('subscription.cancellation.confirmButton')}
             </button>

@@ -5,6 +5,7 @@ import apiService from '../services/api';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 import { apiErrorStatus } from '../utils/apiError';
 import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
+import { BrandLogo } from '../components/BrandLogo';
 
 const ResetPasswordPage: React.FC = () => {
   const { t } = useTranslation();
@@ -84,20 +85,11 @@ const ResetPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 px-4">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold">
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7, #9333ea)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              DiagramaHub
-            </span>
+          <h2 className="mt-6 flex justify-center">
+            <BrandLogo size="lg" />
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {t('auth.resetPasswordSubtitle')}
@@ -155,7 +147,7 @@ const ResetPasswordPage: React.FC = () => {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm dark:bg-gray-700/50"
+                    className="input relative pr-10 focus:z-10"
                     placeholder={t('installation.passwordPlaceholder')}
                   />
                   <button
@@ -191,7 +183,7 @@ const ResetPasswordPage: React.FC = () => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm dark:bg-gray-700/50"
+                    className="input relative pr-10 focus:z-10"
                     placeholder={t('auth.confirmNewPassword')}
                   />
                   <button
@@ -219,7 +211,7 @@ const ResetPasswordPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="group relative w-full flex justify-center bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="btn btn-primary group relative w-full flex justify-center"
               >
                 {loading ? t('auth.resettingPassword') : t('auth.resetPasswordButton')}
               </button>

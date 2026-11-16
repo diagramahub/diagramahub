@@ -62,7 +62,7 @@ export function ShareEmbedAndQr({
   return (
     <div className="space-y-4">
       {/* Embed */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+      <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <label htmlFor="allow-embed-existing" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -77,8 +77,8 @@ export function ShareEmbedAndQr({
             aria-checked={allowEmbed}
             disabled={togglingEmbed}
             onClick={onToggleEmbed}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 ${
-              allowEmbed ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50 ${
+              allowEmbed ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
             }`}
           >
             <span
@@ -99,12 +99,12 @@ export function ShareEmbedAndQr({
               rows={3}
               value={snippet}
               onFocus={(e) => e.currentTarget.select()}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <button
               type="button"
               onClick={copySnippet}
-              className="mt-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+              className="btn btn-secondary mt-2"
             >
               {snippetCopied ? t('sharing.copied') : t('sharing.copyEmbedCode')}
             </button>
@@ -113,7 +113,7 @@ export function ShareEmbedAndQr({
       </div>
 
       {/* QR code */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <div className="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('sharing.qrTitle')}</p>
@@ -123,7 +123,7 @@ export function ShareEmbedAndQr({
             type="button"
             onClick={() => setShowQr(!showQr)}
             aria-expanded={showQr}
-            className="flex-shrink-0 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+            className="flex-shrink-0 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
           >
             {showQr ? t('sharing.qrHide') : t('sharing.qrShow')}
           </button>

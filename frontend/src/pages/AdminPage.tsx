@@ -14,10 +14,10 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="page-title">
             {t('sidebar.userManagement')}
           </h1>
           <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">

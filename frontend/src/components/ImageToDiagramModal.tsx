@@ -21,10 +21,8 @@ interface ImageToDiagramModalProps {
 
 type ErrorKey = 'tooLarge' | 'notImage' | 'notSupported' | 'truncated' | 'empty' | 'noProvider' | 'generic';
 
-const primaryButtonClass =
-  'bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors';
-const secondaryButtonClass =
-  'px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+const primaryButtonClass = 'btn btn-primary';
+const secondaryButtonClass = 'btn btn-secondary';
 
 /** Upload a whiteboard photo, screenshot or sketch and turn it into diagram code with AI. */
 export function ImageToDiagramModal({
@@ -138,9 +136,9 @@ export function ImageToDiagramModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="image-to-diagram-title"
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-2xl w-full max-h-[90vh] flex flex-col"
       >
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 id="image-to-diagram-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t('imageToDiagram.title')}
           </h3>
@@ -170,7 +168,7 @@ export function ImageToDiagramModal({
             className={`w-full border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 min-h-[10rem] focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
               dragOver
                 ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-gray-300 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-700'
+                : 'border-gray-300 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
             }`}
           >
             {previewUrl ? (
@@ -207,7 +205,7 @@ export function ImageToDiagramModal({
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               placeholder={t('imageToDiagram.instructionsPlaceholder')}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 resize-none"
+              className="input h-auto py-2 resize-none"
             />
           </div>
 
@@ -223,7 +221,7 @@ export function ImageToDiagramModal({
               {/* Diagram canvases stay light, as in the editor. */}
               <div
                 ref={renderRef}
-                className="bg-white border border-gray-200 dark:border-gray-700 rounded-lg p-3 max-h-64 overflow-auto flex justify-center [&_svg]:max-w-full [&_svg]:h-auto"
+                className="bg-white border border-gray-200 dark:border-gray-800 rounded-lg p-3 max-h-64 overflow-auto flex justify-center [&_svg]:max-w-full [&_svg]:h-auto"
               />
               {replacesCode && (
                 <p className="text-xs text-amber-700 dark:text-amber-400">{t('imageToDiagram.replaceWarning')}</p>
@@ -232,7 +230,7 @@ export function ImageToDiagramModal({
           )}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
           <button type="button" onClick={onClose} disabled={generating} className={secondaryButtonClass}>
             {t('common.cancel')}
           </button>

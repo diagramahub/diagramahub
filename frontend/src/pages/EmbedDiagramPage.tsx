@@ -143,7 +143,7 @@ export default function EmbedDiagramPage() {
       error: t('sharedView.errorMessage'),
     };
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-3 p-4 bg-white dark:bg-gray-900 text-center">
+      <div className="h-screen flex flex-col items-center justify-center gap-3 p-4 bg-white dark:bg-gray-950 text-center">
         <p className="text-sm text-gray-600 dark:text-gray-400">{messages[state]}</p>
         {state === 'not_allowed' && (
           <a
@@ -160,7 +160,7 @@ export default function EmbedDiagramPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-white dark:bg-gray-950 overflow-hidden">
       <main className="flex-1 min-h-0 relative">
         {diagram?.diagram_type === 'freehand' ? (
           <FreehandCanvas initialState={diagram.rendered_content || diagram.content || ''} readOnly />
@@ -174,7 +174,7 @@ export default function EmbedDiagramPage() {
           />
         )}
       </main>
-      <footer className="flex items-center justify-between gap-2 px-3 py-1.5 border-t border-gray-200 dark:border-gray-700 text-xs">
+      <footer className="flex items-center justify-between gap-2 px-3 py-1.5 border-t border-gray-200 dark:border-gray-800 text-xs">
         <span className="truncate text-gray-600 dark:text-gray-400">{diagram?.title}</span>
         <a
           href={shareUrl}

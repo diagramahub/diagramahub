@@ -130,7 +130,7 @@ export default function MobileBottomToolbar({
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 safe-area-bottom">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 safe-area-bottom">
       <div className="flex items-center justify-around h-14 px-1">
         {buttons.map((btn) => (
           <button

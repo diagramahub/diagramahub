@@ -40,7 +40,7 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full mx-4 p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
           {t('mfa.recoveryCodes.title')}
         </h3>
@@ -61,7 +61,7 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
           {codes.map((code, index) => (
             <div
               key={index}
-              className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-center font-mono text-sm text-gray-800 dark:text-gray-200"
+              className="bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 rounded px-3 py-2 text-center font-mono text-sm text-gray-800 dark:text-gray-200"
             >
               {code}
             </div>
@@ -80,7 +80,7 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
             type="checkbox"
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
-            className="w-4 h-4 text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+            className="w-4 h-4 text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-700 rounded focus:ring-purple-500"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300">
             {t('mfa.recoveryCodes.confirmSaved')}
@@ -90,7 +90,7 @@ export default function RecoveryCodesModal({ codes, isOpen, onClose }: RecoveryC
         <button
           onClick={handleClose}
           disabled={!confirmed}
-          className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="btn btn-primary w-full"
         >
           {t('mfa.recoveryCodes.close')}
         </button>

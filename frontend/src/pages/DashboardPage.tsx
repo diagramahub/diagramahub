@@ -153,14 +153,14 @@ const DashboardPage: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <MfaBanner />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-6 pb-6 sm:py-12">
         {/* Welcome */}
         <div className="mb-8 sm:mb-10">
           <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            <h1 className="page-title">
               {t('dashboard.welcome', { name: user?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '' })} 👋
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.welcomeSubtitle')}</p>
@@ -171,7 +171,7 @@ const DashboardPage: React.FC = () => {
             <DashboardStatsSkeleton />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +197,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +214,7 @@ const DashboardPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,7 +247,7 @@ const DashboardPage: React.FC = () => {
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* AI Provider Usage Widget */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                 {t('dashboard.aiUsage')}
               </h2>
@@ -287,7 +287,7 @@ const DashboardPage: React.FC = () => {
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{displayName}</span>
                               <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{pct}%</span>
                             </div>
-                            <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                               <div
                                 className={`h-full rounded-full ${barColor} transition-all duration-500`}
                                 style={{ width: `${pct}%` }}
@@ -306,7 +306,7 @@ const DashboardPage: React.FC = () => {
             </div>
 
             {/* Donut chart widget */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
               <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
                 {t('dashboard.statsDiagrams')}
               </h2>
@@ -317,7 +317,7 @@ const DashboardPage: React.FC = () => {
 
         {/* Recent diagrams widget */}
         {!loading && recentDiagrams.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mt-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6 mt-4">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">
               {t('dashboard.recentDiagrams')}
             </h2>
@@ -329,7 +329,7 @@ const DashboardPage: React.FC = () => {
                   <button
                     key={d.id}
                     onClick={() => navigate(`/projects/${d.project_id}/diagrams/${d.id}`)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-left"
                   >
                     <span className="text-lg flex-shrink-0">{typeIcons[d.diagram_type] || '📄'}</span>
                     <div className="flex-1 min-w-0">

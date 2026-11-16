@@ -49,10 +49,10 @@ export default function SubscriptionPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="page-title">
               {t('subscription.title')}
             </h1>
             <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -73,10 +73,10 @@ export default function SubscriptionPage() {
 
             {/* Change Plan Button - hide for admin */}
             {user?.role !== 'admin' && !showPlanSelector && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
                 <button
                   onClick={() => setShowPlanSelector(true)}
-                  className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                  className="btn btn-primary w-full"
                 >
                   {t('subscription.changePlan')}
                 </button>

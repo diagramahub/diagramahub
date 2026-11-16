@@ -69,7 +69,7 @@ export function ContentSearchResults({
   if (!loading && !failed && inContent.length === 0) return null;
 
   return (
-    <section aria-label={t('fileBrowser.inContent')} className="mt-2 pt-2 mx-1 border-t border-gray-100 dark:border-gray-700">
+    <section aria-label={t('fileBrowser.inContent')} className="mt-2 pt-2 mx-1 border-t border-gray-100 dark:border-gray-800">
       <h3 className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
         {t('fileBrowser.inContent')}
         {inContent.length > 0 && ` (${inContent.length})`}
@@ -85,7 +85,7 @@ export function ContentSearchResults({
             key={r.id}
             type="button"
             onClick={() => onOpen(r.id)}
-            className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full text-left px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <span className="flex items-center gap-1.5">
               <span className={`text-[9px] font-bold px-1 rounded ${badge.className}`}>{badge.label}</span>

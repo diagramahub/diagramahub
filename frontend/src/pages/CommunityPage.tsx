@@ -110,26 +110,26 @@ export default function CommunityPage() {
     `px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap border focus:outline-none focus:ring-2 focus:ring-purple-500 ${
       on
         ? 'bg-purple-600 text-white border-purple-600'
-        : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+        : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
     }`;
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('community.title')}</h1>
+          <h1 className="page-title">{t('community.title')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('community.subtitle')}</p>
         </div>
         <Link
           to="/projects-list"
-          className="self-start sm:self-auto bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+          className="btn btn-primary self-start sm:self-auto"
           title={t('community.publishHint')}
         >
           {t('community.publishCta')}
         </Link>
       </div>
 
-      <div role="tablist" aria-label={t('community.title')} className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4 text-sm overflow-x-auto">
+      <div role="tablist" aria-label={t('community.title')} className="flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-4 text-sm overflow-x-auto">
         {tabs.map((item) => (
           <button
             key={item.id}
@@ -159,7 +159,7 @@ export default function CommunityPage() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('community.searchPlaceholder')}
               aria-label={t('community.searchPlaceholder')}
-              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 dark:text-gray-100"
+              className="input flex-1 min-w-0 lg:min-w-[16rem]"
             />
             <div className="flex gap-2 flex-wrap" role="group" aria-label={t('community.filterByType')}>
               <button type="button" onClick={() => setType(null)} aria-pressed={type === null} className={chipClass(type === null)}>
@@ -175,7 +175,7 @@ export default function CommunityPage() {
               value={sort}
               onChange={(e) => setSort(e.target.value as CommunitySort)}
               aria-label={t('community.sortLabel')}
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 dark:text-gray-100"
+              className="input lg:w-44"
             >
               {(['trending', 'stars', 'forks', 'recent'] as CommunitySort[]).map((value) => (
                 <option key={value} value={value}>
@@ -220,7 +220,7 @@ export default function CommunityPage() {
                 type="button"
                 onClick={() => load(page + 1)}
                 disabled={loading}
-                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                className="btn btn-secondary"
               >
                 {loading ? t('common.loading') : t('community.loadMore')}
               </button>
@@ -238,7 +238,7 @@ function ReportsPanel({ reports, loading, error, language }: { reports: Communit
   if (error) return <p className="text-sm text-red-600 dark:text-red-400">{t('community.loadError')}</p>;
   if (reports.length === 0) return <p className="text-sm text-gray-500 dark:text-gray-400">{t('community.reports.empty')}</p>;
   return (
-    <ul className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+    <ul className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
       {reports.map((r) => (
         <li key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
           <div className="min-w-0">

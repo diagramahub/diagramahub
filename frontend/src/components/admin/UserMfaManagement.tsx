@@ -38,7 +38,7 @@ const AIProviderLogo = ({ provider, className = 'w-3.5 h-3.5' }: { provider: str
   if (imageError) {
     return (
       <span
-        className={`${className} inline-flex items-center justify-center rounded-full bg-gray-100 text-[9px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300`}
+        className={`${className} inline-flex items-center justify-center rounded-full bg-gray-100 text-[9px] font-semibold text-gray-500 dark:bg-gray-800 dark:text-gray-300`}
         aria-hidden="true"
       >
         {providerName.charAt(0).toUpperCase()}
@@ -166,8 +166,8 @@ export default function UserMfaManagement() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
           <div className="flex items-center gap-2">
             <ShieldIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -212,7 +212,7 @@ export default function UserMfaManagement() {
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('admin.users.searchPlaceholder')}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="input"
           />
         </div>
 
@@ -225,7 +225,7 @@ export default function UserMfaManagement() {
           <>
             {/* User table */}
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                 <thead>
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -263,9 +263,9 @@ export default function UserMfaManagement() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                   {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                         {u.email}
                       </td>
@@ -274,7 +274,7 @@ export default function UserMfaManagement() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
                         {u.role === 'admin' ? (
-                          <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">
+                          <span className="badge">
                             Admin
                           </span>
                         ) : (
@@ -285,7 +285,7 @@ export default function UserMfaManagement() {
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm">
                         {u.plan_name ? (
-                          <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
+                          <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">
                             {u.plan_name}
                           </span>
                         ) : (
@@ -301,7 +301,7 @@ export default function UserMfaManagement() {
                             {u.diagram_count} {u.diagram_count === 1 ? t('admin.users.diagram') : t('admin.users.diagrams')}
                           </span>
                           {Object.entries(u.diagram_type_counts || {}).map(([diagramType, count]) => (
-                            <span key={diagramType} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
+                            <span key={diagramType} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full">
                               {count} {DIAGRAM_TYPE_LABELS[diagramType] || diagramType.toUpperCase()}
                             </span>
                           ))}
@@ -317,7 +317,7 @@ export default function UserMfaManagement() {
                                 className={`inline-flex items-center justify-center rounded-full border px-1 py-1 leading-none ${
                                   model.is_default
                                     ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-900/20 dark:text-purple-300'
-                                    : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                    : 'border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-300'
                                 }`}
                               >
                                 <AIProviderLogo provider={model.provider} />
@@ -377,7 +377,7 @@ export default function UserMfaManagement() {
                               </button>
                               <button
                                 onClick={() => setResetConfirm(null)}
-                                className="px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                className="px-2.5 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                               >
                                 {t('common.cancel')}
                               </button>
@@ -385,7 +385,7 @@ export default function UserMfaManagement() {
                           ) : (
                             <button
                               onClick={() => { setResetConfirm(u.id); setError(''); setSuccess(''); }}
-                              className="px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                              className="btn btn-danger btn-sm"
                             >
                               {t('admin.users.resetMfa')}
                             </button>
@@ -408,7 +408,7 @@ export default function UserMfaManagement() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100 dark:border-gray-800">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {t('admin.users.pageInfo', {
                     from: (page - 1) * PAGE_SIZE + 1,
@@ -420,7 +420,7 @@ export default function UserMfaManagement() {
                   <button
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page <= 1}
-                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronLeftIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                   </button>
@@ -442,7 +442,7 @@ export default function UserMfaManagement() {
                         className={`w-8 h-8 text-xs rounded transition-colors ${
                           pageNum === page
                             ? 'bg-purple-600 text-white'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                       >
                         {pageNum}
@@ -452,7 +452,7 @@ export default function UserMfaManagement() {
                   <button
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page >= totalPages}
-                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <ChevronRightIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
                   </button>

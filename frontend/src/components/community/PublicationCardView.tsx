@@ -16,14 +16,14 @@ export function PublicationCardView({ publication: p, onToggleStar }: Publicatio
   const { t } = useTranslation();
   const badge = TYPE_BADGES[p.diagram_type];
   return (
-    <article className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+    <article className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
       <Link to={`/community/${p.id}`} className="block focus:outline-none focus:ring-2 focus:ring-inset focus:ring-purple-500" aria-label={p.title}>
         <DiagramThumbnail
           cacheKey={`${p.id}:${p.updated_at}`}
           content={p.content}
           diagramType={p.diagram_type}
           title={p.title}
-          className="h-44 p-3 border-b border-gray-100 dark:border-gray-700"
+          className="h-44 p-3 border-b border-gray-100 dark:border-gray-800"
         />
       </Link>
       <div className="p-4 flex-1 flex flex-col">

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { apiErrorMessage, apiErrorStatus } from '../utils/apiError';
+import { BrandLogo } from '../components/BrandLogo';
 
 interface MfaVerifyLocationState {
   mfa_token: string;
@@ -218,21 +219,12 @@ const MfaVerifyPage: React.FC = () => {
     state.available_methods && state.available_methods.length > 1;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 px-4">
-      <div className="max-w-md w-full space-y-6 bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+      <div className="max-w-md w-full space-y-6 bg-white dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
         {/* Header */}
         <div>
-          <h2 className="mt-4 text-center text-3xl font-extrabold">
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7, #9333ea)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              DiagramaHub
-            </span>
+          <h2 className="mt-4 flex justify-center">
+            <BrandLogo size="lg" />
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {t('mfa.verify.title')}
@@ -256,7 +248,7 @@ const MfaVerifyPage: React.FC = () => {
             {state.available_methods.includes('totp') && (
               <button
                 onClick={handleSelectTotpMethod}
-                className="w-full flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors text-left"
+                className="w-full flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors text-left"
               >
                 <div className="flex-shrink-0 p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
                   <ShieldIcon className="w-5 h-5" />
@@ -272,7 +264,7 @@ const MfaVerifyPage: React.FC = () => {
               <button
                 onClick={handleSelectEmailMethod}
                 disabled={sendingEmail}
-                className="w-full flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors text-left disabled:opacity-50"
+                className="w-full flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors text-left disabled:opacity-50"
               >
                 <div className="flex-shrink-0 p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
                   <EmailIcon className="w-5 h-5" />
@@ -337,7 +329,7 @@ const MfaVerifyPage: React.FC = () => {
                 value={code}
                 onChange={handleCodeChange}
                 maxLength={6}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-center tracking-widest text-lg dark:bg-gray-700/50"
+                className="input relative text-center tracking-widest text-lg"
                 placeholder="000000"
               />
             </div>
@@ -369,7 +361,7 @@ const MfaVerifyPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading || !code.trim()}
-              className="group relative w-full flex justify-center bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary group relative w-full flex justify-center"
             >
               {loading ? t('mfa.verify.verifying') : t('mfa.verify.submit')}
             </button>
@@ -428,7 +420,7 @@ const MfaVerifyPage: React.FC = () => {
                 value={code}
                 onChange={handleCodeChange}
                 maxLength={11}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-center tracking-widest text-lg dark:bg-gray-700/50"
+                className="input relative text-center tracking-widest text-lg"
                 placeholder="XXXXX-XXXXX"
               />
             </div>
@@ -436,7 +428,7 @@ const MfaVerifyPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading || !code.trim()}
-              className="group relative w-full flex justify-center bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary group relative w-full flex justify-center"
             >
               {loading ? t('mfa.verify.verifying') : t('mfa.verify.submit')}
             </button>

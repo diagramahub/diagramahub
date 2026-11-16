@@ -18,7 +18,7 @@ function PulseBlock({ className = '' }: { className?: string }) {
   const { t } = useTranslation();
   return (
     <div
-      className={`bg-gray-200 dark:bg-gray-700 rounded animate-pulse ${className}`}
+      className={`bg-gray-200 dark:bg-gray-800 rounded animate-pulse ${className}`}
       role="status"
       aria-label={t('common.loading')}
     />
@@ -94,7 +94,7 @@ export function DashboardStatsSkeleton() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+        <div key={i} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
           <div className="flex items-center gap-3">
             <PulseBlock className="w-10 h-10 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -112,7 +112,7 @@ export function DashboardStatsSkeleton() {
 export function DashboardWidgetsSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
         <PulseBlock className="h-4 w-32 mb-4" />
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -129,7 +129,7 @@ export function DashboardWidgetsSkeleton() {
           ))}
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-6">
         <PulseBlock className="h-4 w-28 mb-4" />
         <div className="flex flex-col items-center gap-4">
           <PulseBlock className="w-40 h-40 rounded-full" />
@@ -147,9 +147,9 @@ export function DashboardWidgetsSkeleton() {
 /** Full-page editor loader */
 export function EditorSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
       {/* Top bar */}
-      <div className="flex items-center h-9 px-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="flex items-center h-9 px-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
         <PulseBlock className="h-5 w-40" />
         <div className="flex-1" />
         <PulseBlock className="h-5 w-20" />
@@ -163,7 +163,7 @@ export function EditorSkeleton() {
         </div>
       </div>
       {/* Status bar */}
-      <div className="h-8 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 flex items-center">
+      <div className="h-8 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 px-4 flex items-center">
         <PulseBlock className="h-3 w-32" />
       </div>
     </div>
@@ -175,7 +175,7 @@ export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
           <PulseBlock className="w-8 h-8 rounded-full" />
           <div className="flex-1 space-y-2">
             <PulseBlock className="h-4 w-1/3" />

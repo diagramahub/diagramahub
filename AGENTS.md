@@ -219,18 +219,17 @@ When creating a new module, you MUST:
 
 > Full reference: **[DESIGN.md](./DESIGN.md)**. The summary below is a quick reference — DESIGN.md is authoritative for all UI/UX decisions.
 
-**Brand**: Purple gradient primary identity. Glassmorphism buttons (`.btn-glass` in `index.css`).
+**Brand**: flat purple (`bg-purple-600`, hover `700`), no gradients or glows; compact controls (36px), Inter font (bundled), `rounded-md` controls / `rounded-xl` surfaces. Dark mode: page `gray-950`, surfaces `gray-900`, borders `gray-800`.
 
-| Purpose | Tailwind Class |
-|---------|----------------|
-| Primary gradient | `bg-gradient-to-r from-purple-600 via-purple-400 to-purple-700` |
-| Primary solid | `bg-purple-600`, `text-purple-600` |
-| Primary hover | `bg-purple-700` |
-| Danger | `bg-red-600`, `text-red-600` |
-| Success | `bg-green-600`, `text-green-600` |
-| Neutral text | `text-gray-700`, `text-gray-500` |
-| Borders | `border-gray-200` |
-| Background | `bg-white` |
+| Purpose | Class |
+|---------|-------|
+| Buttons | `btn` + `btn-primary` / `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-destructive` (+ `btn-sm`) |
+| Fields | `input` |
+| Surfaces / tags / page h1 | `card` / `badge` / `page-title` |
+| Logo | `<BrandLogo />` component |
+| Danger / success | `red-600` / `green-600` |
+| Neutral text | `text-gray-900`, `text-gray-700`, `text-gray-500` |
+| Borders | `border-gray-200` (dark: `border-gray-800`) |
 
 **Rules**:
 - All UI text uses i18n keys via `t('key')` — never hardcode strings
@@ -241,7 +240,7 @@ When creating a new module, you MUST:
 - Dark mode via `darkMode: 'class'` with `dark:` variants on all components
 
 **Key custom classes** (`index.css`):
-- `.btn-glass` — glassmorphism button effect
+- `.btn` + variants, `.input`, `.card`, `.badge`, `.page-title` — design system 0.9 components (see DESIGN.md §3)
 - `.chat-markdown` — compact markdown for AI chat bubbles
 - `.animate-slide-in-right` — slide-in animation for chat panel
 - `.markdown-wysiwyg` — EasyMDE WYSIWYG overrides

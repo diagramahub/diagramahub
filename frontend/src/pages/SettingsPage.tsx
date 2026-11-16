@@ -55,14 +55,14 @@ export default function SettingsPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
         <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="page-title">
               {t('common.settings')}
             </h1>
             <p className="mt-1 sm:mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {t('settings.comingSoonDescription')}
+              {t('settings.pageDescription')}
             </p>
           </div>
 
@@ -77,8 +77,8 @@ export default function SettingsPage() {
           </div>
 
           {/* Danger Zone */}
-          <div className="mt-6 rounded-lg border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-4 sm:p-6">
-            <h2 className="text-lg font-semibold text-red-800 dark:text-red-400">{t('dangerZone.title')}</h2>
+          <div className="mt-6 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 p-4 sm:p-6">
+            <h2 className="text-[15px] font-semibold text-red-800 dark:text-red-400">{t('dangerZone.title')}</h2>
             <p className="mt-2 text-sm text-red-700 dark:text-red-300">{t('dangerZone.description')}</p>
             {hasActivePaidPlan && (
               <p className="mt-3 text-sm text-red-600 dark:text-red-400 font-medium">
@@ -93,7 +93,7 @@ export default function SettingsPage() {
             <button
               onClick={() => setShowDeleteModal(true)}
               disabled={cannotDelete}
-              className="mt-4 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-destructive mt-4"
             >
               {t('dangerZone.deleteButton')}
             </button>

@@ -72,7 +72,7 @@ const DIAGRAM_BADGES: Record<string, { label: string; name: string; className: s
   freehand: { label: 'DRAW', name: 'Freehand', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
 };
 
-const FALLBACK_BADGE = { label: 'TXT', name: '', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' };
+const FALLBACK_BADGE = { label: 'TXT', name: '', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' };
 
 type MenuTarget =
   | { kind: 'diagram'; id: string; view: 'main' | 'folders' }
@@ -81,9 +81,9 @@ type MenuState = MenuTarget & { x: number; y: number };
 
 const MENU_WIDTH = 176; // w-44
 const menuItemClass =
-  'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700';
+  'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800';
 const rowActionClass =
-  'p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-600/60 rounded focus:outline-none focus:ring-2 focus:ring-purple-500';
+  'p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded focus:outline-none focus:ring-2 focus:ring-purple-500';
 
 function Icon({ d, className = 'w-3.5 h-3.5' }: { d: string; className?: string }) {
   return (
@@ -405,7 +405,7 @@ export default function DiagramFileBrowser({
             }}
             onBlur={commitRename}
             aria-label={t('fileBrowser.rename')}
-            className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             ref={focusAndSelect}
           />
         </div>
@@ -419,7 +419,7 @@ export default function DiagramFileBrowser({
         className={`group flex items-center gap-1 mx-1 rounded transition-colors ${
           isCurrent
             ? 'bg-purple-100 dark:bg-purple-900/40'
-            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+            : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'
         } ${draggedDiagramId === diagram.id ? 'opacity-40' : ''}`}
       >
         <button
@@ -494,7 +494,7 @@ export default function DiagramFileBrowser({
               <Icon d={ICONS.back} />
               {t('fileBrowser.moveToFolder')}
             </button>
-            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+            <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
             <div className="max-h-56 overflow-y-auto">
               {targets.map(target => {
                 const isHere = target.id === currentFolderId;
@@ -546,7 +546,7 @@ export default function DiagramFileBrowser({
               <Icon d={ICONS.project} />
               {t('fileBrowser.moveToProject')}
             </button>
-            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+            <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
             <button
               role="menuitem"
               className={`${menuItemClass} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}
@@ -589,7 +589,7 @@ export default function DiagramFileBrowser({
               {t('projectExport.exportFolder')}
             </button>
           )}
-          <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+          <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
           <button
             role="menuitem"
             className={`${menuItemClass} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}
@@ -606,7 +606,7 @@ export default function DiagramFileBrowser({
       <div
         ref={menuRef}
         role="menu"
-        className="fixed z-50 w-44 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
+        className="fixed z-50 w-44 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg"
         style={{ left: menu.x, top: menu.y }}
       >
         {content}
@@ -618,9 +618,9 @@ export default function DiagramFileBrowser({
   const showRootDropZone = !!draggedDiagramId && locationOf(draggedDiagramId) !== null;
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
       {/* Header — project identity + actions */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0" title={projectName}>
           <span className="text-sm flex-shrink-0">{projectEmoji || '📁'}</span>
           <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{projectName}</span>
@@ -653,7 +653,7 @@ export default function DiagramFileBrowser({
               className={`p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                 isPinned
                   ? 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'
-                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
               aria-label={isPinned ? t('editor.unpinPanel') : t('editor.pinPanel')}
               aria-pressed={!!isPinned}
@@ -669,7 +669,7 @@ export default function DiagramFileBrowser({
       </div>
 
       {/* Search */}
-      <div className="px-2 py-1.5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+      <div className="px-2 py-1.5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className="relative">
           <span className="absolute inset-y-0 left-2 flex items-center text-gray-400 dark:text-gray-500 pointer-events-none">
             <Icon d={ICONS.search} className="w-3 h-3" />
@@ -681,7 +681,7 @@ export default function DiagramFileBrowser({
             onKeyDown={(e) => { if (e.key === 'Escape' && searchQuery) { e.stopPropagation(); setSearchQuery(''); } }}
             placeholder={t('editor.searchDiagrams')}
             aria-label={t('editor.searchDiagrams')}
-            className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded pl-6 pr-6 py-1 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded pl-6 pr-6 py-1 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
           {searchQuery && (
             <button
@@ -702,7 +702,7 @@ export default function DiagramFileBrowser({
               className={`px-1.5 py-0.5 text-[10px] font-semibold rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                 typeFilter === null
                   ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               {t('fileBrowser.allTypes')}
@@ -718,7 +718,7 @@ export default function DiagramFileBrowser({
                   aria-pressed={selected}
                   title={badge.name}
                   className={`px-1.5 py-0.5 text-[10px] font-bold rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                    selected ? badge.className : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    selected ? badge.className : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }`}
                 >
                   {badge.label}
@@ -778,7 +778,7 @@ export default function DiagramFileBrowser({
                     onChange={(e) => onEditingFolderNameChange(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') onSaveFolderEdit(); if (e.key === 'Escape') onCancelFolderEdit(); }}
                     aria-label={t('fileBrowser.rename')}
-                    className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     ref={focusAndSelect}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -791,7 +791,7 @@ export default function DiagramFileBrowser({
                 </div>
               ) : (
                 <div
-                  className="group flex items-center rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  className="group flex items-center rounded hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
                   onContextMenu={(e) => openMenuAt(e, { kind: 'folder', id: folder.id })}
                 >
                   <button
@@ -842,7 +842,7 @@ export default function DiagramFileBrowser({
 
               {/* Folder children */}
               {open && (
-                <div role="group" className="ml-3 border-l border-gray-200 dark:border-gray-700">
+                <div role="group" className="ml-3 border-l border-gray-200 dark:border-gray-800">
                   {folder.diagrams.map(d => renderDiagramRow(d, 2))}
                   {folder.diagrams.length === 0 && (
                     <button
@@ -889,7 +889,7 @@ export default function DiagramFileBrowser({
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1 border-t border-gray-200 dark:border-gray-800 text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
         <span>
           {isSearching
             ? t('fileBrowser.filteredCount', { shown: shownDiagrams, total: totalDiagrams })

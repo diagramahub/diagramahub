@@ -59,9 +59,9 @@ export default function CloneDiagramModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t("editor.duplicateDiagramTitle")}
           </h3>
@@ -97,7 +97,7 @@ export default function CloneDiagramModal({
               onChange={(e) => setTitle(e.target.value)}
               maxLength={100}
               disabled={isCloning}
-              className="w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+              className="input disabled:opacity-50"
             />
           </div>
 
@@ -107,14 +107,14 @@ export default function CloneDiagramModal({
               type="button"
               onClick={onClose}
               disabled={isCloning}
-              className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-secondary"
             >
               {t("common.cancel")}
             </button>
             <button
               type="submit"
               disabled={!canConfirm}
-              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary"
             >
               {isCloning ? (
                 <span className="flex items-center justify-center">

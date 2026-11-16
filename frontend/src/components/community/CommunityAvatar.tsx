@@ -6,7 +6,7 @@ export function CommunityAvatar({ name, size = 'sm' }: { name: string; size?: 's
   return (
     <span
       aria-hidden="true"
-      className={`${dims} rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center font-semibold flex-shrink-0`}
+      className={`${dims} rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200 flex items-center justify-center font-semibold flex-shrink-0`}
     >
       {initials(name)}
     </span>

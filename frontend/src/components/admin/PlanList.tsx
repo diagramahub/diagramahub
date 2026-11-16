@@ -136,7 +136,7 @@ export default function PlanList() {
         </div>
         <button
           onClick={handleCreatePlan}
-          className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center gap-2 self-start sm:self-auto flex-shrink-0"
+          className="btn btn-primary flex items-center gap-2 self-start sm:self-auto flex-shrink-0"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -161,14 +161,14 @@ export default function PlanList() {
       {/* Plans Cards */}
       <div className="grid gap-4">
         {plans.map((plan) => (
-          <div key={plan.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-5">
+          <div key={plan.id} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
               {/* Plan info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
                   {plan.code && !plan.is_free && (
-                    <code className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-mono">{plan.code}</code>
+                    <code className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded font-mono">{plan.code}</code>
                   )}
                   {plan.is_free && (
                     <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">FREE</span>
@@ -176,7 +176,7 @@ export default function PlanList() {
                   {plan.is_active ? (
                     <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full">Activo</span>
                   ) : (
-                    <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">Inactivo</span>
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">Inactivo</span>
                   )}
                   {!plan.is_free && plan.price_usd > 0 && (
                     plan.gateway_config?.external_product_id && plan.gateway_config?.external_price_id ? (
@@ -221,13 +221,13 @@ export default function PlanList() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-800">
                 {!plan.is_free && (
                   <button
                     type="button"
                     disabled={togglingPlanId === plan.id}
                     onClick={() => handleToggleActive(plan)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${plan.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} ${togglingPlanId === plan.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${plan.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'} ${togglingPlanId === plan.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
                     title={plan.is_active ? 'Desactivar plan' : 'Activar plan'}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${plan.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -235,14 +235,14 @@ export default function PlanList() {
                 )}
                 <button
                   onClick={() => handleEditPlan(plan)}
-                  className="px-3 py-1.5 text-sm font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                  className="btn btn-secondary btn-sm"
                 >
                   Editar
                 </button>
                 {!plan.is_free && plan.active_subscriptions === 0 && (
                   <button
                     onClick={() => setDeletingPlan(plan)}
-                    className="px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                    className="btn btn-danger btn-sm"
                     title={t('admin.plans.delete')}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,7 +256,7 @@ export default function PlanList() {
         ))}
 
         {plans.length === 0 && (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
             <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
