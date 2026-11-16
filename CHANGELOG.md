@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Encryption key rotation**: `AI_ENCRYPTION_KEY_PREVIOUS` (MultiFernet) and `scripts/rotate_encryption_key.py` (dry run by default) re-encrypt AI keys, integration credentials and TOTP secrets.
 - **CI** (GitHub Actions): backend ruff/black/pytest with the coverage floor against MongoDB and Kroki, pip-audit; frontend lint/Vitest/build/`pnpm audit --prod`; Trivy scans of both images; CodeQL; Dependabot.
 
+### Fixed
+- Wheel zoom in the editor, the preview and the shared view called `preventDefault()` from React's passive `onWheel` ("Unable to preventDefault inside passive event listener") and the page could scroll while zooming; it now uses a native non-passive listener (`useNonPassiveWheel`).
+- A route chunk that failed to load (network, a deploy that replaced it) broke that route until a manual reload, because the failed import was cached, and the error blanked the whole app. The import is retried, and a route error boundary shows a translated message with a reload button (after a deploy it reloads once by itself).
+
 ### Security
 - Audit log for sensitive actions outside authentication: AI providers, shared links, integrations, plans and API tokens (invariant #7).
 - The production frontend sends a Content-Security-Policy by default, built at start from `VITE_API_URL` and the Sentry DSN (`CSP_CONNECT_SRC_EXTRA`, `CSP_EMBED_FRAME_ANCESTORS`, `CSP_ENABLED=false`); only `/embed/` can be framed. `csp.conf.example` was removed.

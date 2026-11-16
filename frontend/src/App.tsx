@@ -7,6 +7,7 @@ import SidebarLayout from './components/SidebarLayout';
 import InstallationGuard from './components/InstallationGuard';
 import { PresentationProvider } from './contexts/PresentationContext';
 import { lazyWithPreload, type PreloadableComponent } from './utils/lazyWithPreload';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 
 // Route-level code splitting: each page is its own chunk, so e.g. the login
 // screen no longer downloads the editor, Mermaid or the export libraries.
@@ -117,6 +118,7 @@ function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
+      <RouteErrorBoundary>
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public route — no AuthProvider, no PrivateRoute */}
@@ -318,6 +320,7 @@ function App() {
         />
       </Routes>
       </Suspense>
+      </RouteErrorBoundary>
       </BrowserRouter>
     </ThemeProvider>
   );

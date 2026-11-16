@@ -24,10 +24,18 @@ export function lazyWithPreload<P extends object>(
   let pending: Promise<PageModule<P>> | null = null;
 
   const preload = () => {
-    pending ??= factory().then((module) => {
-      Loaded = module.default;
-      return module;
-    });
+    pending ??= factory().then(
+      (module) => {
+        Loaded = module.default;
+        return module;
+      },
+      (error: unknown) => {
+        // Don't cache the failure: a later render or preload retries the import
+        // (network blip, dev server restart, a deploy that replaced the chunk).
+        pending = null;
+        throw error;
+      },
+    );
     return pending;
   };
 

@@ -11,6 +11,7 @@ import AccessCodeForm from "../components/AccessCodeForm";
 import CodeEditor from "../components/CodeEditor";
 import FreehandCanvas from "../components/FreehandCanvas";
 import { apiErrorMessage, apiErrorStatus } from "../utils/apiError";
+import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 10;
@@ -234,11 +235,18 @@ export default function SharedDiagramPage() {
     setPan({ x: 0, y: 0 });
   }, [zoom]);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, +(z + delta).toFixed(1))));
   }, []);
+
+  // Native non-passive listener (React's onWheel can't preventDefault); sketches handle their own wheel.
+  useNonPassiveWheel(
+    viewportRef,
+    diagram && diagram.diagram_type !== 'freehand' ? handleWheel : null,
+    pageState,
+  );
 
   // Pan handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -535,7 +543,6 @@ export default function SharedDiagramPage() {
           <div
             ref={viewportRef}
             className={`w-full h-full overflow-hidden bg-gray-50 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

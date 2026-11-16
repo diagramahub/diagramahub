@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg } from '../utils/sanitize';
+import { useNonPassiveWheel } from '../hooks/useNonPassiveWheel';
 
 interface DiagramPreviewProps {
   code: string;
@@ -71,7 +72,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
   }, []);
 
   // Wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, +(z + delta).toFixed(1))));
@@ -99,6 +100,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
 
   const zoomPercent = Math.round(zoom * 100);
   const hasContent = code.trim() && !renderError;
+  useNonPassiveWheel(viewportRef, hasContent ? handleWheel : null);
 
   return (
     <div className="w-full h-full flex flex-col bg-white rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
@@ -106,7 +108,6 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
       <div
         ref={viewportRef}
         className={`flex-1 overflow-hidden relative ${hasContent ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
-        onWheel={hasContent ? handleWheel : undefined}
         onMouseDown={hasContent ? handleMouseDown : undefined}
         onMouseMove={hasContent ? handleMouseMove : undefined}
         onMouseUp={handleMouseUp}

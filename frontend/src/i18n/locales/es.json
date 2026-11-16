@@ -1776,5 +1776,12 @@
       "viewInCommunity": "Ver en la Comunidad",
       "snapshotHint": "La Comunidad muestra una copia del código; actualízala cuando cambies el diagrama (o activa la publicación automática)."
     }
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "message": "Esta pantalla tuvo un error. Recarga la página; si se repite, avísanos.",
+    "chunkTitle": "Hay una versión nueva",
+    "chunkMessage": "No se pudo cargar esta pantalla, probablemente porque se publicó una versión nueva. Recarga la página.",
+    "reload": "Recargar"
   }
 }

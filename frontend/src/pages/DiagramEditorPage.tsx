@@ -73,6 +73,7 @@ import {
   MERMAID_THEMES,
 } from "../utils/mermaidOptions";
 import { PublishToCommunityModal } from "../components/community/PublishToCommunityModal";
+import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -2306,11 +2307,17 @@ export default function DiagramEditorPage() {
     setIsPanning(false);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
     setZoom((prev) => Math.max(0.1, prev + delta)); // Sin límite máximo, mínimo 10%
   };
+  // Native non-passive listener: React's onWheel can't preventDefault (page would scroll).
+  useNonPassiveWheel(
+    containerRef,
+    activeTab === "code" && !isFreehandDiagram ? handleWheel : null,
+    currentDiagram?.id,
+  );
 
   // Export functions
   const buildExportData = (): DiagramExportData => {
@@ -4218,11 +4225,6 @@ export default function DiagramEditorPage() {
                   onMouseLeave={
                     activeTab === "code" && !isFreehandDiagram
                       ? handleMouseUp
-                      : undefined
-                  }
-                  onWheel={
-                    activeTab === "code" && !isFreehandDiagram
-                      ? handleWheel
                       : undefined
                   }
                   {...(isFreehandDiagram ? {} : touchHandlers)}

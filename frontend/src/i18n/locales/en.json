@@ -1776,5 +1776,12 @@
       "viewInCommunity": "View in the Community",
       "snapshotHint": "The Community shows a copy of the code; update it when you change the diagram (or turn on automatic publishing)."
     }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "This screen hit an error. Reload the page; if it happens again, let us know.",
+    "chunkTitle": "A new version is available",
+    "chunkMessage": "This screen couldn't load, probably because a new version was released. Reload the page.",
+    "reload": "Reload"
   }
 }
