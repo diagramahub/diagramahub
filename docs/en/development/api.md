@@ -93,6 +93,22 @@ Routes are relative to `/api/v1`. **Public** = no token; **User** = JWT; **Admin
 curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
 ```
 
+### Community (`community/`)
+
+| Method | Route | Access |
+|---|---|---|
+| GET · POST | `/community/diagrams` (list: `tab`, `q`, `category`, `type`, `sort`, `page`) | User (session) |
+| GET · PUT · DELETE | `/community/diagrams/{id}` | User · owner (PUT) · owner or admin (DELETE) |
+| GET | `/community/by-diagram/{diagram_id}` | User (owner) |
+| PUT · DELETE | `/community/diagrams/{id}/star` | User |
+| POST | `/community/diagrams/{id}/fork` | User (plan limit applies) |
+| GET · POST | `/community/diagrams/{id}/comments` | User |
+| DELETE | `/community/diagrams/{id}/comments/{comment_id}` | Author, publication owner or admin |
+| POST | `/community/reports` | User |
+| GET | `/community/admin/reports` | Admin |
+| PUT | `/community/admin/diagrams/{id}`, `/community/admin/comments/{id}` | Admin |
+| POST | `/community/admin/reports/dismiss` | Admin |
+
 ### AI (`ai_providers/`, mounted at `/ai`)
 
 | Method | Route | Access |

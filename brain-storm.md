@@ -12,7 +12,7 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
 ## 🗺️ Mapa de versiones
 
-### 0.9.0 (en curso, rama `release/0.9.0`)
+### 0.9.0 (completado)
 
 **Funciones**
 - ✅ Diagrama desde imagen con IA (foto de pizarrón o captura → código), con los proveedores que aceptan imágenes
@@ -33,12 +33,12 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
 Portal donde los usuarios publican sus diagramas y que reemplaza la idea de una galería de plantillas (ver §3):
 
-- ⬜ Publicar un diagrama en el portal (y retirarlo)
-- ⬜ Fork: copiar un diagrama público a la cuenta propia
-- ⬜ Estrellas
-- ⬜ Comentarios públicos
-- ⬜ Categorías y exploración por categoría
-- ⬜ Compartir desde el portal
+- ✅ Publicar un diagrama en el portal (y retirarlo)
+- ✅ Fork: copiar un diagrama público a la cuenta propia
+- ✅ Estrellas
+- ✅ Comentarios públicos
+- ✅ Categorías y exploración por categoría
+- ✅ Compartir desde el portal
 
 **Seguridad**
 - ✅ CI en GitHub Actions: pruebas, lint, auditoría de dependencias, CodeQL, escaneo de imágenes y Dependabot

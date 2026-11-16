@@ -16,7 +16,7 @@ Everything you need to work on the DiagramaHub codebase: how it is built, how to
 
     ---
 
-    FastAPI + MongoDB: the 13 modules, the layered pattern and configuration.
+    FastAPI + MongoDB: the 14 modules, the layered pattern and configuration.
 
     [:octicons-arrow-right-24: See backend](backend.md)
 

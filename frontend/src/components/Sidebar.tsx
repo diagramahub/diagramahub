@@ -145,7 +145,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   { key: 'aiSettings', labelKey: 'sidebar.aiSettings', path: '/settings', icon: <AISettingsIcon /> },
   { key: 'subscription', labelKey: 'sidebar.subscription', path: '/subscription', icon: <SubscriptionIcon /> },
   { key: 'about', labelKey: 'sidebar.about', path: '/about', icon: <AboutIcon /> },
-  { key: 'community', labelKey: 'sidebar.community', path: '#community', icon: <CommunityIcon /> },
+  { key: 'community', labelKey: 'sidebar.community', path: '/community', icon: <CommunityIcon /> },
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
@@ -191,8 +191,6 @@ export default function Sidebar() {
   // Mobile overlay state
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Community modal state
-  const [showCommunityModal, setShowCommunityModal] = useState(false);
 
   // Persist collapsed state
   const toggleExpanded = useCallback(() => {
@@ -212,29 +210,29 @@ export default function Sidebar() {
   const isAdmin = user?.role === 'admin';
 
   // Check if a nav item is active
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) =>
+    location.pathname === path || (path.length > 1 && location.pathname.startsWith(`${path}/`));
 
   // --- Render helpers ---
 
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.path);
     const label = t(item.labelKey);
-    const isCommunity = item.key === 'community';
 
     const button = (
       <button
         key={item.key}
-        onClick={() => { if (isCommunity) { setShowCommunityModal(true); } else { navigate(item.path); } }}
+        onClick={() => navigate(item.path)}
         className={`
           w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200
-          ${active && !isCommunity
+          ${active
             ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
             : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50'
           }
           ${!isExpanded ? 'justify-center' : ''}
         `}
         aria-label={label}
-        aria-current={active && !isCommunity ? 'page' : undefined}
+        aria-current={active ? 'page' : undefined}
       >
         <span className="flex-shrink-0">{item.icon}</span>
         {isExpanded && (
@@ -471,38 +469,6 @@ export default function Sidebar() {
         {sidebarContent}
       </aside>
 
-      {/* Community Coming Soon Modal */}
-      {showCommunityModal && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowCommunityModal(false); }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden">
-            <div className="px-6 pt-8 pb-4 text-center">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <CommunityIcon />
-              </div>
-              <span className="inline-block mb-3 text-[10px] font-bold uppercase tracking-widest bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 px-2.5 py-1 rounded-full">
-                {t('sidebar.comingSoon')}
-              </span>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                {t('sidebar.communityModalTitle')}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                {t('sidebar.communityModalDescription')}
-              </p>
-            </div>
-            <div className="px-6 pb-6 pt-2">
-              <button
-                onClick={() => setShowCommunityModal(false)}
-                className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-              >
-                {t('sidebar.communityModalClose')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

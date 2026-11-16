@@ -123,7 +123,7 @@ diagramahub/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic Settings (env vars)
 │   │   │   └── security.py      # JWT + BCrypt utilities
-│   │   └── api/v1/              # All feature modules (13 modules, see below)
+│   │   └── api/v1/              # All feature modules (14 modules, see below)
 │   ├── tests/
 │   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
 │   │   └── api/v1/              # Tests mirror module structure
@@ -156,7 +156,7 @@ diagramahub/
 ├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-### Backend Module Registry (All 13 Modules)
+### Backend Module Registry (All 14 Modules)
 
 Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
@@ -174,6 +174,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **integrations** | `integrations/` | Admin email/payment/OAuth vendor config | `email_service.py`, `email_vendors/`, `vendor_factory.py` |
 | **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
 | **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
+| **community** | `community/` | Community portal: published diagram snapshots, stars, forks (via DiagramService + UsageLimiter), comments (one reply level), reports (3 hide until an admin reviews), featuring | — |
 | **api_tokens** | `api_tokens/` | Personal API tokens (`dh_pat_…`, SHA-256 hash stored; read/write scope; allowed only on projects, folders, diagrams, shared links) | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
@@ -320,7 +321,7 @@ When creating a new module, you MUST:
 
 ### Security Audit Log
 - MongoDB collection with 90-day TTL auto-cleanup
-- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked; AI provider added/updated/removed, shared link created/updated/revoked, integration created/updated/deleted/set default, plan created/updated/deleted/price added (`audit_log.log_event_for_user_id` from the route)
+- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked; AI provider added/updated/removed, shared link created/updated/revoked, integration created/updated/deleted/set default, plan created/updated/deleted/price added, API token created/revoked, community published/unpublished/moderated (`audit_log.log_event_for_user_id` from the route)
 
 ## Key Invariants (Must Preserve)
 
@@ -413,7 +414,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 - **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
 - **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
 - **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
-- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 67.66% on 2026-11-15). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 69.20% on 2026-11-16). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
 - Tests mirror module structure under `tests/api/v1/`
 
 ### Frontend Tests

@@ -93,6 +93,22 @@ Las rutas están relativas a `/api/v1`. **Público** = sin token; **Usuario** = 
 curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
 ```
 
+### Comunidad (`community/`)
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET · POST | `/community/diagrams` (list: `tab`, `q`, `category`, `type`, `sort`, `page`) | Usuario (sesión) |
+| GET · PUT · DELETE | `/community/diagrams/{id}` | Usuario · dueño (PUT) · dueño o admin (DELETE) |
+| GET | `/community/by-diagram/{diagram_id}` | Usuario (dueño) |
+| PUT · DELETE | `/community/diagrams/{id}/star` | Usuario |
+| POST | `/community/diagrams/{id}/fork` | Usuario (aplica el límite del plan) |
+| GET · POST | `/community/diagrams/{id}/comments` | Usuario |
+| DELETE | `/community/diagrams/{id}/comments/{comment_id}` | Autor, dueño de la publicación o admin |
+| POST | `/community/reports` | Usuario |
+| GET | `/community/admin/reports` | Admin |
+| PUT | `/community/admin/diagrams/{id}`, `/community/admin/comments/{id}` | Admin |
+| POST | `/community/admin/reports/dismiss` | Admin |
+
 ### IA (`ai_providers/`, montado en `/ai`)
 
 | Método | Ruta | Acceso |

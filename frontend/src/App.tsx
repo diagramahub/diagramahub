@@ -28,6 +28,8 @@ const ProjectsPage = lazyWithPreload(() => import('./pages/ProjectsPage'));
 const SharedDiagramPage = lazyWithPreload(() => import('./pages/SharedDiagramPage'));
 const EmbedDiagramPage = lazyWithPreload(() => import('./pages/EmbedDiagramPage'));
 const FolderPresentationPage = lazyWithPreload(() => import('./pages/FolderPresentationPage'));
+const CommunityPage = lazyWithPreload(() => import('./pages/CommunityPage'));
+const CommunityDiagramPage = lazyWithPreload(() => import('./pages/CommunityDiagramPage'));
 const ForgotPasswordPage = lazyWithPreload(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazyWithPreload(() => import('./pages/ResetPasswordPage'));
 const MfaVerifyPage = lazyWithPreload(() => import('./pages/MfaVerifyPage'));
@@ -55,6 +57,8 @@ const ROUTE_CHUNKS: [RegExp, PreloadableComponent<object>][] = [
   [/^\/mfa-verify/, MfaVerifyPage],
   [/^\/oauth\/callback/, OAuthCallbackPage],
   [/^\/onboarding/, OnboardingWizardPage],
+  [/^\/community\/[^/]+/, CommunityDiagramPage],
+  [/^\/community\/?$/, CommunityPage],
   [/^\/projects\/[^/]+\/present/, FolderPresentationPage],
   [/^\/projects\/[^/]+/, DiagramEditorPage],
   [/^\/(dashboard\/?)?$/, DashboardPage],
@@ -183,6 +187,27 @@ function App() {
                   />
 
                   {/* Authenticated routes with Sidebar */}
+                  {/* Community portal */}
+                  <Route
+                    path="/community"
+                    element={
+                      <PrivateRoute>
+                        <SidebarLayout>
+                          <CommunityPage />
+                        </SidebarLayout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/community/:id"
+                    element={
+                      <PrivateRoute>
+                        <SidebarLayout>
+                          <CommunityDiagramPage />
+                        </SidebarLayout>
+                      </PrivateRoute>
+                    }
+                  />
                   <Route
                     path="/dashboard"
                     element={

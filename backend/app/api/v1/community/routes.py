@@ -320,7 +320,7 @@ async def moderate_comment(
     """Hide or restore a comment (admin)."""
     if request.hidden is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="hidden is required"
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="hidden is required"
         )
     await service.moderate_comment(comment_id, request.hidden)
     await audit_log.log_event_for_user_id(

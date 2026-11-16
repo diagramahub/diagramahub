@@ -62,6 +62,14 @@ Si vas a instalar o administrar tu propia instancia, consulta la sección [Self-
 
     [:octicons-arrow-right-24: Compartir](compartir.md)
 
+-   :material-earth: **Comunidad**
+
+    ---
+
+    Publica diagramas, explora los de otros, dales estrella, coméntalos y haz fork.
+
+    [:octicons-arrow-right-24: Comunidad](comunidad.md)
+
 -   :material-presentation: **Modo presentación**
 
     ---

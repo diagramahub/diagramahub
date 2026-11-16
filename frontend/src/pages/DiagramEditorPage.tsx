@@ -72,6 +72,7 @@ import {
   MERMAID_LOOKS,
   MERMAID_THEMES,
 } from "../utils/mermaidOptions";
+import { PublishToCommunityModal } from "../components/community/PublishToCommunityModal";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -410,6 +411,7 @@ export default function DiagramEditorPage() {
 
   // Share diagram state
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
   // Use error detection hook
@@ -3286,6 +3288,25 @@ export default function DiagramEditorPage() {
               </button>
             </Tooltip>
 
+            {/* Publish to the community */}
+            {currentDiagram && currentDiagram.diagram_type !== "freehand" && (
+              <Tooltip
+                content={!diagramId ? t("editor.saveDiagramFirst") : t("community.publish.button")}
+                position="bottom"
+              >
+                <button
+                  onClick={() => setShowPublishModal(true)}
+                  disabled={!diagramId}
+                  className={`p-1.5 rounded-md transition-colors ${!diagramId ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                  aria-label={t("community.publish.button")}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </Tooltip>
+            )}
+
             {/* Move diagram to another project */}
             <Tooltip content={t("editor.moveDiagram")} position="bottom">
               <button
@@ -5255,6 +5276,16 @@ export default function DiagramEditorPage() {
       )}
 
       {/* Fix Diagram Diff Modal */}
+      {diagramId && (
+        <PublishToCommunityModal
+          isOpen={showPublishModal}
+          onClose={() => setShowPublishModal(false)}
+          diagramId={diagramId}
+          diagramType={currentDiagram?.diagram_type || "mermaid"}
+          description={diagramDescription}
+        />
+      )}
+
       {showFixDiffModal && fixResult && (
         <DiagramDiffView
           originalCode={fixResult.original_code}

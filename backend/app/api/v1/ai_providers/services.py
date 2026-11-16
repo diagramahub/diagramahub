@@ -557,7 +557,7 @@ class AIProviderService:
         except TruncatedResponseError:
             # The code hit the output limit: incomplete code would not render
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "response_truncated"},
             )
         except EmptyResponseError:
@@ -641,7 +641,7 @@ class AIProviderService:
             )
         except ImagesNotSupportedError:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={
                     "error": "images_not_supported",
                     "provider": provider_config.provider.value,
@@ -649,7 +649,7 @@ class AIProviderService:
             )
         except TruncatedResponseError:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "response_truncated"},
             )
         except EmptyResponseError:
@@ -736,7 +736,7 @@ class AIProviderService:
         except TruncatedResponseError:
             # The code hit the output limit: incomplete code would not render
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "response_truncated"},
             )
         except EmptyResponseError:

@@ -98,6 +98,19 @@ import {
 } from '../types/oauth';
 import { API_URL } from '../utils/runtimeConfig';
 import type { ApiToken, CreateApiTokenRequest, CreatedApiToken } from '../types/apiTokens';
+import type {
+  CommunityCategory,
+  CommunityComment,
+  CommunityReport,
+  CommunitySort,
+  CommunityTab,
+  PublicationCard,
+  PublicationDetail,
+  PublicationPage,
+  PublishableType,
+  PublishRequest,
+  UpdatePublicationRequest,
+} from '../types/community';
 
 export type ProjectExportFormat = 'zip' | 'markdown';
 export type ProjectExportVariant = 'ai' | 'standard';
@@ -599,6 +612,94 @@ class ApiService {
   async downloadInvoice(invoiceId: string): Promise<{ pdf_url: string }> {
     const response = await this.api.get(`/api/v1/subscriptions/invoices/${invoiceId}/pdf-url`);
     return response.data;
+  }
+
+  // ============================================================================
+  // Community portal
+  // ============================================================================
+
+  async listCommunity(params: {
+    tab?: CommunityTab;
+    q?: string;
+    category?: CommunityCategory;
+    type?: PublishableType;
+    sort?: CommunitySort;
+    page?: number;
+    page_size?: number;
+  }): Promise<PublicationPage> {
+    const response = await this.api.get<PublicationPage>('/api/v1/community/diagrams', { params });
+    return response.data;
+  }
+
+  async getPublication(id: string): Promise<PublicationDetail> {
+    const response = await this.api.get<PublicationDetail>(`/api/v1/community/diagrams/${id}`);
+    return response.data;
+  }
+
+  async getPublicationOfDiagram(diagramId: string): Promise<PublicationCard | null> {
+    const response = await this.api.get<PublicationCard | null>(`/api/v1/community/by-diagram/${diagramId}`);
+    return response.data;
+  }
+
+  async publishDiagram(data: PublishRequest): Promise<PublicationDetail> {
+    const response = await this.api.post<PublicationDetail>('/api/v1/community/diagrams', data);
+    return response.data;
+  }
+
+  async updatePublication(id: string, data: UpdatePublicationRequest): Promise<PublicationDetail> {
+    const response = await this.api.put<PublicationDetail>(`/api/v1/community/diagrams/${id}`, data);
+    return response.data;
+  }
+
+  async unpublishDiagram(id: string): Promise<void> {
+    await this.api.delete(`/api/v1/community/diagrams/${id}`);
+  }
+
+  async setStar(id: string, starred: boolean): Promise<{ starred: boolean; stars_count: number }> {
+    const url = `/api/v1/community/diagrams/${id}/star`;
+    const response = starred ? await this.api.put(url) : await this.api.delete(url);
+    return response.data;
+  }
+
+  async forkPublication(id: string, data: { project_id: string; title?: string; folder_id?: string }): Promise<{ diagram_id: string; project_id: string; title: string }> {
+    const response = await this.api.post(`/api/v1/community/diagrams/${id}/fork`, data);
+    return response.data;
+  }
+
+  async listCommunityComments(id: string): Promise<CommunityComment[]> {
+    const response = await this.api.get<CommunityComment[]>(`/api/v1/community/diagrams/${id}/comments`);
+    return response.data;
+  }
+
+  async addCommunityComment(id: string, data: { text: string; parent_id?: string }): Promise<CommunityComment> {
+    const response = await this.api.post<CommunityComment>(`/api/v1/community/diagrams/${id}/comments`, data);
+    return response.data;
+  }
+
+  async deleteCommunityComment(id: string, commentId: string): Promise<void> {
+    await this.api.delete(`/api/v1/community/diagrams/${id}/comments/${commentId}`);
+  }
+
+  async reportCommunity(data: { target_type: 'diagram' | 'comment'; target_id: string; reason: string }): Promise<void> {
+    await this.api.post('/api/v1/community/reports', data);
+  }
+
+  async listCommunityReports(): Promise<CommunityReport[]> {
+    const response = await this.api.get<CommunityReport[]>('/api/v1/community/admin/reports');
+    return response.data;
+  }
+
+  async moderatePublication(id: string, data: { featured?: boolean; hidden?: boolean }): Promise<PublicationDetail> {
+    const response = await this.api.put<PublicationDetail>(`/api/v1/community/admin/diagrams/${id}`, data);
+    return response.data;
+  }
+
+  async moderateCommunityComment(commentId: string, hidden: boolean): Promise<void> {
+    await this.api.put(`/api/v1/community/admin/comments/${commentId}`, { hidden });
+  }
+
+  async dismissCommunityReports(data: { target_type: 'diagram' | 'comment'; target_id: string }): Promise<void> {
+    await this.api.post('/api/v1/community/admin/reports/dismiss', { ...data, reason: 'dismissed' });
   }
 
   // ============================================================================

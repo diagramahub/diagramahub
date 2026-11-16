@@ -268,7 +268,7 @@ class CommunityService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagram not found")
         if source.diagram_type not in PUBLISHABLE_TYPES:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "type_not_publishable"},
             )
         if await self.repository.get_by_source(request.diagram_id):

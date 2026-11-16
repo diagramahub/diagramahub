@@ -47,6 +47,7 @@ Si una escritura del registro falla, el error se anota en los logs del servidor 
 | `shared_link_created` / `shared_link_updated` / `shared_link_revoked` | Se creó, cambió o revocó un enlace compartido (`details`: id del diagrama o del enlace, tipo de acceso, campos cambiados) |
 | `integration_created` / `integration_updated` / `integration_deleted` / `integration_set_default` | Un administrador cambió una integración de email, pago u OAuth (`details`: id del proveedor y nombres de los campos cambiados; nunca las credenciales) |
 | `plan_created` / `plan_updated` / `plan_deleted` / `plan_price_added` | Un administrador cambió un plan o agregó un precio en otra moneda |
+| `community_published` / `community_unpublished` / `community_moderated` | Se publicó o retiró un diagrama de la Comunidad, o un administrador destacó/ocultó/restauró una publicación o comentario |
 | `api_token_created` / `api_token_revoked` | El usuario creó (`details`: id, alcance, vigencia) o revocó un token de API personal |
 
 ## Consultar el registro
