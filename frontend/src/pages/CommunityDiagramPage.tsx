@@ -145,7 +145,7 @@ export default function CommunityDiagramPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="px-4 pb-4 pt-16 sm:px-6 sm:pb-6 md:pt-6 max-w-7xl mx-auto">
       <Link to="/community" className="text-sm text-purple-600 dark:text-purple-400 hover:underline focus:outline-none focus:ring-2 focus:ring-purple-500 rounded">
         ← {t('community.backToCommunity')}
       </Link>
@@ -164,7 +164,7 @@ export default function CommunityDiagramPage() {
               {t(`community.categories.${pub.category}`)}
             </span>
             {pub.featured && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
                 {t('community.featured')}
               </span>
             )}
@@ -184,7 +184,7 @@ export default function CommunityDiagramPage() {
             content={pub.content}
             diagramType={pub.diagram_type}
             title={pub.title}
-            className="h-96 p-4 rounded-xl border border-gray-200 dark:border-gray-800"
+            className="h-96 p-4 bg-white rounded-lg border border-gray-200 dark:border-gray-800"
           />
           <details className="mt-3">
             <summary className="cursor-pointer text-sm font-medium text-purple-600 dark:text-purple-400">{t('community.viewCode')}</summary>
@@ -198,7 +198,7 @@ export default function CommunityDiagramPage() {
           {pub.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {pub.tags.map((tag) => (
-                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                   #{tag}
                 </span>
               ))}
@@ -206,7 +206,7 @@ export default function CommunityDiagramPage() {
           )}
 
           <section className="mt-8" aria-labelledby="comments-title">
-            <h2 id="comments-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+            <h2 id="comments-title" className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
               {t('community.commentsTitle', { count: comments.length })}
             </h2>
             {pub.allow_comments ? (
@@ -220,7 +220,7 @@ export default function CommunityDiagramPage() {
                   </p>
                 )}
                 <label htmlFor="comment-text" className="sr-only">{t('community.commentPlaceholder')}</label>
-                <textarea id="comment-text" rows={2} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('community.commentPlaceholder')} className={`${field} resize-none`} />
+                <textarea id="comment-text" rows={2} maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} placeholder={t('community.commentPlaceholder')} className={`${field} h-auto py-2 resize-none`} />
                 <div className="flex justify-between items-center mt-2 gap-2">
                   <span className="text-xs text-gray-400 dark:text-gray-500">{t('community.commentHint')}</span>
                   <button type="submit" disabled={posting || !text.trim()} className="btn btn-primary">
@@ -263,14 +263,14 @@ export default function CommunityDiagramPage() {
             {t('community.copyLink')}
           </button>
 
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-950/50 border border-gray-200 dark:border-gray-800 p-4 text-sm space-y-2">
+          <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 text-sm space-y-2">
             <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">{t('community.views')}</span><span className="font-medium">{compactCount(pub.views_count)}</span></div>
             <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">{t('community.forks')}</span><span className="font-medium">{compactCount(pub.forks_count)}</span></div>
             <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">{t('community.updated')}</span><span className="font-medium">{formatDate(pub.updated_at)}</span></div>
           </div>
 
           {pub.more_from_owner.length > 0 && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-4">
+            <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{t('community.moreFromAuthor')}</p>
               <ul className="space-y-1 text-sm">
                 {pub.more_from_owner.map((m) => (
@@ -283,7 +283,7 @@ export default function CommunityDiagramPage() {
           )}
 
           {pub.is_owner && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-2">
+            <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 space-y-2">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('community.owner.title')}</p>
               {pub.source_diagram_id && (
                 <button type="button" onClick={async () => { try { setPub(await apiService.updatePublication(pub.id, { refresh_content: true })); notify(t('community.owner.refreshed')); } catch { notify(t('community.owner.sourceGone')); } }} className="w-full text-left text-sm text-purple-600 dark:text-purple-400 hover:underline">
@@ -297,7 +297,7 @@ export default function CommunityDiagramPage() {
           )}
 
           {isAdmin && (
-            <div className="rounded-lg border border-amber-200 dark:border-amber-800 p-4 space-y-2">
+            <div className="rounded-lg bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-800 p-4 space-y-2">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('community.admin.title')}</p>
               <button type="button" onClick={() => moderate({ featured: !pub.featured })} className="w-full text-left text-sm text-purple-600 dark:text-purple-400 hover:underline">
                 {pub.featured ? t('community.admin.unfeature') : t('community.admin.feature')}
@@ -462,7 +462,7 @@ function ReportDialog({ target, onClose, onSent }: { target: { type: 'diagram' |
         </div>
         <div className="px-6 py-4">
           <label htmlFor="report-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.reportReason')}</label>
-          <textarea id="report-reason" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className={`${field} resize-none`} />
+          <textarea id="report-reason" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className={`${field} h-auto py-2 resize-none`} />
           {error && <p className="text-sm text-red-600 dark:text-red-400 mt-2" role="alert">{t('community.actionError')}</p>}
         </div>
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">

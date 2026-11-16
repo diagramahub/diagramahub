@@ -159,7 +159,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
               </div>
               <div>
                 <label htmlFor="pub-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.publish.description')}</label>
-                <textarea id="pub-description" rows={3} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} className={`${field} resize-none`} />
+                <textarea id="pub-description" rows={3} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} className={`${field} h-auto py-2 resize-none`} />
               </div>
               <fieldset className="space-y-2">
                 {checkbox('pub-forks', allowForks && license !== 'all-rights-reserved', setAllowForks, t('community.publish.allowForks'), license === 'all-rights-reserved')}

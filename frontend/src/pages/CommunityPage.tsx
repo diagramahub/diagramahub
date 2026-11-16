@@ -107,14 +107,21 @@ export default function CommunityPage() {
   ];
 
   const chipClass = (on: boolean) =>
-    `px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap border focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+    `inline-flex items-center h-7 px-2.5 text-xs font-medium rounded-md whitespace-nowrap border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50 ${
       on
-        ? 'bg-purple-600 text-white border-purple-600'
-        : 'border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        ? 'bg-purple-50 text-purple-700 border-purple-300 dark:bg-purple-500/15 dark:text-purple-200 dark:border-purple-500/40'
+        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:bg-gray-900 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
+    }`;
+  // Diagram type: one segmented control instead of separate chips.
+  const segmentClass = (on: boolean) =>
+    `inline-flex items-center h-7 px-2.5 text-xs font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500/50 ${
+      on
+        ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white'
+        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
     }`;
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="px-4 pb-4 pt-16 sm:px-6 sm:pb-6 md:pt-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="page-title">{t('community.title')}</h1>
@@ -129,7 +136,7 @@ export default function CommunityPage() {
         </Link>
       </div>
 
-      <div role="tablist" aria-label={t('community.title')} className="flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-4 text-sm overflow-x-auto">
+      <div role="tablist" aria-label={t('community.title')} className="flex gap-1 border-b border-gray-200 dark:border-gray-800 mb-5 text-sm overflow-x-auto scrollbar-hide">
         {tabs.map((item) => (
           <button
             key={item.id}
@@ -137,10 +144,10 @@ export default function CommunityPage() {
             type="button"
             aria-selected={tab === item.id}
             onClick={() => setTab(item.id)}
-            className={`px-4 py-2 -mb-px border-b-2 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-t ${
+            className={`h-10 px-3 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500/50 rounded-t-md ${
               tab === item.id
-                ? 'border-purple-600 text-purple-700 dark:text-purple-300 font-medium'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                ? 'text-gray-900 dark:text-white font-medium shadow-[inset_0_-2px_0_theme(colors.purple.600)] dark:shadow-[inset_0_-2px_0_theme(colors.purple.400)]'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
             {item.label}
@@ -152,21 +159,21 @@ export default function CommunityPage() {
         <ReportsPanel reports={reports} loading={loading} error={error} language={i18n.language} />
       ) : (
         <>
-          <div className="flex flex-col lg:flex-row gap-3 mb-4">
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('community.searchPlaceholder')}
               aria-label={t('community.searchPlaceholder')}
-              className="input flex-1 min-w-0 lg:min-w-[16rem]"
+              className="input min-w-0 sm:flex-1"
             />
-            <div className="flex gap-2 flex-wrap" role="group" aria-label={t('community.filterByType')}>
-              <button type="button" onClick={() => setType(null)} aria-pressed={type === null} className={chipClass(type === null)}>
+            <div className="inline-flex self-start sm:self-auto h-9 items-center rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 p-0.5 shadow-sm overflow-hidden" role="group" aria-label={t('community.filterByType')}>
+              <button type="button" onClick={() => setType(null)} aria-pressed={type === null} className={`${segmentClass(type === null)} rounded`}>
                 {t('community.allTypes')}
               </button>
               {TYPES.map((value) => (
-                <button key={value} type="button" onClick={() => setType(type === value ? null : value)} aria-pressed={type === value} className={chipClass(type === value)}>
+                <button key={value} type="button" onClick={() => setType(type === value ? null : value)} aria-pressed={type === value} className={`${segmentClass(type === value)} rounded`}>
                   {TYPE_BADGES[value].label}
                 </button>
               ))}
@@ -175,7 +182,7 @@ export default function CommunityPage() {
               value={sort}
               onChange={(e) => setSort(e.target.value as CommunitySort)}
               aria-label={t('community.sortLabel')}
-              className="input lg:w-44"
+              className="input sm:w-40"
             >
               {(['trending', 'stars', 'forks', 'recent'] as CommunitySort[]).map((value) => (
                 <option key={value} value={value}>
@@ -185,7 +192,7 @@ export default function CommunityPage() {
             </select>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 mb-4" role="group" aria-label={t('community.categoriesLabel')}>
+          <div className="flex flex-wrap gap-1.5 mb-5" role="group" aria-label={t('community.categoriesLabel')}>
             <button type="button" onClick={() => setCategory(null)} aria-pressed={category === null} className={chipClass(category === null)}>
               {t('community.allCategories')}
             </button>
@@ -238,12 +245,12 @@ function ReportsPanel({ reports, loading, error, language }: { reports: Communit
   if (error) return <p className="text-sm text-red-600 dark:text-red-400">{t('community.loadError')}</p>;
   if (reports.length === 0) return <p className="text-sm text-gray-500 dark:text-gray-400">{t('community.reports.empty')}</p>;
   return (
-    <ul className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+    <ul className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
       {reports.map((r) => (
         <li key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
           <div className="min-w-0">
             <p className="text-sm text-gray-900 dark:text-gray-100">
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 mr-2">
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 mr-2">
                 {t(`community.reports.target.${r.target_type}`)}
               </span>
               {r.publication_title}
