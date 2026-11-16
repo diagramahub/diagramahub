@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { renderDiagram } from '../../utils/diagramRenderer';
-import { sanitizeSvg } from '../../utils/sanitize';
 import { fitSvgToContainer } from '../../utils/fitSvg';
+import { loadCommunitySvg } from './svgCache';
 
 interface DiagramThumbnailProps {
   /** Cache key: changes when the content changes (id + updated_at). */
@@ -12,9 +11,6 @@ interface DiagramThumbnailProps {
   title: string;
   className?: string;
 }
-
-// Rendered SVGs by cacheKey: grids re-mount cards when filtering or paging.
-const svgCache = new Map<string, string | null>();
 
 /**
  * A diagram rendered as a static preview. It renders only when it scrolls into
@@ -58,17 +54,7 @@ export function DiagramThumbnail({ cacheKey, content, diagramType, title, classN
       ref.current.innerHTML = svg;
       fitSvgToContainer(ref.current);
     };
-    if (svgCache.has(cacheKey)) {
-      show(svgCache.get(cacheKey) ?? null);
-      return;
-    }
-    renderDiagram(content, diagramType)
-      .then((result) => {
-        const svg = 'svg' in result ? sanitizeSvg(result.svg) : null;
-        svgCache.set(cacheKey, svg);
-        show(svg);
-      })
-      .catch(() => show(null));
+    loadCommunitySvg(cacheKey, content, diagramType).then(show);
     return () => {
       cancelled = true;
     };

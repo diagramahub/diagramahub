@@ -1693,7 +1693,6 @@
     "backToCommunity": "Volver a la Comunidad",
     "hiddenNotice": "Esta publicación está oculta por reportes de la comunidad. Solo la ven su autor y los administradores.",
     "publishedOn": "publicado el {{date}}",
-    "viewCode": "Ver código",
     "commentsTitle": "Comentarios ({{count}})",
     "commentPlaceholder": "Escribe un comentario público (Markdown)…",
     "commentHint": "Sé amable: los comentarios se pueden reportar.",
@@ -1775,6 +1774,30 @@
       "alreadyPublished": "Este diagrama está publicado: {{stars}} estrellas, {{forks}} forks.",
       "viewInCommunity": "Ver en la Comunidad",
       "snapshotHint": "La Comunidad muestra una copia del código; actualízala cuando cambies el diagrama (o activa la publicación automática)."
+    },
+    "viewer": {
+      "label": "Visor del diagrama",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "fit": "Ajustar a la vista",
+      "fullscreen": "Pantalla completa",
+      "exitFullscreen": "Salir de pantalla completa",
+      "hint": "Arrastra para mover · Ctrl/⌘ + rueda o pellizca para hacer zoom · doble clic para ajustar",
+      "hintFullscreen": "Arrastra para mover · rueda para hacer zoom · Esc para salir"
+    },
+    "detail": {
+      "description": "Descripción",
+      "code": "Código",
+      "lines_one": "{{count}} línea",
+      "lines_other": "{{count}} líneas",
+      "copyCode": "Copiar código",
+      "codeCopied": "Código copiado.",
+      "showMore": "Mostrar más",
+      "showLess": "Mostrar menos",
+      "noDescription": "El autor no agregó una descripción.",
+      "details": "Detalles",
+      "stars": "Estrellas",
+      "license": "Licencia"
     }
   },
   "errorBoundary": {

@@ -1693,7 +1693,6 @@
     "backToCommunity": "Back to the Community",
     "hiddenNotice": "This publication is hidden after community reports. Only its author and administrators can see it.",
     "publishedOn": "published {{date}}",
-    "viewCode": "View code",
     "commentsTitle": "Comments ({{count}})",
     "commentPlaceholder": "Write a public comment (Markdown)…",
     "commentHint": "Be kind: comments can be reported.",
@@ -1775,6 +1774,30 @@
       "alreadyPublished": "This diagram is published: {{stars}} stars, {{forks}} forks.",
       "viewInCommunity": "View in the Community",
       "snapshotHint": "The Community shows a copy of the code; update it when you change the diagram (or turn on automatic publishing)."
+    },
+    "viewer": {
+      "label": "Diagram viewer",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fit": "Fit to view",
+      "fullscreen": "Full screen",
+      "exitFullscreen": "Exit full screen",
+      "hint": "Drag to move · Ctrl/⌘ + wheel or pinch to zoom · double-click to fit",
+      "hintFullscreen": "Drag to move · wheel to zoom · Esc to exit"
+    },
+    "detail": {
+      "description": "Description",
+      "code": "Code",
+      "lines_one": "{{count}} line",
+      "lines_other": "{{count}} lines",
+      "copyCode": "Copy code",
+      "codeCopied": "Code copied.",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "noDescription": "The author didn't add a description.",
+      "details": "Details",
+      "stars": "Stars",
+      "license": "License"
     }
   },
   "errorBoundary": {
