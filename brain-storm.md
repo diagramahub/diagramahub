@@ -12,7 +12,7 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
 ## 🗺️ Mapa de versiones
 
-### 0.9.0 (completado)
+### 0.9.0 (en curso, rama `release/0.9.0`)
 
 **Funciones**
 - ✅ Diagrama desde imagen con IA (foto de pizarrón o captura → código), con los proveedores que aceptan imágenes
@@ -29,14 +29,7 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 - ✅ Frontend: ESLint 10, Vitest 5, Vite 8 + plugin-react 6, TypeScript 6, Mermaid 12 con sus valores predeterminados (ELK, Redux color, neo) y migración de los diagramas existentes, i18next 27 / react-i18next 18, react-markdown 10, Sentry 11
 - ✅ Infraestructura: nginx-unprivileged 1.30, versiones fijas de Kroki y MongoDB
 
-**Seguridad**
-- ✅ CI en GitHub Actions: pruebas, lint, auditoría de dependencias, CodeQL, escaneo de imágenes y Dependabot
-- ✅ Auditoría de acciones sensibles fuera de la autenticación (integraciones, planes, llaves de IA, enlaces compartidos)
-- ✅ Content-Security-Policy activa por defecto en el frontend
-- ✅ Límite explícito de 72 bytes para contraseñas (bcrypt)
-- ✅ Rotación de la llave de cifrado (`AI_ENCRYPTION_KEY`)
-
-### 0.10.0: Comunidad
+**Comunidad**
 
 Portal donde los usuarios publican sus diagramas y que reemplaza la idea de una galería de plantillas (ver §3):
 
@@ -46,6 +39,13 @@ Portal donde los usuarios publican sus diagramas y que reemplaza la idea de una 
 - ⬜ Comentarios públicos
 - ⬜ Categorías y exploración por categoría
 - ⬜ Compartir desde el portal
+
+**Seguridad**
+- ✅ CI en GitHub Actions: pruebas, lint, auditoría de dependencias, CodeQL, escaneo de imágenes y Dependabot
+- ✅ Auditoría de acciones sensibles fuera de la autenticación (integraciones, planes, llaves de IA, enlaces compartidos)
+- ✅ Content-Security-Policy activa por defecto en el frontend
+- ✅ Límite explícito de 72 bytes para contraseñas (bcrypt)
+- ✅ Rotación de la llave de cifrado (`AI_ENCRYPTION_KEY`)
 
 ### Pendiente sin versión asignada
 
@@ -82,7 +82,7 @@ Implementado: `POST /api/v1/diagrams/{id}/fix` (`diagrams/fix_service.py`, promp
 - ⬜ Rollback a versiones anteriores
 
 ### 3. **Plantillas y Biblioteca de Componentes**
-- ⬜ Marketplace de plantillas prediseñadas: se cubrirá con el portal de Comunidad (0.10.0)
+- ⬜ Marketplace de plantillas prediseñadas: se cubrirá con el portal de Comunidad (0.9.0)
 - ⬜ Biblioteca de componentes reutilizables (AWS icons, UML patterns, etc.)
 - ⬜ Snippets personalizados por usuario/equipo
 - ⬜ Import/export de plantillas

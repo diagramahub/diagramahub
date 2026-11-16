@@ -33,6 +33,12 @@ from app.core.config import settings
 from app.main import app
 from tests.utils import generate_test_password, generate_weak_password
 from app.api.v1.api_tokens.schemas import ApiTokenInDB
+from app.api.v1.community.schemas import (
+    CommunityCommentInDB,
+    CommunityReportInDB,
+    CommunityStarInDB,
+    PublishedDiagramInDB,
+)
 
 # Initialize Faker
 fake = Faker()
@@ -101,6 +107,10 @@ async def test_db() -> AsyncGenerator:
             OAuthStateToken,
             MfaTokenAttempt,
             ApiTokenInDB,
+            PublishedDiagramInDB,
+            CommunityStarInDB,
+            CommunityCommentInDB,
+            CommunityReportInDB,
         ],
     )
 

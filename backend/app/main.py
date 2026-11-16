@@ -47,6 +47,13 @@ from app.core.config import settings
 from app.core.request_limits import BodySizeLimitMiddleware
 from app.api.v1.api_tokens.routes import router as api_tokens_router
 from app.api.v1.api_tokens.schemas import ApiTokenInDB
+from app.api.v1.community.routes import router as community_router
+from app.api.v1.community.schemas import (
+    CommunityCommentInDB,
+    CommunityReportInDB,
+    CommunityStarInDB,
+    PublishedDiagramInDB,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +166,10 @@ async def lifespan(app: FastAPI):
             OAuthStateToken,
             MfaTokenAttempt,
             ApiTokenInDB,
+            PublishedDiagramInDB,
+            CommunityStarInDB,
+            CommunityCommentInDB,
+            CommunityReportInDB,
         ],
     )
 
@@ -288,6 +299,7 @@ app.include_router(
 app.include_router(mfa_router, prefix=settings.API_V1_PREFIX, tags=["MFA"])
 app.include_router(oauth_router, prefix=settings.API_V1_PREFIX, tags=["OAuth"])
 app.include_router(api_tokens_router, prefix=settings.API_V1_PREFIX)
+app.include_router(community_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

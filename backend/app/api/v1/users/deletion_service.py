@@ -16,6 +16,7 @@ from app.api.v1.subscriptions.interfaces import ISubscriptionRepository
 from app.api.v1.ai_providers.interfaces import IAIProviderRepository
 from app.api.v1.prompt_history.interfaces import IPromptHistoryRepository
 from app.api.v1.api_tokens.interfaces import IApiTokenRepository
+from app.api.v1.community.interfaces import ICommunityRepository
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ class AccountDeletionService:
         ai_provider_repository: IAIProviderRepository,
         prompt_history_repository: IPromptHistoryRepository,
         api_token_repository: Optional[IApiTokenRepository] = None,
+        community_repository: Optional[ICommunityRepository] = None,
     ):
         self.user_repository = user_repository
         self.project_repository = project_repository
@@ -42,6 +44,7 @@ class AccountDeletionService:
         self.ai_provider_repository = ai_provider_repository
         self.prompt_history_repository = prompt_history_repository
         self.api_token_repository = api_token_repository
+        self.community_repository = community_repository
 
     async def delete_user_account(self, user_id: str) -> None:
         """Delete all data associated with a user account.
@@ -139,7 +142,17 @@ class AccountDeletionService:
                 )
                 raise
 
-        # 8. Delete the user document
+        # 8. Community: publications (with their stars, comments, reports), stars, comments
+        if self.community_repository is not None:
+            try:
+                await self.community_repository.delete_user_data(user_id)
+            except Exception as e:
+                logger.error(
+                    "Failed to delete data for user_id=%s, collection=community_*: %s", user_id, e
+                )
+                raise
+
+        # 9. Delete the user document
         try:
             await self.user_repository.delete_by_id(user_id)
         except Exception as e:
