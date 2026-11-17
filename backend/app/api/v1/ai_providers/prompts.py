@@ -7,6 +7,8 @@ utilizadas por los clientes de IA (OpenAI, Claude, Gemini, DeepSeek).
 import re
 from typing import Optional
 
+from ..diagrams.mermaid_types import MERMAID_DIAGRAM_KEYWORDS
+
 # ------------------------------------------------------------------ #
 #  Contexto de tipos de diagrama
 # ------------------------------------------------------------------ #
@@ -1771,7 +1773,7 @@ CÓDIGO ORIGINAL:
 - Etiquetas en flechas: -->|texto|, -.->|texto|
 - Subgrafos: subgraph titulo ... end
 - Comentarios: %% comentario
-- Tipos válidos: graph, flowchart, sequenceDiagram, classDiagram, stateDiagram, erDiagram, gantt, pie, journey
+- Tipos válidos (conserva el del diagrama): {", ".join(MERMAID_DIAGRAM_KEYWORDS)}
 
 {lang["instructions_label"]}
 {chr(10).join(lang["instructions"])}

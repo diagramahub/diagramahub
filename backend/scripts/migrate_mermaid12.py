@@ -9,8 +9,11 @@ app couldn't apply them). This script rewrites those blocks to Mermaid 12's
 defaults:
 
 - theme ``default`` (or none) -> ``redux-color``
-- adds ``"layout": "elk"`` and ``"look": "neo"`` when missing (``handDrawn``
-  when the block has a ``handDrawnSeed``)
+- adds ``"look": "neo"`` when missing (``handDrawn`` when the block has a
+  ``handDrawnSeed``)
+- drops ``"layout": "elk"``: ELK is already Mermaid 12's default, and naming it
+  forces ELK on diagrams with their own engine, so a mindmap fails to render
+  (this also repairs blocks written by 0.9.0 development builds)
 - drops ``flowchart.curve: "basis"`` (Mermaid's default curve, so nothing
   changes visually)
 
@@ -37,7 +40,7 @@ from app.core.config import settings
 _INIT_BLOCK = re.compile(r"^(\s*)%%\{init:\s*(\{.*?\})\s*\}%%", re.DOTALL)
 OLD_DEFAULT_THEME = "default"
 NEW_THEME = "redux-color"
-NEW_LAYOUT = "elk"
+DEFAULT_LAYOUT = "elk"
 NEW_LOOK = "neo"
 
 
@@ -56,8 +59,8 @@ def migrate_init_block(content: str) -> Optional[str]:
 
     if init.get("theme") in (None, "", OLD_DEFAULT_THEME):
         init["theme"] = NEW_THEME
-    if not init.get("layout"):
-        init["layout"] = NEW_LAYOUT
+    if init.get("layout") == DEFAULT_LAYOUT:
+        del init["layout"]
     if not init.get("look"):
         init["look"] = "handDrawn" if init.get("handDrawnSeed") is not None else NEW_LOOK
     flowchart = init.get("flowchart")

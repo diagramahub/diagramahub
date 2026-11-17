@@ -26,6 +26,7 @@ from ..prompt_history.interfaces import IPromptHistoryRepository
 from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
+from ..diagrams.mermaid_types import MERMAID_KEYWORD_PATTERN, mermaid_diagram_keyword
 from ..diagrams.syntax_validator import SyntaxValidator
 from app.api.v1.ai_providers.model_catalog import context_window as model_context_window
 
@@ -1242,7 +1243,7 @@ class ChatSessionService:
         raw_patterns = {
             "plantuml": r"@startuml\b.*?@enduml\b",
             "uml": r"@startuml\b.*?@enduml\b",
-            "mermaid": r"^(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline)\b.+",
+            "mermaid": rf"^{MERMAID_KEYWORD_PATTERN}.+",
             "dbml": r"^(?:Table|Enum|Project)\s+\S+\s*\{.+",
         }
         pattern = raw_patterns.get(diagram_type)
@@ -1290,23 +1291,7 @@ class ChatSessionService:
             if diagram_type in ("plantuml", "uml"):
                 whole = "@startuml" in code
             elif diagram_type == "mermaid":
-                first = next(
-                    (
-                        ln.strip()
-                        for ln in code.splitlines()
-                        if ln.strip() and not ln.strip().startswith("%%")
-                    ),
-                    "",
-                )
-                whole = bool(
-                    re.match(
-                        r"(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram"
-                        r"|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram"
-                        r"|C4\w+|sankey(?:-beta)?|xychart(?:-beta)?|block(?:-beta)?|architecture(?:-beta)?"
-                        r"|kanban|packet(?:-beta)?|radar(?:-beta)?)\b",
-                        first,
-                    )
-                )
+                whole = mermaid_diagram_keyword(code) is not None
             elif diagram_type == "dbml":
                 whole = bool(re.search(r"^\s*Table\s+\S+.*\{", code, re.MULTILINE))
             else:

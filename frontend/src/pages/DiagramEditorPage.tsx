@@ -60,7 +60,7 @@ import MobileBottomToolbar from "../components/MobileBottomToolbar";
 import BottomSheet from "../components/BottomSheet";
 import { useDiagramErrorDetection } from "../hooks/useDiagramErrorDetection";
 import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
-import { configInitBlockManager } from "../utils/configInitBlockManager";
+import { configInitBlockManager, splitFrontmatter } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
 import { apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
@@ -149,7 +149,10 @@ export default function DiagramEditorPage() {
     fontFamily: string,
     fontSize: string,
   ): string => {
-    let config = `---\nconfig:\n  theme: ${theme}\n  layout: ${layout}\n  look: ${look}\n  flowchart:\n    curve: ${curve}`;
+    // The default layout (ELK) is left to Mermaid: naming it forces ELK on
+    // diagrams with their own engine, and a mindmap then fails to render.
+    const layoutLine = layout && layout !== MERMAID_DEFAULTS.layout ? `\n  layout: ${layout}` : "";
+    let config = `---\nconfig:\n  theme: ${theme}${layoutLine}\n  look: ${look}\n  flowchart:\n    curve: ${curve}`;
 
     // Add themeVariables if fontFamily or fontSize are set
     if (fontFamily || fontSize) {
@@ -188,6 +191,19 @@ export default function DiagramEditorPage() {
       // Remove init block from diagram code before adding frontmatter for rendering
       const parseResult = configInitBlockManager.parseConfig(diagramCode);
       const codeWithoutInit = parseResult.contentWithoutInit;
+      // The diagram brings its own front matter (e.g. `config: flowchart:
+      // stepNumbers`): a second one in front would break it, so the editor's
+      // settings go after it as an init block, without the keys it sets.
+      if (splitFrontmatter(codeWithoutInit).frontmatter) {
+        return configInitBlockManager.embedConfig(codeWithoutInit, {
+          theme: diagramTheme,
+          layout: diagramLayout,
+          look: diagramLook,
+          curve: diagramCurve || undefined,
+          fontFamily: diagramFontFamily || undefined,
+          fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined,
+        });
+      }
       return (
         generateFrontmatter(
           diagramTheme,

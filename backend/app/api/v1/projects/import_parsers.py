@@ -21,6 +21,7 @@ import zlib
 from dataclasses import dataclass, field
 from typing import Optional
 
+from ..diagrams.mermaid_types import mermaid_diagram_keyword
 from .export_builders import MANIFEST_FILENAME, sanitize_filename, unique_name
 
 logger = logging.getLogger(__name__)
@@ -69,33 +70,6 @@ _EXTENSION_TYPES: dict[str, str] = {
 _TEXT_EXTENSIONS = (".md", ".markdown", ".txt")
 _ALL_EXTENSIONS = sorted(set(_EXTENSION_TYPES) | set(_TEXT_EXTENSIONS), key=len, reverse=True)
 
-_MERMAID_STARTERS = (
-    "graph",
-    "flowchart",
-    "sequencediagram",
-    "classdiagram",
-    "statediagram",
-    "erdiagram",
-    "gantt",
-    "pie",
-    "journey",
-    "gitgraph",
-    "mindmap",
-    "timeline",
-    "quadrantchart",
-    "requirementdiagram",
-    "c4context",
-    "c4container",
-    "sankey",
-    "xychart",
-    "block-beta",
-    "packet-beta",
-    "kanban",
-    "architecture",
-    "zenuml",
-    "%%{init",
-    "---",
-)
 _FENCE_RE = re.compile(r"^```[ \t]*([A-Za-z0-9_+-]*)[ \t]*$")
 _FENCE_LANGUAGES = {
     "mermaid": "mermaid",
@@ -219,8 +193,7 @@ def detect_type_from_content(content: str) -> Optional[str]:
     lowered = text.lower()
     if "@startuml" in lowered or "@startmindmap" in lowered or "@startgantt" in lowered:
         return "plantuml"
-    first_words = lowered.split(None, 1)[0] if lowered.split() else ""
-    if any(lowered.startswith(s) for s in _MERMAID_STARTERS) or first_words in _MERMAID_STARTERS:
+    if mermaid_diagram_keyword(text) is not None or lowered.startswith("%%{init"):
         return "mermaid"
     if (
         re.search(r"^\s*(table|enum|project|ref|tablegroup)\s+\S+", lowered, re.MULTILINE)

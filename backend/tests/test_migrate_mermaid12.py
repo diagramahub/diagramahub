@@ -15,26 +15,28 @@ from scripts.migrate_mermaid12 import migrate, migrate_init_block
     [
         (
             '%%{init: {"theme":"default","flowchart":{"curve":"basis"}}}%%\ngraph TD\n  A-->B',
-            '%%{init: {"theme":"redux-color","layout":"elk","look":"neo"}}%%\ngraph TD\n  A-->B',
+            '%%{init: {"theme":"redux-color","look":"neo"}}%%\ngraph TD\n  A-->B',
         ),
         (
             '%%{init: {"theme":"dark","flowchart":{"curve":"step"}}}%%\ngraph TD',
-            '%%{init: {"theme":"dark","flowchart":{"curve":"step"},"layout":"elk","look":"neo"}}%%'
-            "\ngraph TD",
+            '%%{init: {"theme":"dark","flowchart":{"curve":"step"},"look":"neo"}}%%\ngraph TD',
         ),
         (
             '%%{init: {"theme":"base","handDrawnSeed":7}}%%\ngraph TD',
-            '%%{init: {"theme":"base","handDrawnSeed":7,"layout":"elk","look":"handDrawn"}}%%'
-            "\ngraph TD",
+            '%%{init: {"theme":"base","handDrawnSeed":7,"look":"handDrawn"}}%%\ngraph TD',
         ),
         (
             '%%{init: {"theme":"default","themeVariables":{"fontSize":"14px"},'
             '"flowchart":{"curve":"basis"}}}%%\ngraph TD',
             '%%{init: {"theme":"redux-color","themeVariables":{"fontSize":"14px"},'
-            '"layout":"elk","look":"neo"}}%%\ngraph TD',
+            '"look":"neo"}}%%\ngraph TD',
+        ),
+        (
+            '%%{init: {"theme":"redux-color","layout":"elk","look":"neo"}}%%\nmindmap\n  root',
+            '%%{init: {"theme":"redux-color","look":"neo"}}%%\nmindmap\n  root',
         ),
     ],
-    ids=["old-default", "chosen-theme-and-curve", "hand-drawn", "keeps-fonts"],
+    ids=["old-default", "chosen-theme-and-curve", "hand-drawn", "keeps-fonts", "drops-elk"],
 )
 def test_pre_090_blocks_are_migrated(content: str, expected: str) -> None:
     assert migrate_init_block(content) == expected
@@ -44,7 +46,7 @@ def test_pre_090_blocks_are_migrated(content: str, expected: str) -> None:
 @pytest.mark.parametrize(
     "content",
     [
-        '%%{init: {"theme":"redux-color","layout":"elk","look":"neo"}}%%\ngraph TD',
+        '%%{init: {"theme":"redux-color","layout":"dagre","look":"neo"}}%%\ngraph TD',
         "graph TD\n  A-->B",
         "%%{init: {not json}}%%\ngraph TD",
     ],

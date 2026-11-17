@@ -37,6 +37,51 @@ export interface InitJson {
   [key: string]: unknown;
 }
 
+/** The editor settings that a diagram's YAML front matter can also set. */
+const EDITOR_KEYS = ['theme', 'layout', 'look', 'curve', 'fontFamily', 'fontSize'] as const;
+type EditorKey = (typeof EDITOR_KEYS)[number];
+
+/**
+ * Split Mermaid's YAML front matter (`---` … `---` at the start) from the rest.
+ * `frontmatter` keeps both delimiters and the line break after the closing one.
+ */
+export function splitFrontmatter(content: string): { frontmatter: string; body: string } {
+  const match = content.match(/^\s*---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!match) return { frontmatter: '', body: content };
+  const frontmatter = match[0].endsWith('\n') ? match[0] : `${match[0]}\n`;
+  return { frontmatter, body: content.slice(match[0].length) };
+}
+
+/** Which editor settings the front matter sets (indented `key:` lines under `config:`). */
+export function frontmatterConfigKeys(frontmatter: string): Set<EditorKey> {
+  return new Set(EDITOR_KEYS.filter((key) => new RegExp(`^[ \\t]+${key}[ \\t]*:`, 'm').test(frontmatter)));
+}
+
+function omitKeys(initJson: InitJson, keys: Set<EditorKey>): InitJson {
+  if (keys.size === 0) return initJson;
+  const result: InitJson = { ...initJson };
+  if (keys.has('theme')) delete result.theme;
+  if (keys.has('layout')) delete result.layout;
+  if (keys.has('look')) {
+    delete result.look;
+    delete result.handDrawnSeed;
+  }
+  if (keys.has('curve') && result.flowchart) {
+    const { curve: _curve, ...flowchart } = result.flowchart;
+    void _curve;
+    if (Object.keys(flowchart).length) result.flowchart = flowchart;
+    else delete result.flowchart;
+  }
+  if (result.themeVariables && (keys.has('fontFamily') || keys.has('fontSize'))) {
+    const themeVariables = { ...result.themeVariables };
+    if (keys.has('fontFamily')) delete themeVariables.fontFamily;
+    if (keys.has('fontSize')) delete themeVariables.fontSize;
+    if (Object.keys(themeVariables).length) result.themeVariables = themeVariables;
+    else delete result.themeVariables;
+  }
+  return result;
+}
+
 export class ConfigInitBlockManager {
   /**
    * Embed Mermaid config into content as init block.
@@ -45,13 +90,23 @@ export class ConfigInitBlockManager {
   embedConfig(content: string, config: MermaidConfig): string {
     // Remove any existing init block
     const contentWithoutInit = this.removeInitBlock(content);
-    
+
     // Convert config to init JSON
-    const initJson = this.configToInitJson(config);
-    
+    let initJson = this.configToInitJson(config);
+
+    // YAML front matter must stay the first thing in the code, or Mermaid
+    // reads it as diagram text. The block goes right after it, without the
+    // keys the front matter sets: a directive would override them, and what
+    // the user wrote in the code wins over the editor's controls.
+    const { frontmatter, body } = splitFrontmatter(contentWithoutInit);
+    if (frontmatter) {
+      initJson = omitKeys(initJson, frontmatterConfigKeys(frontmatter));
+      return `${frontmatter}%%{init: ${JSON.stringify(initJson)}}%%\n${body}`;
+    }
+
     // Format as init block (single line)
     const initBlock = `%%{init: ${JSON.stringify(initJson)}}%%`;
-    
+
     // Combine init block with content
     if (contentWithoutInit.trim()) {
       return `${initBlock}\n${contentWithoutInit}`;
@@ -130,8 +185,10 @@ export class ConfigInitBlockManager {
       initJson.themeVariables = themeVariables;
     }
 
-    // Layout engine and look (top-level keys in Mermaid 12)
-    if (config.layout) {
+    // Layout engine and look (top-level keys in Mermaid 12). The default
+    // layout (ELK) is not written: Mermaid already uses it, and naming it
+    // forces ELK on diagrams with their own engine (a mindmap then fails).
+    if (config.layout && config.layout !== MERMAID_DEFAULTS.layout) {
       initJson.layout = config.layout;
     }
     if (config.look) {

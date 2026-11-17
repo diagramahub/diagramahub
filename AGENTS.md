@@ -164,7 +164,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 |--------|------|---------|----------------------------------|
 | **users** | `users/` | Auth, registration, password mgmt, account deletion | `audit_log.py` |
 | **projects** | `projects/` | Project CRUD | — |
-| **diagrams** | `diagrams/` | Diagram CRUD, AI fix, syntax validation, Kroki proxy | `fix_service.py`, `syntax_validator.py`, `config_utils.py`, `fix_prompts.py`, `kroki_client.py` |
+| **diagrams** | `diagrams/` | Diagram CRUD, AI fix, syntax validation, Kroki proxy | `fix_service.py`, `syntax_validator.py`, `mermaid_types.py` (Mermaid headers the server accepts: keep in sync with the bundled `mermaid` version), `config_utils.py`, `fix_prompts.py`, `kroki_client.py` |
 | **folders** | `folders/` | Folder CRUD | — |
 | **ai_providers** | `ai_providers/` | AI provider config + LLM clients (5 providers) | `clients/` subfolder (with `factory.py`), `prompts.py`, `model_catalog.json` + `model_catalog.py` |
 | **chat_sessions** | `chat_sessions/` | AI chat session management | — |

@@ -6,6 +6,13 @@ import re
 from typing import Optional
 from pydantic import BaseModel, Field
 
+from .mermaid_types import (
+    MERMAID_DIAGRAM_KEYWORDS,
+    SUBGRAPH_DIAGRAMS,
+    mermaid_diagram_keyword,
+    mermaid_header_line,
+)
+
 
 class ValidationResult(BaseModel):
     """Resultado de validación de sintaxis."""
@@ -20,30 +27,20 @@ class ValidationResult(BaseModel):
 class SyntaxValidator:
     """Validador de sintaxis para diagramas Mermaid, PlantUML, D2 y DBML."""
 
-    # Tipos de diagrama Mermaid válidos
-    VALID_MERMAID_TYPES = [
-        "graph",
-        "flowchart",
-        "sequenceDiagram",
-        "classDiagram",
-        "stateDiagram",
-        "stateDiagram-v2",
-        "erDiagram",
-        "gantt",
-        "pie",
-        "journey",
-        "gitGraph",
-        "mindmap",
-        "timeline",
-        "quadrantChart",
-        "requirementDiagram",
-        "C4Context",
-    ]
+    # Tipos de diagrama Mermaid válidos (los de la versión que renderiza el frontend)
+    VALID_MERMAID_TYPES = list(MERMAID_DIAGRAM_KEYWORDS)
 
     @staticmethod
     async def validate_mermaid(code: str) -> ValidationResult:
         """
-        Validar sintaxis de Mermaid.
+        Validar la estructura de un diagrama Mermaid.
+
+        Solo comprueba lo que se puede comprobar sin el parser de Mermaid (que vive
+        en el navegador): que empiece con un tipo de diagrama conocido, saltando el
+        front matter (``---``) y las líneas ``%%``, y que los subgrafos de los
+        diagramas que los usan estén cerrados. ``end`` también cierra bloques en
+        otros diagramas (loop/alt en sequenceDiagram, bloques en block), así que el
+        balance solo se cuenta en flowchart, graph y swimlane.
 
         Args:
             code: Código del diagrama Mermaid
@@ -52,54 +49,37 @@ class SyntaxValidator:
             ValidationResult con resultado de validación
         """
         try:
-            # Verificar código vacío
             if not code or not code.strip():
                 return ValidationResult(
                     is_valid=False, error_message="El código del diagrama está vacío"
                 )
 
-            lines = code.strip().split("\n")
-
-            # Verificar tipo de diagrama válido en la primera línea
-            first_line = lines[0].strip()
-
-            # Remover comentarios de la primera línea
-            first_line_no_comment = re.sub(r"%%.*$", "", first_line).strip()
-
-            if not first_line_no_comment:
-                # Si la primera línea es solo un comentario, buscar la siguiente línea no vacía
-                for i, line in enumerate(lines[1:], start=1):
-                    line_clean = re.sub(r"%%.*$", "", line).strip()
-                    if line_clean:
-                        first_line_no_comment = line_clean
-                        break
-
-            # Verificar si comienza con un tipo válido
-            diagram_type_found = False
-            for valid_type in SyntaxValidator.VALID_MERMAID_TYPES:
-                if first_line_no_comment.startswith(valid_type):
-                    diagram_type_found = True
-                    break
-
-            if not diagram_type_found:
+            header, header_line = mermaid_header_line(code)
+            keyword = mermaid_diagram_keyword(code)
+            if keyword is None:
+                shown = header[:60] if header else "(vacío)"
                 return ValidationResult(
                     is_valid=False,
-                    error_message=f"Tipo de diagrama no reconocido. Debe comenzar con uno de: {', '.join(SyntaxValidator.VALID_MERMAID_TYPES)}",
-                    error_line=1,
+                    error_message=(
+                        f"Tipo de diagrama Mermaid no reconocido: «{shown}». La primera línea "
+                        "(después del front matter) debe ser el tipo, por ejemplo flowchart LR, "
+                        "sequenceDiagram, classDiagram o venn-beta"
+                    ),
+                    error_line=header_line or 1,
                 )
 
-            # Validaciones básicas de sintaxis
-            # Verificar balance de bloques (subgraph, etc.)
+            if keyword not in SUBGRAPH_DIAGRAMS:
+                return ValidationResult(is_valid=True)
+
             subgraph_count = 0
-            for i, line in enumerate(lines, start=1):
+            for i, line in enumerate(code.split("\n"), start=1):
                 line_clean = re.sub(r"%%.*$", "", line).strip()
 
-                if "subgraph" in line_clean.lower():
+                if re.match(r"subgraph\b", line_clean):
                     subgraph_count += 1
-                if line_clean.lower() == "end":
+                if line_clean == "end":
                     subgraph_count -= 1
 
-                # Verificar que no haya más 'end' que 'subgraph'
                 if subgraph_count < 0:
                     return ValidationResult(
                         is_valid=False,
@@ -107,7 +87,6 @@ class SyntaxValidator:
                         error_line=i,
                     )
 
-            # Verificar que todos los subgraphs estén cerrados
             if subgraph_count > 0:
                 return ValidationResult(
                     is_valid=False,
