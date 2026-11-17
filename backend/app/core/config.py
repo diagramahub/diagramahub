@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     MAX_IMPORT_FILES: int = 500
     MAX_IMPORT_UNCOMPRESSED_BYTES: int = 50 * 1024 * 1024
 
+    # Community: anyone (signed in or not) can browse publications, open them
+    # and read their comments. False keeps the whole community behind sign-in
+    # (e.g. a private company instance). Anything that saves still needs sign-in.
+    COMMUNITY_PUBLIC: bool = True
+
     # MongoDB
     MONGO_URI: str = "mongodb://mongodb:27017"
     DATABASE_NAME: str = "diagramahub"

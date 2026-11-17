@@ -1,3 +1,4 @@
+import { takeReturnTo } from '../utils/returnTo';
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +29,7 @@ const OAuthCallbackPage: React.FC = () => {
       try {
         const response = await apiService.oauthCallback({ code, state, provider });
         await loginWithOAuth(response.access_token);
-        navigate('/dashboard', { replace: true });
+        navigate(takeReturnTo('/dashboard'), { replace: true });
       } catch {
         navigate('/login?oauth_error=true', { replace: true });
       }

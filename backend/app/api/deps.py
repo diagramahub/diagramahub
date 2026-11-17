@@ -7,7 +7,7 @@ repositories directly for identity lookups. Moved here from
 ``app.api.v1.users.routes`` during the 0.7.0 SOLID alignment.
 """
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -21,6 +21,8 @@ from app.core.config import settings
 from app.core.security import decode_access_token
 
 security = HTTPBearer()
+# For routes that also serve anonymous visitors: no credentials -> None.
+optional_security = HTTPBearer(auto_error=False)
 
 
 def get_user_service() -> UserService:
@@ -108,6 +110,20 @@ async def get_current_user_email(
             )
 
     return email
+
+
+async def get_optional_user_email(
+    request: Request,
+    credentials: Annotated[Optional[HTTPAuthorizationCredentials], Depends(optional_security)],
+) -> Optional[str]:
+    """The signed-in user's email, or None for an anonymous visitor.
+
+    Credentials that are sent must still be valid (401 otherwise): only their
+    absence makes the visitor anonymous.
+    """
+    if credentials is None:
+        return None
+    return await get_current_user_email(request, credentials)
 
 
 async def get_current_user(

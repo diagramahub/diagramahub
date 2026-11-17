@@ -1,3 +1,4 @@
+import { takeReturnTo } from '../utils/returnTo';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -137,7 +138,7 @@ const MfaVerifyPage: React.FC = () => {
       );
 
       await completeMfaLogin(response.access_token);
-      navigate('/dashboard', { replace: true });
+      navigate(takeReturnTo('/dashboard'), { replace: true });
     } catch (err: unknown) {
       const status = apiErrorStatus(err);
       const detail = apiErrorMessage(err) || '';

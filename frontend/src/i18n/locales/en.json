@@ -1704,7 +1704,7 @@
     "publish": {
       "button": "Publish to the Community",
       "title": "Publish to the Community",
-      "subtitle": "Everyone can see what you publish, and it stays in sync with your diagram.",
+      "subtitle": "Anyone can see what you publish, even without an account, and it stays in sync with your diagram.",
       "category": "Category",
       "tags": "Tags",
       "tagsPlaceholder": "Type a tag…",
@@ -1764,6 +1764,24 @@
       "tooltip": "Published to the Community: every user can see it.",
       "hiddenTooltip": "Published, but hidden by moderation: others can't see it.",
       "manage": "Manage the publication"
+    },
+    "signIn": {
+      "title": "Join to continue",
+      "register": "Create a free account",
+      "registerShort": "Sign up",
+      "login": "Sign in",
+      "notNow": "Not now",
+      "comeBack": "You'll come back to this page when you're done.",
+      "commentCta": "Sign in or create an account to comment.",
+      "commentButton": "Comment",
+      "reasons": {
+        "star": "Create an account to star the diagrams you like and find them later in “My stars”.",
+        "fork": "Create an account to copy this diagram into one of your projects and edit it.",
+        "comment": "Create an account to comment and reply in the Community.",
+        "report": "Create an account to report content that breaks the rules.",
+        "publish": "Create an account to publish your own diagrams to the Community.",
+        "tabs": "Create an account to see your stars and your publications."
+      }
     }
   },
   "errorBoundary": {

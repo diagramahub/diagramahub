@@ -142,7 +142,7 @@ class CommunityService:
         return diagram if project and project.user_id == user_id else None
 
     async def _visible(
-        self, publication_id: str, user_id: str, is_admin: bool
+        self, publication_id: str, user_id: Optional[str], is_admin: bool
     ) -> PublishedDiagramInDB:
         publication = await self.repository.get_publication(publication_id)
         if not publication or (
@@ -168,7 +168,7 @@ class CommunityService:
 
     async def list_publications(
         self,
-        user_id: str,
+        user_id: Optional[str],
         is_admin: bool,
         *,
         tab: str = "explore",
@@ -196,25 +196,32 @@ class CommunityService:
             limit=page_size,
         )
         await self._sync(items)
-        starred = await self.repository.starred_ids(user_id, [str(p.id) for p in items])
+        starred = (
+            await self.repository.starred_ids(user_id, [str(p.id) for p in items])
+            if user_id
+            else set()
+        )
         cards = [_card(p, starred) for p in items]
         for card in cards:  # the grid only shows a two-line excerpt
             card.description = card.description[:LIST_DESCRIPTION_LENGTH]
         return PublicationPage(items=cards, total=total, page=page, page_size=page_size)
 
     async def get_detail(
-        self, publication_id: str, user_id: str, is_admin: bool
+        self, publication_id: str, user_id: Optional[str], is_admin: bool
     ) -> PublicationDetail:
-        """A publication's page (in sync with its diagram); counts the view."""
+        """A publication's page (in sync with its diagram); counts the view.
+
+        ``user_id`` is None for an anonymous visitor.
+        """
         publication = await self._visible(publication_id, user_id, is_admin)
-        is_owner = publication.owner_id == user_id
+        is_owner = user_id is not None and publication.owner_id == user_id
         await self._sync([publication])
 
         if not is_owner:
             await self.repository.increment(publication_id, "views_count")
             publication.views_count += 1
 
-        starred = await self.repository.starred_ids(user_id, [publication_id])
+        starred = await self.repository.starred_ids(user_id, [publication_id]) if user_id else set()
         others = [
             p
             for p in await self.repository.list_by_owner(publication.owner_id, 6)
@@ -418,10 +425,10 @@ class CommunityService:
     # ------------------------------------------------------------------ #
 
     async def list_comments(
-        self, publication_id: str, user_id: str, is_admin: bool
+        self, publication_id: str, user_id: Optional[str], is_admin: bool
     ) -> list[CommentResponse]:
         publication = await self._visible(publication_id, user_id, is_admin)
-        is_owner = publication.owner_id == user_id
+        is_owner = user_id is not None and publication.owner_id == user_id
         return [
             CommentResponse(
                 id=str(c.id),

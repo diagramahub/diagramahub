@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
+import { apiErrorStatus } from '../utils/apiError';
 import { useAuth } from '../contexts/AuthContext';
+import { useAccountGate } from '../hooks/useAccountGate';
 import type {
   CommunityCategory,
   CommunityReport,
@@ -26,6 +28,8 @@ export default function CommunityPage() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const { isAuthenticated, requireAccount, accountPrompt } = useAccountGate();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('explore');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -62,13 +66,18 @@ export default function CommunityPage() {
         setItems((prev) => (nextPage === 1 ? result.items : [...prev, ...result.items]));
         setTotal(result.total);
         setPage(nextPage);
-      } catch {
+      } catch (err: unknown) {
+        // A private community (COMMUNITY_PUBLIC off): sign in and come back.
+        if (apiErrorStatus(err) === 401 && !isAuthenticated) {
+          navigate('/login?next=%2Fcommunity', { replace: true });
+          return;
+        }
         setError(true);
       } finally {
         setLoading(false);
       }
     },
-    [tab, debounced, category, type, sort],
+    [tab, debounced, category, type, sort, isAuthenticated, navigate],
   );
 
   useEffect(() => {
@@ -86,6 +95,7 @@ export default function CommunityPage() {
   }, [tab]);
 
   const toggleStar = async (publication: PublicationCard) => {
+    if (!requireAccount('star')) return;
     const next = !publication.starred_by_me;
     const apply = (starred: boolean, count: number) =>
       setItems((prev) => prev.map((p) => (p.id === publication.id ? { ...p, starred_by_me: starred, stars_count: count } : p)));
@@ -121,7 +131,7 @@ export default function CommunityPage() {
     }`;
 
   return (
-    <div className="px-4 pb-4 pt-16 sm:px-6 sm:pb-6 md:pt-6 max-w-7xl mx-auto">
+    <div className={`px-4 pb-4 sm:px-6 sm:pb-6 max-w-7xl mx-auto ${isAuthenticated ? 'pt-16 md:pt-6' : 'pt-6'}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="page-title">{t('community.title')}</h1>
@@ -129,6 +139,9 @@ export default function CommunityPage() {
         </div>
         <Link
           to="/projects-list"
+          onClick={(e) => {
+            if (!requireAccount('publish')) e.preventDefault();
+          }}
           className="btn btn-primary self-start sm:self-auto"
           title={t('community.publishHint')}
         >
@@ -143,7 +156,10 @@ export default function CommunityPage() {
             role="tab"
             type="button"
             aria-selected={tab === item.id}
-            onClick={() => setTab(item.id)}
+            onClick={() => {
+              if ((item.id === 'starred' || item.id === 'mine') && !requireAccount('tabs')) return;
+              setTab(item.id);
+            }}
             className={`h-10 px-3 whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500/50 rounded-t-md ${
               tab === item.id
                 ? 'text-gray-900 dark:text-white font-medium shadow-[inset_0_-2px_0_theme(colors.purple.600)] dark:shadow-[inset_0_-2px_0_theme(colors.purple.400)]'
@@ -235,6 +251,7 @@ export default function CommunityPage() {
           )}
         </>
       )}
+      {accountPrompt}
     </div>
   );
 }

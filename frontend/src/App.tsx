@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { CommunityShell } from './components/community/CommunityShell';
 import PrivateRoute from './components/PrivateRoute';
 import SidebarLayout from './components/SidebarLayout';
 import InstallationGuard from './components/InstallationGuard';
@@ -191,25 +192,21 @@ function App() {
                   />
 
                   {/* Authenticated routes with Sidebar */}
-                  {/* Community portal */}
+                  {/* Community portal: public (anonymous visitors can browse and read) */}
                   <Route
                     path="/community"
                     element={
-                      <PrivateRoute>
-                        <SidebarLayout>
-                          <CommunityPage />
-                        </SidebarLayout>
-                      </PrivateRoute>
+                      <CommunityShell>
+                        <CommunityPage />
+                      </CommunityShell>
                     }
                   />
                   <Route
                     path="/community/:id"
                     element={
-                      <PrivateRoute>
-                        <SidebarLayout>
-                          <CommunityDiagramPage />
-                        </SidebarLayout>
-                      </PrivateRoute>
+                      <CommunityShell>
+                        <CommunityDiagramPage />
+                      </CommunityShell>
                     }
                   />
                   <Route

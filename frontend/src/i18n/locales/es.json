@@ -1704,7 +1704,7 @@
     "publish": {
       "button": "Publicar en la Comunidad",
       "title": "Publicar en la Comunidad",
-      "subtitle": "Lo publicado lo ven todos los usuarios y se mantiene sincronizado con tu diagrama.",
+      "subtitle": "Lo publicado lo puede ver cualquiera, incluso sin cuenta, y se mantiene sincronizado con tu diagrama.",
       "category": "Categoría",
       "tags": "Etiquetas",
       "tagsPlaceholder": "Escribe una etiqueta…",
@@ -1764,6 +1764,24 @@
       "tooltip": "Publicado en la Comunidad: todos los usuarios pueden verlo.",
       "hiddenTooltip": "Publicado, pero oculto por moderación: los demás no pueden verlo.",
       "manage": "Administrar la publicación"
+    },
+    "signIn": {
+      "title": "Únete para continuar",
+      "register": "Crear cuenta gratis",
+      "registerShort": "Crear cuenta",
+      "login": "Iniciar sesión",
+      "notNow": "Ahora no",
+      "comeBack": "Al terminar volverás a esta página.",
+      "commentCta": "Inicia sesión o crea una cuenta para comentar.",
+      "commentButton": "Comentar",
+      "reasons": {
+        "star": "Crea una cuenta para dar estrella a los diagramas que te gustan y encontrarlos después en «Mis estrellas».",
+        "fork": "Crea una cuenta para copiar este diagrama a uno de tus proyectos y editarlo.",
+        "comment": "Crea una cuenta para comentar y responder en la Comunidad.",
+        "report": "Crea una cuenta para reportar contenido que incumpla las normas.",
+        "publish": "Crea una cuenta para publicar tus propios diagramas en la Comunidad.",
+        "tabs": "Crea una cuenta para ver tus estrellas y tus publicaciones."
+      }
     }
   },
   "errorBoundary": {

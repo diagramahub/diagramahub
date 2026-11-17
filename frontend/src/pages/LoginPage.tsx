@@ -7,6 +7,7 @@ import LanguageSelector from '../components/LanguageSelector';
 import AnimatedBackground from '../components/AnimatedBackground';
 import ThemeToggleButton from '../components/ThemeToggleButton';
 import { BrandLogo } from '../components/BrandLogo';
+import { rememberReturnTo, takeReturnTo } from '../utils/returnTo';
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
@@ -19,6 +20,11 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const oauthError = searchParams.get('oauth_error');
+  // Came from a public page (e.g. the community): go back there after signing in.
+  const next = searchParams.get('next');
+  React.useEffect(() => {
+    rememberReturnTo(next);
+  }, [next]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +44,7 @@ const LoginPage: React.FC = () => {
           },
         });
       } else {
-        navigate('/dashboard');
+        navigate(takeReturnTo('/dashboard'));
       }
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : '') || 'Login failed. Please try again.');

@@ -1,6 +1,6 @@
 # Comunidad
 
-La **Comunidad** es el portal donde los usuarios publican sus diagramas para que otros los encuentren, les den estrella, los comenten y hagan **fork** (una copia editable en su propia cuenta). Se abre desde **Comunidad** en el menú lateral; necesitas haber iniciado sesión.
+La **Comunidad** es el portal donde los usuarios publican sus diagramas para que otros los encuentren, les den estrella, los comenten y hagan **fork** (una copia editable en su propia cuenta). Se abre desde **Comunidad** en el menú lateral. Es **pública**: cualquiera, sin cuenta, puede explorarla en `/community`, abrir los diagramas y leer los comentarios. Al dar estrella, hacer fork, comentar, reportar o publicar, a quien no ha iniciado sesión se le invita a crear una cuenta o a entrar, y al terminar vuelve a la misma página. (Quien administra la instalación puede cerrarla con [`COMMUNITY_PUBLIC`](../self-host/configuracion.md#comunidad).)
 
 ## Explorar
 
@@ -36,7 +36,7 @@ Todo lo publicado es **público** bajo la licencia [**CC BY 4.0**](https://creat
 Cada fork queda **registrado**: suma al contador de forks de la publicación original y conserva de dónde salió. Si alguien publica su fork, su página muestra **Fork de «título» de autor** con el enlace al original (o solo el título y el autor, si el original ya se retiró).
 
 !!! warning "Revisa los datos antes de publicar"
-    Un diagrama publicado lo ven todos los usuarios de la instancia. Quita credenciales, nombres de clientes o IPs internas antes de publicarlo.
+    Un diagrama publicado lo puede ver cualquiera, incluso sin cuenta. Quita credenciales, nombres de clientes o IPs internas antes de publicarlo.
 
 Para **retirarlo**, usa **Retirar de la Comunidad** en el editor o en su página: deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan.
 

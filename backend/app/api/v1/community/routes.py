@@ -1,6 +1,10 @@
 """
-Routes for the community portal. Every route needs a signed-in user; admin
-routes also need the admin role.
+Routes for the community portal.
+
+Browsing, a publication's page and its comments are public when
+``settings.COMMUNITY_PUBLIC`` is on (the default): anonymous visitors can read
+them. Everything that saves (publish, star, fork, comment, report) and the
+personal tabs need a signed-in user; admin routes also need the admin role.
 """
 
 from dataclasses import dataclass
@@ -8,7 +12,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_user_email
 from app.api.v1.diagrams.repository import DiagramRepository
 from app.api.v1.diagrams.routes import get_diagram_service, get_usage_limiter
 from app.api.v1.projects.repository import ProjectRepository
@@ -54,6 +58,26 @@ async def get_member(user=Depends(get_current_user)) -> Member:
     return Member(user_id=str(user.id), is_admin=user.role == UserRole.ADMIN)
 
 
+async def get_viewer(email: Optional[str] = Depends(get_optional_user_email)) -> Optional[Member]:
+    """The signed-in user, or None for an anonymous visitor of a public community.
+
+    Raises:
+        HTTPException 401: Anonymous while the community isn't public, or the account is gone
+    """
+    if email is None:
+        if not settings.COMMUNITY_PUBLIC:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return None
+    user = await UserRepository().get_by_email(email)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return Member(user_id=str(user.id), is_admin=user.role == UserRole.ADMIN)
+
+
 async def get_admin(member: Member = Depends(get_member)) -> Member:
     """Require the admin role."""
     if not member.is_admin:
@@ -90,13 +114,17 @@ async def list_publications(
     sort: Literal["trending", "stars", "forks", "recent"] = "trending",
     page: int = Query(1, ge=1),
     page_size: int = Query(24, ge=1, le=60),
-    member: Member = Depends(get_member),
+    viewer: Optional[Member] = Depends(get_viewer),
     service: CommunityService = Depends(get_community_service),
 ) -> PublicationPage:
-    """Browse published diagrams."""
+    """Browse published diagrams (public; the starred and mine tabs need sign-in)."""
+    if viewer is None and tab in ("starred", "mine"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in to see this tab"
+        )
     return await service.list_publications(
-        member.user_id,
-        member.is_admin,
+        viewer.user_id if viewer else None,
+        viewer.is_admin if viewer else False,
         tab=tab,
         text=q,
         category=category.value if category else None,
@@ -110,11 +138,13 @@ async def list_publications(
 @router.get("/diagrams/{publication_id}", response_model=PublicationDetail)
 async def get_publication(
     publication_id: str,
-    member: Member = Depends(get_member),
+    viewer: Optional[Member] = Depends(get_viewer),
     service: CommunityService = Depends(get_community_service),
 ) -> PublicationDetail:
-    """A publication's page (counts a view)."""
-    return await service.get_detail(publication_id, member.user_id, member.is_admin)
+    """A publication's page (public; counts a view)."""
+    return await service.get_detail(
+        publication_id, viewer.user_id if viewer else None, viewer.is_admin if viewer else False
+    )
 
 
 @router.get("/my-published", response_model=list[PublishedSource])
@@ -238,11 +268,13 @@ async def fork(
 @router.get("/diagrams/{publication_id}/comments", response_model=list[CommentResponse])
 async def list_comments(
     publication_id: str,
-    member: Member = Depends(get_member),
+    viewer: Optional[Member] = Depends(get_viewer),
     service: CommunityService = Depends(get_community_service),
 ) -> list[CommentResponse]:
-    """A publication's visible comments, oldest first."""
-    return await service.list_comments(publication_id, member.user_id, member.is_admin)
+    """A publication's visible comments, oldest first (public)."""
+    return await service.list_comments(
+        publication_id, viewer.user_id if viewer else None, viewer.is_admin if viewer else False
+    )
 
 
 @router.post(

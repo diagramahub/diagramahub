@@ -89,6 +89,12 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 | `MAX_IMPORT_FILES` | `500` | Maximum number of files in one import. |
 | `MAX_IMPORT_UNCOMPRESSED_BYTES` | `52428800` (50 MB) | Maximum size a ZIP may expand to. |
 
+### Community
+
+| Variable | Default | What for |
+|---|---|---|
+| `COMMUNITY_PUBLIC` | `True` | Anyone, without signing in, can browse the [Community](../guide/community.md), open its diagrams and read the comments. With `False` the whole Community needs sign-in (for example, an internal company instance). Publishing, starring, commenting, forking and reporting always need an account. |
+
 ### Monitoring (optional)
 
 | Variable | Default | Description |

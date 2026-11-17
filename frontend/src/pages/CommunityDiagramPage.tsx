@@ -10,6 +10,7 @@ import { COMMUNITY_LICENSE, communityLicenseUrl, compactCount, threadComments } 
 import { dateLocale } from '../utils/locale';
 import { apiErrorStatus } from '../utils/apiError';
 import { useAuth } from '../contexts/AuthContext';
+import { useAccountGate } from '../hooks/useAccountGate';
 import { useTheme } from '../contexts/ThemeContext';
 import { colorizeDiagramCode } from '../utils/colorizeCode';
 import { useDialogA11y } from '../hooks/useDialogA11y';
@@ -29,6 +30,7 @@ export default function CommunityDiagramPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const { isAuthenticated, requireAccount, accountPrompt } = useAccountGate();
   const [pub, setPub] = useState<PublicationDetail | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'not_found' | 'error'>('loading');
   const [comments, setComments] = useState<CommunityComment[]>([]);
@@ -63,9 +65,17 @@ export default function CommunityDiagramPage() {
         setPub(detail);
         setState('ready');
       })
-      .catch((err: unknown) => setState(apiErrorStatus(err) === 404 ? 'not_found' : 'error'));
+      .catch((err: unknown) => {
+        const status = apiErrorStatus(err);
+        // A private community (COMMUNITY_PUBLIC off): sign in and come back.
+        if (status === 401 && !isAuthenticated) {
+          navigate(`/login?next=${encodeURIComponent(`/community/${id}`)}`, { replace: true });
+          return;
+        }
+        setState(status === 404 ? 'not_found' : 'error');
+      });
     loadComments();
-  }, [id, loadComments]);
+  }, [id, loadComments, isAuthenticated, navigate]);
 
   if (state === 'loading') return <p className="p-6 text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</p>;
   if (state !== 'ready' || !pub) {
@@ -88,6 +98,7 @@ export default function CommunityDiagramPage() {
   );
 
   const toggleStar = async () => {
+    if (!requireAccount('star')) return;
     const next = !pub.starred_by_me;
     try {
       const result = await apiService.setStar(pub.id, next);
@@ -150,7 +161,7 @@ export default function CommunityDiagramPage() {
   };
 
   return (
-    <div className="px-4 pb-8 pt-16 sm:px-6 md:pt-6 max-w-7xl mx-auto">
+    <div className={`px-4 pb-8 sm:px-6 max-w-7xl mx-auto ${isAuthenticated ? 'pt-16 md:pt-6' : 'pt-6'}`}>
       <Link to="/community" className="text-sm text-purple-600 dark:text-purple-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded">
         ← {t('community.backToCommunity')}
       </Link>
@@ -205,7 +216,7 @@ export default function CommunityDiagramPage() {
             {pub.starred_by_me ? t('community.starred') : t('community.star')}
             <span className="text-gray-400 dark:text-gray-500 tabular-nums">{compactCount(pub.stars_count)}</span>
           </button>
-          <button type="button" onClick={() => setShowFork(true)} className={primary}>
+          <button type="button" onClick={() => requireAccount('fork') && setShowFork(true)} className={primary}>
             <span aria-hidden="true">⑂</span>
             {t('community.fork')}
             <span className="text-purple-200 tabular-nums">{compactCount(pub.forks_count)}</span>
@@ -236,7 +247,14 @@ export default function CommunityDiagramPage() {
             <h2 id="comments-title" className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
               {t('community.commentsTitle', { count: comments.length })}
             </h2>
-            {pub.allow_comments ? (
+            {pub.allow_comments && !isAuthenticated ? (
+              <div className="mb-5 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                <p className="flex-1 text-sm text-gray-600 dark:text-gray-300">{t('community.signIn.commentCta')}</p>
+                <button type="button" onClick={() => requireAccount('comment')} className="btn btn-secondary btn-sm self-start sm:self-auto">
+                  {t('community.signIn.commentButton')}
+                </button>
+              </div>
+            ) : pub.allow_comments ? (
               <form onSubmit={postComment} className="mb-5">
                 {replyTo && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -261,12 +279,12 @@ export default function CommunityDiagramPage() {
             <ul className="space-y-3">
               {threadComments(comments).map(({ comment, replies }) => (
                 <li key={comment.id}>
-                  <CommentItem comment={comment} language={i18n.language} onReply={pub.allow_comments ? setReplyTo : undefined} onDelete={deleteComment} onReport={(c) => setReport({ type: 'comment', id: c.id })} />
+                  <CommentItem comment={comment} language={i18n.language} onReply={pub.allow_comments ? (c) => requireAccount('comment') && setReplyTo(c) : undefined} onDelete={deleteComment} onReport={(c) => requireAccount('report') && setReport({ type: 'comment', id: c.id })} />
                   {replies.length > 0 && (
                     <ul className="ml-8 mt-2 space-y-2">
                       {replies.map((r) => (
                         <li key={r.id}>
-                          <CommentItem comment={r} language={i18n.language} onDelete={deleteComment} onReport={(c) => setReport({ type: 'comment', id: c.id })} reply />
+                          <CommentItem comment={r} language={i18n.language} onDelete={deleteComment} onReport={(c) => requireAccount('report') && setReport({ type: 'comment', id: c.id })} reply />
                         </li>
                       ))}
                     </ul>
@@ -341,7 +359,7 @@ export default function CommunityDiagramPage() {
           )}
 
           {!pub.is_owner && (
-            <button type="button" onClick={() => setReport({ type: 'diagram', id: pub.id })} className="w-full text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded">
+            <button type="button" onClick={() => requireAccount('report') && setReport({ type: 'diagram', id: pub.id })} className="w-full text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 rounded">
               ⚑ {t('community.reportDiagram')}
             </button>
           )}
@@ -364,6 +382,7 @@ export default function CommunityDiagramPage() {
           {toast}
         </div>
       )}
+      {accountPrompt}
     </div>
   );
 }

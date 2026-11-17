@@ -1,12 +1,17 @@
+import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import CreateProjectModal from '../components/CreateProjectModal';
+import { takeReturnTo } from '../utils/returnTo';
 
 export default function OnboardingWizardPage() {
   const navigate = useNavigate();
-
-  const handleProjectCreated = (projectId: string) => {
-    navigate(`/projects/${projectId}`);
+  // The modal calls onSuccess and then onClose: only the first one navigates.
+  const left = useRef(false);
+  const leave = (fallback: string) => {
+    if (left.current) return;
+    left.current = true;
+    navigate(takeReturnTo(fallback));
   };
 
   return (
@@ -16,8 +21,8 @@ export default function OnboardingWizardPage() {
       {/* Modal is rendered as an overlay */}
       <CreateProjectModal
         isOpen={true}
-        onClose={() => navigate('/dashboard')}
-        onSuccess={handleProjectCreated}
+        onClose={() => leave('/dashboard')}
+        onSuccess={(projectId: string) => leave(`/projects/${projectId}`)}
         isFirstProject={true}
       />
     </div>

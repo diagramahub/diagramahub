@@ -1,6 +1,6 @@
 # Community
 
-The **Community** is the portal where users publish their diagrams so others can find them, star them, comment on them and **fork** them (an editable copy in their own account). Open it from **Community** in the sidebar; you need to be signed in.
+The **Community** is the portal where users publish their diagrams so others can find them, star them, comment on them and **fork** them (an editable copy in their own account). Open it from **Community** in the sidebar. It is **public**: anyone, without an account, can browse it at `/community`, open the diagrams and read the comments. Starring, forking, commenting, reporting or publishing asks a signed-out visitor to create an account or sign in, and brings them back to the same page afterwards. (Whoever runs the instance can close it with [`COMMUNITY_PUBLIC`](../self-host/configuration.md#community).)
 
 ## Browse
 
@@ -36,7 +36,7 @@ Everything published is **public** under the [**CC BY 4.0**](https://creativecom
 Every fork is **recorded**: it counts toward the original publication's forks and keeps where it came from. If someone publishes their fork, its page shows **Fork of "title" by author** with a link to the original (or just the title and author once the original is removed).
 
 !!! warning "Check the data before publishing"
-    Every user of the instance can see a published diagram. Remove credentials, customer names or internal IPs before publishing it.
+    Anyone can see a published diagram, even without an account. Remove credentials, customer names or internal IPs before publishing it.
 
 To **remove** it, use **Remove from the Community** in the editor or on its page: it stops being public and its stars and comments are deleted. Forks others already made are kept.
 

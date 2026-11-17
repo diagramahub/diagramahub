@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
@@ -8,6 +8,7 @@ import LanguageSelector from '../components/LanguageSelector';
 import AnimatedBackground from '../components/AnimatedBackground';
 import ThemeToggleButton from '../components/ThemeToggleButton';
 import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
+import { rememberReturnTo } from '../utils/returnTo';
 import { BrandLogo } from '../components/BrandLogo';
 
 const RegisterPage: React.FC = () => {
@@ -22,6 +23,12 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  // Came from a public page (e.g. the community): go back there after onboarding.
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get('next');
+  React.useEffect(() => {
+    rememberReturnTo(next);
+  }, [next]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

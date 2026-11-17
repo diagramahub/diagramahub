@@ -481,3 +481,85 @@ async def test_my_published_lists_the_users_published_diagrams(
         key=lambda x: x["diagram_id"],
     )
     assert theirs == []
+
+
+async def test_anonymous_visitors_browse_read_and_see_comments(
+    client: AsyncClient, people: dict
+) -> None:
+    author, visitor, admin = people["author"], people["visitor"], people["admin"]
+    _, d1 = await _diagram(client, author)
+    _, d2 = await _diagram(client, author, title="Hidden one")
+    pub = await _publish(client, author, d1)
+    hidden = await _publish(client, author, d2)
+    await client.put(
+        f"{BASE}/admin/diagrams/{hidden['id']}", json={"hidden": True}, headers=admin["headers"]
+    )
+    await client.put(f"{BASE}/diagrams/{pub['id']}/star", headers=visitor["headers"])
+    await client.post(
+        f"{BASE}/diagrams/{pub['id']}/comments", json={"text": "Hi"}, headers=visitor["headers"]
+    )
+
+    grid = await client.get(f"{BASE}/diagrams")
+    detail = await client.get(f"{BASE}/diagrams/{pub['id']}")
+    comments = await client.get(f"{BASE}/diagrams/{pub['id']}/comments")
+    hidden_detail = await client.get(f"{BASE}/diagrams/{hidden['id']}")
+    mine = await client.get(f"{BASE}/diagrams", params={"tab": "mine"})
+    starred = await client.get(f"{BASE}/diagrams", params={"tab": "starred"})
+
+    assert grid.status_code == 200
+    assert [i["id"] for i in grid.json()["items"]] == [pub["id"]]
+    assert grid.json()["items"][0]["starred_by_me"] is False
+    assert detail.status_code == 200
+    assert (detail.json()["is_owner"], detail.json()["source_diagram_id"]) == (False, None)
+    assert detail.json()["views_count"] == 1
+    assert [(c["text"], c["can_delete"]) for c in comments.json()] == [("Hi", False)]
+    assert hidden_detail.status_code == 404
+    assert (mine.status_code, starred.status_code) == (401, 401)
+
+
+@pytest.mark.parametrize(
+    "method, path, body",
+    [
+        ("PUT", "/diagrams/{id}/star", None),
+        ("POST", "/diagrams/{id}/comments", {"text": "anon"}),
+        ("POST", "/diagrams/{id}/fork", {"project_id": "x"}),
+        ("POST", "/reports", {"target_type": "diagram", "target_id": "{id}", "reason": "spam"}),
+        ("POST", "/diagrams", {"diagram_id": "x", "category": "uml"}),
+        ("GET", "/my-published", None),
+    ],
+)
+async def test_anything_that_saves_needs_sign_in(
+    client: AsyncClient, people: dict, method: str, path: str, body: dict | None
+) -> None:
+    _, diagram_id = await _diagram(client, people["author"])
+    pub = await _publish(client, people["author"], diagram_id)
+    if body:
+        body = {
+            k: (v.replace("{id}", pub["id"]) if isinstance(v, str) else v) for k, v in body.items()
+        }
+
+    response = await client.request(method, BASE + path.replace("{id}", pub["id"]), json=body)
+
+    assert response.status_code in (401, 403)
+
+
+async def test_a_private_community_needs_sign_in(
+    client: AsyncClient, people: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.core.config import settings
+
+    _, diagram_id = await _diagram(client, people["author"])
+    pub = await _publish(client, people["author"], diagram_id)
+    monkeypatch.setattr(settings, "COMMUNITY_PUBLIC", False)
+
+    anonymous = await client.get(f"{BASE}/diagrams/{pub['id']}")
+    signed_in = await client.get(
+        f"{BASE}/diagrams/{pub['id']}", headers=people["visitor"]["headers"]
+    )
+    bad_token = await client.get(
+        f"{BASE}/diagrams", headers={"Authorization": "Bearer not-a-token"}
+    )
+
+    assert anonymous.status_code == 401
+    assert signed_in.status_code == 200
+    assert bad_token.status_code == 401
