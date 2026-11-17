@@ -48,9 +48,12 @@ class CommunityRepository(ICommunityRepository):
             PublishedDiagramInDB.source_diagram_id == source_diagram_id
         )
 
-    async def save_publication(self, publication: PublishedDiagramInDB) -> PublishedDiagramInDB:
-        await publication.save()
-        return publication
+    async def set_fields(self, publication_id: str, fields: dict) -> None:
+        object_id = _object_id(publication_id)
+        if object_id and fields:
+            await PublishedDiagramInDB.get_pymongo_collection().update_one(
+                {"_id": object_id}, {"$set": fields}
+            )
 
     async def delete_publication(self, publication_id: str) -> None:
         await CommunityStarInDB.find(CommunityStarInDB.publication_id == publication_id).delete()

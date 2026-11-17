@@ -15,18 +15,23 @@ Puedes **buscar** por título, autor, etiqueta o descripción, filtrar por **tip
 
 ## Publicar un diagrama
 
-1. Abre el diagrama en el editor y usa **Publicar en la Comunidad** (icono de globo en la barra).
-2. Elige la **categoría**, hasta 5 **etiquetas** (en minúsculas; cada una se agrega con **Enter** o una **coma**, y se quita con su ✕ o con Retroceso) y la descripción pública (por defecto, la del diagrama).
-3. Decide si permites **comentarios** y si los cambios del diagrama se **publican automáticamente**.
+1. Abre el diagrama en el editor y usa **Publicar en la Comunidad** (icono de globo en la barra). La ventana tiene dos paneles.
+2. A la izquierda, la **descripción pública**: es la descripción del diagrama, con el mismo editor Markdown. Lo que cambies ahí se guarda en el diagrama.
+3. A la derecha, la configuración:
+    - la **categoría**;
+    - hasta 5 **etiquetas**, en minúsculas: cada una se agrega con **Enter** o una **coma**, y se quita con su ✕ o con Retroceso;
+    - si permites **comentarios**.
 4. **Publicar**.
+
+Lo publicado **siempre está sincronizado** con el diagrama: cuando cambias el título, el código o la descripción, la Comunidad muestra la versión nueva sin que tengas que volver a publicar. Si borras el diagrama, queda publicada su última versión hasta que la retires.
+
+Para cambiar la categoría, las etiquetas o los comentarios de algo ya publicado, abre la misma ventana y usa **Guardar cambios**. Cada diagrama se publica una sola vez. Los pizarrones todavía no se pueden publicar.
 
 ### Licencia
 
 Todo lo publicado es **público** bajo la licencia [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/deed.es), la misma para todas las publicaciones, así que no tienes que elegir una. Cualquiera puede verlo, hacer **fork** y adaptarlo, siempre dando crédito al autor. Es el equivalente de la licencia MIT para contenido que no es software.
 
 Cada fork queda **registrado**: suma al contador de forks de la publicación original y conserva de dónde salió. Si alguien publica su fork, su página muestra **Fork de «título» de autor** con el enlace al original (o solo el título y el autor, si el original ya se retiró).
-
-La Comunidad muestra una **copia** del código. Si no activaste la publicación automática, usa **Actualizar con el código actual** cuando cambies el diagrama. Cada diagrama se publica una sola vez. Los pizarrones todavía no se pueden publicar.
 
 !!! warning "Revisa los datos antes de publicar"
     Un diagrama publicado lo ven todos los usuarios de la instancia. Quita credenciales, nombres de clientes o IPs internas antes de publicarlo.

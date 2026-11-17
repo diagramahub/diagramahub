@@ -1722,12 +1722,10 @@
     "tooFast": "Too many actions in a row. Wait a moment.",
     "owner": {
       "title": "Your publication",
-      "refresh": "Update with the current code",
-      "refreshed": "Publication updated with the current code.",
-      "sourceGone": "The original diagram no longer exists.",
       "unpublish": "Remove from the Community",
       "unpublishTitle": "Remove publication",
-      "unpublishMessage": "The diagram stops being public and its stars and comments are deleted. Forks others already made are kept."
+      "unpublishMessage": "The diagram stops being public and its stars and comments are deleted. Forks others already made are kept.",
+      "synced": "It stays in sync with your diagram: changes are published on their own."
     },
     "admin": {
       "title": "Moderation",
@@ -1748,7 +1746,7 @@
     "publish": {
       "button": "Publish to the Community",
       "title": "Publish to the Community",
-      "subtitle": "The diagram becomes visible to every user. You can remove it whenever you want.",
+      "subtitle": "Everyone can see what you publish, and it stays in sync with your diagram.",
       "category": "Category",
       "tags": "Tags",
       "tagsPlaceholder": "Type a tag…",
@@ -1758,7 +1756,6 @@
       "removeTag": "Remove the tag {{tag}}",
       "description": "Public description",
       "allowComments": "Allow comments",
-      "autoUpdate": "Publish the diagram's changes automatically (otherwise the published version stays fixed)",
       "sensitiveWarning": "Check that the diagram has no sensitive data (credentials, customer names, internal IPs). By publishing you accept the Community rules.",
       "confirm": "Publish",
       "publishing": "Publishing…",
@@ -1768,8 +1765,16 @@
       "notPublishable": "Whiteboard sketches can't be published yet.",
       "alreadyPublished": "This diagram is published: {{stars}} stars, {{forks}} forks.",
       "viewInCommunity": "View in the Community",
-      "snapshotHint": "The Community shows a copy of the code; update it when you change the diagram (or turn on automatic publishing).",
-      "licenseNotice": "Everything published to the Community is public under the <licenseLink>{{license}}</licenseLink> license: anyone can view it, fork it and adapt it, always crediting you. Every fork is recorded and counts toward your publication."
+      "licenseNotice": "Everything published to the Community is public under the <licenseLink>{{license}}</licenseLink> license: anyone can view it, fork it and adapt it, always crediting you. Every fork is recorded and counts toward your publication.",
+      "manageTitle": "Your Community publication",
+      "descriptionHint": "It's the diagram's description: what you change here is saved to it and published.",
+      "descriptionPlaceholder": "Tell what the diagram shows, who it is for and how to use it…",
+      "commentsHint": "Other users can comment and reply on your publication.",
+      "syncNotice": "Always in sync: the title, code and description update on their own when you change the diagram.",
+      "statusPublished": "Published",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Changes saved."
     },
     "viewer": {
       "label": "Diagram viewer",
@@ -1802,5 +1807,30 @@
     "chunkTitle": "A new version is available",
     "chunkMessage": "This screen couldn't load, probably because a new version was released. Reload the page.",
     "reload": "Reload"
+  },
+  "markdownEditor": {
+    "placeholder": "Write your description in Markdown…",
+    "editing": "Editing description · Markdown",
+    "done": "Done",
+    "edit": "Edit",
+    "empty": "No description",
+    "add": "Add a description",
+    "toolbar": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "heading-1": "Heading 1",
+      "heading-2": "Heading 2",
+      "heading-3": "Heading 3",
+      "unordered-list": "List",
+      "ordered-list": "Numbered list",
+      "code": "Code",
+      "quote": "Quote",
+      "link": "Link",
+      "table": "Table",
+      "horizontal-rule": "Horizontal line",
+      "preview": "Preview",
+      "side-by-side": "Side by side"
+    }
   }
 }

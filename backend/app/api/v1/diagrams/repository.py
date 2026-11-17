@@ -64,6 +64,18 @@ class DiagramRepository(IDiagramRepository):
         except Exception:
             return None
 
+    async def get_by_ids(self, diagram_ids: list[str]) -> list[DiagramInDB]:
+        """The diagrams that exist among these IDs (invalid IDs are skipped)."""
+        object_ids = []
+        for diagram_id in diagram_ids:
+            try:
+                object_ids.append(PydanticObjectId(diagram_id))
+            except Exception:
+                continue
+        if not object_ids:
+            return []
+        return await DiagramInDB.find(In(DiagramInDB.id, object_ids)).to_list()
+
     async def get_by_project_id(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams for a project."""
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()

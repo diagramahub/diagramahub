@@ -27,6 +27,11 @@ class IDiagramRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_ids(self, diagram_ids: list[str]) -> list[DiagramInDB]:
+        """The diagrams that exist among these IDs (invalid IDs are skipped)."""
+        pass
+
+    @abstractmethod
     async def get_by_project_id(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams for a project."""
         pass

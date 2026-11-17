@@ -1722,12 +1722,10 @@
     "tooFast": "Demasiadas acciones seguidas. Espera un momento.",
     "owner": {
       "title": "Tu publicación",
-      "refresh": "Actualizar con el código actual",
-      "refreshed": "Publicación actualizada con el código actual.",
-      "sourceGone": "El diagrama original ya no existe.",
       "unpublish": "Retirar de la Comunidad",
       "unpublishTitle": "Retirar publicación",
-      "unpublishMessage": "El diagrama deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan."
+      "unpublishMessage": "El diagrama deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan.",
+      "synced": "Se mantiene sincronizada con tu diagrama: los cambios se publican solos."
     },
     "admin": {
       "title": "Moderación",
@@ -1748,7 +1746,7 @@
     "publish": {
       "button": "Publicar en la Comunidad",
       "title": "Publicar en la Comunidad",
-      "subtitle": "El diagrama queda visible para todos los usuarios. Puedes retirarlo cuando quieras.",
+      "subtitle": "Lo publicado lo ven todos los usuarios y se mantiene sincronizado con tu diagrama.",
       "category": "Categoría",
       "tags": "Etiquetas",
       "tagsPlaceholder": "Escribe una etiqueta…",
@@ -1758,7 +1756,6 @@
       "removeTag": "Quitar la etiqueta {{tag}}",
       "description": "Descripción pública",
       "allowComments": "Permitir comentarios",
-      "autoUpdate": "Publicar automáticamente los cambios del diagrama (si no, la versión publicada queda fija)",
       "sensitiveWarning": "Revisa que el diagrama no tenga datos sensibles (credenciales, nombres de clientes, IPs internas). Al publicar aceptas las normas de la Comunidad.",
       "confirm": "Publicar",
       "publishing": "Publicando…",
@@ -1768,8 +1765,16 @@
       "notPublishable": "Los pizarrones todavía no se pueden publicar.",
       "alreadyPublished": "Este diagrama está publicado: {{stars}} estrellas, {{forks}} forks.",
       "viewInCommunity": "Ver en la Comunidad",
-      "snapshotHint": "La Comunidad muestra una copia del código; actualízala cuando cambies el diagrama (o activa la publicación automática).",
-      "licenseNotice": "Todo lo que se publica en la Comunidad es público bajo la licencia <licenseLink>{{license}}</licenseLink>: cualquiera puede verlo, hacer fork y adaptarlo, siempre dándote crédito. Cada fork queda registrado y suma a tu publicación."
+      "licenseNotice": "Todo lo que se publica en la Comunidad es público bajo la licencia <licenseLink>{{license}}</licenseLink>: cualquiera puede verlo, hacer fork y adaptarlo, siempre dándote crédito. Cada fork queda registrado y suma a tu publicación.",
+      "manageTitle": "Tu publicación en la Comunidad",
+      "descriptionHint": "Es la descripción del diagrama: lo que cambies aquí se guarda en él y se publica.",
+      "descriptionPlaceholder": "Cuenta qué muestra el diagrama, para quién es y cómo usarlo…",
+      "commentsHint": "Otros usuarios pueden comentar y responder en tu publicación.",
+      "syncNotice": "Siempre sincronizado: el título, el código y la descripción se actualizan solos cuando cambias el diagrama.",
+      "statusPublished": "Publicado",
+      "save": "Guardar cambios",
+      "saving": "Guardando…",
+      "saved": "Cambios guardados."
     },
     "viewer": {
       "label": "Visor del diagrama",
@@ -1802,5 +1807,30 @@
     "chunkTitle": "Hay una versión nueva",
     "chunkMessage": "No se pudo cargar esta pantalla, probablemente porque se publicó una versión nueva. Recarga la página.",
     "reload": "Recargar"
+  },
+  "markdownEditor": {
+    "placeholder": "Escribe tu descripción en Markdown…",
+    "editing": "Editando descripción · Markdown",
+    "done": "Listo",
+    "edit": "Editar",
+    "empty": "Sin descripción",
+    "add": "Agregar descripción",
+    "toolbar": {
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "strikethrough": "Tachado",
+      "heading-1": "Título 1",
+      "heading-2": "Título 2",
+      "heading-3": "Título 3",
+      "unordered-list": "Lista",
+      "ordered-list": "Lista numerada",
+      "code": "Código",
+      "quote": "Cita",
+      "link": "Enlace",
+      "table": "Tabla",
+      "horizontal-rule": "Línea horizontal",
+      "preview": "Vista previa",
+      "side-by-side": "Lado a lado"
+    }
   }
 }

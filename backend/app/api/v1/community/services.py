@@ -2,8 +2,9 @@
 Business rules of the community portal.
 
 - Only the owner of a diagram can publish it, once; text diagram types only.
-- A publication is a snapshot: it changes when the owner refreshes it or, with
-  ``auto_update``, when its page is opened after the source diagram changed.
+- A publication always follows its diagram: title, code and description are
+  re-read from it whenever publications are read (in bulk), whatever changed
+  the diagram. If the diagram is deleted, its last version stays published.
 - Hidden publications (moderation) are visible only to their owner and admins.
 - A fork creates a diagram in one of the user's projects through the regular
   diagram service, so project ownership and plan limits apply.
@@ -48,6 +49,7 @@ from .schemas import (
 )
 
 PUBLISHABLE_TYPES = frozenset({"mermaid", "plantuml", "d2", "dbml"})
+LIST_DESCRIPTION_LENGTH = 300
 
 publish_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=3600)
 comment_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=600)
@@ -84,6 +86,7 @@ def _card(p: PublishedDiagramInDB, starred: set[str]) -> PublicationCard:
         stars_count=max(p.stars_count, 0),
         forks_count=max(p.forks_count, 0),
         comments_count=max(p.comments_count, 0),
+        allow_comments=p.allow_comments,
         starred_by_me=str(p.id) in starred,
         published_at=p.published_at,
         updated_at=p.updated_at,
@@ -191,46 +194,38 @@ class CommunityService:
             skip=(page - 1) * page_size,
             limit=page_size,
         )
+        await self._sync(items)
         starred = await self.repository.starred_ids(user_id, [str(p.id) for p in items])
-        return PublicationPage(
-            items=[_card(p, starred) for p in items], total=total, page=page, page_size=page_size
-        )
+        cards = [_card(p, starred) for p in items]
+        for card in cards:  # the grid only shows a two-line excerpt
+            card.description = card.description[:LIST_DESCRIPTION_LENGTH]
+        return PublicationPage(items=cards, total=total, page=page, page_size=page_size)
 
     async def get_detail(
         self, publication_id: str, user_id: str, is_admin: bool
     ) -> PublicationDetail:
-        """A publication's page; refreshes an auto-updating snapshot and counts the view."""
+        """A publication's page (in sync with its diagram); counts the view."""
         publication = await self._visible(publication_id, user_id, is_admin)
         is_owner = publication.owner_id == user_id
-
-        if publication.auto_update:
-            source = await self._owned_source(publication.source_diagram_id, publication.owner_id)
-            source_changed = (
-                source and (source.updated_at or source.created_at) > publication.updated_at
-            )
-            if source and source_changed:
-                publication.content = source.content
-                publication.title = source.title
-                publication.updated_at = utcnow()
-                await self.repository.save_publication(publication)
+        await self._sync([publication])
 
         if not is_owner:
             await self.repository.increment(publication_id, "views_count")
             publication.views_count += 1
 
         starred = await self.repository.starred_ids(user_id, [publication_id])
-        more = [
-            {"id": str(p.id), "title": p.title, "diagram_type": p.diagram_type}
+        others = [
+            p
             for p in await self.repository.list_by_owner(publication.owner_id, 6)
             if str(p.id) != publication_id
         ][:5]
+        await self._sync(others)
+        more = [{"id": str(p.id), "title": p.title, "diagram_type": p.diagram_type} for p in others]
         card = _card(publication, starred)
         return PublicationDetail(
             **card.model_dump(),
             source_diagram_id=publication.source_diagram_id if is_owner else None,
             views_count=publication.views_count,
-            allow_comments=publication.allow_comments,
-            auto_update=publication.auto_update,
             is_owner=is_owner,
             more_from_owner=more,
             forked_from=await self._fork_origin(publication.source_diagram_id),
@@ -255,14 +250,48 @@ class CommunityService:
         if not await self._owned_source(diagram_id, user_id):
             return None
         publication = await self.repository.get_by_source(diagram_id)
-        return _card(publication, set()) if publication else None
+        if not publication:
+            return None
+        await self._sync([publication])
+        return _card(publication, set())
+
+    async def _sync(self, publications: list[PublishedDiagramInDB]) -> None:
+        """Bring publications in line with their diagrams (one lookup for all).
+
+        Only the mirrored fields are written, so counters changed meanwhile
+        (stars, forks, views) are never overwritten.
+        """
+        if not publications:
+            return
+        sources = {
+            str(d.id): d
+            for d in await self.diagram_repository.get_by_ids(
+                [p.source_diagram_id for p in publications]
+            )
+        }
+        for publication in publications:
+            source = sources.get(publication.source_diagram_id)
+            if not source:
+                continue  # deleted: its last version stays published
+            mirrored = {
+                "title": source.title,
+                "content": source.content,
+                "description": source.description or "",
+                "diagram_type": source.diagram_type,
+            }
+            if all(getattr(publication, k) == v for k, v in mirrored.items()):
+                continue
+            mirrored["updated_at"] = source.updated_at or utcnow()
+            for field, value in mirrored.items():
+                setattr(publication, field, value)
+            await self.repository.set_fields(str(publication.id), mirrored)
 
     # ------------------------------------------------------------------ #
     #  Publish / update / unpublish
     # ------------------------------------------------------------------ #
 
     async def publish(self, user_id: str, request: PublishRequest) -> PublicationDetail:
-        """Publish one of the user's diagrams (snapshot of its current code).
+        """Publish one of the user's diagrams; it stays in sync with the diagram.
 
         Raises:
             HTTPException 404: The diagram doesn't exist or isn't the user's
@@ -288,17 +317,12 @@ class CommunityService:
                 owner_id=user_id,
                 owner_name=await self._display_name(user_id),
                 title=source.title,
-                description=(
-                    request.description
-                    if request.description is not None
-                    else (source.description or "")
-                )[:5000],
+                description=source.description or "",
                 diagram_type=source.diagram_type,
                 content=source.content,
                 category=request.category,
                 tags=request.tags,
                 allow_comments=request.allow_comments,
-                auto_update=request.auto_update,
             )
         )
         return await self.get_detail(str(publication.id), user_id, False)
@@ -306,21 +330,13 @@ class CommunityService:
     async def update(
         self, publication_id: str, user_id: str, request: UpdatePublicationRequest
     ) -> PublicationDetail:
-        """Change metadata (owner); ``refresh_content`` re-snapshots the source diagram."""
+        """Change the settings (owner): category, tags, comments."""
         publication = await self._owned(publication_id, user_id)
-        changes = request.model_dump(exclude_unset=True, exclude={"refresh_content"})
-        for field, value in changes.items():
-            setattr(publication, field, value)
-        if request.refresh_content:
-            source = await self._owned_source(publication.source_diagram_id, user_id)
-            if not source:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT, detail={"error": "source_deleted"}
-                )
-            publication.content = source.content
-            publication.title = source.title
-        publication.updated_at = utcnow()
-        await self.repository.save_publication(publication)
+        changes = request.model_dump(mode="json", exclude_unset=True, exclude_none=True)
+        if changes:
+            for field, value in changes.items():
+                setattr(publication, field, value)
+            await self.repository.set_fields(publication_id, changes)
         return await self.get_detail(publication_id, user_id, False)
 
     async def unpublish(
@@ -498,9 +514,9 @@ class CommunityService:
         if request.target_type == "diagram":
             await self.repository.increment(publication_id, "reports_count")
             if open_reports >= AUTO_HIDE_REPORTS and not publication.hidden:
-                publication.hidden = True
-                publication.reports_count = open_reports
-                await self.repository.save_publication(publication)
+                await self.repository.set_fields(
+                    publication_id, {"hidden": True, "reports_count": open_reports}
+                )
         elif open_reports >= AUTO_HIDE_REPORTS:
             await self.repository.set_comment_hidden(request.target_id, True)
             await self.repository.increment(publication_id, "comments_count", -1)
@@ -533,14 +549,11 @@ class CommunityService:
         publication = await self.repository.get_publication(publication_id)
         if not publication:
             raise _not_found()
-        if request.featured is not None:
-            publication.featured = request.featured
-        if request.hidden is not None:
-            publication.hidden = request.hidden
-            if not request.hidden:
-                await self.repository.resolve_reports("diagram", publication_id)
-                publication.reports_count = 0
-        await self.repository.save_publication(publication)
+        changes = request.model_dump(exclude_none=True)
+        if request.hidden is False:
+            await self.repository.resolve_reports("diagram", publication_id)
+            changes["reports_count"] = 0
+        await self.repository.set_fields(publication_id, changes)
         return await self.get_detail(publication_id, publication.owner_id, True)
 
     async def moderate_comment(self, comment_id: str, hidden: bool) -> None:

@@ -1494,6 +1494,12 @@ export default function DiagramEditorPage() {
     };
   }, [diagramId, persistDiagram]);
 
+  // Before publishing: send the pending edit now instead of waiting for the debounce.
+  const flushPendingSave = useCallback(async () => {
+    const save = pendingSave.current;
+    if (save && !inFlightSave.current) await persistDiagram(save);
+  }, [persistDiagram]);
+
   // Tab hidden / closing: flush now; warn before unload if something is pending.
   useEffect(() => {
     const handleVisibility = () => {
@@ -5285,6 +5291,8 @@ export default function DiagramEditorPage() {
           diagramId={diagramId}
           diagramType={currentDiagram?.diagram_type || "mermaid"}
           description={diagramDescription}
+          onDescriptionChange={setDiagramDescription}
+          onBeforePublish={flushPendingSave}
         />
       )}
 

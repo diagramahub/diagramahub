@@ -31,6 +31,7 @@ export interface PublicationCard {
   stars_count: number;
   forks_count: number;
   comments_count: number;
+  allow_comments: boolean;
   starred_by_me: boolean;
   published_at: string;
   updated_at: string;
@@ -39,8 +40,6 @@ export interface PublicationCard {
 export interface PublicationDetail extends PublicationCard {
   source_diagram_id: string | null;
   views_count: number;
-  allow_comments: boolean;
-  auto_update: boolean;
   is_owner: boolean;
   more_from_owner: { id: string; title: string; diagram_type: string }[];
   /** The publication this diagram was forked from; `publication_id` is null once it's gone. */
@@ -65,16 +64,15 @@ export interface CommunityComment {
   created_at: string;
 }
 
+/** Title, code and description always come from the diagram itself. */
 export interface PublishRequest {
   diagram_id: string;
   category: CommunityCategory;
   tags: string[];
-  description?: string;
   allow_comments: boolean;
-  auto_update: boolean;
 }
 
-export type UpdatePublicationRequest = Partial<Omit<PublishRequest, 'diagram_id'>> & { refresh_content?: boolean };
+export type UpdatePublicationRequest = Partial<Omit<PublishRequest, 'diagram_id'>>;
 
 export interface CommunityReport {
   id: string;

@@ -58,7 +58,6 @@ class PublishedDiagramInDB(Document):
     category: CommunityCategory
     tags: list[str] = []
     allow_comments: bool = True
-    auto_update: bool = False
     featured: bool = False
     hidden: bool = False
     stars_count: int = 0
@@ -179,27 +178,22 @@ def _clean_tags(tags: list[str]) -> list[str]:
 
 
 class PublishRequest(BaseModel):
-    """Publish one of the user's diagrams."""
+    """Publish one of the user's diagrams (its title, code and description stay in sync)."""
 
     diagram_id: str
     category: CommunityCategory
     tags: list[str] = Field(default_factory=list)
-    description: Optional[str] = Field(None, max_length=5000)
     allow_comments: bool = True
-    auto_update: bool = False
 
     _tags = field_validator("tags")(classmethod(lambda cls, v: _clean_tags(v)))
 
 
 class UpdatePublicationRequest(BaseModel):
-    """Change a publication's metadata (owner); ``refresh_content`` re-snapshots the code."""
+    """Change a publication's settings (owner); its content follows the diagram."""
 
     category: Optional[CommunityCategory] = None
     tags: Optional[list[str]] = None
-    description: Optional[str] = Field(None, max_length=5000)
     allow_comments: Optional[bool] = None
-    auto_update: Optional[bool] = None
-    refresh_content: bool = False
 
     @field_validator("tags")
     @classmethod
@@ -260,6 +254,7 @@ class PublicationCard(BaseModel):
     stars_count: int
     forks_count: int
     comments_count: int
+    allow_comments: bool = True
     starred_by_me: bool = False
     published_at: datetime
     updated_at: datetime
@@ -280,8 +275,6 @@ class PublicationDetail(PublicationCard):
 
     source_diagram_id: Optional[str] = None  # only for the owner
     views_count: int
-    allow_comments: bool
-    auto_update: bool
     is_owner: bool = False
     more_from_owner: list[dict] = []
     forked_from: Optional[ForkOrigin] = None

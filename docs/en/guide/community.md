@@ -15,18 +15,23 @@ You can **search** by title, author, tag or description, filter by **type** (MMD
 
 ## Publish a diagram
 
-1. Open the diagram in the editor and use **Publish to the Community** (globe icon in the toolbar).
-2. Choose the **category**, up to 5 **tags** (lowercase; add each one with **Enter** or a **comma**, remove it with its ✕ or Backspace) and the public description (the diagram's own by default).
-3. Decide whether you allow **comments** and whether the diagram's changes are **published automatically**.
+1. Open the diagram in the editor and use **Publish to the Community** (globe icon in the toolbar). The window has two panes.
+2. On the left, the **public description**: it's the diagram's description, with the same Markdown editor. What you change there is saved to the diagram.
+3. On the right, the settings:
+    - the **category**;
+    - up to 5 **tags**, in lowercase: add each one with **Enter** or a **comma**, and remove it with its ✕ or Backspace;
+    - whether you allow **comments**.
 4. **Publish**.
+
+What you publish is **always in sync** with the diagram: when you change its title, code or description, the Community shows the new version without publishing again. If you delete the diagram, its last version stays published until you remove it.
+
+To change the category, tags or comments of something already published, open the same window and use **Save changes**. Each diagram can be published once. Whiteboard sketches can't be published yet.
 
 ### License
 
 Everything published is **public** under the [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/deed.en) license, the same for every publication, so you don't have to pick one. Anyone can view it, **fork** it and adapt it, always crediting the author. It's the MIT license's counterpart for content that isn't software.
 
 Every fork is **recorded**: it counts toward the original publication's forks and keeps where it came from. If someone publishes their fork, its page shows **Fork of "title" by author** with a link to the original (or just the title and author once the original is removed).
-
-The Community shows a **copy** of the code. Unless you turned on automatic publishing, use **Update with the current code** after changing the diagram. Each diagram can be published once. Whiteboard sketches can't be published yet.
 
 !!! warning "Check the data before publishing"
     Every user of the instance can see a published diagram. Remove credentials, customer names or internal IPs before publishing it.

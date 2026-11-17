@@ -30,7 +30,8 @@ class ICommunityRepository(ABC):
         pass
 
     @abstractmethod
-    async def save_publication(self, publication: PublishedDiagramInDB) -> PublishedDiagramInDB:
+    async def set_fields(self, publication_id: str, fields: dict) -> None:
+        """Set only these fields, leaving counters changed meanwhile untouched."""
         pass
 
     @abstractmethod

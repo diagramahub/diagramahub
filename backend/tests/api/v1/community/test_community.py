@@ -366,32 +366,64 @@ async def test_admin_features_and_only_admins_moderate(client: AsyncClient, peop
     assert [i["id"] for i in tab["items"]] == [pub["id"]]
 
 
-async def test_owner_updates_unpublishes_and_auto_update(client: AsyncClient, people: dict) -> None:
+async def test_publications_always_follow_their_diagram(client: AsyncClient, people: dict) -> None:
     author, visitor = people["author"], people["visitor"]
-    _, diagram_id = await _diagram(client, author)
-    pub = await _publish(client, author, diagram_id, auto_update=True)
+    _, diagram_id = await _diagram(client, author, description="v1")
+    # Old clients may still send their own description or auto_update: ignored.
+    pub = await _publish(client, author, diagram_id, description="other", auto_update=False)
+    await client.put(f"{BASE}/diagrams/{pub['id']}/star", headers=visitor["headers"])
 
     await client.put(
         f"/api/v1/diagrams/{diagram_id}",
-        json={"content": "graph TD\n  New-->Code"},
+        json={"title": "Checkout v2", "content": "graph TD\n  New-->Code", "description": "v2"},
         headers=author["headers"],
     )
-    seen = (await client.get(f"{BASE}/diagrams/{pub['id']}", headers=visitor["headers"])).json()
+    # The grid is up to date without anyone opening the publication first.
+    grid = (await client.get(f"{BASE}/diagrams", headers=visitor["headers"])).json()["items"]
+    detail = (await client.get(f"{BASE}/diagrams/{pub['id']}", headers=visitor["headers"])).json()
+    by_diagram = (
+        await client.get(f"{BASE}/by-diagram/{diagram_id}", headers=author["headers"])
+    ).json()
+    found = (
+        await client.get(f"{BASE}/diagrams", params={"q": "v2"}, headers=visitor["headers"])
+    ).json()["items"]
+
+    await client.delete(f"/api/v1/diagrams/{diagram_id}", headers=author["headers"])
+    after_delete = (
+        await client.get(f"{BASE}/diagrams/{pub['id']}", headers=visitor["headers"])
+    ).json()
+
+    assert pub["description"] == "v1" and "auto_update" not in pub
+    assert (grid[0]["title"], grid[0]["content"]) == ("Checkout v2", "graph TD\n  New-->Code")
+    assert (detail["title"], detail["description"]) == ("Checkout v2", "v2")
+    assert by_diagram["title"] == "Checkout v2"
+    assert [i["id"] for i in found] == [pub["id"]]
+    assert detail["stars_count"] == 1  # syncing never overwrites counters
+    assert after_delete["content"] == "graph TD\n  New-->Code"  # last version stays
+
+
+async def test_owner_changes_settings_and_unpublishes(client: AsyncClient, people: dict) -> None:
+    author, visitor = people["author"], people["visitor"]
+    _, diagram_id = await _diagram(client, author)
+    pub = await _publish(client, author, diagram_id)
+
     not_owner = await client.put(
         f"{BASE}/diagrams/{pub['id']}", json={"category": "uml"}, headers=visitor["headers"]
     )
     updated = (
         await client.put(
             f"{BASE}/diagrams/{pub['id']}",
-            json={"tags": ["a", "b"]},
+            json={"category": "uml", "tags": ["A b", "c"], "allow_comments": False},
             headers=author["headers"],
         )
     ).json()
+    stored = await PublishedDiagramInDB.find_one()
     removed = await client.delete(f"{BASE}/diagrams/{pub['id']}", headers=author["headers"])
 
-    assert "New-->Code" in seen["content"]
     assert not_owner.status_code == 404
-    assert updated["tags"] == ["a", "b"]
+    assert (updated["category"], updated["tags"]) == ("uml", ["a-b", "c"])
+    assert updated["allow_comments"] is False
+    assert (stored.category, stored.allow_comments) == ("uml", False)
     assert removed.status_code == 204
     assert await PublishedDiagramInDB.count() == 0
 

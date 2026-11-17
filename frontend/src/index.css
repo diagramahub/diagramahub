@@ -156,6 +156,28 @@ code {
   border: none !important;
 }
 
+.EasyMDEContainer .editor-toolbar button.mde-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.EasyMDEContainer .editor-toolbar button.mde-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* EasyMDE appends "1/2/3" to its own heading icons */
+.EasyMDEContainer .editor-toolbar button.mde-icon::after {
+  content: none;
+}
+
+.EasyMDEContainer .editor-toolbar .mde-text-icon {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
 .EasyMDEContainer .editor-toolbar button:hover,
 .EasyMDEContainer .editor-toolbar button.active {
   background: #f3f4f6 !important;

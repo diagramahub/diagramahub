@@ -315,9 +315,7 @@ export default function CommunityDiagramPage() {
             <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 space-y-2">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{t('community.owner.title')}</p>
               {pub.source_diagram_id && (
-                <button type="button" onClick={async () => { try { setPub(await apiService.updatePublication(pub.id, { refresh_content: true })); notify(t('community.owner.refreshed')); } catch { notify(t('community.owner.sourceGone')); } }} className="w-full text-left text-sm text-purple-600 dark:text-purple-400 hover:underline">
-                  {t('community.owner.refresh')}
-                </button>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('community.owner.synced')}</p>
               )}
               <button type="button" onClick={() => setConfirmUnpublish(true)} className="w-full text-left text-sm text-red-600 dark:text-red-400 hover:underline">
                 {t('community.owner.unpublish')}
