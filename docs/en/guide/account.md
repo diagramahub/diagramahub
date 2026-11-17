@@ -109,15 +109,9 @@ Plans, their limits and their prices are defined by the instance operator. Every
 | **At the end of the period** (recommended) | You keep your plan until the period ends, then move to the free plan. |
 | **Immediately** | You move to the free plan right away, with no refund for the remaining time. |
 
-## API tokens
+## API Keys
 
-Under **Settings → API tokens** you create tokens so scripts, CI or your own tools can use your projects and diagrams through the [REST API](../development/api.md) without your password.
-
-1. **Create token**: give it a name, choose **Read only** or **Read and write**, and an expiration (30, 90 or 365 days, or none).
-2. **Copy the token now**: it is shown only once. Send it as `Authorization: Bearer dh_pat_…`.
-3. **Revoke** a token you no longer use or that may have leaked: it stops working immediately.
-
-A token can only reach projects, folders, diagrams and shared links; your account, security settings, AI keys and the tokens themselves always need a signed-in session. The list shows when each token was last used. Deleting your account deletes its tokens.
+Keys to use the API from scripts, CI or your own tools have their own section: **API Keys** in the sidebar. See [API Keys](api-keys.md).
 
 ## Delete your account
 

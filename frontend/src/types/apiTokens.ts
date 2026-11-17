@@ -1,12 +1,14 @@
-/** Personal API tokens (backend: api_tokens/schemas.py). */
+/** API keys (backend: api_tokens/schemas.py and permissions.py). */
 
-export type ApiTokenScope = 'read' | 'write';
+export type ApiKeyArea = 'projects' | 'diagrams' | 'sharing' | 'community' | 'ai';
+export type AccessLevel = 'none' | 'read' | 'write';
+export type ApiKeyPermissions = Record<ApiKeyArea, AccessLevel>;
 
 export interface ApiToken {
   id: string;
   name: string;
   token_hint: string;
-  scope: ApiTokenScope;
+  permissions: ApiKeyPermissions;
   created_at: string;
   expires_at: string | null;
   last_used_at: string | null;
@@ -19,7 +21,7 @@ export interface CreatedApiToken extends ApiToken {
 
 export interface CreateApiTokenRequest {
   name: string;
-  scope: ApiTokenScope;
+  permissions: Partial<ApiKeyPermissions>;
   /** 30, 90 or 365 days; null never expires. */
   expires_in_days: 30 | 90 | 365 | null;
 }

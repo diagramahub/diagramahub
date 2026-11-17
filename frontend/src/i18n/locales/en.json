@@ -1214,7 +1214,8 @@
     "openMenu": "Open menu",
     "community": "Community",
     "about": "About",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "apiKeys": "API Keys"
   },
   "about": {
     "title": "About DiagramaHub",
@@ -1519,49 +1520,6 @@
     "loadError": "Couldn't load the project.",
     "back": "Back to the editor"
   },
-  "apiTokens": {
-    "title": "API tokens",
-    "subtitle": "Access your projects and diagrams from scripts, CI or your own tools, without your password.",
-    "create": "Create token",
-    "creating": "Creating…",
-    "createTitle": "New API token",
-    "createdTitle": "Token created",
-    "name": "Name",
-    "namePlaceholder": "For example: docs CI",
-    "access": "Access",
-    "scope": {
-      "read": "Read only",
-      "write": "Read and write"
-    },
-    "scopeDesc": {
-      "read": "Reads projects, folders, diagrams and links.",
-      "write": "Also creates, changes and deletes."
-    },
-    "expiration": "Expiration",
-    "days_one": "{{count}} day",
-    "days_other": "{{count}} days",
-    "never": "Never expires",
-    "reach": "A token can only use the project, folder, diagram and shared link endpoints. The account, security and the tokens themselves always need a signed-in session.",
-    "copyNow": "Copy the token now: it won't be shown again. If you lose it, revoke it and create another.",
-    "tokenLabel": "API token",
-    "usage": "Send it in the Authorization header:",
-    "copy": "Copy token",
-    "copied": "Copied",
-    "done": "Done",
-    "empty": "You have no tokens yet.",
-    "createdOn": "created {{date}}",
-    "expiresOn": "expires {{date}}",
-    "neverExpires": "never expires",
-    "lastUsed": "last used {{date}}",
-    "neverUsed": "never used",
-    "expired": "Expired",
-    "revoke": "Revoke",
-    "revokeTitle": "Revoke token",
-    "revokeMessage": "The token \"{{name}}\" will stop working immediately. This can't be undone.",
-    "loadError": "Couldn't load the tokens.",
-    "createError": "Couldn't create the token.",
-    "revokeError": "Couldn't revoke the token."
-  },
   "imageToDiagram": {
     "button": "From image",
     "title": "Diagram from an image",
@@ -1838,6 +1796,164 @@
       "horizontal-rule": "Horizontal line",
       "preview": "Preview",
       "side-by-side": "Side by side"
+    }
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "subtitle": "Connect DiagramaHub with your scripts, CI or tools: read your projects and diagrams, change their code and description, publish them to the Community or share them. Each key can only do what you allow.",
+    "settingsLink": "Create keys to use the API from your scripts and integrations.",
+    "newKey": "New API key",
+    "yourKeys": "Your keys",
+    "count_one": "{{count}} key",
+    "count_other": "{{count}} keys",
+    "empty": "You don't have API keys yet.",
+    "emptyHint": "Create one to start using the API.",
+    "createTitle": "New API key",
+    "createSubtitle": "Choose what it can do. You can revoke it at any time.",
+    "createdTitle": "API key created",
+    "name": "Name",
+    "namePlaceholder": "For example: Docs CI",
+    "expiration": "Expires in",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "never": "Never",
+    "permissions": "Permissions",
+    "permissionsHint": "Write includes read. Your account, security, the keys themselves and administration always need you to sign in.",
+    "noAccess": "Give the key access to at least one area.",
+    "presets": {
+      "read": "Read only",
+      "write": "Read and write",
+      "custom": "Custom"
+    },
+    "levels": {
+      "none": "None",
+      "read": "Read",
+      "write": "Write",
+      "use": "Use"
+    },
+    "areas": {
+      "projects": {
+        "name": "Projects",
+        "description": "Projects and folders: list, create, rename, export and delete them."
+      },
+      "diagrams": {
+        "name": "Diagrams",
+        "description": "Code, title and description; create, move, duplicate, search and delete."
+      },
+      "sharing": {
+        "name": "Sharing",
+        "description": "Shared links: create, change and revoke them."
+      },
+      "community": {
+        "name": "Community",
+        "description": "Publish your diagrams, change their settings and remove them; browse and fork."
+      },
+      "ai": {
+        "name": "AI",
+        "description": "Fix and convert diagrams with your AI providers (uses your quota)."
+      }
+    },
+    "create": "Create key",
+    "creating": "Creating…",
+    "copyNow": "Copy the key now: it won't be shown again. If you lose it, revoke it and create another.",
+    "keyLabel": "API key",
+    "copy": "Copy",
+    "copied": "Copied",
+    "done": "Done",
+    "tryIt": "Try it",
+    "tryItHint": "Keep it in an environment variable and make your first call:",
+    "createdOn": "created {{date}}",
+    "expiresOn": "expires {{date}}",
+    "neverExpires": "never expires",
+    "lastUsed": "last used {{date}}",
+    "neverUsed": "never used",
+    "expired": "Expired",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke API key",
+    "revokeMessage": "The key “{{name}}” will stop working right away. This can't be undone.",
+    "loadError": "Couldn't load the keys.",
+    "createError": "Couldn't create the key.",
+    "revokeError": "Couldn't revoke the key.",
+    "usage": {
+      "title": "How to use it",
+      "subtitle": "Copy-paste examples of the most common tasks.",
+      "baseUrl": "Base URL",
+      "copyBaseUrl": "Copy the base URL",
+      "auth": "Authentication",
+      "errors": "Errors",
+      "errorsText": "401: invalid, expired or revoked key. 403: the key lacks a permission; the response says which (needs).",
+      "recipes": "Examples",
+      "language": "Language",
+      "copyCode": "Copy the example",
+      "envHint": "The examples read the key from the DIAGRAMAHUB_API_KEY environment variable. Replace PROJECT_ID, DIAGRAM_ID, etc. with real IDs."
+    },
+    "recipes": {
+      "listProjects": {
+        "title": "List projects",
+        "description": "Your projects with how many diagrams each has."
+      },
+      "getProject": {
+        "title": "Get a project",
+        "description": "A project with its folders and diagrams (including their IDs)."
+      },
+      "updateDiagram": {
+        "title": "Change code and description",
+        "description": "Update a diagram's code and description. Send only the fields that change. If it's published, the Community follows on its own."
+      },
+      "publish": {
+        "title": "Make public",
+        "description": "Publish the diagram to the Community under CC BY 4.0. Categories: architecture, databases, business-processes, devops, uml, security, ai-data, education."
+      },
+      "unpublish": {
+        "title": "Make private",
+        "description": "Remove the publication. GET /community/by-diagram/DIAGRAM_ID gives its ID."
+      },
+      "share": {
+        "title": "Share with a link",
+        "description": "Create a public link (or protected with access_code) that expires in 5, 10 or 30 days, or never (null)."
+      },
+      "unshare": {
+        "title": "Stop sharing",
+        "description": "Revoke the link. GET /shared-links/diagram/DIAGRAM_ID gives its ID."
+      }
+    },
+    "reference": {
+      "title": "Reference",
+      "subtitle": "What a key can call, by area, and the permission it needs. Paths are relative to the base URL.",
+      "outside": "Any other path (account, security, keys, AI chat, AI settings and administration) answers 403 to an API key."
+    },
+    "endpoints": {
+      "listProjects": "Your projects",
+      "getProject": "A project with its folders and diagrams",
+      "exportProject": "Export the project (zip or markdown)",
+      "createProject": "Create a project",
+      "updateProject": "Rename it or change its emoji",
+      "deleteProject": "Delete a project and its content",
+      "createFolder": "Create a folder",
+      "getFolder": "A folder with its diagrams",
+      "updateFolder": "Rename a folder",
+      "deleteFolder": "Delete a folder",
+      "recentDiagrams": "Your most recent diagrams",
+      "searchDiagrams": "Search titles, descriptions and code",
+      "getDiagram": "A diagram: code, description and settings",
+      "createDiagram": "Create a diagram",
+      "updateDiagram": "Change title, code, description or folder",
+      "moveDiagram": "Move it to another project",
+      "duplicateDiagram": "Duplicate it",
+      "deleteDiagram": "Delete it",
+      "getSharedLink": "A diagram's active link",
+      "createSharedLink": "Share: create a link",
+      "updateSharedLink": "Change the link's expiry, code or options",
+      "deleteSharedLink": "Stop sharing: revoke the link",
+      "myPublished": "Your published diagrams",
+      "publicationOfDiagram": "A diagram's publication (or null)",
+      "browseCommunity": "Browse the Community",
+      "publish": "Make public: publish to the Community",
+      "updatePublication": "Change category, tags or comments",
+      "unpublish": "Make private: remove the publication",
+      "fork": "Fork into one of your projects",
+      "fixDiagram": "Fix a diagram with AI",
+      "convertDiagram": "Convert to another language with AI"
     }
   }
 }

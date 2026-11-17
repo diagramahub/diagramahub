@@ -6,7 +6,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
-from .schemas import ApiTokenInDB, ApiTokenScope
+from .permissions import Permissions
+from .schemas import ApiTokenInDB
 
 
 class IApiTokenRepository(ABC):
@@ -19,7 +20,7 @@ class IApiTokenRepository(ABC):
         name: str,
         token_hash: str,
         token_hint: str,
-        scope: ApiTokenScope,
+        permissions: Permissions,
         expires_at: Optional[datetime],
     ) -> ApiTokenInDB:
         """Store a new token (hash only)."""

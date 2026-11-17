@@ -9,7 +9,8 @@ from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
 
 from .interfaces import IApiTokenRepository
-from .schemas import ApiTokenInDB, ApiTokenScope
+from .permissions import Permissions
+from .schemas import ApiTokenInDB
 
 
 class ApiTokenRepository(IApiTokenRepository):
@@ -21,7 +22,7 @@ class ApiTokenRepository(IApiTokenRepository):
         name: str,
         token_hash: str,
         token_hint: str,
-        scope: ApiTokenScope,
+        permissions: Permissions,
         expires_at: Optional[datetime],
     ) -> ApiTokenInDB:
         """Store a new token (hash only)."""
@@ -30,7 +31,7 @@ class ApiTokenRepository(IApiTokenRepository):
             name=name,
             token_hash=token_hash,
             token_hint=token_hint,
-            scope=scope,
+            permissions={area.value: level.value for area, level in permissions.items()},
             expires_at=expires_at,
         )
         await token.insert()

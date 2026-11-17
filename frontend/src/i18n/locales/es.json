@@ -1317,7 +1317,8 @@
     "openMenu": "Abrir menú",
     "community": "Comunidad",
     "about": "Acerca de",
-    "comingSoon": "Próximamente"
+    "comingSoon": "Próximamente",
+    "apiKeys": "API Keys"
   },
   "about": {
     "title": "Acerca de DiagramaHub",
@@ -1518,49 +1519,6 @@
     "empty": "No hay diagramas para presentar.",
     "loadError": "No se pudo cargar el proyecto.",
     "back": "Volver al editor"
-  },
-  "apiTokens": {
-    "title": "Tokens de API",
-    "subtitle": "Acceso a tus proyectos y diagramas desde scripts, CI o herramientas propias, sin tu contraseña.",
-    "create": "Crear token",
-    "creating": "Creando…",
-    "createTitle": "Nuevo token de API",
-    "createdTitle": "Token creado",
-    "name": "Nombre",
-    "namePlaceholder": "Por ejemplo: CI de documentación",
-    "access": "Acceso",
-    "scope": {
-      "read": "Solo lectura",
-      "write": "Lectura y escritura"
-    },
-    "scopeDesc": {
-      "read": "Consulta proyectos, carpetas, diagramas y enlaces.",
-      "write": "También crea, cambia y borra."
-    },
-    "expiration": "Vigencia",
-    "days_one": "{{count}} día",
-    "days_other": "{{count}} días",
-    "never": "Sin vencimiento",
-    "reach": "Un token solo puede usar las rutas de proyectos, carpetas, diagramas y enlaces compartidos. La cuenta, la seguridad y los propios tokens siempre requieren iniciar sesión.",
-    "copyNow": "Copia el token ahora: no se volverá a mostrar. Si lo pierdes, revócalo y crea otro.",
-    "tokenLabel": "Token de API",
-    "usage": "Úsalo en la cabecera Authorization:",
-    "copy": "Copiar token",
-    "copied": "Copiado",
-    "done": "Listo",
-    "empty": "Aún no tienes tokens.",
-    "createdOn": "creado el {{date}}",
-    "expiresOn": "vence el {{date}}",
-    "neverExpires": "sin vencimiento",
-    "lastUsed": "último uso el {{date}}",
-    "neverUsed": "sin usar",
-    "expired": "Vencido",
-    "revoke": "Revocar",
-    "revokeTitle": "Revocar token",
-    "revokeMessage": "El token «{{name}}» dejará de funcionar de inmediato. Esta acción no se puede deshacer.",
-    "loadError": "No se pudieron cargar los tokens.",
-    "createError": "No se pudo crear el token.",
-    "revokeError": "No se pudo revocar el token."
   },
   "imageToDiagram": {
     "button": "Desde imagen",
@@ -1838,6 +1796,164 @@
       "horizontal-rule": "Línea horizontal",
       "preview": "Vista previa",
       "side-by-side": "Lado a lado"
+    }
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "subtitle": "Conecta DiagramaHub con tus scripts, tu CI o tus herramientas: consulta tus proyectos y diagramas, cambia su código y descripción, publícalos en la Comunidad o compártelos. Cada llave solo puede hacer lo que le permitas.",
+    "settingsLink": "Crea llaves para usar la API desde tus scripts e integraciones.",
+    "newKey": "Nueva API key",
+    "yourKeys": "Tus llaves",
+    "count_one": "{{count}} llave",
+    "count_other": "{{count}} llaves",
+    "empty": "Aún no tienes API keys.",
+    "emptyHint": "Crea una para empezar a usar la API.",
+    "createTitle": "Nueva API key",
+    "createSubtitle": "Elige qué puede hacer. Puedes revocarla cuando quieras.",
+    "createdTitle": "API key creada",
+    "name": "Nombre",
+    "namePlaceholder": "Por ejemplo: CI de documentación",
+    "expiration": "Vigencia",
+    "days_one": "{{count}} día",
+    "days_other": "{{count}} días",
+    "never": "Sin vencimiento",
+    "permissions": "Permisos",
+    "permissionsHint": "Escritura incluye lectura. Las rutas de tu cuenta, tu seguridad, las propias llaves y la administración siempre requieren iniciar sesión.",
+    "noAccess": "Dale acceso al menos a un área.",
+    "presets": {
+      "read": "Solo lectura",
+      "write": "Lectura y escritura",
+      "custom": "Personalizado"
+    },
+    "levels": {
+      "none": "Ninguno",
+      "read": "Lectura",
+      "write": "Escritura",
+      "use": "Usar"
+    },
+    "areas": {
+      "projects": {
+        "name": "Proyectos",
+        "description": "Proyectos y carpetas: listarlos, crearlos, renombrarlos, exportarlos y borrarlos."
+      },
+      "diagrams": {
+        "name": "Diagramas",
+        "description": "Código, título y descripción; crear, mover, duplicar, buscar y borrar."
+      },
+      "sharing": {
+        "name": "Compartir",
+        "description": "Enlaces compartidos: crearlos, cambiarlos y revocarlos."
+      },
+      "community": {
+        "name": "Comunidad",
+        "description": "Publicar, cambiar la configuración y retirar tus diagramas; explorar y hacer fork."
+      },
+      "ai": {
+        "name": "IA",
+        "description": "Corregir y convertir diagramas con tus proveedores de IA (consume tu cuota)."
+      }
+    },
+    "create": "Crear llave",
+    "creating": "Creando…",
+    "copyNow": "Copia la llave ahora: no se volverá a mostrar. Si la pierdes, revócala y crea otra.",
+    "keyLabel": "API key",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "done": "Listo",
+    "tryIt": "Pruébala",
+    "tryItHint": "Guárdala en una variable de entorno y haz tu primera llamada:",
+    "createdOn": "creada el {{date}}",
+    "expiresOn": "vence el {{date}}",
+    "neverExpires": "sin vencimiento",
+    "lastUsed": "último uso el {{date}}",
+    "neverUsed": "sin usar",
+    "expired": "Vencida",
+    "revoke": "Revocar",
+    "revokeTitle": "Revocar API key",
+    "revokeMessage": "La llave «{{name}}» dejará de funcionar de inmediato. Esta acción no se puede deshacer.",
+    "loadError": "No se pudieron cargar las llaves.",
+    "createError": "No se pudo crear la llave.",
+    "revokeError": "No se pudo revocar la llave.",
+    "usage": {
+      "title": "Cómo usarla",
+      "subtitle": "Ejemplos listos para copiar de las tareas más comunes.",
+      "baseUrl": "URL base",
+      "copyBaseUrl": "Copiar la URL base",
+      "auth": "Autenticación",
+      "errors": "Errores",
+      "errorsText": "401: llave inválida, vencida o revocada. 403: a la llave le falta un permiso; la respuesta dice cuál (needs).",
+      "recipes": "Ejemplos",
+      "language": "Lenguaje",
+      "copyCode": "Copiar el ejemplo",
+      "envHint": "Los ejemplos leen la llave de la variable de entorno DIAGRAMAHUB_API_KEY. Reemplaza PROJECT_ID, DIAGRAM_ID, etc. por los IDs reales."
+    },
+    "recipes": {
+      "listProjects": {
+        "title": "Listar proyectos",
+        "description": "Tus proyectos con su número de diagramas."
+      },
+      "getProject": {
+        "title": "Ver un proyecto",
+        "description": "Un proyecto con sus carpetas y diagramas (incluye los IDs)."
+      },
+      "updateDiagram": {
+        "title": "Cambiar código y descripción",
+        "description": "Actualiza el código y la descripción de un diagrama. Manda solo los campos que cambian. Si está publicado, la Comunidad lo refleja sola."
+      },
+      "publish": {
+        "title": "Hacer público",
+        "description": "Publica el diagrama en la Comunidad bajo CC BY 4.0. Categorías: architecture, databases, business-processes, devops, uml, security, ai-data, education."
+      },
+      "unpublish": {
+        "title": "Hacer privado",
+        "description": "Retira la publicación. El ID de la publicación lo da GET /community/by-diagram/DIAGRAM_ID."
+      },
+      "share": {
+        "title": "Compartir con un enlace",
+        "description": "Crea un enlace público (o protegido con access_code) que vence en 5, 10 o 30 días, o nunca (null)."
+      },
+      "unshare": {
+        "title": "Dejar de compartir",
+        "description": "Revoca el enlace. Su ID lo da GET /shared-links/diagram/DIAGRAM_ID."
+      }
+    },
+    "reference": {
+      "title": "Referencia",
+      "subtitle": "Lo que una llave puede llamar, por área, y el permiso que necesita. Las rutas cuelgan de la URL base.",
+      "outside": "Cualquier otra ruta (cuenta, seguridad, llaves, chat con IA, ajustes de IA y administración) responde 403 a una API key."
+    },
+    "endpoints": {
+      "listProjects": "Tus proyectos",
+      "getProject": "Un proyecto con sus carpetas y diagramas",
+      "exportProject": "Exportar el proyecto (zip o markdown)",
+      "createProject": "Crear un proyecto",
+      "updateProject": "Renombrar o cambiar el emoji",
+      "deleteProject": "Borrar un proyecto y su contenido",
+      "createFolder": "Crear una carpeta",
+      "getFolder": "Una carpeta con sus diagramas",
+      "updateFolder": "Renombrar una carpeta",
+      "deleteFolder": "Borrar una carpeta",
+      "recentDiagrams": "Tus diagramas más recientes",
+      "searchDiagrams": "Buscar en títulos, descripciones y código",
+      "getDiagram": "Un diagrama: código, descripción y configuración",
+      "createDiagram": "Crear un diagrama",
+      "updateDiagram": "Cambiar título, código, descripción o carpeta",
+      "moveDiagram": "Moverlo a otro proyecto",
+      "duplicateDiagram": "Duplicarlo",
+      "deleteDiagram": "Borrarlo",
+      "getSharedLink": "El enlace activo de un diagrama",
+      "createSharedLink": "Compartir: crear un enlace",
+      "updateSharedLink": "Cambiar vencimiento, código o permisos del enlace",
+      "deleteSharedLink": "Dejar de compartir: revocar el enlace",
+      "myPublished": "Tus diagramas publicados",
+      "publicationOfDiagram": "La publicación de un diagrama (o null)",
+      "browseCommunity": "Explorar la Comunidad",
+      "publish": "Hacer público: publicar en la Comunidad",
+      "updatePublication": "Cambiar categoría, etiquetas o comentarios",
+      "unpublish": "Hacer privado: retirar la publicación",
+      "fork": "Hacer fork a uno de tus proyectos",
+      "fixDiagram": "Corregir un diagrama con IA",
+      "convertDiagram": "Convertir a otro lenguaje con IA"
     }
   }
 }

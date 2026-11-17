@@ -59,7 +59,7 @@ flowchart LR
 | `mfa/` | MFA por TOTP y por código de email, códigos de recuperación, administración de MFA de usuarios | `totp_service.py`, `admin_service.py`, `rate_limiter.py` |
 | `oauth/` | Login con OAuth 2.0 / OpenID Connect (Google; extensible con `IOAuthProvider`) | `providers/` (`google.py`, `factory.py`) |
 | `community/` | Portal de Comunidad: publicaciones (copias), estrellas, forks (con `DiagramService` y `UsageLimiter`), comentarios, reportes y moderación | — |
-| `api_tokens/` | Tokens de API personales: crear (se muestra una vez, se guarda el hash SHA-256), listar y revocar; `deps.get_current_user_email` los acepta en las rutas permitidas | — |
+| `api_tokens/` | API keys: crear (se muestra una vez, se guarda el hash SHA-256), listar y revocar; permisos por área (`permissions.py`: `RULES` decide qué área y nivel pide cada ruta); `deps.get_current_user_email` las acepta | — |
 
 !!! info "Dónde vive cada dato"
     Los datos de MFA se guardan en el propio documento del usuario (`UserInDB`), por eso `mfa/` no registra un `Document` propio.

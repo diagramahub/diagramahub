@@ -1,11 +1,10 @@
 """
 Business logic for personal API tokens.
 
-Tokens look like ``dh_pat_<random>``; only their SHA-256 hash is stored, so a
-token can't be recovered after it is shown. A token acts as its owner on a
-limited set of endpoints (see ``PAT_ALLOWED_PATH_PREFIXES``): read-only tokens
-only on safe methods. Account, security and token management always need a
-signed-in session.
+Keys look like ``dh_pat_<random>``; only their SHA-256 hash is stored, so a
+key can't be recovered after it is shown. A key acts as its owner, only on the
+endpoints its per-area permissions cover (``permissions.RULES``). Account,
+security, key management and admin endpoints always need a signed-in session.
 """
 
 import hashlib
@@ -19,6 +18,14 @@ from fastapi import HTTPException, status
 from app.core.clock import utcnow
 
 from .interfaces import IApiTokenRepository
+from .permissions import (
+    AccessLevel,
+    ApiKeyArea,
+    Permissions,
+    grants,
+    legacy_permissions,
+    required_access,
+)
 from .schemas import (
     MAX_TOKENS_PER_USER,
     TOKEN_HINT_LENGTH,
@@ -27,12 +34,8 @@ from .schemas import (
     ApiTokenCreateRequest,
     ApiTokenInDB,
     ApiTokenResponse,
-    ApiTokenScope,
 )
 
-# Endpoints (under the API prefix) a token may call: the diagram data.
-PAT_ALLOWED_PATH_PREFIXES = ("/projects", "/diagrams", "/folders", "/shared-links")
-SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 # Don't write last_used_at on every request.
 LAST_USED_RESOLUTION = timedelta(minutes=5)
 
@@ -47,12 +50,31 @@ def is_api_token(credential: str) -> bool:
     return credential.startswith(TOKEN_PREFIX)
 
 
+def permissions_of(token: ApiTokenInDB) -> Permissions:
+    """A key's access per area (old global-scope keys are translated)."""
+    if not token.permissions:
+        return legacy_permissions(token.scope)
+    stored = token.permissions
+    return {
+        area: AccessLevel(stored.get(area.value, AccessLevel.NONE.value)) for area in ApiKeyArea
+    }
+
+
+def describe_permissions(permissions: Permissions) -> str:
+    """``projects:read,diagrams:write`` (areas with access only), for the audit log."""
+    return ",".join(
+        f"{area.value}:{level.value}"
+        for area, level in permissions.items()
+        if level != AccessLevel.NONE
+    )
+
+
 def _to_response(token: ApiTokenInDB) -> ApiTokenResponse:
     return ApiTokenResponse(
         id=str(token.id),
         name=token.name,
         token_hint=token.token_hint,
-        scope=token.scope,
+        permissions=permissions_of(token),
         created_at=token.created_at,
         expires_at=token.expires_at,
         last_used_at=token.last_used_at,
@@ -65,7 +87,7 @@ class ApiTokenPrincipal:
 
     user_id: str
     token_id: str
-    scope: ApiTokenScope
+    permissions: Permissions
 
 
 class ApiTokenService:
@@ -98,7 +120,7 @@ class ApiTokenService:
             name=request.name.strip(),
             token_hash=hash_token(token),
             token_hint=token[: len(TOKEN_PREFIX) + TOKEN_HINT_LENGTH] + "…",
-            scope=request.scope,
+            permissions=request.permissions,
             expires_at=expires_at,
         )
         return ApiTokenCreatedResponse(**_to_response(stored).model_dump(), token=token)
@@ -138,16 +160,27 @@ class ApiTokenService:
         now = utcnow()
         if token is None or (token.expires_at is not None and token.expires_at <= now):
             return None
-        if not api_path.startswith(PAT_ALLOWED_PATH_PREFIXES):
+        needed = required_access(method, api_path)
+        if needed is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="This endpoint doesn't accept API tokens; sign in instead",
+                detail="This endpoint doesn't accept API keys; sign in instead",
             )
-        if token.scope == ApiTokenScope.READ and method.upper() not in SAFE_METHODS:
+        permissions = permissions_of(token)
+        areas, level = needed
+        missing = [area for area in areas if not grants(permissions[area], level)]
+        if missing:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="This API token is read-only",
+                detail={
+                    "error": "api_key_permission",
+                    "message": f"This API key needs {level.value} access to "
+                    + " and ".join(area.value for area in missing),
+                    "needs": {area.value: level.value for area in missing},
+                },
             )
         if token.last_used_at is None or now - token.last_used_at >= LAST_USED_RESOLUTION:
             await self.repository.touch(str(token.id), now)
-        return ApiTokenPrincipal(user_id=token.user_id, token_id=str(token.id), scope=token.scope)
+        return ApiTokenPrincipal(
+            user_id=token.user_id, token_id=str(token.id), permissions=permissions
+        )

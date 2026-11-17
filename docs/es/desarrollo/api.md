@@ -14,7 +14,7 @@ El backend expone una API REST en JSON. La referencia interactiva y completa (es
 | Tema | Convención |
 |---|---|
 | Prefijo | Todas las rutas cuelgan de `/api/v1` (`settings.API_V1_PREFIX`). Los proveedores de IA, de `/api/v1/ai`. |
-| Autenticación | `Authorization: Bearer <JWT>` obtenido en `POST /users/login` (o tras el MFA / OAuth), o un token de API personal (`Bearer dh_pat_…`, ver [Tokens de API](#tokens-de-api-personales-api_tokens)) en las rutas de proyectos, carpetas, diagramas y enlaces compartidos. |
+| Autenticación | `Authorization: Bearer <JWT>` obtenido en `POST /users/login` (o tras el MFA / OAuth), o una API key (`Bearer dh_pat_…`, ver [API Keys](#api-keys-api_tokens)) en las rutas que sus permisos cubren. |
 | Idioma | `Accept-Language: es` o `en`: los mensajes de error y el contenido de IA responden en ese idioma. |
 | Errores | `HTTPException` de FastAPI: cuerpo `{"detail": ...}`, donde `detail` es un texto o un objeto con un código (p. ej. `{"error": "response_truncated"}`). |
 | Validación | `422` con el detalle de Pydantic cuando el cuerpo no cumple el esquema. |
@@ -80,14 +80,29 @@ Las rutas están relativas a `/api/v1`. **Público** = sin token; **Usuario** = 
 | POST | `/diagrams/convert` | Usuario |
 | POST | `/diagrams/render` | Público (con límite por IP) |
 
-### Tokens de API personales (`api_tokens/`)
+### API Keys (`api_tokens/`)
 
 | Método | Ruta | Acceso |
 |---|---|---|
 | GET · POST | `/api-tokens` | Usuario (solo con sesión) |
 | DELETE | `/api-tokens/{token_id}` | Usuario (solo con sesión) |
 
-`POST` devuelve el token (`dh_pat_…`) una sola vez; solo se guarda su hash SHA-256. Un token actúa como su dueño únicamente en `/projects`, `/folders`, `/diagrams` y `/shared-links` (`403` en lo demás); uno de tipo `read`, solo con `GET`. Vigencia: 30, 90 o 365 días, o sin vencimiento.
+`POST` recibe `name`, `expires_in_days` (30, 90, 365 o `null`) y `permissions`, un nivel por área (`none`, `read` o `write`; `ai`: `none` o `write`; las áreas omitidas quedan en `none` y al menos una debe tener acceso). Devuelve la llave (`dh_pat_…`) una sola vez; solo se guarda su hash SHA-256.
+
+Qué área y nivel exige cada ruta lo decide `api_tokens/permissions.py` (`RULES`, la primera que coincide; los métodos `GET`/`HEAD`/`OPTIONS` piden lectura y el resto escritura):
+
+| Rutas | Área · nivel |
+|---|---|
+| `/projects…`, `/folders…` | `projects` |
+| `/projects/{id}/diagrams`, `/diagrams…` | `diagrams` (`POST /diagrams/render`: lectura) |
+| `/projects/{id}/import` | `projects` y `diagrams` · escritura |
+| `/diagrams/{id}/fix`, `/diagrams/convert` | `ai` · escritura |
+| `/shared-links…` | `sharing` |
+| `/community…` | `community` |
+| `/community/diagrams/{id}/fork` | `community` y `diagrams` · escritura |
+| `/community/admin…` y cualquier otra ruta | nunca con una llave |
+
+Sin el permiso necesario la respuesta es `403` con `{"error": "api_key_permission", "message": …, "needs": {"<área>": "<nivel>"}}`; una llave vencida o revocada recibe `401`. Las llaves anteriores a los permisos por área (`scope` global `read`/`write`) siguen funcionando con ese nivel en todas las áreas salvo `ai`.
 
 ```bash
 curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
@@ -100,6 +115,7 @@ curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
 | GET · POST | `/community/diagrams` (list: `tab`, `q`, `category`, `type`, `sort`, `page`) | Usuario (sesión) |
 | GET · PUT · DELETE | `/community/diagrams/{id}` | Usuario · dueño (PUT) · dueño o admin (DELETE) |
 | GET | `/community/by-diagram/{diagram_id}` | Usuario (dueño) |
+| GET | `/community/my-published` | Usuario: sus diagramas publicados (`diagram_id`, `publication_id`, `hidden`) |
 | PUT · DELETE | `/community/diagrams/{id}/star` | Usuario |
 | POST | `/community/diagrams/{id}/fork` | Usuario (aplica el límite del plan) |
 | GET · POST | `/community/diagrams/{id}/comments` | Usuario |

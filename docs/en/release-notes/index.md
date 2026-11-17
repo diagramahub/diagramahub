@@ -6,7 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
-| [0.9.0](0.9.0.md) | 2026-11-15 | Features: Community, diagram from image, search in the content, embed and QR, folder presentations, project PDF, API tokens; major upgrades, CI and security |
+| [0.9.0](0.9.0.md) | 2026-11-15 | Features: Community, diagram from image, search in the content, embed and QR, folder presentations, project PDF, API Keys; major upgrades, CI and security |
 | [0.8.6](0.8.6.md) | 2026-11-15 | Maintenance: dependencies with security advisories (backend and frontend) and JWT with PyJWT instead of python-jose |
 | [0.8.5](0.8.5.md) | 2026-10-21 | Maintenance: dependency advisories, sign-in error shown again, complete dark mode, shared page in English, clean lint |
 | [0.8.4](0.8.4.md) | 2026-10-19 | Security (AI chat, MFA, webhooks, Mermaid, IP behind proxy), configuration and complete documentation |

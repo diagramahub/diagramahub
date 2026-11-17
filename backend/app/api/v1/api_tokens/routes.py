@@ -13,7 +13,7 @@ from app.api.v1.users import audit_log
 
 from .repository import ApiTokenRepository
 from .schemas import ApiTokenCreatedResponse, ApiTokenCreateRequest, ApiTokenResponse
-from .services import ApiTokenService
+from .services import ApiTokenService, describe_permissions
 
 router = APIRouter(tags=["API tokens"])
 
@@ -49,7 +49,10 @@ async def create_api_token(
         audit_log.EVENT_API_TOKEN_CREATED,
         user_id,
         http_request,
-        details=f"id={created.id} scope={created.scope.value} expires={created.expires_at or 'never'}",
+        details=(
+            f"id={created.id} permissions={describe_permissions(created.permissions)} "
+            f"expires={created.expires_at or 'never'}"
+        ),
     )
     return created
 

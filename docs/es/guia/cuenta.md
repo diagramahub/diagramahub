@@ -109,15 +109,9 @@ Los planes, sus límites y sus precios los define el operador de la instancia. T
 | **Al final del período** (recomendado) | Conservas tu plan hasta la fecha de corte y luego pasas al plan gratuito. |
 | **Inmediatamente** | Pasas al plan gratuito en ese momento, sin reembolso por el tiempo restante. |
 
-## Tokens de API
+## API Keys
 
-En **Configuración → Tokens de API** creas tokens para que scripts, CI o tus propias herramientas usen tus proyectos y diagramas mediante la [API REST](../desarrollo/api.md) sin tu contraseña.
-
-1. **Crear token**: ponle un nombre, elige **Solo lectura** o **Lectura y escritura**, y una vigencia (30, 90 o 365 días, o sin vencimiento).
-2. **Copia el token en ese momento**: solo se muestra una vez. Envíalo como `Authorization: Bearer dh_pat_…`.
-3. **Revoca** un token que ya no uses o que pudo filtrarse: deja de funcionar de inmediato.
-
-Un token solo llega a proyectos, carpetas, diagramas y enlaces compartidos; tu cuenta, la seguridad, las llaves de IA y los propios tokens siempre requieren iniciar sesión. La lista muestra cuándo se usó cada token por última vez. Al eliminar tu cuenta se borran sus tokens.
+Las llaves para usar la API desde scripts, CI o tus propias herramientas tienen su propia sección: **API Keys** en el menú lateral. Ver [API Keys](api-keys.md).
 
 ## Eliminar tu cuenta
 

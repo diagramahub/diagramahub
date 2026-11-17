@@ -1,5 +1,5 @@
 """
-Personal API tokens: creation, use, scopes, allowed endpoints and revocation.
+API keys: creation, per-area permissions, allowed endpoints and revocation.
 """
 
 from datetime import timedelta
@@ -8,30 +8,116 @@ import pytest
 from beanie import PydanticObjectId
 from httpx import AsyncClient
 
+from app.api.v1.api_tokens.permissions import AccessLevel, ApiKeyArea, required_access
 from app.api.v1.api_tokens.schemas import ApiTokenInDB
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.clock import utcnow
 
 pytestmark = pytest.mark.integration
 
+READ_ALL = {"projects": "read", "diagrams": "read", "sharing": "read", "community": "read"}
+WRITE_ALL = {
+    "projects": "write",
+    "diagrams": "write",
+    "sharing": "write",
+    "community": "write",
+    "ai": "write",
+}
 
-async def _create_token(client: AsyncClient, **body) -> dict:
-    payload = {"name": "CI", "scope": "read", "expires_in_days": 30}
+
+async def _create_token(client: AsyncClient, permissions: dict | None = None, **body) -> dict:
+    payload = {"name": "CI", "permissions": permissions or READ_ALL, "expires_in_days": 30}
     payload.update(body)
     response = await client.post("/api/v1/api-tokens", json=payload)
     assert response.status_code == 201, response.text
     return response.json()
 
 
-def _bearer(token: str) -> dict:
-    return {"Authorization": f"Bearer {token}"}
+class KeyClient:
+    """Calls the API with a key instead of the session."""
+
+    def __init__(self, client: AsyncClient, token: str):
+        self.client = client
+        self.headers = {"Authorization": f"Bearer {token}"}
+
+    async def __aenter__(self) -> "KeyClient":
+        self.session = self.client.headers.pop("Authorization")
+        return self
+
+    async def __aexit__(self, *_exc) -> None:
+        self.client.headers["Authorization"] = self.session
+
+    async def request(self, method: str, path: str, **kwargs):
+        return await self.client.request(method, "/api/v1" + path, headers=self.headers, **kwargs)
+
+
+async def _diagram(client: AsyncClient) -> tuple[str, str]:
+    project = (await client.post("/api/v1/projects", json={"name": "Mine", "emoji": "📁"})).json()
+    diagram = await client.post(
+        f"/api/v1/projects/{project['id']}/diagrams",
+        json={"title": "Flow", "content": "graph TD\n  A-->B", "diagram_type": "mermaid"},
+    )
+    return project["id"], diagram.json()["id"]
+
+
+# --------------------------------------------------------------------------- #
+#  Endpoint -> area and level
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "method, path, expected",
+    [
+        ("GET", "/projects", ((ApiKeyArea.PROJECTS,), AccessLevel.READ)),
+        ("POST", "/projects/p1/folders", ((ApiKeyArea.PROJECTS,), AccessLevel.WRITE)),
+        ("PUT", "/folders/f1", ((ApiKeyArea.PROJECTS,), AccessLevel.WRITE)),
+        ("POST", "/projects/p1/diagrams", ((ApiKeyArea.DIAGRAMS,), AccessLevel.WRITE)),
+        ("GET", "/projects/p1/diagrams", ((ApiKeyArea.DIAGRAMS,), AccessLevel.READ)),
+        (
+            "POST",
+            "/projects/p1/import",
+            ((ApiKeyArea.PROJECTS, ApiKeyArea.DIAGRAMS), AccessLevel.WRITE),
+        ),
+        ("PUT", "/diagrams/d1", ((ApiKeyArea.DIAGRAMS,), AccessLevel.WRITE)),
+        ("POST", "/diagrams/render", ((ApiKeyArea.DIAGRAMS,), AccessLevel.READ)),
+        ("POST", "/diagrams/d1/fix", ((ApiKeyArea.AI,), AccessLevel.WRITE)),
+        ("POST", "/diagrams/convert", ((ApiKeyArea.AI,), AccessLevel.WRITE)),
+        ("DELETE", "/shared-links/l1", ((ApiKeyArea.SHARING,), AccessLevel.WRITE)),
+        ("GET", "/community/my-published", ((ApiKeyArea.COMMUNITY,), AccessLevel.READ)),
+        ("POST", "/community/diagrams", ((ApiKeyArea.COMMUNITY,), AccessLevel.WRITE)),
+        (
+            "POST",
+            "/community/diagrams/x/fork",
+            ((ApiKeyArea.COMMUNITY, ApiKeyArea.DIAGRAMS), AccessLevel.WRITE),
+        ),
+        ("PUT", "/community/admin/diagrams/x", None),
+        ("GET", "/users/me", None),
+        ("GET", "/api-tokens", None),
+        ("POST", "/ai/chat", None),
+        ("GET", "/projectsx", None),
+    ],
+)
+def test_required_access(method: str, path: str, expected) -> None:
+    assert required_access(method, path) == expected
+
+
+# --------------------------------------------------------------------------- #
+#  Keys
+# --------------------------------------------------------------------------- #
 
 
 async def test_token_is_shown_once_and_stored_hashed(authenticated_client: AsyncClient) -> None:
-    created = await _create_token(authenticated_client)
+    created = await _create_token(authenticated_client, {"diagrams": "read"})
 
     assert created["token"].startswith("dh_pat_")
     assert created["token_hint"].endswith("…")
+    assert created["permissions"] == {
+        "projects": "none",
+        "diagrams": "read",
+        "sharing": "none",
+        "community": "none",
+        "ai": "none",
+    }
     listed = (await authenticated_client.get("/api/v1/api-tokens")).json()
     assert [t["id"] for t in listed] == [created["id"]]
     assert "token" not in listed[0]
@@ -39,60 +125,165 @@ async def test_token_is_shown_once_and_stored_hashed(authenticated_client: Async
     assert stored is not None and created["token"] not in stored.model_dump_json()
 
 
-async def test_read_token_lists_projects_but_cannot_write(
-    authenticated_client: AsyncClient,
+@pytest.mark.parametrize(
+    "permissions",
+    [
+        {},
+        {"projects": "none"},
+        {"ai": "read"},
+        {"billing": "read"},
+        {"projects": "admin"},
+    ],
+)
+async def test_invalid_permissions_are_rejected(
+    authenticated_client: AsyncClient, permissions: dict
 ) -> None:
-    await authenticated_client.post("/api/v1/projects", json={"name": "Visible", "emoji": "📁"})
-    token = (await _create_token(authenticated_client))["token"]
-    session = authenticated_client.headers.pop("Authorization")
+    response = await authenticated_client.post(
+        "/api/v1/api-tokens", json={"name": "x", "permissions": permissions}
+    )
 
-    try:
-        projects = await authenticated_client.get("/api/v1/projects", headers=_bearer(token))
-        create = await authenticated_client.post(
-            "/api/v1/projects", json={"name": "Nope", "emoji": "📁"}, headers=_bearer(token)
-        )
-    finally:
-        authenticated_client.headers["Authorization"] = session
+    assert response.status_code == 422
+
+
+async def test_read_access_reads_but_cannot_write(authenticated_client: AsyncClient) -> None:
+    await authenticated_client.post("/api/v1/projects", json={"name": "Visible", "emoji": "📁"})
+    token = (await _create_token(authenticated_client, {"projects": "read"}))["token"]
+
+    async with KeyClient(authenticated_client, token) as key:
+        projects = await key.request("GET", "/projects")
+        create = await key.request("POST", "/projects", json={"name": "Nope", "emoji": "📁"})
 
     assert projects.status_code == 200
     assert [p["name"] for p in projects.json()] == ["Visible"]
     assert create.status_code == 403
+    assert create.json()["detail"]["needs"] == {"projects": "write"}
 
 
-async def test_write_token_can_create(authenticated_client: AsyncClient) -> None:
-    token = (await _create_token(authenticated_client, scope="write"))["token"]
-    session = authenticated_client.headers.pop("Authorization")
+async def test_each_area_is_independent(authenticated_client: AsyncClient) -> None:
+    _, diagram_id = await _diagram(authenticated_client)
+    token = (await _create_token(authenticated_client, {"diagrams": "write"}))["token"]
 
-    try:
-        response = await authenticated_client.post(
-            "/api/v1/projects", json={"name": "From CI", "emoji": "🤖"}, headers=_bearer(token)
+    async with KeyClient(authenticated_client, token) as key:
+        edited = await key.request(
+            "PUT", f"/diagrams/{diagram_id}", json={"description": "From CI"}
         )
-    finally:
-        authenticated_client.headers["Authorization"] = session
+        projects = await key.request("GET", "/projects")
+        share = await key.request("POST", "/shared-links", json={"diagram_id": diagram_id})
 
-    assert response.status_code == 201
+    assert edited.status_code == 200 and edited.json()["description"] == "From CI"
+    assert projects.status_code == 403
+    assert share.status_code == 403
+    assert share.json()["detail"]["needs"] == {"sharing": "write"}
+
+
+async def test_sharing_access_shares_and_unshares(authenticated_client: AsyncClient) -> None:
+    _, diagram_id = await _diagram(authenticated_client)
+    token = (await _create_token(authenticated_client, {"sharing": "write"}))["token"]
+
+    async with KeyClient(authenticated_client, token) as key:
+        created = await key.request("POST", "/shared-links", json={"diagram_id": diagram_id})
+        found = await key.request("GET", f"/shared-links/diagram/{diagram_id}")
+        revoked = await key.request("DELETE", f"/shared-links/{created.json()['id']}")
+
+    assert created.status_code == 201, created.text
+    assert found.json()["id"] == created.json()["id"]
+    assert revoked.status_code in (200, 204)
+
+
+async def test_community_access_publishes_and_unpublishes(
+    authenticated_client: AsyncClient,
+) -> None:
+    _, diagram_id = await _diagram(authenticated_client)
+    reader = (await _create_token(authenticated_client, {"community": "read"}))["token"]
+    writer = (await _create_token(authenticated_client, {"community": "write"}))["token"]
+    body = {"diagram_id": diagram_id, "category": "architecture", "tags": ["ci"]}
+
+    async with KeyClient(authenticated_client, reader) as key:
+        denied = await key.request("POST", "/community/diagrams", json=body)
+    async with KeyClient(authenticated_client, writer) as key:
+        published = await key.request("POST", "/community/diagrams", json=body)
+        mine = await key.request("GET", "/community/my-published")
+        removed = await key.request("DELETE", f"/community/diagrams/{published.json()['id']}")
+
+    assert denied.status_code == 403
+    assert published.status_code == 201, published.text
+    assert [p["diagram_id"] for p in mine.json()] == [diagram_id]
+    assert removed.status_code == 204
+
+
+async def test_fork_needs_community_and_diagrams(authenticated_client: AsyncClient) -> None:
+    project_id, diagram_id = await _diagram(authenticated_client)
+    pub = (
+        await authenticated_client.post(
+            "/api/v1/community/diagrams",
+            json={"diagram_id": diagram_id, "category": "architecture"},
+        )
+    ).json()
+    community_only = (await _create_token(authenticated_client, {"community": "write"}))["token"]
+    both = (await _create_token(authenticated_client, {"community": "write", "diagrams": "write"}))[
+        "token"
+    ]
+    body = {"project_id": project_id}
+
+    async with KeyClient(authenticated_client, community_only) as key:
+        denied = await key.request("POST", f"/community/diagrams/{pub['id']}/fork", json=body)
+    async with KeyClient(authenticated_client, both) as key:
+        forked = await key.request("POST", f"/community/diagrams/{pub['id']}/fork", json=body)
+
+    assert denied.status_code == 403
+    assert denied.json()["detail"]["needs"] == {"diagrams": "write"}
+    assert forked.status_code == 201, forked.text
+
+
+async def test_ai_needs_its_own_permission(authenticated_client: AsyncClient) -> None:
+    _, diagram_id = await _diagram(authenticated_client)
+    everything_but_ai = {**WRITE_ALL, "ai": "none"}
+    token = (await _create_token(authenticated_client, everything_but_ai))["token"]
+
+    async with KeyClient(authenticated_client, token) as key:
+        response = await key.request(
+            "POST", f"/diagrams/{diagram_id}/fix", json={"error_context": "x"}
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["needs"] == {"ai": "write"}
 
 
 @pytest.mark.parametrize(
     "method, path",
     [
-        ("GET", "/api/v1/users/me"),
-        ("GET", "/api/v1/api-tokens"),
-        ("GET", "/api/v1/ai/settings"),
+        ("GET", "/users/me"),
+        ("GET", "/api-tokens"),
+        ("GET", "/ai/settings"),
+        ("GET", "/community/admin/reports"),
     ],
 )
-async def test_token_cannot_reach_account_or_token_endpoints(
+async def test_key_cannot_reach_account_keys_ai_settings_or_admin(
     authenticated_client: AsyncClient, method: str, path: str
 ) -> None:
-    token = (await _create_token(authenticated_client, scope="write"))["token"]
-    session = authenticated_client.headers.pop("Authorization")
+    token = (await _create_token(authenticated_client, WRITE_ALL))["token"]
 
-    try:
-        response = await authenticated_client.request(method, path, headers=_bearer(token))
-    finally:
-        authenticated_client.headers["Authorization"] = session
+    async with KeyClient(authenticated_client, token) as key:
+        response = await key.request(method, path)
 
     assert response.status_code == 403
+
+
+async def test_keys_with_the_old_global_scope_still_work(
+    authenticated_client: AsyncClient,
+) -> None:
+    created = await _create_token(authenticated_client, {"projects": "read"})
+    # As stored before per-area permissions: a global "write" scope.
+    await ApiTokenInDB.find_one(ApiTokenInDB.id == PydanticObjectId(created["id"])).update(
+        {"$set": {"scope": "write", "permissions": {}}}
+    )
+    [listed] = (await authenticated_client.get("/api/v1/api-tokens")).json()
+
+    async with KeyClient(authenticated_client, created["token"]) as key:
+        create = await key.request("POST", "/projects", json={"name": "Old key", "emoji": "🗝️"})
+
+    assert listed["permissions"] == {**WRITE_ALL, "ai": "none"}
+    assert create.status_code == 201
 
 
 async def test_revoked_and_expired_tokens_are_rejected(
@@ -106,17 +297,11 @@ async def test_revoked_and_expired_tokens_are_rejected(
     assert (
         await authenticated_client.delete(f"/api/v1/api-tokens/{revoked['id']}")
     ).status_code == 200
-    session = authenticated_client.headers.pop("Authorization")
 
-    try:
-        statuses = [
-            (
-                await authenticated_client.get("/api/v1/projects", headers=_bearer(t["token"]))
-            ).status_code
-            for t in (revoked, expired)
-        ]
-    finally:
-        authenticated_client.headers["Authorization"] = session
+    statuses = []
+    for t in (revoked, expired):
+        async with KeyClient(authenticated_client, t["token"]) as key:
+            statuses.append((await key.request("GET", "/projects")).status_code)
 
     assert statuses == [401, 401]
 
@@ -124,14 +309,17 @@ async def test_revoked_and_expired_tokens_are_rejected(
 async def test_token_creation_and_revocation_are_audited(
     authenticated_client: AsyncClient, registered_user: dict
 ) -> None:
-    created = await _create_token(authenticated_client, scope="write", expires_in_days=None)
+    created = await _create_token(
+        authenticated_client, {"projects": "read", "diagrams": "write"}, expires_in_days=None
+    )
     await authenticated_client.delete(f"/api/v1/api-tokens/{created['id']}")
 
     events = {e.event: e for e in await AuditLogEntry.find().to_list()}
 
     assert events["api_token_created"].user_email == registered_user["email"]
-    assert "scope=write" in (events["api_token_created"].details or "")
-    assert "expires=never" in (events["api_token_created"].details or "")
+    details = events["api_token_created"].details or ""
+    assert "permissions=projects:read,diagrams:write" in details
+    assert "expires=never" in details
     assert events["api_token_revoked"].details == f"id={created['id']}"
 
 
@@ -143,7 +331,8 @@ async def test_another_users_token_cannot_be_revoked(authenticated_client: Async
 
 async def test_invalid_expiration_is_rejected(authenticated_client: AsyncClient) -> None:
     response = await authenticated_client.post(
-        "/api/v1/api-tokens", json={"name": "x", "scope": "read", "expires_in_days": 7}
+        "/api/v1/api-tokens",
+        json={"name": "x", "permissions": READ_ALL, "expires_in_days": 7},
     )
 
     assert response.status_code == 422
@@ -151,11 +340,8 @@ async def test_invalid_expiration_is_rejected(authenticated_client: AsyncClient)
 
 async def test_last_used_is_recorded(authenticated_client: AsyncClient) -> None:
     token = (await _create_token(authenticated_client))["token"]
-    session = authenticated_client.headers.pop("Authorization")
-    try:
-        await authenticated_client.get("/api/v1/projects", headers=_bearer(token))
-    finally:
-        authenticated_client.headers["Authorization"] = session
+    async with KeyClient(authenticated_client, token) as key:
+        await key.request("GET", "/projects")
 
     [listed] = (await authenticated_client.get("/api/v1/api-tokens")).json()
 

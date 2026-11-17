@@ -48,7 +48,7 @@ If writing to the log fails, the error goes to the server logs and the user's op
 | `integration_created` / `integration_updated` / `integration_deleted` / `integration_set_default` | An administrator changed an email, payment or OAuth integration (`details`: vendor id and changed field names; never the credentials) |
 | `plan_created` / `plan_updated` / `plan_deleted` / `plan_price_added` | An administrator changed a plan or added a currency price |
 | `community_published` / `community_unpublished` / `community_moderated` | A diagram was published to or removed from the Community, or an administrator featured/hid/restored a publication or comment |
-| `api_token_created` / `api_token_revoked` | The user created (`details`: id, scope, expiration) or revoked a personal API token |
+| `api_token_created` / `api_token_revoked` | The user created (`details`: id, per-area permissions, expiration) or revoked an API key |
 
 ## Querying the log
 

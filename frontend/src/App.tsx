@@ -37,6 +37,7 @@ const MfaVerifyPage = lazyWithPreload(() => import('./pages/MfaVerifyPage'));
 const OAuthCallbackPage = lazyWithPreload(() => import('./pages/OAuthCallbackPage'));
 const NotFoundPage = lazyWithPreload(() => import('./pages/NotFoundPage'));
 const AboutPage = lazyWithPreload(() => import('./pages/AboutPage'));
+const ApiKeysPage = lazyWithPreload(() => import('./pages/ApiKeysPage'));
 
 function hasStoredSession(): boolean {
   try {
@@ -66,6 +67,7 @@ const ROUTE_CHUNKS: [RegExp, PreloadableComponent<object>][] = [
   [/^\/projects-list/, ProjectsPage],
   [/^\/profile/, ProfilePage],
   [/^\/settings/, SettingsPage],
+  [/^\/api-keys/, ApiKeysPage],
   [/^\/subscription/, SubscriptionPage],
   [/^\/integrations/, IntegrationsPage],
   [/^\/about/, AboutPage],
@@ -246,6 +248,16 @@ function App() {
                       <PrivateRoute>
                         <SidebarLayout>
                           <SettingsPage />
+                        </SidebarLayout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/api-keys"
+                    element={
+                      <PrivateRoute>
+                        <SidebarLayout>
+                          <ApiKeysPage />
                         </SidebarLayout>
                       </PrivateRoute>
                     }
