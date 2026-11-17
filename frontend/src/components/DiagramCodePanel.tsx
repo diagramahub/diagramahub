@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Editor, type OnMount } from '@monaco-editor/react';
-import type { Monaco } from '@monaco-editor/react';
-import { registerD2Language } from '../utils/d2Language';
+import { MONACO_DARK_THEME, monacoLanguageFor, setupMonaco } from '../utils/monacoSetup';
 import { useTheme } from '../contexts/ThemeContext';
 import apiService from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
@@ -143,48 +142,9 @@ export default function DiagramCodePanel({
     }
   }, [isVisible]);
 
-  const monacoLanguage = diagramType === 'd2' ? 'd2' : diagramType === 'plantuml' ? 'java' : 'markdown';
-  const editorTheme = theme === 'dark' ? 'kiro-dark' : 'light';
+  const monacoLanguage = monacoLanguageFor(diagramType);
+  const editorTheme = theme === 'dark' ? MONACO_DARK_THEME : 'light';
   const fileExtension = diagramType === 'plantuml' ? 'diagram.puml' : diagramType === 'd2' ? 'diagram.d2' : diagramType === 'dbml' ? 'diagram.dbml' : 'diagram.mmd';
-
-  const handleEditorWillMount = (monaco: Monaco) => {
-    registerD2Language(monaco);
-
-    // Define custom Kiro dark theme (matching sidebar dark bg)
-    monaco.editor.defineTheme('kiro-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
-        { token: 'keyword', foreground: 'c084fc' },
-        { token: 'string', foreground: 'a78bfa' },
-        { token: 'number', foreground: 'e879f9' },
-        { token: 'type', foreground: '818cf8' },
-        { token: 'variable', foreground: 'e2e8f0' },
-        { token: 'function', foreground: 'c4b5fd' },
-        { token: 'operator', foreground: 'a5b4fc' },
-        { token: 'delimiter', foreground: '94a3b8' },
-      ],
-      colors: {
-        'editor.background': '#111827',
-        'editor.foreground': '#e2e8f0',
-        'editor.lineHighlightBackground': '#1f2937',
-        'editor.selectionBackground': '#7c3aed40',
-        'editor.inactiveSelectionBackground': '#7c3aed20',
-        'editorCursor.foreground': '#a78bfa',
-        'editorLineNumber.foreground': '#4b5563',
-        'editorLineNumber.activeForeground': '#a78bfa',
-        'editor.selectionHighlightBackground': '#7c3aed30',
-        'editorIndentGuide.background1': '#1f2937',
-        'editorIndentGuide.activeBackground1': '#7c3aed50',
-        'editorBracketMatch.background': '#7c3aed30',
-        'editorBracketMatch.border': '#7c3aed',
-        'scrollbarSlider.background': '#7c3aed30',
-        'scrollbarSlider.hoverBackground': '#7c3aed50',
-        'scrollbarSlider.activeBackground': '#7c3aed70',
-      },
-    });
-  };
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-950 overflow-hidden">
@@ -234,7 +194,7 @@ export default function DiagramCodePanel({
       {/* Editor — uses pixel height from ResizeObserver */}
       <div ref={editorContainerRef} className="flex-1 min-h-0 overflow-hidden">
         <Editor
-          beforeMount={handleEditorWillMount}
+          beforeMount={setupMonaco}
           onMount={handleEditorDidMount}
           height={`${editorHeight}px`}
           language={monacoLanguage}

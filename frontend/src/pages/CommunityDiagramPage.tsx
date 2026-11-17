@@ -10,6 +10,8 @@ import { compactCount, threadComments } from '../utils/community';
 import { dateLocale } from '../utils/locale';
 import { apiErrorStatus } from '../utils/apiError';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { colorizeDiagramCode } from '../utils/colorizeCode';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import ConfirmModal from '../components/ConfirmModal';
 import { CommunityDiagramViewer } from '../components/community/CommunityDiagramViewer';
@@ -359,6 +361,20 @@ function DetailTabs({ publication: pub, onCopied }: { publication: PublicationDe
   const [overflows, setOverflows] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const lines = pub.content.split('\n');
+  const { theme } = useTheme();
+  // Highlighted with the editor's grammar and theme; plain text until Monaco loads.
+  const [colored, setColored] = useState<{ key: string; lines: string[] } | null>(null);
+  const colorKey = `${pub.id}:${pub.updated_at}:${theme}`;
+
+  useEffect(() => {
+    if (tab !== 'code' || colored?.key === colorKey) return;
+    let alive = true;
+    colorizeDiagramCode(pub.content, pub.diagram_type, theme === 'dark')
+      .then((result) => { if (alive) setColored({ key: colorKey, lines: result }); })
+      .catch(() => { /* stay plain */ });
+    return () => { alive = false; };
+  }, [tab, colorKey, colored?.key, pub.content, pub.diagram_type, theme]);
+  const coloredLines = colored?.key === colorKey ? colored.lines : null;
 
   useLayoutEffect(() => {
     const node = descriptionRef.current;
@@ -448,7 +464,11 @@ function DetailTabs({ publication: pub, onCopied }: { publication: PublicationDe
                 <span className="sticky left-0 w-12 flex-shrink-0 select-none pr-3 text-right text-gray-400 dark:text-gray-600 bg-gray-50 dark:bg-gray-950" aria-hidden="true">
                   {index + 1}
                 </span>
-                <code className="pr-4 whitespace-pre">{line || ' '}</code>
+                {coloredLines ? (
+                  <code className="pr-4 whitespace-pre" dangerouslySetInnerHTML={{ __html: coloredLines[index] || ' ' }} />
+                ) : (
+                  <code className="pr-4 whitespace-pre">{line || ' '}</code>
+                )}
               </div>
             ))}
           </pre>
