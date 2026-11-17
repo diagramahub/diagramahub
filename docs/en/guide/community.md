@@ -25,6 +25,8 @@ You can **search** by title, author, tag or description, filter by **type** (MMD
 
 What you publish is **always in sync** with the diagram: when you change its title, code or description, the Community shows the new version without publishing again. If you delete the diagram, its last version stays published until you remove it.
 
+Your published diagrams carry the **Public** mark (a green globe) in the folder explorer, next to the title in the editor and in the dashboard's recent diagrams. If moderation hides one, the mark turns into an amber **Hidden**. Clicking the mark in the editor opens the publication settings.
+
 To change the category, tags or comments of something already published, open the same window and use **Save changes**. Each diagram can be published once. Whiteboard sketches can't be published yet.
 
 ### License

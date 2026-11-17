@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PinIcon } from './PinIcon';
 import { ContentSearchResults } from './ContentSearchResults';
+import { PublicBadge } from './community/PublicBadge';
 
 interface DiagramItem {
   id: string;
@@ -61,6 +62,8 @@ interface DiagramFileBrowserProps {
   /** Desktop only: when provided, renders a pin toggle in the header. */
   isPinned?: boolean;
   onTogglePin?: () => void;
+  /** Diagrams published to the Community (marked with a globe). */
+  publishedDiagrams?: Map<string, { hidden: boolean }>;
 }
 
 /** Compact type badge per diagram engine (format identifiers, not translatable copy). */
@@ -163,6 +166,7 @@ export default function DiagramFileBrowser({
   closeOnSelect = true,
   isPinned,
   onTogglePin,
+  publishedDiagrams,
 }: DiagramFileBrowserProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -455,6 +459,9 @@ export default function DiagramFileBrowser({
             {badge.label}
           </span>
           <span className="truncate">{diagram.title}</span>
+          {publishedDiagrams?.has(diagram.id) && (
+            <PublicBadge compact hidden={publishedDiagrams.get(diagram.id)?.hidden} className="ml-auto" />
+          )}
         </button>
 
         <button

@@ -73,6 +73,8 @@ import {
   MERMAID_THEMES,
 } from "../utils/mermaidOptions";
 import { PublishToCommunityModal } from "../components/community/PublishToCommunityModal";
+import { PublicBadge } from "../components/community/PublicBadge";
+import { usePublishedDiagrams } from "../hooks/usePublishedDiagrams";
 import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
 
 /** File explorer column width bounds (px). */
@@ -413,6 +415,8 @@ export default function DiagramEditorPage() {
   // Share diagram state
   const [showShareModal, setShowShareModal] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const { published: publishedDiagrams, refreshPublished } = usePublishedDiagrams();
+  const currentPublication = diagramId ? publishedDiagrams.get(diagramId) : undefined;
   const [isShared, setIsShared] = useState(false);
 
   // Use error detection hook
@@ -3119,6 +3123,17 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             )}
+            {/* Published to the community: opens the publication settings */}
+            {!isEditingDiagramTitle && currentPublication && (
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(true)}
+                className="flex-shrink-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                aria-label={`${t(currentPublication.hidden ? "community.public.hidden" : "community.public.label")} · ${t("community.public.manage")}`}
+              >
+                <PublicBadge hidden={currentPublication.hidden} />
+              </button>
+            )}
             {/* New diagram button — hidden when editing title */}
             {!isEditingDiagramTitle && (
               <button
@@ -3304,14 +3319,14 @@ export default function DiagramEditorPage() {
             {/* Publish to the community */}
             {currentDiagram && currentDiagram.diagram_type !== "freehand" && (
               <Tooltip
-                content={!diagramId ? t("editor.saveDiagramFirst") : t("community.publish.button")}
+                content={!diagramId ? t("editor.saveDiagramFirst") : currentPublication ? t("community.public.manage") : t("community.publish.button")}
                 position="bottom"
               >
                 <button
                   onClick={() => setShowPublishModal(true)}
                   disabled={!diagramId}
-                  className={`p-1.5 rounded-md transition-colors ${!diagramId ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
-                  aria-label={t("community.publish.button")}
+                  className={`p-1.5 rounded-md transition-colors ${!diagramId ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : currentPublication ? "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
+                  aria-label={currentPublication ? t("community.public.manage") : t("community.publish.button")}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -3621,6 +3636,7 @@ export default function DiagramEditorPage() {
                   projectName={project?.name || ""}
                   projectEmoji={project?.emoji}
                   projectId={projectId || ""}
+                  publishedDiagrams={publishedDiagrams}
                   diagrams={filteredSidebarData.diagrams}
                   folders={filteredSidebarData.folders}
                   currentDiagramId={diagramId}
@@ -5293,6 +5309,7 @@ export default function DiagramEditorPage() {
           description={diagramDescription}
           onDescriptionChange={setDiagramDescription}
           onBeforePublish={flushPendingSave}
+          onPublicationChange={refreshPublished}
         />
       )}
 
@@ -5699,6 +5716,7 @@ export default function DiagramEditorPage() {
               projectName={project?.name || ""}
               projectEmoji={project?.emoji}
               projectId={projectId || ""}
+              publishedDiagrams={publishedDiagrams}
               diagrams={project?.diagrams || []}
               folders={project?.folders || []}
               currentDiagramId={diagramId}

@@ -18,6 +18,8 @@ interface PublishToCommunityModalProps {
   onDescriptionChange: (description: string) => void;
   /** Save pending edits first, so the publication starts from the latest version. */
   onBeforePublish?: () => Promise<void>;
+  /** Called after publishing or unpublishing (to refresh "public" markers). */
+  onPublicationChange?: () => void;
 }
 
 const PUBLISHABLE = new Set(['mermaid', 'plantuml', 'd2', 'dbml']);
@@ -49,7 +51,7 @@ function Section({ title, hint, htmlFor, children }: { title: string; hint?: str
  * Publish the current diagram to the community, or change its publication.
  * Left: the description (the diagram's own, edited in place). Right: settings.
  */
-export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramType, description, onDescriptionChange, onBeforePublish }: PublishToCommunityModalProps) {
+export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramType, description, onDescriptionChange, onBeforePublish, onPublicationChange }: PublishToCommunityModalProps) {
   const { t, i18n } = useTranslation();
   const [existing, setExisting] = useState<PublicationCard | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,6 +109,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
         setExisting(created);
         setSettings(settingsOf(created));
         setNotice(t('community.publish.published'));
+        onPublicationChange?.();
       },
       (status) => (status === 429 ? t('community.tooFast') : t('community.publish.error')),
     );
@@ -136,6 +139,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
         setExisting(null);
         setSettings(DEFAULT_SETTINGS);
         setNotice(t('community.publish.unpublished'));
+        onPublicationChange?.();
       },
       () => t('community.actionError'),
     );

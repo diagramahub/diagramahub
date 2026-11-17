@@ -28,6 +28,7 @@ from .schemas import (
     PublicationCard,
     PublicationDetail,
     PublicationPage,
+    PublishedSource,
     PublishRequest,
     ReportRequest,
     ReportResponse,
@@ -114,6 +115,15 @@ async def get_publication(
 ) -> PublicationDetail:
     """A publication's page (counts a view)."""
     return await service.get_detail(publication_id, member.user_id, member.is_admin)
+
+
+@router.get("/my-published", response_model=list[PublishedSource])
+async def my_published_diagrams(
+    member: Member = Depends(get_member),
+    service: CommunityService = Depends(get_community_service),
+) -> list[PublishedSource]:
+    """The user's published diagrams (ids only), to mark them as public in their lists."""
+    return await service.published_sources(member.user_id)
 
 
 @router.get("/by-diagram/{diagram_id}", response_model=Optional[PublicationCard])

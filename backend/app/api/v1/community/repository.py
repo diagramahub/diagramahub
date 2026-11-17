@@ -151,6 +151,15 @@ class CommunityRepository(ICommunityRepository):
             .to_list()
         )
 
+    async def published_sources(self, owner_id: str) -> list[tuple[str, str, bool]]:
+        cursor = PublishedDiagramInDB.get_pymongo_collection().find(
+            {"owner_id": owner_id}, {"source_diagram_id": 1, "hidden": 1}
+        )
+        return [
+            (doc["source_diagram_id"], str(doc["_id"]), bool(doc.get("hidden", False)))
+            async for doc in cursor
+        ]
+
     async def increment(self, publication_id: str, field: str, amount: int = 1) -> None:
         if field not in COUNTERS:
             raise ValueError(f"Unknown counter {field}")

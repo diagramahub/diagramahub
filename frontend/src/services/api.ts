@@ -108,6 +108,7 @@ import type {
   PublicationDetail,
   PublicationPage,
   PublishableType,
+  PublishedSource,
   PublishRequest,
   UpdatePublicationRequest,
 } from '../types/community';
@@ -633,6 +634,11 @@ class ApiService {
 
   async getPublication(id: string): Promise<PublicationDetail> {
     const response = await this.api.get<PublicationDetail>(`/api/v1/community/diagrams/${id}`);
+    return response.data;
+  }
+
+  async getMyPublishedDiagrams(): Promise<PublishedSource[]> {
+    const response = await this.api.get<PublishedSource[]>('/api/v1/community/my-published');
     return response.data;
   }
 

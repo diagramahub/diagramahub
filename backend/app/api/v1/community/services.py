@@ -42,6 +42,7 @@ from .schemas import (
     PublicationDetail,
     PublicationPage,
     PublishedDiagramInDB,
+    PublishedSource,
     PublishRequest,
     ReportRequest,
     ReportResponse,
@@ -254,6 +255,15 @@ class CommunityService:
             return None
         await self._sync([publication])
         return _card(publication, set())
+
+    async def published_sources(self, user_id: str) -> list[PublishedSource]:
+        """Which of the user's diagrams are published (no content, for list markers)."""
+        return [
+            PublishedSource(diagram_id=diagram_id, publication_id=publication_id, hidden=hidden)
+            for diagram_id, publication_id, hidden in await self.repository.published_sources(
+                user_id
+            )
+        ]
 
     async def _sync(self, publications: list[PublishedDiagramInDB]) -> None:
         """Bring publications in line with their diagrams (one lookup for all).

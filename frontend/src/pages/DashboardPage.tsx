@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { PublicBadge } from '../components/community/PublicBadge';
+import { usePublishedDiagrams } from '../hooks/usePublishedDiagrams';
 import { Project } from '../types/project';
 import MfaBanner from '../components/MfaBanner';
 import { DashboardStatsSkeleton, DashboardWidgetsSkeleton } from '../components/Skeleton';
@@ -104,6 +106,7 @@ const DashboardPage: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [providerStats, setProviderStats] = useState<{ provider_counts: Record<string, number>; total_messages: number } | null>(null);
+  const { published } = usePublishedDiagrams();
   const [recentDiagrams, setRecentDiagrams] = useState<Array<{ id: string; title: string; diagram_type: string; project_id: string; project_name: string; project_emoji: string; updated_at: string }>>([]);
 
   useEffect(() => {
@@ -333,7 +336,10 @@ const DashboardPage: React.FC = () => {
                   >
                     <span className="text-lg flex-shrink-0">{typeIcons[d.diagram_type] || '📄'}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{d.title}</p>
+                      <p className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{d.title}</span>
+                        {published.has(d.id) && <PublicBadge hidden={published.get(d.id)?.hidden} />}
+                      </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {d.project_emoji} {d.project_name} · {typeNames[d.diagram_type] || d.diagram_type} · {new Date(d.updated_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                       </p>

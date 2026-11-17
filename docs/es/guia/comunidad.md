@@ -25,6 +25,8 @@ Puedes **buscar** por título, autor, etiqueta o descripción, filtrar por **tip
 
 Lo publicado **siempre está sincronizado** con el diagrama: cuando cambias el título, el código o la descripción, la Comunidad muestra la versión nueva sin que tengas que volver a publicar. Si borras el diagrama, queda publicada su última versión hasta que la retires.
 
+Tus diagramas publicados llevan la marca **Público** (un globo verde) en el explorador de carpetas, junto al título en el editor y en los últimos diagramas del inicio. Si la moderación oculta uno, la marca cambia a **Oculto**, en ámbar. Al hacer clic en la marca del editor se abre la configuración de la publicación.
+
 Para cambiar la categoría, las etiquetas o los comentarios de algo ya publicado, abre la misma ventana y usa **Guardar cambios**. Cada diagrama se publica una sola vez. Los pizarrones todavía no se pueden publicar.
 
 ### Licencia

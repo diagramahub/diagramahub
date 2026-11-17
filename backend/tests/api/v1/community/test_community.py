@@ -453,3 +453,31 @@ async def test_too_many_tags_are_rejected(client: AsyncClient, people: dict) -> 
     )
 
     assert response.status_code == 422
+
+
+async def test_my_published_lists_the_users_published_diagrams(
+    client: AsyncClient, people: dict
+) -> None:
+    author, visitor, admin = people["author"], people["visitor"], people["admin"]
+    _, published = await _diagram(client, author)
+    _, hidden = await _diagram(client, author, title="Hidden")
+    await _diagram(client, author, title="Private")
+    pub = await _publish(client, author, published)
+    hidden_pub = await _publish(client, author, hidden)
+    await client.put(
+        f"{BASE}/admin/diagrams/{hidden_pub['id']}",
+        json={"hidden": True},
+        headers=admin["headers"],
+    )
+
+    mine = (await client.get(f"{BASE}/my-published", headers=author["headers"])).json()
+    theirs = (await client.get(f"{BASE}/my-published", headers=visitor["headers"])).json()
+
+    assert sorted(mine, key=lambda x: x["diagram_id"]) == sorted(
+        [
+            {"diagram_id": published, "publication_id": pub["id"], "hidden": False},
+            {"diagram_id": hidden, "publication_id": hidden_pub["id"], "hidden": True},
+        ],
+        key=lambda x: x["diagram_id"],
+    )
+    assert theirs == []

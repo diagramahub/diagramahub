@@ -46,6 +46,14 @@ export interface PublicationDetail extends PublicationCard {
   forked_from: { publication_id: string | null; title: string; owner_name: string } | null;
 }
 
+/** One of the user's published diagrams (GET /community/my-published). */
+export interface PublishedSource {
+  diagram_id: string;
+  publication_id: string;
+  /** Hidden by moderation: published, but not visible to others. */
+  hidden: boolean;
+}
+
 export interface PublicationPage {
   items: PublicationCard[];
   total: number;

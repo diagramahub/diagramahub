@@ -280,6 +280,14 @@ class PublicationDetail(PublicationCard):
     forked_from: Optional[ForkOrigin] = None
 
 
+class PublishedSource(BaseModel):
+    """One of the user's published diagrams, for "public" markers in their lists."""
+
+    diagram_id: str
+    publication_id: str
+    hidden: bool
+
+
 class PublicationPage(BaseModel):
     """A page of publications."""
 

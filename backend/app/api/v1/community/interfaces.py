@@ -62,6 +62,11 @@ class ICommunityRepository(ABC):
         pass
 
     @abstractmethod
+    async def published_sources(self, owner_id: str) -> list[tuple[str, str, bool]]:
+        """(source diagram id, publication id, hidden) of every publication of the owner."""
+        pass
+
+    @abstractmethod
     async def increment(self, publication_id: str, field: str, amount: int = 1) -> None:
         """Atomically change a counter (stars_count, forks_count, ...)."""
         pass

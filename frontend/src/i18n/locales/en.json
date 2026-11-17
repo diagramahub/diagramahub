@@ -1799,6 +1799,13 @@
       "details": "Details",
       "stars": "Stars",
       "license": "License"
+    },
+    "public": {
+      "label": "Public",
+      "hidden": "Hidden",
+      "tooltip": "Published to the Community: every user can see it.",
+      "hiddenTooltip": "Published, but hidden by moderation: others can't see it.",
+      "manage": "Manage the publication"
     }
   },
   "errorBoundary": {
