@@ -1665,12 +1665,6 @@
       "ai-data": "IA y datos",
       "education": "Educación"
     },
-    "licenses": {
-      "cc-by-4.0": "CC BY 4.0 (atribución)",
-      "cc0-1.0": "CC0 (dominio público)",
-      "cc-by-sa-4.0": "CC BY-SA 4.0",
-      "all-rights-reserved": "Todos los derechos reservados (sin fork)"
-    },
     "resultCount_one": "{{count}} diagrama",
     "resultCount_other": "{{count}} diagramas",
     "loadError": "No se pudo cargar la Comunidad.",
@@ -1705,7 +1699,6 @@
     "report": "Reportar",
     "authorBadge": "Autor",
     "fork": "Fork a mi cuenta",
-    "forksOff": "El autor no permite forks de este diagrama.",
     "copyLink": "Copiar enlace",
     "linkCopied": "Enlace copiado.",
     "moreFromAuthor": "Del mismo autor",
@@ -1716,6 +1709,7 @@
     "forkTitleDefault": "{{title}} (fork)",
     "forkNoProjects": "Primero crea un proyecto.",
     "forkAttribution": "La descripción del fork incluye la atribución al autor y la licencia.",
+    "forkedFrom": "Fork de <original>«{{title}}»</original> de {{owner}}",
     "forkConfirm": "Hacer fork",
     "forking": "Creando…",
     "forkLimit": "No se pudo hacer el fork: revisa el límite de tu plan o el proyecto elegido.",
@@ -1756,12 +1750,10 @@
       "title": "Publicar en la Comunidad",
       "subtitle": "El diagrama queda visible para todos los usuarios. Puedes retirarlo cuando quieras.",
       "category": "Categoría",
-      "license": "Licencia",
       "tags": "Etiquetas",
       "tagsPlaceholder": "pagos, checkout, e-commerce",
       "tooManyTags": "Máximo {{max}} etiquetas.",
       "description": "Descripción pública",
-      "allowForks": "Permitir forks",
       "allowComments": "Permitir comentarios",
       "autoUpdate": "Publicar automáticamente los cambios del diagrama (si no, la versión publicada queda fija)",
       "sensitiveWarning": "Revisa que el diagrama no tenga datos sensibles (credenciales, nombres de clientes, IPs internas). Al publicar aceptas las normas de la Comunidad.",
@@ -1773,7 +1765,8 @@
       "notPublishable": "Los pizarrones todavía no se pueden publicar.",
       "alreadyPublished": "Este diagrama está publicado: {{stars}} estrellas, {{forks}} forks.",
       "viewInCommunity": "Ver en la Comunidad",
-      "snapshotHint": "La Comunidad muestra una copia del código; actualízala cuando cambies el diagrama (o activa la publicación automática)."
+      "snapshotHint": "La Comunidad muestra una copia del código; actualízala cuando cambies el diagrama (o activa la publicación automática).",
+      "licenseNotice": "Todo lo que se publica en la Comunidad es público bajo la licencia <licenseLink>{{license}}</licenseLink>: cualquiera puede verlo, hacer fork y adaptarlo, siempre dándote crédito. Cada fork queda registrado y suma a tu publicación."
     },
     "viewer": {
       "label": "Visor del diagrama",

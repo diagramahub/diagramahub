@@ -27,11 +27,13 @@ from app.core.rate_limit import SlidingWindowRateLimiter
 from .interfaces import ICommunityRepository
 from .schemas import (
     AUTO_HIDE_REPORTS,
+    COMMUNITY_LICENSE_LABEL,
     CommentRequest,
     CommentResponse,
     CommunityCommentInDB,
-    CommunityLicense,
+    CommunityForkInDB,
     CommunityReportInDB,
+    ForkOrigin,
     ForkRequest,
     ForkResponse,
     ModerationRequest,
@@ -46,12 +48,6 @@ from .schemas import (
 )
 
 PUBLISHABLE_TYPES = frozenset({"mermaid", "plantuml", "d2", "dbml"})
-LICENSE_LABELS = {
-    CommunityLicense.CC_BY: "CC BY 4.0",
-    CommunityLicense.CC0: "CC0 1.0",
-    CommunityLicense.CC_BY_SA: "CC BY-SA 4.0",
-    CommunityLicense.ALL_RIGHTS_RESERVED: "All rights reserved",
-}
 
 publish_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=3600)
 comment_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=600)
@@ -83,7 +79,6 @@ def _card(p: PublishedDiagramInDB, starred: set[str]) -> PublicationCard:
         tags=p.tags,
         owner_id=p.owner_id,
         owner_name=p.owner_name,
-        license=p.license,
         featured=p.featured,
         hidden=p.hidden,
         stars_count=max(p.stars_count, 0),
@@ -96,10 +91,10 @@ def _card(p: PublishedDiagramInDB, starred: set[str]) -> PublicationCard:
 
 
 def fork_attribution(publication: PublishedDiagramInDB, url: str) -> str:
-    """Attribution kept in a fork's description (CC licenses require it)."""
+    """Attribution kept in a fork's description (the license requires it)."""
     return (
         f"Fork of “{publication.title}” by {publication.owner_name} "
-        f"({LICENSE_LABELS[publication.license]}) — {url}"
+        f"({COMMUNITY_LICENSE_LABEL}) — {url}"
     )
 
 
@@ -234,11 +229,23 @@ class CommunityService:
             **card.model_dump(),
             source_diagram_id=publication.source_diagram_id if is_owner else None,
             views_count=publication.views_count,
-            allow_forks=publication.allow_forks,
             allow_comments=publication.allow_comments,
             auto_update=publication.auto_update,
             is_owner=is_owner,
             more_from_owner=more,
+            forked_from=await self._fork_origin(publication.source_diagram_id),
+        )
+
+    async def _fork_origin(self, diagram_id: str) -> Optional[ForkOrigin]:
+        """Where a published diagram was forked from; the link only while the original is up."""
+        fork = await self.repository.get_fork_by_diagram(diagram_id)
+        if not fork:
+            return None
+        original = await self.repository.get_publication(fork.publication_id)
+        return ForkOrigin(
+            publication_id=fork.publication_id if original and not original.hidden else None,
+            title=original.title if original else fork.publication_title,
+            owner_name=original.owner_name if original else fork.publication_owner_name,
         )
 
     async def get_by_source_diagram(
@@ -290,9 +297,6 @@ class CommunityService:
                 content=source.content,
                 category=request.category,
                 tags=request.tags,
-                license=request.license,
-                allow_forks=request.allow_forks
-                and request.license != CommunityLicense.ALL_RIGHTS_RESERVED,
                 allow_comments=request.allow_comments,
                 auto_update=request.auto_update,
             )
@@ -307,8 +311,6 @@ class CommunityService:
         changes = request.model_dump(exclude_unset=True, exclude={"refresh_content"})
         for field, value in changes.items():
             setattr(publication, field, value)
-        if publication.license == CommunityLicense.ALL_RIGHTS_RESERVED:
-            publication.allow_forks = False
         if request.refresh_content:
             source = await self._owned_source(publication.source_diagram_id, user_id)
             if not source:
@@ -352,18 +354,10 @@ class CommunityService:
         """Copy a publication into one of the user's projects (counts for the plan).
 
         Raises:
-            HTTPException 403: Forks are off for this publication
             HTTPException 403/404: The project isn't the user's (diagram service)
             HTTPException 403: Plan limit reached (usage limiter)
         """
         publication = await self._visible(publication_id, user_id, is_admin)
-        if (
-            not publication.allow_forks
-            or publication.license == CommunityLicense.ALL_RIGHTS_RESERVED
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail={"error": "forks_disabled"}
-            )
         await self.usage_limiter.enforce_diagram_limit(user_id)
         attribution = fork_attribution(publication, self.publication_url(publication_id))
         description = f"{publication.description}\n\n---\n{attribution}".strip()
@@ -377,6 +371,16 @@ class CommunityService:
             ),
             request.project_id,
             user_id,
+        )
+        await self.repository.add_fork(
+            CommunityForkInDB(
+                publication_id=publication_id,
+                publication_title=publication.title,
+                publication_owner_id=publication.owner_id,
+                publication_owner_name=publication.owner_name,
+                user_id=user_id,
+                diagram_id=created.id,
+            )
         )
         await self.repository.increment(publication_id, "forks_count")
         return ForkResponse(

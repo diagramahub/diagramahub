@@ -37,6 +37,7 @@ from app.api.v1.community.schemas import (
     CommunityCommentInDB,
     CommunityReportInDB,
     CommunityStarInDB,
+    CommunityForkInDB,
     PublishedDiagramInDB,
 )
 
@@ -109,6 +110,7 @@ async def test_db() -> AsyncGenerator:
             ApiTokenInDB,
             PublishedDiagramInDB,
             CommunityStarInDB,
+            CommunityForkInDB,
             CommunityCommentInDB,
             CommunityReportInDB,
         ],

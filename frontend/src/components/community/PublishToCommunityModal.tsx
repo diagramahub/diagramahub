@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
-import type { CommunityCategory, CommunityLicense, PublicationCard } from '../../types/community';
-import { COMMUNITY_CATEGORIES, COMMUNITY_LICENSES, MAX_TAGS, parseTags } from '../../utils/community';
+import type { CommunityCategory, PublicationCard } from '../../types/community';
+import { COMMUNITY_CATEGORIES, COMMUNITY_LICENSE, MAX_TAGS, communityLicenseUrl, parseTags } from '../../utils/community';
 
 interface PublishToCommunityModalProps {
   isOpen: boolean;
@@ -22,14 +22,12 @@ const secondary = 'btn btn-secondary';
 
 /** Publish the current diagram to the community, or manage its publication. */
 export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramType, description }: PublishToCommunityModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [existing, setExisting] = useState<PublicationCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<CommunityCategory>('architecture');
   const [tags, setTags] = useState('');
-  const [license, setLicense] = useState<CommunityLicense>('cc-by-4.0');
   const [text, setText] = useState(description);
-  const [allowForks, setAllowForks] = useState(true);
   const [allowComments, setAllowComments] = useState(true);
   const [autoUpdate, setAutoUpdate] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -63,8 +61,6 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
         category,
         tags: parsedTags,
         description: text,
-        license,
-        allow_forks: allowForks && license !== 'all-rights-reserved',
         allow_comments: allowComments,
         auto_update: autoUpdate,
       });
@@ -105,9 +101,9 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
     }
   };
 
-  const checkbox = (id: string, checked: boolean, onChange: (v: boolean) => void, label: string, disabled = false) => (
-    <label htmlFor={id} className={`flex items-start gap-2 text-sm ${disabled ? 'text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
-      <input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800" />
+  const checkbox = (id: string, checked: boolean, onChange: (v: boolean) => void, label: string) => (
+    <label htmlFor={id} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+      <input id={id} type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800" />
       {label}
     </label>
   );
@@ -146,26 +142,26 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="pub-license" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.publish.license')}</label>
-                  <select id="pub-license" value={license} onChange={(e) => setLicense(e.target.value as CommunityLicense)} className={field}>
-                    {COMMUNITY_LICENSES.map((l) => <option key={l} value={l}>{t(`community.licenses.${l}`)}</option>)}
-                  </select>
+                  <label htmlFor="pub-tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.publish.tags')}</label>
+                  <input id="pub-tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t('community.publish.tagsPlaceholder')} className={field} />
+                  {parsedTags.length > MAX_TAGS && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{t('community.publish.tooManyTags', { max: MAX_TAGS })}</p>}
                 </div>
-              </div>
-              <div>
-                <label htmlFor="pub-tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.publish.tags')}</label>
-                <input id="pub-tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t('community.publish.tagsPlaceholder')} className={field} />
-                {parsedTags.length > MAX_TAGS && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{t('community.publish.tooManyTags', { max: MAX_TAGS })}</p>}
               </div>
               <div>
                 <label htmlFor="pub-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.publish.description')}</label>
                 <textarea id="pub-description" rows={3} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} className={`${field} h-auto py-2 resize-none`} />
               </div>
               <fieldset className="space-y-2">
-                {checkbox('pub-forks', allowForks && license !== 'all-rights-reserved', setAllowForks, t('community.publish.allowForks'), license === 'all-rights-reserved')}
                 {checkbox('pub-comments', allowComments, setAllowComments, t('community.publish.allowComments'))}
                 {checkbox('pub-auto', autoUpdate, setAutoUpdate, t('community.publish.autoUpdate'))}
               </fieldset>
+              <p className="text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 px-4 py-3 rounded-lg">
+                <Trans
+                  i18nKey="community.publish.licenseNotice"
+                  values={{ license: COMMUNITY_LICENSE }}
+                  components={{ licenseLink: <a href={communityLicenseUrl(i18n.language)} target="_blank" rel="noopener noreferrer" className="font-medium text-purple-600 dark:text-purple-400 hover:underline" /> }}
+                />
+              </p>
               <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-lg text-xs">
                 {t('community.publish.sensitiveWarning')}
               </div>

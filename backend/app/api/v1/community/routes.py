@@ -144,7 +144,7 @@ async def publish(
         audit_log.EVENT_COMMUNITY_PUBLISHED,
         member.user_id,
         http_request,
-        details=f"publication={publication.id} diagram={request.diagram_id} license={publication.license.value}",
+        details=f"publication={publication.id} diagram={request.diagram_id} license={publication.license}",
     )
     return publication
 

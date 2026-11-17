@@ -1,5 +1,5 @@
 /** Pure helpers for the community portal (no DOM; tested with Vitest). */
-import type { CommunityCategory, CommunityComment, CommunityLicense } from '../types/community';
+import type { CommunityCategory, CommunityComment } from '../types/community';
 
 export const COMMUNITY_CATEGORIES: CommunityCategory[] = [
   'architecture',
@@ -12,7 +12,13 @@ export const COMMUNITY_CATEGORIES: CommunityCategory[] = [
   'education',
 ];
 
-export const COMMUNITY_LICENSES: CommunityLicense[] = ['cc-by-4.0', 'cc0-1.0', 'cc-by-sa-4.0', 'all-rights-reserved'];
+/** Everything published is public under this one license (backend: COMMUNITY_LICENSE). */
+export const COMMUNITY_LICENSE = 'CC BY 4.0';
+
+/** The license's human-readable summary, in Spanish or English. */
+export function communityLicenseUrl(language: string): string {
+  return `https://creativecommons.org/licenses/by/4.0/deed.${language.startsWith('es') ? 'es' : 'en'}`;
+}
 
 export const MAX_TAGS = 5;
 const MAX_TAG_LENGTH = 30;

@@ -34,13 +34,10 @@ class CommunityCategory(str, Enum):
     EDUCATION = "education"
 
 
-class CommunityLicense(str, Enum):
-    """License the author publishes under. All rights reserved disables forks."""
-
-    CC_BY = "cc-by-4.0"
-    CC0 = "cc0-1.0"
-    CC_BY_SA = "cc-by-sa-4.0"
-    ALL_RIGHTS_RESERVED = "all-rights-reserved"
+# Everything published is public under one license, so authors don't have to
+# pick one and anyone may fork with attribution (which each fork records).
+COMMUNITY_LICENSE = "cc-by-4.0"
+COMMUNITY_LICENSE_LABEL = "CC BY 4.0"
 
 
 # --------------------------------------------------------------------------- #
@@ -60,8 +57,6 @@ class PublishedDiagramInDB(Document):
     content: str
     category: CommunityCategory
     tags: list[str] = []
-    license: CommunityLicense = CommunityLicense.CC_BY
-    allow_forks: bool = True
     allow_comments: bool = True
     auto_update: bool = False
     featured: bool = False
@@ -97,6 +92,31 @@ class CommunityStarInDB(Document):
         name = "community_stars"
         indexes = [
             IndexModel([("publication_id", ASCENDING), ("user_id", ASCENDING)], unique=True),
+            "user_id",
+        ]
+
+
+class CommunityForkInDB(Document):
+    """A fork: who copied which publication into which diagram.
+
+    Kept when the original is unpublished, so the copy still points to where it
+    came from and the author keeps the credit for it.
+    """
+
+    publication_id: str
+    publication_title: str
+    publication_owner_id: str
+    publication_owner_name: str
+    user_id: str
+    diagram_id: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+    class Settings:
+        name = "community_forks"
+        indexes = [
+            IndexModel([("diagram_id", ASCENDING)], unique=True),
+            "publication_id",
+            "publication_owner_id",
             "user_id",
         ]
 
@@ -165,8 +185,6 @@ class PublishRequest(BaseModel):
     category: CommunityCategory
     tags: list[str] = Field(default_factory=list)
     description: Optional[str] = Field(None, max_length=5000)
-    license: CommunityLicense = CommunityLicense.CC_BY
-    allow_forks: bool = True
     allow_comments: bool = True
     auto_update: bool = False
 
@@ -179,8 +197,6 @@ class UpdatePublicationRequest(BaseModel):
     category: Optional[CommunityCategory] = None
     tags: Optional[list[str]] = None
     description: Optional[str] = Field(None, max_length=5000)
-    license: Optional[CommunityLicense] = None
-    allow_forks: Optional[bool] = None
     allow_comments: Optional[bool] = None
     auto_update: Optional[bool] = None
     refresh_content: bool = False
@@ -238,7 +254,7 @@ class PublicationCard(BaseModel):
     tags: list[str]
     owner_id: str
     owner_name: str
-    license: CommunityLicense
+    license: str = COMMUNITY_LICENSE
     featured: bool
     hidden: bool
     stars_count: int
@@ -251,16 +267,24 @@ class PublicationCard(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ForkOrigin(BaseModel):
+    """The publication a diagram was forked from (``publication_id`` is None once removed)."""
+
+    publication_id: Optional[str] = None
+    title: str
+    owner_name: str
+
+
 class PublicationDetail(PublicationCard):
     """A publication with everything its page needs."""
 
     source_diagram_id: Optional[str] = None  # only for the owner
     views_count: int
-    allow_forks: bool
     allow_comments: bool
     auto_update: bool
     is_owner: bool = False
     more_from_owner: list[dict] = []
+    forked_from: Optional[ForkOrigin] = None
 
 
 class PublicationPage(BaseModel):

@@ -6,7 +6,8 @@ import pytest
 from httpx import AsyncClient
 
 from app.api.v1.community import services as community_services
-from app.api.v1.community.schemas import PublishedDiagramInDB
+from app.api.v1.community.repository import CommunityRepository
+from app.api.v1.community.schemas import CommunityForkInDB, PublishedDiagramInDB
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.api.v1.users.schemas import UserInDB, UserRole
 from tests.utils import generate_test_password
@@ -183,7 +184,7 @@ async def test_fork_copies_into_the_users_project_with_attribution(
 ) -> None:
     author, visitor = people["author"], people["visitor"]
     _, diagram_id = await _diagram(client, author, content="graph LR\n  X-->Y")
-    pub = await _publish(client, author, diagram_id, license="cc-by-4.0")
+    pub = await _publish(client, author, diagram_id)
     project = await client.post(
         "/api/v1/projects", json={"name": "Visitor", "emoji": "🧪"}, headers=visitor["headers"]
     )
@@ -203,30 +204,69 @@ async def test_fork_copies_into_the_users_project_with_attribution(
     assert fork["title"] == "My copy" and fork["content"] == "graph LR\n  X-->Y"
     assert "Fork of “Checkout” by Ana Autora (CC BY 4.0)" in fork["description"]
     assert (await PublishedDiagramInDB.find_one()).forks_count == 1
+    record = await CommunityForkInDB.find_one()
+    assert (record.publication_id, record.publication_owner_id) == (pub["id"], author["id"])
+    assert (record.user_id, record.diagram_id) == (visitor["id"], fork["id"])
 
 
-async def test_fork_rules(client: AsyncClient, people: dict) -> None:
+async def test_everything_published_is_public_and_forkable(
+    client: AsyncClient, people: dict
+) -> None:
     author, visitor = people["author"], people["visitor"]
-    _, d1 = await _diagram(client, author)
-    _, d2 = await _diagram(client, author, title="Locked")
-    open_pub = await _publish(client, author, d1)
-    locked = await _publish(client, author, d2, license="all-rights-reserved", allow_forks=True)
+    _, diagram_id = await _diagram(client, author)
+    # Old clients may still send a license or turn forks off: both are ignored.
+    pub = await _publish(
+        client, author, diagram_id, license="all-rights-reserved", allow_forks=False
+    )
     author_project, _ = await _diagram(client, author, title="Author's other")
+    visitor_project, _ = await _diagram(client, visitor)
 
-    no_forks = await client.post(
-        f"{BASE}/diagrams/{locked['id']}/fork",
-        json={"project_id": author_project},
+    forked = await client.post(
+        f"{BASE}/diagrams/{pub['id']}/fork",
+        json={"project_id": visitor_project},
         headers=visitor["headers"],
     )
     foreign_project = await client.post(
-        f"{BASE}/diagrams/{open_pub['id']}/fork",
+        f"{BASE}/diagrams/{pub['id']}/fork",
         json={"project_id": author_project},
         headers=visitor["headers"],
     )
 
-    assert locked["allow_forks"] is False
-    assert no_forks.status_code == 403
+    assert pub["license"] == "cc-by-4.0" and "allow_forks" not in pub
+    assert forked.status_code == 201, forked.text
     assert foreign_project.status_code == 403
+
+
+async def test_a_published_fork_credits_its_original(client: AsyncClient, people: dict) -> None:
+    author, visitor = people["author"], people["visitor"]
+    _, diagram_id = await _diagram(client, author)
+    original = await _publish(client, author, diagram_id)
+    visitor_project, _ = await _diagram(client, visitor)
+    fork = await client.post(
+        f"{BASE}/diagrams/{original['id']}/fork",
+        json={"project_id": visitor_project, "title": "Checkout v2"},
+        headers=visitor["headers"],
+    )
+    republished = await _publish(client, visitor, fork.json()["diagram_id"])
+
+    await client.delete(f"{BASE}/diagrams/{original['id']}", headers=author["headers"])
+    after_removal = (
+        await client.get(f"{BASE}/diagrams/{republished['id']}", headers=author["headers"])
+    ).json()
+    await CommunityRepository().delete_user_data(author["id"])
+
+    assert original["forked_from"] is None
+    assert republished["forked_from"] == {
+        "publication_id": original["id"],
+        "title": "Checkout",
+        "owner_name": "Ana Autora",
+    }
+    assert after_removal["forked_from"] == {
+        "publication_id": None,
+        "title": "Checkout",
+        "owner_name": "Ana Autora",
+    }
+    assert await CommunityForkInDB.count() == 0
 
 
 async def test_comments_replies_and_deletion(client: AsyncClient, people: dict) -> None:
@@ -343,7 +383,7 @@ async def test_owner_updates_unpublishes_and_auto_update(client: AsyncClient, pe
     updated = (
         await client.put(
             f"{BASE}/diagrams/{pub['id']}",
-            json={"license": "all-rights-reserved", "tags": ["a", "b"]},
+            json={"tags": ["a", "b"]},
             headers=author["headers"],
         )
     ).json()
@@ -351,7 +391,6 @@ async def test_owner_updates_unpublishes_and_auto_update(client: AsyncClient, pe
 
     assert "New-->Code" in seen["content"]
     assert not_owner.status_code == 404
-    assert updated["license"] == "all-rights-reserved" and updated["allow_forks"] is False
     assert updated["tags"] == ["a", "b"]
     assert removed.status_code == 204
     assert await PublishedDiagramInDB.count() == 0

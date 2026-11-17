@@ -52,6 +52,7 @@ from app.api.v1.community.schemas import (
     CommunityCommentInDB,
     CommunityReportInDB,
     CommunityStarInDB,
+    CommunityForkInDB,
     PublishedDiagramInDB,
 )
 
@@ -168,6 +169,7 @@ async def lifespan(app: FastAPI):
             ApiTokenInDB,
             PublishedDiagramInDB,
             CommunityStarInDB,
+            CommunityForkInDB,
             CommunityCommentInDB,
             CommunityReportInDB,
         ],

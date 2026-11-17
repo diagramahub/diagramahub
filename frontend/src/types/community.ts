@@ -10,7 +10,6 @@ export type CommunityCategory =
   | 'ai-data'
   | 'education';
 
-export type CommunityLicense = 'cc-by-4.0' | 'cc0-1.0' | 'cc-by-sa-4.0' | 'all-rights-reserved';
 export type CommunityTab = 'explore' | 'featured' | 'starred' | 'mine';
 export type CommunitySort = 'trending' | 'stars' | 'forks' | 'recent';
 export type PublishableType = 'mermaid' | 'plantuml' | 'd2' | 'dbml';
@@ -25,7 +24,8 @@ export interface PublicationCard {
   tags: string[];
   owner_id: string;
   owner_name: string;
-  license: CommunityLicense;
+  /** Always the community license (see COMMUNITY_LICENSE). */
+  license: string;
   featured: boolean;
   hidden: boolean;
   stars_count: number;
@@ -39,11 +39,12 @@ export interface PublicationCard {
 export interface PublicationDetail extends PublicationCard {
   source_diagram_id: string | null;
   views_count: number;
-  allow_forks: boolean;
   allow_comments: boolean;
   auto_update: boolean;
   is_owner: boolean;
   more_from_owner: { id: string; title: string; diagram_type: string }[];
+  /** The publication this diagram was forked from; `publication_id` is null once it's gone. */
+  forked_from: { publication_id: string | null; title: string; owner_name: string } | null;
 }
 
 export interface PublicationPage {
@@ -69,8 +70,6 @@ export interface PublishRequest {
   category: CommunityCategory;
   tags: string[];
   description?: string;
-  license: CommunityLicense;
-  allow_forks: boolean;
   allow_comments: boolean;
   auto_update: boolean;
 }

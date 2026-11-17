@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import apiService from '../services/api';
 import type { CommunityComment, PublicationDetail } from '../types/community';
 import type { Project } from '../types/project';
-import { compactCount, threadComments } from '../utils/community';
+import { COMMUNITY_LICENSE, communityLicenseUrl, compactCount, threadComments } from '../utils/community';
 import { dateLocale } from '../utils/locale';
 import { apiErrorStatus } from '../utils/apiError';
 import { useAuth } from '../contexts/AuthContext';
@@ -81,7 +81,11 @@ export default function CommunityDiagramPage() {
 
   const badge = TYPE_BADGES[pub.diagram_type];
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString(dateLocale(i18n.language), { day: 'numeric', month: 'short', year: 'numeric' });
-  const forksAllowed = pub.allow_forks && pub.license !== 'all-rights-reserved';
+  const licenseLink = (
+    <a href={communityLicenseUrl(i18n.language)} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-purple-600 dark:hover:text-purple-400">
+      {COMMUNITY_LICENSE}
+    </a>
+  );
 
   const toggleStar = async () => {
     const next = !pub.starred_by_me;
@@ -176,8 +180,24 @@ export default function CommunityDiagramPage() {
             <span aria-hidden="true">·</span>
             {t('community.publishedOn', { date: formatDate(pub.published_at) })}
             <span aria-hidden="true">·</span>
-            {t(`community.licenses.${pub.license}`)}
+            {licenseLink}
           </p>
+          {pub.forked_from && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+              <span aria-hidden="true">⑂ </span>
+              <Trans
+                i18nKey="community.forkedFrom"
+                values={{ title: pub.forked_from.title, owner: pub.forked_from.owner_name }}
+                components={{
+                  original: pub.forked_from.publication_id ? (
+                    <Link to={`/community/${pub.forked_from.publication_id}`} className="font-medium text-purple-600 dark:text-purple-400 hover:underline" />
+                  ) : (
+                    <span className="font-medium text-gray-700 dark:text-gray-300" />
+                  ),
+                }}
+              />
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:flex-shrink-0">
           <button type="button" onClick={toggleStar} aria-pressed={pub.starred_by_me} className={`${secondary} ${pub.starred_by_me ? 'text-amber-600 dark:text-amber-400' : ''}`}>
@@ -185,7 +205,7 @@ export default function CommunityDiagramPage() {
             {pub.starred_by_me ? t('community.starred') : t('community.star')}
             <span className="text-gray-400 dark:text-gray-500 tabular-nums">{compactCount(pub.stars_count)}</span>
           </button>
-          <button type="button" onClick={() => setShowFork(true)} disabled={!forksAllowed} className={primary} title={forksAllowed ? undefined : t('community.forksOff')}>
+          <button type="button" onClick={() => setShowFork(true)} className={primary}>
             <span aria-hidden="true">⑂</span>
             {t('community.fork')}
             <span className="text-purple-200 tabular-nums">{compactCount(pub.forks_count)}</span>
@@ -197,7 +217,6 @@ export default function CommunityDiagramPage() {
           </button>
         </div>
       </header>
-      {!forksAllowed && <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 lg:text-right">{t('community.forksOff')}</p>}
 
       {/* The diagram gets the full width: large diagrams need room */}
       <div className="mt-5">
@@ -263,14 +282,14 @@ export default function CommunityDiagramPage() {
           <div className="rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 text-sm">
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{t('community.detail.details')}</p>
             <dl className="space-y-1.5">
-              {[
+              {([
                 [t('community.detail.stars'), compactCount(pub.stars_count)],
                 [t('community.forks'), compactCount(pub.forks_count)],
                 [t('community.views'), compactCount(pub.views_count)],
                 [t('community.comments'), compactCount(comments.length)],
                 [t('community.updated'), formatDate(pub.updated_at)],
-                [t('community.detail.license'), t(`community.licenses.${pub.license}`)],
-              ].map(([label, value]) => (
+                [t('community.detail.license'), licenseLink],
+              ] as [string, ReactNode][]).map(([label, value]) => (
                 <div key={label} className="flex justify-between gap-3">
                   <dt className="text-gray-500 dark:text-gray-400">{label}</dt>
                   <dd className="font-medium text-gray-900 dark:text-gray-100 text-right">{value}</dd>

@@ -7,6 +7,7 @@ from typing import Optional
 
 from .schemas import (
     CommunityCommentInDB,
+    CommunityForkInDB,
     CommunityReportInDB,
     PublishedDiagramInDB,
 )
@@ -82,6 +83,17 @@ class ICommunityRepository(ABC):
         """Which of these publications (or all) the user starred."""
         pass
 
+    # Forks
+    @abstractmethod
+    async def add_fork(self, fork: CommunityForkInDB) -> CommunityForkInDB:
+        """Record a fork (the copy's diagram id is unique)."""
+        pass
+
+    @abstractmethod
+    async def get_fork_by_diagram(self, diagram_id: str) -> Optional[CommunityForkInDB]:
+        """The fork a diagram came from, if it is one."""
+        pass
+
     # Comments
     @abstractmethod
     async def add_comment(self, comment: CommunityCommentInDB) -> CommunityCommentInDB:
@@ -126,5 +138,5 @@ class ICommunityRepository(ABC):
     # Account deletion
     @abstractmethod
     async def delete_user_data(self, user_id: str) -> None:
-        """Delete the user's publications (with their data), stars, comments and reports."""
+        """Delete the user's publications (with their data), stars, comments, reports and fork records."""
         pass

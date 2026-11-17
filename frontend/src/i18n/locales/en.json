@@ -1665,12 +1665,6 @@
       "ai-data": "AI and data",
       "education": "Education"
     },
-    "licenses": {
-      "cc-by-4.0": "CC BY 4.0 (attribution)",
-      "cc0-1.0": "CC0 (public domain)",
-      "cc-by-sa-4.0": "CC BY-SA 4.0",
-      "all-rights-reserved": "All rights reserved (no forks)"
-    },
     "resultCount_one": "{{count}} diagram",
     "resultCount_other": "{{count}} diagrams",
     "loadError": "Couldn't load the Community.",
@@ -1705,7 +1699,6 @@
     "report": "Report",
     "authorBadge": "Author",
     "fork": "Fork to my account",
-    "forksOff": "The author doesn't allow forks of this diagram.",
     "copyLink": "Copy link",
     "linkCopied": "Link copied.",
     "moreFromAuthor": "More from this author",
@@ -1716,6 +1709,7 @@
     "forkTitleDefault": "{{title}} (fork)",
     "forkNoProjects": "Create a project first.",
     "forkAttribution": "The fork's description credits the author and the license.",
+    "forkedFrom": "Fork of <original>“{{title}}”</original> by {{owner}}",
     "forkConfirm": "Fork",
     "forking": "Creating…",
     "forkLimit": "Couldn't fork: check your plan's limit or the chosen project.",
@@ -1756,12 +1750,10 @@
       "title": "Publish to the Community",
       "subtitle": "The diagram becomes visible to every user. You can remove it whenever you want.",
       "category": "Category",
-      "license": "License",
       "tags": "Tags",
       "tagsPlaceholder": "payments, checkout, e-commerce",
       "tooManyTags": "At most {{max}} tags.",
       "description": "Public description",
-      "allowForks": "Allow forks",
       "allowComments": "Allow comments",
       "autoUpdate": "Publish the diagram's changes automatically (otherwise the published version stays fixed)",
       "sensitiveWarning": "Check that the diagram has no sensitive data (credentials, customer names, internal IPs). By publishing you accept the Community rules.",
@@ -1773,7 +1765,8 @@
       "notPublishable": "Whiteboard sketches can't be published yet.",
       "alreadyPublished": "This diagram is published: {{stars}} stars, {{forks}} forks.",
       "viewInCommunity": "View in the Community",
-      "snapshotHint": "The Community shows a copy of the code; update it when you change the diagram (or turn on automatic publishing)."
+      "snapshotHint": "The Community shows a copy of the code; update it when you change the diagram (or turn on automatic publishing).",
+      "licenseNotice": "Everything published to the Community is public under the <licenseLink>{{license}}</licenseLink> license: anyone can view it, fork it and adapt it, always crediting you. Every fork is recorded and counts toward your publication."
     },
     "viewer": {
       "label": "Diagram viewer",

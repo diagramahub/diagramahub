@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CommunityComment } from '../../types/community';
-import { compactCount, initials, parseTags, threadComments } from '../community';
+import { compactCount, initials, parseTags, threadComments, communityLicenseUrl } from '../community';
 
 const comment = (id: string, parent_id: string | null = null): CommunityComment => ({
   id,
@@ -37,5 +37,12 @@ describe('community helpers', () => {
     expect(compactCount(950)).toBe('950');
     expect(compactCount(1500)).toBe('1.5k');
     expect(compactCount(12400)).toBe('12k');
+  });
+});
+
+describe('communityLicenseUrl', () => {
+  it('links the license summary in the reader\'s language', () => {
+    expect(communityLicenseUrl('es-MX')).toBe('https://creativecommons.org/licenses/by/4.0/deed.es');
+    expect(communityLicenseUrl('en')).toBe('https://creativecommons.org/licenses/by/4.0/deed.en');
   });
 });

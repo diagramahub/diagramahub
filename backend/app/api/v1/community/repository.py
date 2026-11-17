@@ -12,6 +12,7 @@ from pymongo.errors import DuplicateKeyError
 from .interfaces import ICommunityRepository
 from .schemas import (
     CommunityCommentInDB,
+    CommunityForkInDB,
     CommunityReportInDB,
     CommunityStarInDB,
     PublishedDiagramInDB,
@@ -184,6 +185,17 @@ class CommunityRepository(ICommunityRepository):
         return {s.publication_id for s in stars}
 
     # ------------------------------------------------------------------ #
+    #  Forks
+    # ------------------------------------------------------------------ #
+
+    async def add_fork(self, fork: CommunityForkInDB) -> CommunityForkInDB:
+        await fork.insert()
+        return fork
+
+    async def get_fork_by_diagram(self, diagram_id: str) -> Optional[CommunityForkInDB]:
+        return await CommunityForkInDB.find_one(CommunityForkInDB.diagram_id == diagram_id)
+
+    # ------------------------------------------------------------------ #
     #  Comments
     # ------------------------------------------------------------------ #
 
@@ -273,3 +285,7 @@ class CommunityRepository(ICommunityRepository):
             await self.increment(comment.publication_id, "comments_count", -1)
         await CommunityCommentInDB.find(CommunityCommentInDB.user_id == user_id).delete()
         await CommunityReportInDB.find(CommunityReportInDB.reporter_id == user_id).delete()
+        # Fork records name both people: drop the ones made by or credited to the user.
+        await CommunityForkInDB.find(
+            {"$or": [{"user_id": user_id}, {"publication_owner_id": user_id}]}
+        ).delete()

@@ -16,16 +16,15 @@ Puedes **buscar** por título, autor, etiqueta o descripción, filtrar por **tip
 ## Publicar un diagrama
 
 1. Abre el diagrama en el editor y usa **Publicar en la Comunidad** (icono de globo en la barra).
-2. Elige la **categoría**, hasta 5 **etiquetas**, la **licencia** y la descripción pública (por defecto, la del diagrama).
-3. Decide si permites **forks** y **comentarios**, y si los cambios del diagrama se **publican automáticamente**.
+2. Elige la **categoría**, hasta 5 **etiquetas** y la descripción pública (por defecto, la del diagrama).
+3. Decide si permites **comentarios** y si los cambios del diagrama se **publican automáticamente**.
 4. **Publicar**.
 
-| Licencia | Qué permite |
-|---|---|
-| **CC BY 4.0** | Usar y modificar dando crédito al autor |
-| **CC0** | Dominio público, sin condiciones |
-| **CC BY-SA 4.0** | Como CC BY, compartiendo las modificaciones con la misma licencia |
-| **Todos los derechos reservados** | Solo verlo: desactiva los forks |
+### Licencia
+
+Todo lo publicado es **público** bajo la licencia [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/deed.es), la misma para todas las publicaciones, así que no tienes que elegir una. Cualquiera puede verlo, hacer **fork** y adaptarlo, siempre dando crédito al autor. Es el equivalente de la licencia MIT para contenido que no es software.
+
+Cada fork queda **registrado**: suma al contador de forks de la publicación original y conserva de dónde salió. Si alguien publica su fork, su página muestra **Fork de «título» de autor** con el enlace al original (o solo el título y el autor, si el original ya se retiró).
 
 La Comunidad muestra una **copia** del código. Si no activaste la publicación automática, usa **Actualizar con el código actual** cuando cambies el diagrama. Cada diagrama se publica una sola vez. Los pizarrones todavía no se pueden publicar.
 
@@ -37,7 +36,7 @@ Para **retirarlo**, usa **Retirar de la Comunidad** en el editor o en su página
 ## Estrellas, forks y comentarios
 
 - **Estrella**: marca los diagramas que te gustan; los encuentras en **Mis estrellas**.
-- **Fork a mi cuenta**: copia el diagrama a uno de tus proyectos para editarlo. Cuenta para el límite de diagramas de tu plan, y la descripción del fork incluye la atribución al autor, la licencia y el enlace.
+- **Fork a mi cuenta**: copia el diagrama a uno de tus proyectos para editarlo. Cuenta para el límite de diagramas de tu plan, y la descripción del fork incluye la atribución al autor, la licencia y el enlace. Todas las publicaciones admiten fork.
 - **Comentarios**: públicos, en Markdown, con un nivel de respuestas. El autor del diagrama aparece con la marca **Autor**. Puedes borrar tus comentarios; el autor del diagrama puede borrar cualquiera en su publicación.
 
 ## Reportes y moderación
