@@ -2,7 +2,11 @@
 
 **API keys** connect DiagramaHub with your scripts, CI or your own tools, without using your password. With a key you can read your projects and diagrams, change their code and description, publish them to the Community or remove them, and share them with a link or stop sharing. Each key can only do what you allow.
 
-Manage them from **API Keys** in the sidebar. The same page has copy-paste examples (cURL, JavaScript and Python) and the reference of what each key can call.
+Manage them from **API Keys** in the sidebar, which has two tabs: **Your keys**, to create and revoke them, and **Documentation**, with the base URL, copy-paste examples (cURL, JavaScript and Python) and the reference of what each key can call.
+
+## Context for AI agents
+
+In **Documentation**, **Copy for AI** copies the whole documentation as Markdown to paste into an agent like Claude or Codex: base URL, authentication, permissions, errors, common tasks with examples, every endpoint and usage notes (for example, to confirm with you before deleting or publishing something). **Download .md** saves the same document, handy to keep in a repository as the agent's context. It includes no key: the agent reads it from the `DIAGRAMAHUB_API_KEY` environment variable.
 
 ## Create a key
 

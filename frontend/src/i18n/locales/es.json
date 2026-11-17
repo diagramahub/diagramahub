@@ -1954,6 +1954,47 @@
       "fork": "Hacer fork a uno de tus proyectos",
       "fixDiagram": "Corregir un diagrama con IA",
       "convertDiagram": "Convertir a otro lenguaje con IA"
+    },
+    "tabs": {
+      "keys": "Tus llaves",
+      "docs": "Documentación"
+    },
+    "docsTeaser": "¿Cómo se usa? Ejemplos, referencia y contexto listo para tu agente de IA en Documentación",
+    "agent": {
+      "title": "Contexto para agentes de IA",
+      "description": "Copia toda la documentación en Markdown para dársela a un agente como Claude o Codex: URL base, autenticación, permisos, errores, ejemplos y todos los endpoints. No incluye ninguna llave.",
+      "copy": "Copiar para IA",
+      "download": "Descargar .md"
+    },
+    "agentDoc": {
+      "title": "API de DiagramaHub: contexto para un agente de IA",
+      "intro": "Usa esta API REST para consultar y cambiar los proyectos y diagramas de un usuario de DiagramaHub (Mermaid, PlantUML, D2 y DBML): leerlos, cambiar su código y su descripción, hacerlos públicos o privados en la Comunidad y compartirlos con un enlace. Las peticiones y respuestas son JSON.",
+      "baseUrl": "URL base",
+      "auth": "Autenticación",
+      "authKey": "Lee la API key de la variable de entorno DIAGRAMAHUB_API_KEY. No la escribas en el código, en commits ni en la conversación.",
+      "permissions": "Permisos",
+      "permissionsIntro": "Cada API key tiene un nivel por área. `write` incluye `read`; `none` no da acceso. Los métodos GET necesitan `read`; POST, PUT y DELETE necesitan `write`.",
+      "area": "Área",
+      "levels": "Niveles",
+      "covers": "Qué cubre",
+      "permissionsOutside": "Ninguna API key llega a la cuenta, la seguridad, las propias llaves, los ajustes o el chat de IA ni a la administración (responden 403).",
+      "errors": "Errores",
+      "error401": "la llave no existe, venció o fue revocada.",
+      "error403": "a la llave le falta un permiso; `needs` dice cuál. Pide al usuario una llave con ese permiso en vez de reintentar:",
+      "error404": "no existe o no es del usuario.",
+      "error422": "el cuerpo no cumple el esquema; `detail` dice qué campo.",
+      "error429": "demasiadas peticiones; espera lo que diga la cabecera Retry-After.",
+      "tasks": "Tareas comunes",
+      "needs": "permiso",
+      "endpoints": "Endpoints",
+      "endpointsIntro": "Rutas relativas a la URL base, con el permiso que necesita cada una.",
+      "notes": "Notas",
+      "noteIds": "Los IDs son cadenas de 24 caracteres hexadecimales. Para encontrarlos: GET /projects, luego GET /projects/{project_id} (carpetas y diagramas) o GET /diagrams/search?q=texto.",
+      "noteTypes": "diagram_type: mermaid, plantuml, d2 o dbml (los pizarrones, freehand, no se pueden publicar). El código va en content y la descripción, en Markdown, en description.",
+      "noteUpdate": "PUT /diagrams/{diagram_id} acepta solo los campos que cambian (title, content, description, folder_id). Si el diagrama está publicado, la Comunidad muestra los cambios sola.",
+      "noteCommunity": "Publicar (POST /community/diagrams) pide diagram_id, category ({{categories}}), tags (hasta 5) y allow_comments. Lo publicado es público bajo CC BY 4.0. Para hacerlo privado, borra la publicación; su ID lo da GET /community/by-diagram/{diagram_id}.",
+      "noteSharing": "Compartir (POST /shared-links): diagram_id, access_type public o protected (con access_code de 4 a 20 caracteres), expiration_days 5, 10, 30 o null, allow_copy_code y allow_embed. Para dejar de compartir, DELETE /shared-links/{link_id}; el ID lo da GET /shared-links/diagram/{diagram_id}.",
+      "noteSafety": "Antes de borrar algo o de hacer público un diagrama, confírmalo con el usuario."
     }
   }
 }

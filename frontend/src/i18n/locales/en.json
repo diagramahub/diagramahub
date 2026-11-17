@@ -1954,6 +1954,47 @@
       "fork": "Fork into one of your projects",
       "fixDiagram": "Fix a diagram with AI",
       "convertDiagram": "Convert to another language with AI"
+    },
+    "tabs": {
+      "keys": "Your keys",
+      "docs": "Documentation"
+    },
+    "docsTeaser": "How do you use it? Examples, reference and context ready for your AI agent in Documentation",
+    "agent": {
+      "title": "Context for AI agents",
+      "description": "Copy the whole documentation as Markdown to give it to an agent like Claude or Codex: base URL, authentication, permissions, errors, examples and every endpoint. It includes no key.",
+      "copy": "Copy for AI",
+      "download": "Download .md"
+    },
+    "agentDoc": {
+      "title": "DiagramaHub API: context for an AI agent",
+      "intro": "Use this REST API to read and change a DiagramaHub user's projects and diagrams (Mermaid, PlantUML, D2 and DBML): read them, change their code and description, make them public or private in the Community and share them with a link. Requests and responses are JSON.",
+      "baseUrl": "Base URL",
+      "auth": "Authentication",
+      "authKey": "Read the API key from the DIAGRAMAHUB_API_KEY environment variable. Don't write it in code, commits or the conversation.",
+      "permissions": "Permissions",
+      "permissionsIntro": "Each API key has a level per area. `write` includes `read`; `none` gives no access. GET needs `read`; POST, PUT and DELETE need `write`.",
+      "area": "Area",
+      "levels": "Levels",
+      "covers": "What it covers",
+      "permissionsOutside": "No API key reaches the account, security, the keys themselves, AI settings or chat, or administration (they answer 403).",
+      "errors": "Errors",
+      "error401": "the key doesn't exist, expired or was revoked.",
+      "error403": "the key lacks a permission; `needs` says which. Ask the user for a key with that permission instead of retrying:",
+      "error404": "it doesn't exist or isn't the user's.",
+      "error422": "the body doesn't match the schema; `detail` says which field.",
+      "error429": "too many requests; wait as long as the Retry-After header says.",
+      "tasks": "Common tasks",
+      "needs": "permission",
+      "endpoints": "Endpoints",
+      "endpointsIntro": "Paths relative to the base URL, with the permission each one needs.",
+      "notes": "Notes",
+      "noteIds": "IDs are 24-character hex strings. To find them: GET /projects, then GET /projects/{project_id} (folders and diagrams) or GET /diagrams/search?q=text.",
+      "noteTypes": "diagram_type: mermaid, plantuml, d2 or dbml (whiteboards, freehand, can't be published). The code goes in content and the Markdown description in description.",
+      "noteUpdate": "PUT /diagrams/{diagram_id} takes only the fields that change (title, content, description, folder_id). If the diagram is published, the Community shows the changes on its own.",
+      "noteCommunity": "Publishing (POST /community/diagrams) takes diagram_id, category ({{categories}}), tags (up to 5) and allow_comments. What's published is public under CC BY 4.0. To make it private, delete the publication; GET /community/by-diagram/{diagram_id} gives its ID.",
+      "noteSharing": "Sharing (POST /shared-links): diagram_id, access_type public or protected (with an access_code of 4 to 20 characters), expiration_days 5, 10, 30 or null, allow_copy_code and allow_embed. To stop sharing, DELETE /shared-links/{link_id}; GET /shared-links/diagram/{diagram_id} gives its ID.",
+      "noteSafety": "Before deleting anything or making a diagram public, confirm it with the user."
     }
   }
 }

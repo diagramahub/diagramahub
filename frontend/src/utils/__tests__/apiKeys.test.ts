@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { API_KEY_AREAS, API_REFERENCE, AREA_LEVELS, RECIPES, grantedAreas, matchingPreset, presetPermissions, snippet } from '../apiKeys';
+import { API_KEY_AREAS, API_REFERENCE, AREA_LEVELS, RECIPES, agentContext, grantedAreas, matchingPreset, presetPermissions, snippet } from '../apiKeys';
 
 describe('API key permissions', () => {
   it('presets leave AI off', () => {
@@ -48,5 +48,28 @@ describe('snippet', () => {
     expect(py).toContain('requests.put(');
     expect(py).toContain('"public": True');
     expect(snippet({ method: 'GET', path: '/projects' }, 'https://x/api/v1', 'python')).not.toContain('json=');
+  });
+});
+
+describe('agentContext', () => {
+  const t = (key: string, options?: Record<string, unknown>) => (options ? `${key} ${JSON.stringify(options)}` : key);
+  const doc = agentContext(t, 'https://dh.example.com/api/v1');
+
+  it('has the base URL, auth from the environment and no key', () => {
+    expect(doc).toContain('`https://dh.example.com/api/v1`');
+    expect(doc).toContain('Authorization: Bearer $DIAGRAMAHUB_API_KEY');
+    expect(doc).not.toMatch(/dh_pat_[A-Za-z0-9]/);
+  });
+
+  it('lists every documented endpoint with its permission, and every task with an example', () => {
+    for (const ep of API_REFERENCE) expect(doc).toContain(`\`${ep.method} ${ep.path}\``);
+    for (const r of RECIPES) expect(doc).toContain(`apiKeys.recipes.${r.key}.title`);
+    expect(doc).toContain('(`community:write`, `diagrams:write`)');
+    expect(doc.match(/```bash/g)).toHaveLength(RECIPES.length);
+  });
+
+  it('documents the permission levels per area', () => {
+    expect(doc).toContain('| `ai` | `none`, `write` |');
+    expect(doc).toContain('`ai-data`');
   });
 });

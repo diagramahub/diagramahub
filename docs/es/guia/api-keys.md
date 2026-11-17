@@ -2,7 +2,11 @@
 
 Las **API keys** conectan DiagramaHub con tus scripts, tu CI o tus propias herramientas, sin usar tu contraseña. Con una llave puedes consultar tus proyectos y diagramas, cambiar su código y su descripción, publicarlos en la Comunidad o retirarlos, y compartirlos con un enlace o dejar de compartirlos. Cada llave solo puede hacer lo que le permitas.
 
-Se administran desde **API Keys** en el menú lateral. La misma página trae ejemplos listos para copiar (cURL, JavaScript y Python) y la referencia de lo que cada llave puede llamar.
+Se administran desde **API Keys** en el menú lateral, que tiene dos pestañas: **Tus llaves**, para crearlas y revocarlas, y **Documentación**, con la URL base, ejemplos listos para copiar (cURL, JavaScript y Python) y la referencia de lo que cada llave puede llamar.
+
+## Contexto para agentes de IA
+
+En **Documentación**, **Copiar para IA** copia toda la documentación en Markdown para pegársela a un agente como Claude o Codex: URL base, autenticación, permisos, errores, tareas comunes con ejemplos, todos los endpoints y notas de uso (por ejemplo, que confirme contigo antes de borrar o de hacer público algo). **Descargar .md** guarda el mismo documento, útil para dejarlo en un repositorio como contexto del agente. No incluye ninguna llave: el agente la lee de la variable de entorno `DIAGRAMAHUB_API_KEY`.
 
 ## Crear una llave
 

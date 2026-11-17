@@ -166,3 +166,85 @@ export function snippet(recipe: Pick<Recipe, 'method' | 'path' | 'body'>, baseUr
   call.push(')');
   return ['import os', 'import requests', '', ...call, 'print(response.status_code, response.text)'].join('\n');
 }
+
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+const COMMUNITY_CATEGORY_IDS = ['architecture', 'databases', 'business-processes', 'devops', 'uml', 'security', 'ai-data', 'education'];
+
+/**
+ * Everything an AI agent (Claude, Codex, …) needs to use the API, as Markdown:
+ * base URL, auth, permissions, errors, common tasks with examples and the
+ * endpoint reference. Never includes a key: the agent reads it from the
+ * DIAGRAMAHUB_API_KEY environment variable.
+ */
+export function agentContext(t: Translate, baseUrl: string): string {
+  const d = (key: string, options?: Record<string, unknown>) => t(`apiKeys.agentDoc.${key}`, options);
+  const lines: string[] = [
+    `# ${d('title')}`,
+    '',
+    d('intro'),
+    '',
+    `## ${d('baseUrl')}`,
+    '',
+    '`' + baseUrl + '`',
+    '',
+    `## ${d('auth')}`,
+    '',
+    '- `Authorization: Bearer $DIAGRAMAHUB_API_KEY`',
+    '- `Content-Type: application/json`',
+    `- ${d('authKey')}`,
+    '',
+    `## ${d('permissions')}`,
+    '',
+    d('permissionsIntro'),
+    '',
+    `| ${d('area')} | ${d('levels')} | ${d('covers')} |`,
+    '|---|---|---|',
+    ...API_KEY_AREAS.map((area) => `| \`${area}\` | ${AREA_LEVELS[area].map((l) => '`' + l + '`').join(', ')} | ${t(`apiKeys.areas.${area}.description`)} |`),
+    '',
+    d('permissionsOutside'),
+    '',
+    `## ${d('errors')}`,
+    '',
+    `- \`401\`: ${d('error401')}`,
+    `- \`403\`: ${d('error403')} \`{"detail": {"error": "api_key_permission", "needs": {"projects": "write"}}}\``,
+    `- \`404\`: ${d('error404')}`,
+    `- \`422\`: ${d('error422')}`,
+    `- \`429\`: ${d('error429')}`,
+    '',
+    `## ${d('tasks')}`,
+    '',
+  ];
+  for (const recipe of RECIPES) {
+    lines.push(
+      `### ${t(`apiKeys.recipes.${recipe.key}.title`)}`,
+      '',
+      `${t(`apiKeys.recipes.${recipe.key}.description`)} (${d('needs')}: ${recipe.areas.map((a) => `\`${a}:${recipe.level}\``).join(', ')})`,
+      '',
+      '```bash',
+      snippet(recipe, baseUrl, 'curl'),
+      '```',
+      '',
+    );
+  }
+  lines.push(`## ${d('endpoints')}`, '', d('endpointsIntro'), '');
+  for (const area of API_KEY_AREAS) {
+    lines.push(`### ${t(`apiKeys.areas.${area}.name`)} (\`${area}\`)`, '');
+    for (const ep of API_REFERENCE.filter((e) => e.areas[0] === area)) {
+      lines.push(`- \`${ep.method} ${ep.path}\`: ${t(`apiKeys.endpoints.${ep.key}`)} (${ep.areas.map((a) => `\`${a}:${ep.level}\``).join(', ')})`);
+    }
+    lines.push('');
+  }
+  lines.push(
+    `## ${d('notes')}`,
+    '',
+    `- ${d('noteIds')}`,
+    `- ${d('noteTypes')}`,
+    `- ${d('noteUpdate')}`,
+    `- ${d('noteCommunity', { categories: COMMUNITY_CATEGORY_IDS.map((c) => '`' + c + '`').join(', ') })}`,
+    `- ${d('noteSharing')}`,
+    `- ${d('noteSafety')}`,
+    '',
+  );
+  return lines.join('\n');
+}

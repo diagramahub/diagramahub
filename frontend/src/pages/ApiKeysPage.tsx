@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import apiService from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { CreateApiKeyModal } from '../components/apiKeys/CreateApiKeyModal';
-import { API_KEY_AREAS, API_REFERENCE, RECIPES, grantedAreas, levelLabel, snippet, type HttpMethod, type SnippetLanguage } from '../utils/apiKeys';
+import { API_KEY_AREAS, API_REFERENCE, RECIPES, agentContext, grantedAreas, levelLabel, snippet, type HttpMethod, type SnippetLanguage } from '../utils/apiKeys';
 import { API_URL } from '../utils/runtimeConfig';
 import { dateLocale } from '../utils/locale';
+import { downloadBlob } from '../utils/download';
 import type { AccessLevel, ApiKeyArea, ApiToken } from '../types/apiTokens';
 
 const BASE_URL = `${API_URL.replace(/\/$/, '')}/api/v1`;
@@ -41,7 +43,7 @@ function PermissionChip({ area, level }: { area: ApiKeyArea; level: AccessLevel 
   );
 }
 
-function CopyButton({ text, label }: { text: string; label: string }) {
+function CopyButton({ text, label, children, className = 'btn btn-ghost btn-sm' }: { text: string; label: string; children?: React.ReactNode; className?: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   return (
@@ -56,13 +58,13 @@ function CopyButton({ text, label }: { text: string; label: string }) {
           /* clipboard blocked */
         }
       }}
-      className="btn btn-ghost btn-sm"
-      aria-label={label}
+      className={className}
+      aria-label={children ? undefined : label}
     >
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={copied ? 'M5 13l4 4L19 7' : 'M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z'} />
       </svg>
-      {copied ? t('apiKeys.copied') : t('apiKeys.copy')}
+      {copied ? t('apiKeys.copied') : children ?? t('apiKeys.copy')}
     </button>
   );
 }
@@ -77,6 +79,9 @@ export default function ApiKeysPage() {
   const [toRevoke, setToRevoke] = useState<ApiToken | null>(null);
   const [language, setLanguage] = useState<SnippetLanguage>('curl');
   const [recipeKey, setRecipeKey] = useState(RECIPES[0].key);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'docs' ? 'docs' : 'keys';
+  const setTab = (next: 'keys' | 'docs') => setSearchParams(next === 'docs' ? { tab: 'docs' } : {}, { replace: true });
   const recipe = RECIPES.find((r) => r.key === recipeKey) ?? RECIPES[0];
 
   const load = useCallback(async () => {
@@ -111,12 +116,13 @@ export default function ApiKeysPage() {
 
   const card = 'rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900';
   const tabClass = (on: boolean) =>
-    `h-9 px-3 text-sm whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500/50 ${
+    `h-10 px-3 text-sm whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-500/50 ${
       on
         ? 'text-gray-900 dark:text-white font-medium shadow-[inset_0_-2px_0_theme(colors.purple.600)] dark:shadow-[inset_0_-2px_0_theme(colors.purple.400)]'
         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
     }`;
   const code = snippet(recipe, BASE_URL, language);
+  const agentDoc = tab === 'docs' ? agentContext((key, options) => (options ? t(key, options) : t(key)), BASE_URL) : '';
 
   return (
     <div className="min-h-full bg-gray-50 dark:bg-gray-950 px-4 pb-8 pt-16 sm:px-6 md:pt-6">
@@ -134,159 +140,202 @@ export default function ApiKeysPage() {
           </button>
         </header>
 
-        {/* Keys */}
-        <section className={card} aria-labelledby="keys-title">
-          <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-            <h2 id="keys-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiKeys.yourKeys')}</h2>
-            {!loading && <span className="text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.count', { count: keys.length })}</span>}
-          </div>
-          {error && <p className="mx-4 sm:mx-5 mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
-          {loading ? (
-            <p className="px-4 sm:px-5 py-6 text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
-          ) : keys.length === 0 ? (
-            <div className="px-4 sm:px-5 py-8 text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-300">{t('apiKeys.empty')}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('apiKeys.emptyHint')}</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-gray-200 dark:divide-gray-800">
-              {keys.map((k) => (
-                <li key={k.id} className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                      <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                      <span className="truncate">{k.name}</span>
-                      <span className="font-mono text-xs font-normal text-gray-500 dark:text-gray-400">{k.token_hint}</span>
-                      {expired(k) && (
-                        <span className="rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{t('apiKeys.expired')}</span>
-                      )}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap gap-1">
-                      {grantedAreas(k.permissions).map(([area, level]) => (
-                        <PermissionChip key={area} area={area} level={level} />
-                      ))}
-                    </div>
-                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      {t('apiKeys.createdOn', { date: formatDate(k.created_at) })}
-                      {' · '}
-                      {k.expires_at ? t('apiKeys.expiresOn', { date: formatDate(k.expires_at) }) : t('apiKeys.neverExpires')}
-                      {' · '}
-                      {k.last_used_at ? t('apiKeys.lastUsed', { date: formatDate(k.last_used_at) }) : t('apiKeys.neverUsed')}
-                    </p>
-                  </div>
-                  <button type="button" onClick={() => setToRevoke(k)} className="btn btn-danger btn-sm self-start sm:self-auto">
-                    {t('apiKeys.revoke')}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <div role="tablist" aria-label={t('apiKeys.title')} className="flex gap-1 border-b border-gray-200 dark:border-gray-800 overflow-x-auto scrollbar-hide">
+          <button type="button" role="tab" id="tab-keys" aria-controls="panel-keys" aria-selected={tab === 'keys'} onClick={() => setTab('keys')} className={tabClass(tab === 'keys')}>
+            {t('apiKeys.tabs.keys')}
+            {!loading && <span className="ml-1.5 text-xs text-gray-400 dark:text-gray-500 tabular-nums">{keys.length}</span>}
+          </button>
+          <button type="button" role="tab" id="tab-docs" aria-controls="panel-docs" aria-selected={tab === 'docs'} onClick={() => setTab('docs')} className={tabClass(tab === 'docs')}>
+            {t('apiKeys.tabs.docs')}
+          </button>
+        </div>
 
-        {/* How to use */}
-        <section className={card} aria-labelledby="usage-title">
-          <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-800">
-            <h2 id="usage-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiKeys.usage.title')}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('apiKeys.usage.subtitle')}</p>
-          </div>
-          <div className="p-4 sm:p-5 grid gap-4 md:grid-cols-3 text-sm">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('apiKeys.usage.baseUrl')}</p>
-              <div className="mt-1 flex items-center gap-1">
-                <code className="min-w-0 truncate font-mono text-xs text-gray-900 dark:text-gray-100">{BASE_URL}</code>
-                <CopyButton text={BASE_URL} label={t('apiKeys.usage.copyBaseUrl')} />
+        {tab === 'keys' ? (
+          <div id="panel-keys" role="tabpanel" aria-labelledby="tab-keys" className="space-y-6">
+            {/* Keys */}
+            <section className={card} aria-labelledby="keys-title">
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <h2 id="keys-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiKeys.yourKeys')}</h2>
+                {!loading && <span className="text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.count', { count: keys.length })}</span>}
               </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('apiKeys.usage.auth')}</p>
-              <code className="mt-1 block font-mono text-xs text-gray-900 dark:text-gray-100 break-all">Authorization: Bearer dh_pat_…</code>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('apiKeys.usage.errors')}</p>
-              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{t('apiKeys.usage.errorsText')}</p>
-            </div>
-          </div>
-          <div className="border-t border-gray-200 dark:border-gray-800 md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
-            <ul className="p-2 md:border-r border-b md:border-b-0 border-gray-200 dark:border-gray-800 flex md:flex-col gap-1 overflow-x-auto" role="tablist" aria-label={t('apiKeys.usage.recipes')}>
-              {RECIPES.map((r) => (
-                <li key={r.key} className="flex-shrink-0">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={r.key === recipe.key}
-                    onClick={() => setRecipeKey(r.key)}
-                    className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap md:whitespace-normal transition-colors ${
-                      r.key === recipe.key
-                        ? 'bg-gray-100 text-gray-900 font-medium dark:bg-gray-800 dark:text-white'
-                        : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800/50'
-                    }`}
-                  >
-                    {t(`apiKeys.recipes.${r.key}.title`)}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="min-w-0 p-4 sm:p-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <MethodBadge method={recipe.method} />
-                <code className="font-mono text-xs text-gray-900 dark:text-gray-100 break-all">{recipe.path}</code>
-                <span className="ml-auto flex flex-wrap gap-1">
-                  {recipe.areas.map((area) => <PermissionChip key={area} area={area} level={recipe.level} />)}
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{t(`apiKeys.recipes.${recipe.key}.description`)}</p>
-              <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-                <div className="flex items-center border-b border-gray-200 dark:border-gray-800 px-1 bg-gray-50 dark:bg-gray-950">
-                  <div role="tablist" aria-label={t('apiKeys.usage.language')} className="flex">
-                    {LANGUAGES.map((l) => (
-                      <button key={l.id} type="button" role="tab" aria-selected={language === l.id} onClick={() => setLanguage(l.id)} className={tabClass(language === l.id)}>
-                        {l.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="ml-auto">
-                    <CopyButton text={code} label={t('apiKeys.usage.copyCode')} />
-                  </span>
+              {error && <p className="mx-4 sm:mx-5 mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
+              {loading ? (
+                <p className="px-4 sm:px-5 py-6 text-sm text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
+              ) : keys.length === 0 ? (
+                <div className="px-4 sm:px-5 py-8 text-center">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('apiKeys.empty')}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('apiKeys.emptyHint')}</p>
                 </div>
-                <pre className="p-3 text-xs leading-5 font-mono text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 overflow-x-auto">{code}</pre>
-              </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.usage.envHint')}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Reference */}
-        <section className={card} aria-labelledby="reference-title">
-          <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-800">
-            <h2 id="reference-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiKeys.reference.title')}</h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('apiKeys.reference.subtitle')}</p>
-          </div>
-          <div className="divide-y divide-gray-200 dark:divide-gray-800">
-            {API_KEY_AREAS.map((area) => (
-              <div key={area} className="px-4 sm:px-5 py-4">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{t(`apiKeys.areas.${area}.name`)}</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t(`apiKeys.areas.${area}.description`)}</p>
-                <ul className="mt-2 space-y-1">
-                  {API_REFERENCE.filter((ep) => ep.areas[0] === area).map((ep) => (
-                    <li key={`${ep.method} ${ep.path}`} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs">
-                      <span className="flex items-center gap-2 sm:w-[26rem] flex-shrink-0 min-w-0">
-                        <MethodBadge method={ep.method} />
-                        <code className="font-mono text-gray-900 dark:text-gray-100 truncate" title={ep.path}>{ep.path}</code>
-                      </span>
-                      <span className="flex-1 text-gray-600 dark:text-gray-400">{t(`apiKeys.endpoints.${ep.key}`)}</span>
-                      <span className="flex gap-1 flex-shrink-0">
-                        {ep.areas.map((a) => <PermissionChip key={a} area={a} level={ep.level} />)}
-                      </span>
+              ) : (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {keys.map((k) => (
+                    <li key={k.id} className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                          </svg>
+                          <span className="truncate">{k.name}</span>
+                          <span className="font-mono text-xs font-normal text-gray-500 dark:text-gray-400">{k.token_hint}</span>
+                          {expired(k) && (
+                            <span className="rounded-md px-1.5 py-0.5 text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{t('apiKeys.expired')}</span>
+                          )}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {grantedAreas(k.permissions).map(([area, level]) => (
+                            <PermissionChip key={area} area={area} level={level} />
+                          ))}
+                        </div>
+                        <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                          {t('apiKeys.createdOn', { date: formatDate(k.created_at) })}
+                          {' · '}
+                          {k.expires_at ? t('apiKeys.expiresOn', { date: formatDate(k.expires_at) }) : t('apiKeys.neverExpires')}
+                          {' · '}
+                          {k.last_used_at ? t('apiKeys.lastUsed', { date: formatDate(k.last_used_at) }) : t('apiKeys.neverUsed')}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => setToRevoke(k)} className="btn btn-danger btn-sm self-start sm:self-auto">
+                        {t('apiKeys.revoke')}
+                      </button>
                     </li>
                   ))}
                 </ul>
-              </div>
-            ))}
+              )}
+            </section>
+            <button type="button" onClick={() => setTab('docs')} className="w-full text-left rounded-lg border border-dashed border-gray-300 dark:border-gray-700 px-4 sm:px-5 py-3 text-sm text-gray-600 dark:text-gray-400 hover:border-purple-400 hover:text-purple-700 dark:hover:border-purple-500 dark:hover:text-purple-300 transition-colors">
+              {t('apiKeys.docsTeaser')} <span aria-hidden="true">→</span>
+            </button>
           </div>
-          <p className="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.reference.outside')}</p>
-        </section>
+        ) : (
+          <div id="panel-docs" role="tabpanel" aria-labelledby="tab-docs" className="space-y-6">
+            {/* Context for AI agents */}
+            <section className="rounded-lg border border-purple-200 dark:border-purple-500/30 bg-purple-50/60 dark:bg-purple-500/5 p-4 sm:p-5 flex flex-col md:flex-row md:items-center gap-4" aria-labelledby="agent-title">
+              <div className="flex-1 min-w-0">
+                <h2 id="agent-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                  </svg>
+                  {t('apiKeys.agent.title')}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{t('apiKeys.agent.description')}</p>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
+                <CopyButton text={agentDoc} label={t('apiKeys.agent.copy')} className="btn btn-primary">
+                  {t('apiKeys.agent.copy')}
+                </CopyButton>
+                <button type="button" onClick={() => downloadBlob(new Blob([agentDoc], { type: 'text/markdown;charset=utf-8' }), 'diagramahub-api.md')} className="btn btn-secondary">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  {t('apiKeys.agent.download')}
+                </button>
+              </div>
+            </section>
+
+            {/* How to use */}
+            <section className={card} aria-labelledby="usage-title">
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-800">
+                <h2 id="usage-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiKeys.usage.title')}</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('apiKeys.usage.subtitle')}</p>
+              </div>
+              <div className="p-4 sm:p-5 grid gap-4 md:grid-cols-3 text-sm">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('apiKeys.usage.baseUrl')}</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <code className="min-w-0 truncate font-mono text-xs text-gray-900 dark:text-gray-100">{BASE_URL}</code>
+                    <CopyButton text={BASE_URL} label={t('apiKeys.usage.copyBaseUrl')} />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('apiKeys.usage.auth')}</p>
+                  <code className="mt-1 block font-mono text-xs text-gray-900 dark:text-gray-100 break-all">Authorization: Bearer dh_pat_…</code>
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{t('apiKeys.usage.errors')}</p>
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{t('apiKeys.usage.errorsText')}</p>
+                </div>
+              </div>
+              <div className="border-t border-gray-200 dark:border-gray-800 md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
+                <ul className="p-2 md:border-r border-b md:border-b-0 border-gray-200 dark:border-gray-800 flex md:flex-col gap-1 overflow-x-auto" role="tablist" aria-label={t('apiKeys.usage.recipes')}>
+                  {RECIPES.map((r) => (
+                    <li key={r.key} className="flex-shrink-0">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={r.key === recipe.key}
+                        onClick={() => setRecipeKey(r.key)}
+                        className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap md:whitespace-normal transition-colors ${
+                          r.key === recipe.key
+                            ? 'bg-gray-100 text-gray-900 font-medium dark:bg-gray-800 dark:text-white'
+                            : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800/50'
+                        }`}
+                      >
+                        {t(`apiKeys.recipes.${r.key}.title`)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="min-w-0 p-4 sm:p-5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <MethodBadge method={recipe.method} />
+                    <code className="font-mono text-xs text-gray-900 dark:text-gray-100 break-all">{recipe.path}</code>
+                    <span className="ml-auto flex flex-wrap gap-1">
+                      {recipe.areas.map((area) => <PermissionChip key={area} area={area} level={recipe.level} />)}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{t(`apiKeys.recipes.${recipe.key}.description`)}</p>
+                  <div className="mt-3 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                    <div className="flex items-center border-b border-gray-200 dark:border-gray-800 px-1 bg-gray-50 dark:bg-gray-950">
+                      <div role="tablist" aria-label={t('apiKeys.usage.language')} className="flex">
+                        {LANGUAGES.map((l) => (
+                          <button key={l.id} type="button" role="tab" aria-selected={language === l.id} onClick={() => setLanguage(l.id)} className={tabClass(language === l.id)}>
+                            {l.label}
+                          </button>
+                        ))}
+                      </div>
+                      <span className="ml-auto">
+                        <CopyButton text={code} label={t('apiKeys.usage.copyCode')} />
+                      </span>
+                    </div>
+                    <pre className="p-3 text-xs leading-5 font-mono text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900 overflow-x-auto">{code}</pre>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.usage.envHint')}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Reference */}
+            <section className={card} aria-labelledby="reference-title">
+              <div className="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-800">
+                <h2 id="reference-title" className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('apiKeys.reference.title')}</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('apiKeys.reference.subtitle')}</p>
+              </div>
+              <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                {API_KEY_AREAS.map((area) => (
+                  <div key={area} className="px-4 sm:px-5 py-4">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{t(`apiKeys.areas.${area}.name`)}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t(`apiKeys.areas.${area}.description`)}</p>
+                    <ul className="mt-2 space-y-1">
+                      {API_REFERENCE.filter((ep) => ep.areas[0] === area).map((ep) => (
+                        <li key={`${ep.method} ${ep.path}`} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs">
+                          <span className="flex items-center gap-2 sm:w-[26rem] flex-shrink-0 min-w-0">
+                            <MethodBadge method={ep.method} />
+                            <code className="font-mono text-gray-900 dark:text-gray-100 truncate" title={ep.path}>{ep.path}</code>
+                          </span>
+                          <span className="flex-1 text-gray-600 dark:text-gray-400">{t(`apiKeys.endpoints.${ep.key}`)}</span>
+                          <span className="flex gap-1 flex-shrink-0">
+                            {ep.areas.map((a) => <PermissionChip key={a} area={a} level={ep.level} />)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <p className="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.reference.outside')}</p>
+            </section>
+          </div>
+        )}
       </div>
 
       <CreateApiKeyModal isOpen={showCreate} onClose={() => setShowCreate(false)} onCreated={() => void load()} baseUrl={BASE_URL} />
