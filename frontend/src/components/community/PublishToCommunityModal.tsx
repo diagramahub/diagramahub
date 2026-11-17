@@ -4,7 +4,8 @@ import { Trans, useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import type { CommunityCategory, PublicationCard } from '../../types/community';
-import { COMMUNITY_CATEGORIES, COMMUNITY_LICENSE, MAX_TAGS, communityLicenseUrl, parseTags } from '../../utils/community';
+import { COMMUNITY_CATEGORIES, COMMUNITY_LICENSE, communityLicenseUrl } from '../../utils/community';
+import { TagInput } from './TagInput';
 
 interface PublishToCommunityModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
   const [existing, setExisting] = useState<PublicationCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState<CommunityCategory>('architecture');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [text, setText] = useState(description);
   const [allowComments, setAllowComments] = useState(true);
   const [autoUpdate, setAutoUpdate] = useState(false);
@@ -35,7 +36,6 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
   const [notice, setNotice] = useState<string | null>(null);
   const panelRef = useDialogA11y(isOpen, onClose, !busy);
   const publishable = PUBLISHABLE.has(diagramType);
-  const parsedTags = parseTags(tags);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,7 +59,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
       const created = await apiService.publishDiagram({
         diagram_id: diagramId,
         category,
-        tags: parsedTags,
+        tags,
         description: text,
         allow_comments: allowComments,
         auto_update: autoUpdate,
@@ -132,7 +132,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
             </div>
           ) : (
             <>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-4 items-start">
                 <div>
                   <label htmlFor="pub-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     {t('community.publish.category')} <span className="text-red-500">*</span>
@@ -143,8 +143,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
                 </div>
                 <div>
                   <label htmlFor="pub-tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('community.publish.tags')}</label>
-                  <input id="pub-tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t('community.publish.tagsPlaceholder')} className={field} />
-                  {parsedTags.length > MAX_TAGS && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{t('community.publish.tooManyTags', { max: MAX_TAGS })}</p>}
+                  <TagInput id="pub-tags" tags={tags} onChange={setTags} />
                 </div>
               </div>
               <div>
@@ -181,7 +180,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
             <button type="button" onClick={refresh} disabled={busy} className={primary}>{t('community.owner.refresh')}</button>
           )}
           {publishable && !loading && !existing && (
-            <button type="button" onClick={publish} disabled={busy || parsedTags.length > MAX_TAGS} className={primary}>
+            <button type="button" onClick={publish} disabled={busy} className={primary}>
               {busy ? t('community.publish.publishing') : t('community.publish.confirm')}
             </button>
           )}

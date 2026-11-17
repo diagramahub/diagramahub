@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CommunityComment } from '../../types/community';
-import { compactCount, initials, parseTags, threadComments, communityLicenseUrl } from '../community';
+import { addTags, compactCount, initials, parseTags, threadComments, communityLicenseUrl } from '../community';
 
 const comment = (id: string, parent_id: string | null = null): CommunityComment => ({
   id,
@@ -44,5 +44,17 @@ describe('communityLicenseUrl', () => {
   it('links the license summary in the reader\'s language', () => {
     expect(communityLicenseUrl('es-MX')).toBe('https://creativecommons.org/licenses/by/4.0/deed.es');
     expect(communityLicenseUrl('en')).toBe('https://creativecommons.org/licenses/by/4.0/deed.en');
+  });
+});
+
+describe('addTags', () => {
+  it('adds normalized lowercase tags without repeats', () => {
+    expect(addTags(['pagos'], 'API Gateway, #Pagos, K8S')).toEqual(['pagos', 'api-gateway', 'k8s']);
+    expect(addTags(['a'], '  ,  ')).toEqual(['a']);
+  });
+
+  it('stops at the limit', () => {
+    expect(addTags(['a', 'b', 'c', 'd'], 'e, f, g')).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(addTags(['a', 'b'], 'c, d', 3)).toEqual(['a', 'b', 'c']);
   });
 });

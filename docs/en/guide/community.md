@@ -16,7 +16,7 @@ You can **search** by title, author, tag or description, filter by **type** (MMD
 ## Publish a diagram
 
 1. Open the diagram in the editor and use **Publish to the Community** (globe icon in the toolbar).
-2. Choose the **category**, up to 5 **tags** and the public description (the diagram's own by default).
+2. Choose the **category**, up to 5 **tags** (lowercase; add each one with **Enter** or a **comma**, remove it with its ✕ or Backspace) and the public description (the diagram's own by default).
 3. Decide whether you allow **comments** and whether the diagram's changes are **published automatically**.
 4. **Publish**.
 

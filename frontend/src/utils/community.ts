@@ -33,6 +33,16 @@ export function parseTags(input: string): string[] {
   return tags;
 }
 
+/** `current` plus the comma-separated tags in `input`, normalized, without repeats, at most `max`. */
+export function addTags(current: string[], input: string, max = MAX_TAGS): string[] {
+  const next = [...current];
+  for (const tag of parseTags(input)) {
+    if (next.length >= max) break;
+    if (!next.includes(tag)) next.push(tag);
+  }
+  return next;
+}
+
 /** Initials for an avatar ("Ana Autora" -> "AA"). */
 export function initials(name: string): string {
   return (

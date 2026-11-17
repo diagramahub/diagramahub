@@ -16,7 +16,7 @@ Puedes **buscar** por título, autor, etiqueta o descripción, filtrar por **tip
 ## Publicar un diagrama
 
 1. Abre el diagrama en el editor y usa **Publicar en la Comunidad** (icono de globo en la barra).
-2. Elige la **categoría**, hasta 5 **etiquetas** y la descripción pública (por defecto, la del diagrama).
+2. Elige la **categoría**, hasta 5 **etiquetas** (en minúsculas; cada una se agrega con **Enter** o una **coma**, y se quita con su ✕ o con Retroceso) y la descripción pública (por defecto, la del diagrama).
 3. Decide si permites **comentarios** y si los cambios del diagrama se **publican automáticamente**.
 4. **Publicar**.
 
