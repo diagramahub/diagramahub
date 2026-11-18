@@ -57,7 +57,7 @@ RUN pnpm run build
 # configuration, then drop privileges again. Nginx listens on 5173 (a high
 # port, allowed for non-root) so host port mappings and managed platforms
 # configured for the previous image keep working unchanged.
-FROM nginxinc/nginx-unprivileged:1.30-alpine AS production
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS production
 
 USER root
 RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
