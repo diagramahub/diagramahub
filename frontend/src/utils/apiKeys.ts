@@ -56,7 +56,7 @@ export interface EndpointDoc {
   also?: ExtraNeeds;
 }
 
-/** Exposing a stored diagram's code (AI fix, publishing, sharing) also needs to read diagrams. */
+/** Exposing a stored diagram's code (a project or folder with its diagrams, an export, AI fix, publishing, sharing) also needs to read diagrams. */
 const READ_DIAGRAMS: ExtraNeeds = [['diagrams', 'read']];
 
 const e = (key: string, method: HttpMethod, path: string, areas: ApiKeyArea[], level: GrantedLevel, also?: ExtraNeeds): EndpointDoc => ({
@@ -78,13 +78,13 @@ const needsText = (entry: Pick<EndpointDoc, 'areas' | 'level' | 'also'>) => need
 /** What a key can call, grouped by area (backend: permissions.RULES). */
 export const API_REFERENCE: EndpointDoc[] = [
   e('listProjects', 'GET', '/projects', ['projects'], 'read'),
-  e('getProject', 'GET', '/projects/{project_id}', ['projects'], 'read'),
-  e('exportProject', 'GET', '/projects/{project_id}/export?format=zip', ['projects'], 'read'),
+  e('getProject', 'GET', '/projects/{project_id}', ['projects'], 'read', READ_DIAGRAMS),
+  e('exportProject', 'GET', '/projects/{project_id}/export?format=zip', ['projects'], 'read', READ_DIAGRAMS),
   e('createProject', 'POST', '/projects', ['projects'], 'write'),
   e('updateProject', 'PUT', '/projects/{project_id}', ['projects'], 'write'),
   e('deleteProject', 'DELETE', '/projects/{project_id}', ['projects'], 'write'),
   e('createFolder', 'POST', '/projects/{project_id}/folders', ['projects'], 'write'),
-  e('getFolder', 'GET', '/folders/{folder_id}', ['projects'], 'read'),
+  e('getFolder', 'GET', '/folders/{folder_id}', ['projects'], 'read', READ_DIAGRAMS),
   e('updateFolder', 'PUT', '/folders/{folder_id}', ['projects'], 'write'),
   e('deleteFolder', 'DELETE', '/folders/{folder_id}', ['projects'], 'write'),
 
@@ -128,7 +128,7 @@ export interface Recipe {
 /** Everyday tasks shown as copy-paste examples. */
 export const RECIPES: Recipe[] = [
   { key: 'listProjects', method: 'GET', path: '/projects', areas: ['projects'], level: 'read' },
-  { key: 'getProject', method: 'GET', path: '/projects/PROJECT_ID', areas: ['projects'], level: 'read' },
+  { key: 'getProject', method: 'GET', path: '/projects/PROJECT_ID', areas: ['projects'], level: 'read', also: READ_DIAGRAMS },
   {
     key: 'updateDiagram',
     method: 'PUT',

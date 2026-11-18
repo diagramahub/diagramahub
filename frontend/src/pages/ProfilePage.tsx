@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../utils/locale';
+import { PROFILE_IMAGE_TYPES, safeImageSrc } from '../utils/imageSrc';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import PremiumAvatar from '../components/PremiumAvatar';
@@ -83,7 +84,7 @@ export default function ProfilePage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!PROFILE_IMAGE_TYPES.includes(file.type)) {
       setError(t('profile.invalidImageType'));
       return;
     }
@@ -298,8 +299,8 @@ export default function ProfilePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('profile.profilePicture')}</label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-                    {imagePreview ? (
-                      <img src={imagePreview} alt={t('profile.profilePicture')} className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700" />
+                    {safeImageSrc(imagePreview) ? (
+                      <img src={safeImageSrc(imagePreview)} alt={t('profile.profilePicture')} className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700" />
                     ) : (
                       <div className="w-24 h-24 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200 flex items-center justify-center text-2xl font-semibold">
                         {getUserInitials()}
@@ -308,7 +309,7 @@ export default function ProfilePage() {
                     <div className="flex-1">
                       <div className="flex gap-3">
                         <label className="cursor-pointer">
-                          <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                          <input type="file" accept={PROFILE_IMAGE_TYPES.join(',')} onChange={handleImageChange} className="hidden" />
                           <span className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                             {t('profile.uploadPhoto')}
                           </span>

@@ -30,7 +30,8 @@ from app.api.v1.ai_providers.schemas import AIProviderType, UserAISettingsInDB  
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLASSIC = CASES["mermaid"]
-FIX_CASES = json.load(open(os.path.join(HERE, "mermaid_fix_cases.json"), encoding="utf-8"))
+with open(os.path.join(HERE, "mermaid_fix_cases.json"), encoding="utf-8") as _f:
+    FIX_CASES = json.load(_f)
 
 # One natural request per newer type (Spanish, like real users); the key is the
 # header the model should pick.

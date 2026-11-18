@@ -421,6 +421,8 @@ class CommunityService:
         """
         publication = await self._visible(publication_id, user_id, is_admin)
         await self.usage_limiter.enforce_diagram_limit(user_id)
+        # Copy the diagram as it is now, not as the last page view left it.
+        await self._sync([publication])
         attribution = fork_attribution(publication, self.publication_url(publication_id))
         description = f"{publication.description}\n\n---\n{attribution}".strip()
         created = await self.diagram_service.create_diagram(

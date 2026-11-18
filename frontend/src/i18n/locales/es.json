@@ -605,7 +605,7 @@
     "selectLanguage": "Selecciona tu idioma preferido",
     "cancelEdit": "Cancelar",
     "saveChanges": "Guardar Cambios",
-    "invalidImageType": "Por favor selecciona un archivo de imagen válido",
+    "invalidImageType": "Elige una imagen PNG, JPEG, GIF, WebP, AVIF o BMP",
     "imageTooLarge": "La imagen debe ser menor a 2MB",
     "allFieldsRequired": "Todos los campos son obligatorios",
     "passwordsDoNotMatch": "Las contraseñas no coinciden",

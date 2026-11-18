@@ -79,6 +79,13 @@ R, W = AccessLevel.READ, AccessLevel.WRITE
     "method, path, expected",
     [
         ("GET", "/projects", {P: R}),
+        # A project, a folder or an export carries the diagrams' code.
+        ("GET", "/projects/p1", {P: R, D: R}),
+        ("GET", "/projects/p1/export", {P: R, D: R}),
+        ("GET", "/folders/f1", {P: R, D: R}),
+        ("GET", "/projects/p1/export/summary", {P: R}),
+        ("PUT", "/projects/p1", {P: W}),
+        ("DELETE", "/folders/f1", {P: W}),
         ("POST", "/projects/p1/folders", {P: W}),
         ("PUT", "/folders/f1", {P: W}),
         ("POST", "/projects/p1/diagrams", {D: W}),
@@ -332,9 +339,8 @@ async def test_revoked_and_expired_tokens_are_rejected(
     await ApiTokenInDB.find_one(ApiTokenInDB.id == PydanticObjectId(expired["id"])).update(
         {"$set": {"expires_at": utcnow() - timedelta(minutes=1)}}
     )
-    assert (
-        await authenticated_client.delete(f"/api/v1/api-tokens/{revoked['id']}")
-    ).status_code == 200
+    revoke = await authenticated_client.delete(f"/api/v1/api-tokens/{revoked['id']}")
+    assert revoke.status_code == 200
 
     statuses = []
     for t in (revoked, expired):

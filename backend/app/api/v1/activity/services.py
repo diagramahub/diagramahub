@@ -116,4 +116,4 @@ async def record_activity(
         try:
             await repository.record(user_id, diagram_id, at)
         except Exception:  # noqa: BLE001 - activity is a nice-to-have
-            logger.warning("Could not record activity for diagram %s", diagram_id, exc_info=True)
+            logger.warning("Could not record diagram activity", exc_info=True)

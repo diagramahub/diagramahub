@@ -5,7 +5,8 @@ each endpoint needs.
 An endpoint a key may call must match one of ``RULES`` (first match wins);
 anything else (account, security, keys, admin, AI chat, ...) always needs a
 signed-in session. ``write`` includes ``read``. An action that exposes a stored
-diagram's code (AI fix, publishing, sharing) also needs read access to diagrams.
+diagram's code (reading a project or folder, exporting, AI fix, publishing,
+sharing) also needs read access to diagrams.
 """
 
 import re
@@ -98,6 +99,13 @@ RULES: tuple[Rule, ...] = (
     _rule(r"^/diagrams(/|$)", A.DIAGRAMS),
     # The dashboard heatmap: which diagrams were worked on, per day.
     _rule(r"^/activity(/|$)", A.DIAGRAMS),
+    # A project or a folder comes with its diagrams' code, and so does an export.
+    _rule(
+        r"^/(projects/[^/]+(/export)?|folders/[^/]+)$",
+        A.PROJECTS,
+        plus=READ_DIAGRAMS,
+        methods={"GET", "HEAD"},
+    ),
     _rule(r"^/(projects|folders)(/|$)", A.PROJECTS),
 )
 

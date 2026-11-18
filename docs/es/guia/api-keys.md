@@ -29,7 +29,7 @@ Cada área tiene su propio nivel: **Ninguno**, **Lectura** o **Escritura** (escr
 
 - La IA viene apagada en los preajustes: actívala solo si la llave la necesita.
 - **Importar** un proyecto requiere escritura en Proyectos y en Diagramas, y **hacer fork** requiere escritura en Comunidad y en Diagramas.
-- **Compartir** (crear un enlace), **hacer público** y **corregir con IA** también requieren lectura en Diagramas, porque exponen el código del diagrama. Al crear la llave se avisa si falta.
+- **Ver un proyecto o una carpeta**, **exportar un proyecto**, **compartir** (crear un enlace), **hacer público** y **corregir con IA** también requieren lectura en Diagramas, porque exponen el código de los diagramas. Al crear la llave se avisa si falta.
 - Ninguna llave llega a tu cuenta, tu seguridad (contraseña, MFA), tus ajustes de IA, el chat con IA, las propias llaves ni a la administración: eso siempre requiere iniciar sesión.
 
 ## Usarla

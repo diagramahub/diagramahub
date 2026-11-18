@@ -209,6 +209,37 @@ async def test_fork_copies_into_the_users_project_with_attribution(
     assert (record.user_id, record.diagram_id) == (visitor["id"], fork["id"])
 
 
+async def test_fork_copies_the_diagram_as_it_is_now(client: AsyncClient, people: dict) -> None:
+    """An edit made after publishing reaches a fork even if nobody opened the page since."""
+    author, visitor = people["author"], people["visitor"]
+    _, diagram_id = await _diagram(client, author, content="graph LR\n  X-->Y")
+    pub = await _publish(client, author, diagram_id)
+    edit = await client.put(
+        f"/api/v1/diagrams/{diagram_id}",
+        json={"title": "Checkout v2", "content": "graph LR\n  X-->Z"},
+        headers=author["headers"],
+    )
+    assert edit.status_code == 200, edit.text
+    project = await client.post(
+        "/api/v1/projects", json={"name": "Visitor", "emoji": "🧪"}, headers=visitor["headers"]
+    )
+
+    response = await client.post(
+        f"{BASE}/diagrams/{pub['id']}/fork",
+        json={"project_id": project.json()["id"]},
+        headers=visitor["headers"],
+    )
+
+    assert response.status_code == 201, response.text
+    fork = (
+        await client.get(
+            f"/api/v1/diagrams/{response.json()['diagram_id']}", headers=visitor["headers"]
+        )
+    ).json()
+    assert (fork["title"], fork["content"]) == ("Checkout v2", "graph LR\n  X-->Z")
+    assert "Fork of “Checkout v2”" in fork["description"]
+
+
 async def test_everything_published_is_public_and_forkable(
     client: AsyncClient, people: dict
 ) -> None:

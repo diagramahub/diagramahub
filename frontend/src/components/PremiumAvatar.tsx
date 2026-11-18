@@ -1,5 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { safeImageSrc } from '../utils/imageSrc';
 
 interface PremiumAvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -57,9 +58,10 @@ export default function PremiumAvatar({
     xl: 'w-6 h-6 -bottom-1 -right-1'
   };
 
-  const avatarContent = user?.profile_picture ? (
+  const pictureSrc = safeImageSrc(user?.profile_picture);
+  const avatarContent = pictureSrc ? (
     <img
-      src={user.profile_picture}
+      src={pictureSrc}
       alt={t('profile.profilePicture')}
       className={`${sizeClasses[size]} rounded-full object-cover`}
     />

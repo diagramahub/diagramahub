@@ -104,7 +104,7 @@ async def log_event(
         )
         await entry.insert()
     except Exception:
-        logger.warning("Failed to write audit log: %s %s", event, user_email)
+        logger.warning("Failed to write audit log entry", exc_info=True)
 
 
 async def log_event_for_user_id(
@@ -130,7 +130,7 @@ async def log_event_for_user_id(
         email = user.email if user else f"unknown:{user_id}"
         ip_address = get_client_ip(request) if request is not None else None
     except Exception:
-        logger.warning("Failed to resolve audit context: %s %s", event, user_id)
+        logger.warning("Failed to resolve audit context", exc_info=True)
         email, ip_address = f"unknown:{user_id}", None
     await log_event(
         event,
