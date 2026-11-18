@@ -13,7 +13,7 @@
 # docker-compose selects the target per deployment mode (see deploy/).
 
 # ---------- Shared base: Node + pnpm, always patched ----------
-FROM node:24-alpine AS base
+FROM node:26-alpine AS base
 
 # Upgrade all apk packages to latest patches (picks up OpenSSL and other
 # Alpine security fixes that lag behind the base image tag). Rebuild regularly.
