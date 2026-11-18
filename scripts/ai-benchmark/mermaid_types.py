@@ -4,7 +4,8 @@ Measures what the Mermaid syntax reference (ai_providers/mermaid_reference.json)
 is for: does the model use the requested newer type (Venn, Wardley, Kanban, …)
 and does it render? Also fixes broken diagrams of those types
 (mermaid_fix_cases.json, with the parser's real error), and re-runs the 10
-classic Mermaid cases of generate.py to catch regressions. With --chat it goes
+classic Mermaid cases of generate.py to catch regressions, plus requests for
+the flowchart extras (animated edges, step-by-step animation, BPMN shapes). With --chat it goes
 through the real chat (chat.py) instead of generate/fix. Prints JSON; phase 2:
 validate_mermaid_types.js.
 
@@ -61,6 +62,18 @@ MODERN = {
 }
 
 
+# Flowchart extras: the case key names the feature the model should use (checked by
+# validate_mermaid_types.js against the code).
+FEATURES = {
+    "animate": "Diagrama de flujo del despliegue de una app (commit, build, pruebas, despliegue) con las flechas animadas para que se vea el movimiento.",
+    "animate-2": "Flujo de un pedido en línea donde las conexiones se muevan (flechas con animación), con la conexión del pago más rápida que las demás.",
+    "step": "Flujo de una petición HTTP (cliente, balanceador, API, caché, base de datos) animado paso a paso: que un punto recorra las conexiones en orden y se vea el número de cada paso.",
+    "step-2": "Animación por pasos del proceso de login: usuario, formulario, API, verificación MFA y panel, mostrando el orden numerado.",
+    "bpmn": "Proceso BPMN de aprobación de vacaciones: evento de inicio, tareas, compuerta de decisión (aprobada o no), evento intermedio de notificación y evento de fin.",
+    "bpmn-2": "Diagrama BPMN del proceso de compra con evento inicial, actividades, una compuerta, un almacén de datos de pedidos y evento final.",
+}
+
+
 async def timed(coro):
     started = time.time()
     try:
@@ -103,9 +116,11 @@ async def main() -> None:
     tasks = []
     for target in targets:
         provider, model = target.split(":", 1)
-        cases = [("classic", i, d) for i, d in enumerate(CLASSIC)] + [
-            ("modern", k, d) for k, d in MODERN.items()
-        ]
+        cases = (
+            [("classic", i, d) for i, d in enumerate(CLASSIC)]
+            + [("modern", k, d) for k, d in MODERN.items()]
+            + [("feature", k, d) for k, d in FEATURES.items()]
+        )
         if use_chat:
             tasks += [chat(user_id, provider, model, kind, case, d, sem) for kind, case, d in cases]
             continue

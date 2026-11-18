@@ -72,3 +72,17 @@ def test_generation_and_chat_teach_the_other_types_only_for_mermaid() -> None:
     assert reference in build_unified_chat_prompt("flowchart TD\n  A", "mermaid", "es")
     assert "OTHER MERMAID DIAGRAM TYPES" not in build_code_system_prompt("plantuml", "es")
     assert "OTHER MERMAID DIAGRAM TYPES" not in build_unified_chat_prompt("a -> b", "d2", "en")
+
+
+def test_flowchart_extras_teach_motion_and_bpmn() -> None:
+    from app.api.v1.ai_providers.mermaid_reference import mermaid_feature_syntaxes
+
+    names = {f.name for f in mermaid_feature_syntaxes()}
+    flow_fix = build_fix_prompt(
+        "flowchart LR\n  A e1@--> B\n  e1@{ animate: tru", "mermaid", None, "es"
+    )
+
+    assert {"animated edges", "step-by-step animation", "BPMN shapes"} <= names
+    assert "FLOWCHART EXTRAS" in build_code_system_prompt("mermaid", "es")
+    assert "FLOWCHART EXTRAS" in flow_fix and "bpmn-start" in flow_fix
+    assert "FLOWCHART EXTRAS" not in build_fix_prompt(VENN, "mermaid", None, "es")

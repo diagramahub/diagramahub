@@ -9,7 +9,12 @@ const header = (code) => {
   const line = body.split('\n').map((l) => l.replace(/%%.*$/, '').trim()).find(Boolean) || '';
   return line.split(/\s/)[0];
 };
-const rightType = (r) => [r.case, String(r.case).replace(/-beta$/, ''), `${r.case}-beta`].includes(r.header);
+const FEATURE = { animate: /@\{[^}]*\banimat(e|ion)\b/, step: /@\{[^}]*\bstep\s*:\s*\d/, bpmn: /shape\s*:\s*bpmn-/ };
+// Modern: the requested header; feature: the requested flowchart extra is in the code.
+const rightType = (r) =>
+  r.kind === 'feature'
+    ? FEATURE[String(r.case).replace(/-\d+$/, '')].test(r.code || '')
+    : [r.case, String(r.case).replace(/-beta$/, ''), `${r.case}-beta`].includes(r.header);
 
 (async () => {
   const file = process.argv[2];
@@ -39,7 +44,7 @@ const rightType = (r) => [r.case, String(r.case).replace(/-beta$/, ''), `${r.cas
     const row = (rows[key] ??= { total: 0, valid: 0, typed: 0, callErrors: 0 });
     row.total++;
     if (r.valid) row.valid++;
-    if (r.valid && (r.kind !== 'modern' || r.task === 'fix' || rightType(r))) row.typed++;
+    if (r.valid && (r.kind === 'classic' || r.task === 'fix' || rightType(r))) row.typed++;
     if (!r.ok_call) row.callErrors++;
   }
   console.log(`\n${data.label}`);
@@ -49,7 +54,7 @@ const rightType = (r) => [r.case, String(r.case).replace(/-beta$/, ''), `${r.cas
     console.log(key, pct(row.valid), '   ', pct(row.typed), '        ', row.callErrors);
   }
   console.log('\nFailures:');
-  for (const r of data.results.filter((x) => !(x.valid && (x.kind !== 'modern' || x.task === 'fix' || rightType(x))))) {
+  for (const r of data.results.filter((x) => !(x.valid && (x.kind === 'classic' || x.task === 'fix' || rightType(x))))) {
     console.log(`  ${r.model} ${r.task} ${r.case} header=${r.header || '-'}: ${(r.validation_error || r.error || (r.valid ? 'another type' : '')).slice(0, 110)}`);
   }
 })();

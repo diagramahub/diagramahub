@@ -1,5 +1,5 @@
 {
-  "_comment": "Syntax of the Mermaid diagram types the AI prompts teach, verified against the bundled mermaid (frontend/src/utils/__tests__/mermaidReference.test.ts parses every example and checks every invalid sample fails). Update together with the frontend's mermaid.",
+  "_comment": "Syntax of the Mermaid diagram types the AI prompts teach, verified against the bundled mermaid (frontend/src/utils/__tests__/mermaidReference.test.ts parses every example (types and features) and checks every invalid sample fails). Update together with the frontend's mermaid.",
   "types": [
     {
       "keyword": "mindmap",
@@ -58,14 +58,16 @@
       "rules": [
         "Blocks: requirement, functionalRequirement, interfaceRequirement, performanceRequirement, physicalRequirement, designConstraint, element {type, docref}.",
         "Fields only: id, text, risk (low|medium|high), verifymethod (analysis|inspection|test|demonstration); quote id, text, type and docref values that have colons, slashes or hyphens: id: \"REQ-001\", docref: \"docs/mfa-guide.md\".",
-        "Relations `a - satisfies -> b`: contains, copies, derives, satisfies, verifies, refines, traces; `-->` fails."
+        "Relations `a - satisfies -> b`: contains, copies, derives, satisfies, verifies, refines, traces; `-->` fails.",
+        "No `title` line inside the diagram: put the title in front matter (`---` / `title: Login requirements` / `---`)."
       ],
-      "example": "requirementDiagram\n  requirement login_req {\n    id: \"REQ-001\"\n    text: \"Sign in with email: password\"\n    risk: high\n    verifymethod: test\n  }\n  element login_page {\n    type: web page\n    docref: \"docs/auth-guide.md\"\n  }\n  login_page - satisfies -> login_req",
+      "example": "---\ntitle: Login requirements\n---\nrequirementDiagram\n  requirement login_req {\n    id: \"REQ-001\"\n    text: \"Sign in with email: password\"\n    risk: high\n    verifymethod: test\n  }\n  element login_page {\n    type: web page\n    docref: \"docs/auth-guide.md\"\n  }\n  login_page - satisfies -> login_req",
       "invalid": [
         "requirementDiagram\n  requirement r1 {\n    id: 1\n    risk: critical\n  }",
         "requirementDiagram\n  requirement r1 {\n    id: 1\n  }\n  element e1 {\n    type: service\n  }\n  e1 - implements -> r1",
         "requirementDiagram\n  requirement r1 {\n    id: 1\n  }\n  element e1 {\n    type: module\n    docref: docs/mfa-guide.md\n  }\n  e1 - satisfies -> r1",
-        "requirementDiagram\n  requirement r1 {\n    id: REQ-001\n    text: \"Login\"\n  }"
+        "requirementDiagram\n  requirement r1 {\n    id: REQ-001\n    text: \"Login\"\n  }",
+        "requirementDiagram\n  title Login\n  requirement r1 {\n    id: 1\n  }"
       ]
     },
     {
@@ -306,6 +308,62 @@
       "invalid": [
         "railroad-beta\n  sign = choice(terminal(\"+\"), terminal(\"-\"))",
         "railroad-beta\n  sign = \"+\" | \"-\" ;"
+      ]
+    }
+  ],
+  "features": [
+    {
+      "name": "animated edges",
+      "applies_to": [
+        "flowchart",
+        "graph"
+      ],
+      "use_for": "moving arrows: show flow direction or highlight connections",
+      "rules": [
+        "Give the edge an id right before its arrow, no space: `A e1@--> B` (also `e1@-->|label|`, `e1@-- label -->`, `e1@==>`).",
+        "Then, on its own line, `e1@{ animate: true }`, or `e1@{ animation: fast }` / `slow` (only those two speeds).",
+        "The id must be set in the link first (`e1@{ animate: true }` alone just creates a node called e1); never put `@{…}` inside the link."
+      ],
+      "example": "flowchart LR\n  commit[Commit] e1@--> build[Build]\n  build e2@--> tests{Tests pass?}\n  tests e3@-->|yes| deploy[Deploy]\n  tests -->|no| fix[Fix]\n  e1@{ animate: true }\n  e2@{ animate: true }\n  e3@{ animation: fast }",
+      "invalid": [
+        "flowchart LR\n  A e1 @--> B\n  e1@{ animate: true }",
+        "flowchart LR\n  A e1@{ animate: true }--> B",
+        "flowchart LR\n  A -->e1@ B\n  e1@{ animate: true }"
+      ]
+    },
+    {
+      "name": "step-by-step animation",
+      "applies_to": [
+        "flowchart",
+        "graph"
+      ],
+      "use_for": "an ordered walkthrough: a dot travels the edges one step after another (requests, processes)",
+      "rules": [
+        "Edge ids as for animated edges, then `e1@{ step: 1 }`, `e2@{ step: 2 }`… (positive whole numbers; edges with the same number play together).",
+        "Numbered badges and speed go in front matter, which must be the very first lines: `config:` → `flowchart:` → `stepNumbers: true`, `stepDuration: 0.5` (seconds per step).",
+        "Add moving dashes too with `e1@{ step: 1, animate: true }`."
+      ],
+      "example": "---\nconfig:\n  flowchart:\n    stepNumbers: true\n    stepDuration: 0.8\n---\nflowchart LR\n  client[Client] e1@--> lb[Load balancer]\n  lb e2@--> api[API]\n  api e3@--> cache[(Cache)]\n  api e4@--> db[(Database)]\n  e1@{ step: 1 }\n  e2@{ step: 2 }\n  e3@{ step: 3 }\n  e4@{ step: 3, animate: true }",
+      "invalid": [
+        "flowchart LR\n---\nconfig:\n  flowchart:\n    stepNumbers: true\n---\n  A e1@--> B\n  e1@{ step: 1 }"
+      ]
+    },
+    {
+      "name": "BPMN shapes",
+      "applies_to": [
+        "flowchart",
+        "graph"
+      ],
+      "use_for": "BPMN business processes (events, activities, gateways, data) drawn as a flowchart",
+      "rules": [
+        "Nodes `id@{ shape: bpmn-start, label: \"Request received\" }`; shapes: bpmn-start, bpmn-end, bpmn-intermediate, bpmn-gateway, bpmn-activity, bpmn-data-object, bpmn-data-store, bpmn-annotation, bpmn-boundary.",
+        "Exactly those lowercase names (bpmnStart or bpmn-task fail); quote every label.",
+        "Sequence flow `-->` (labels `-->|yes|`), data association `-.->`, annotation link `-.-`."
+      ],
+      "example": "flowchart LR\n  start@{ shape: bpmn-start, label: \"Request sent\" }\n  review@{ shape: bpmn-activity, label: \"Review request\" }\n  ok@{ shape: bpmn-gateway, label: \"Approved?\" }\n  notify@{ shape: bpmn-intermediate, label: \"Notify employee\" }\n  done@{ shape: bpmn-end, label: \"Closed\" }\n  log@{ shape: bpmn-data-store, label: \"HR records\" }\n  note@{ shape: bpmn-annotation, label: \"Answer within 2 days\" }\n  start --> review --> ok\n  ok -->|yes| notify --> done\n  ok -->|no| done\n  review -.-> log\n  note -.- review",
+      "invalid": [
+        "flowchart LR\n  s@{ shape: bpmnStart, label: \"Start\" }",
+        "flowchart LR\n  s@{ shape: bpmn-task, label: \"Task\" }"
       ]
     }
   ]

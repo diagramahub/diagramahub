@@ -17,7 +17,12 @@ interface TypeEntry {
 }
 
 const REFERENCE_PATH = resolve(__dirname, '../../../../backend/app/api/v1/ai_providers/mermaid_reference.json');
-const reference = JSON.parse(readFileSync(REFERENCE_PATH, 'utf8')) as { types: TypeEntry[] };
+interface FeatureEntry extends Omit<TypeEntry, 'keyword'> {
+  name: string;
+  applies_to: string[];
+}
+
+const reference = JSON.parse(readFileSync(REFERENCE_PATH, 'utf8')) as { types: TypeEntry[]; features: FeatureEntry[] };
 
 let mermaid: Mermaid;
 beforeAll(async () => {
@@ -53,6 +58,22 @@ describe('Mermaid reference for the AI prompts', () => {
       expect(entry.rules.length, entry.keyword).toBeGreaterThan(0);
     }
   });
+
+  for (const feature of reference.features) {
+    it(`${feature.name}: the example parses`, async () => {
+      expect(feature.applies_to).toContain(header(feature.example).split(/\s/)[0]);
+      expect(feature.rules.length).toBeGreaterThan(0);
+      expect(await parseError(feature.example)).toBe('');
+    });
+
+    for (const [i, bad] of (feature.invalid ?? []).entries()) {
+      it(`${feature.name}: invalid sample ${i + 1} fails`, async () => {
+        const error = await parseError(bad);
+        expect(error).not.toBe('');
+        expect(error).not.toMatch(/DOMPurify|is not a function|document is not defined/);
+      });
+    }
+  }
 
   for (const entry of reference.types) {
     it(`${entry.keyword}: the example parses`, async () => {

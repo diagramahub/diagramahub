@@ -45,8 +45,9 @@ Measures the Mermaid syntax reference the prompts carry
 (mindmap, timeline, Venn, Wardley, Kanban, Ishikawa, …) checking that the model **uses
 that type** and that it renders, 14 broken diagrams of those types to fix
 (`mermaid_fix_cases.json`, with mermaid's real error) and the 10 classic Mermaid cases of
-`generate.py` to catch regressions. `--chat` runs the requests through the real chat
-instead of generate/fix. Run it after changing the reference or upgrading mermaid
+`generate.py` to catch regressions, plus 6 requests for the flowchart extras (animated
+edges, step-by-step animation, BPMN shapes: they count when the code uses them).
+`--chat` runs the requests through the real chat instead of generate/fix. Run it after changing the reference or upgrading mermaid
 (the reference's examples are also parsed in CI by
 `frontend/src/utils/__tests__/mermaidReference.test.ts`).
 
@@ -63,15 +64,17 @@ node scripts/ai-benchmark/validate_mermaid_types.js mermaid-types.json
 docker exec -u 0 diagramahub-backend rm -rf /tmp/abench
 ```
 
-Results for 0.9.0 (DeepSeek `deepseek-flash` / Gemini `gemini-3.8-flash`):
+Results for 0.9.0 (DeepSeek `deepseek-flash` · Gemini `gemini-3.8-flash`; ranges are over two runs):
 
 | Case | Without the reference | With the reference |
 |---|---|---|
-| Newer type requested: uses it and renders (generate) | 0/24 · 3/24 | 23/24 · 23/24 |
-| Newer type requested: uses it and renders (chat) | — | 21/24 · 23/24 |
+| Newer type requested: uses it and renders (generate) | 0/24 · 3/24 | 21–23/24 · 23/24 |
+| Newer type requested: uses it and renders (chat) | — | 21–23/24 · 23/24 |
 | Fix a broken diagram of a newer type | 10/14 · 10/14 | 14/14 · 14/14 |
+| Flowchart extras: animated edges, steps, BPMN (generate · chat) | 0/12 · 0/12 | 12/12 · 12/12 |
 | Classic Mermaid (generate) | 10/10 · 10/10 | 10/10 · 10/10 |
 | Classic Mermaid (chat) | — | 10/10 · 10/10 |
 
 Without the reference the models drew almost everything as a flowchart (it rendered, but it
-wasn't what was asked). The one miss left in generate is "block diagram", answered with a flowchart.
+wasn't what was asked) and never used animation or BPMN shapes; with it, classic requests still
+come back without unrequested animation (0/40). The one miss left in generate is "block diagram", answered with a flowchart.

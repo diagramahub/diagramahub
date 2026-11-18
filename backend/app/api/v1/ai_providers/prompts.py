@@ -937,7 +937,8 @@ _VERIFIED_RULES = {
         "erDiagram; schedule -> gantt; idea hierarchy -> mindmap; dated events -> timeline. "
         "For anything else (sets, cause and effect, value chains, boards, charts, file trees, "
         "use cases, lanes…) pick the matching type from OTHER MERMAID DIAGRAM TYPES and copy "
-        "its syntax exactly.\n"
+        "its syntax exactly. Moving/animated arrows, a step-by-step animation or BPMN -> a "
+        "flowchart with the FLOWCHART EXTRAS.\n"
         "- Node ids: ASCII letters, digits and underscores only, no spaces or accents; never a "
         "keyword (end, graph, flowchart, subgraph, style, class, classDef, click, default). "
         'Put every visible text in double quotes: login["Iniciar sesión (MFA)"]. Text with ( ) [ ] { } '

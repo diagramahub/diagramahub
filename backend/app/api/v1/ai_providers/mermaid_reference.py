@@ -1,9 +1,10 @@
 """
 Syntax of the newer Mermaid diagram types (mindmap, Venn, Wardley, …) for the AI prompts.
 
-Models know the classic types well but invent the syntax of the newer ones, so
-the prompts carry a short reference: when to use each type, the rules that
-prevent the usual mistakes and one example. The data lives in
+Models know the classic types well but invent the syntax of the newer ones
+(and never use the flowchart's newer features: animated edges, step-by-step
+animation, BPMN shapes), so the prompts carry a short reference: when to use
+each type or feature, the rules that prevent the usual mistakes and one example. The data lives in
 ``mermaid_reference.json``; a frontend test parses every example with the
 bundled mermaid, so the reference can't drift from the parser.
 """
@@ -38,10 +39,41 @@ class MermaidTypeSyntax:
     example: str
 
 
+@dataclass(frozen=True)
+class MermaidFeatureSyntax:
+    """How to use a feature inside some diagram types (e.g. animated flowchart edges)."""
+
+    name: str
+    applies_to: tuple[str, ...]
+    use_for: str
+    rules: tuple[str, ...]
+    example: str
+
+
+@lru_cache(maxsize=1)
+def _data() -> dict:
+    return json.loads(_DATA.read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=1)
+def mermaid_feature_syntaxes() -> tuple[MermaidFeatureSyntax, ...]:
+    """Every feature in the reference, in reference order."""
+    return tuple(
+        MermaidFeatureSyntax(
+            name=entry["name"],
+            applies_to=tuple(entry["applies_to"]),
+            use_for=entry["use_for"],
+            rules=tuple(entry["rules"]),
+            example=entry["example"].strip("\n"),
+        )
+        for entry in _data().get("features", [])
+    )
+
+
 @lru_cache(maxsize=1)
 def mermaid_type_syntaxes() -> dict[str, MermaidTypeSyntax]:
     """Every type in the reference, by header keyword (in reference order)."""
-    data = json.loads(_DATA.read_text(encoding="utf-8"))
+    data = _data()
     return {
         entry["keyword"]: MermaidTypeSyntax(
             keyword=entry["keyword"],
@@ -66,12 +98,19 @@ def syntax_for_keyword(keyword: Optional[str]) -> Optional[MermaidTypeSyntax]:
     return None
 
 
-def format_type_syntax(syntax: MermaidTypeSyntax) -> str:
-    """One type as prompt text: purpose, rules and example."""
+def format_type_syntax(syntax: MermaidTypeSyntax | MermaidFeatureSyntax) -> str:
+    """One type or feature as prompt text: purpose, rules and example."""
+    title = syntax.keyword if isinstance(syntax, MermaidTypeSyntax) else syntax.name
     rules = "\n".join(f"- {rule}" for rule in syntax.rules)
+    return f"### {title}: {syntax.use_for}\n{rules}\nExample:\n```mermaid\n{syntax.example}\n```"
+
+
+def _features_section(features: tuple[MermaidFeatureSyntax, ...]) -> str:
+    sections = "\n\n".join(format_type_syntax(f) for f in features)
     return (
-        f"### {syntax.keyword}: {syntax.use_for}\n{rules}\nExample:\n"
-        f"```mermaid\n{syntax.example}\n```"
+        "FLOWCHART EXTRAS (verified against the parser). Use them when the request asks for "
+        "motion (animated or moving arrows, a step-by-step walkthrough) or BPMN; follow the "
+        f"rules exactly.\n\n{sections}"
     )
 
 
@@ -79,19 +118,24 @@ def format_type_syntax(syntax: MermaidTypeSyntax) -> str:
 def other_mermaid_types_reference() -> str:
     """Section for generating/chatting: every newer type with its syntax."""
     sections = "\n\n".join(format_type_syntax(s) for s in mermaid_type_syntaxes().values())
+    features = mermaid_feature_syntaxes()
+    extras = f"\n\n{_features_section(features)}" if features else ""
     return (
         "OTHER MERMAID DIAGRAM TYPES (verified against the parser; valid in addition to the "
         "types above). When the request fits one of them, use it and follow its rules and "
         "example exactly: never invent keywords or mix syntax between types.\n\n"
-        f"{sections}"
+        f"{sections}{extras}"
     )
 
 
 def type_reference_for_code(code: str) -> str:
-    """The syntax of the code's own diagram type, when the reference has it (else "")."""
-    syntax = syntax_for_keyword(mermaid_diagram_keyword(code))
-    if syntax is None:
-        return ""
-    return (
-        f"SYNTAX OF THIS DIAGRAM TYPE (verified against the parser):\n{format_type_syntax(syntax)}"
-    )
+    """The syntax of the code's diagram type, or the features it can use (else "")."""
+    keyword = mermaid_diagram_keyword(code)
+    syntax = syntax_for_keyword(keyword)
+    if syntax is not None:
+        return (
+            "SYNTAX OF THIS DIAGRAM TYPE (verified against the parser):\n"
+            f"{format_type_syntax(syntax)}"
+        )
+    features = tuple(f for f in mermaid_feature_syntaxes() if keyword in f.applies_to)
+    return _features_section(features) if features else ""
