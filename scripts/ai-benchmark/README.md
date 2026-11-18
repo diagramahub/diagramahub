@@ -37,3 +37,41 @@ Results for 0.8.1 (same 160 cases, 4 cheap models):
 |---|---|---|
 | AI chat (streaming) | 88 % | 99 % |
 | `/ai/generate-diagram` | 72 % | 98 % |
+
+## Newer Mermaid types (`mermaid_types.py`)
+
+Measures the Mermaid syntax reference the prompts carry
+(`backend/app/api/v1/ai_providers/mermaid_reference.json`): one request per newer type
+(mindmap, timeline, Venn, Wardley, Kanban, Ishikawa, …) checking that the model **uses
+that type** and that it renders, 14 broken diagrams of those types to fix
+(`mermaid_fix_cases.json`, with mermaid's real error) and the 10 classic Mermaid cases of
+`generate.py` to catch regressions. `--chat` runs the requests through the real chat
+instead of generate/fix. Run it after changing the reference or upgrading mermaid
+(the reference's examples are also parsed in CI by
+`frontend/src/utils/__tests__/mermaidReference.test.ts`).
+
+```bash
+docker exec -u 0 diagramahub-backend mkdir -p /tmp/abench
+for f in generate.py chat.py mermaid_types.py mermaid_fix_cases.json; do
+  docker cp scripts/ai-benchmark/$f diagramahub-backend:/tmp/abench/; done
+docker exec -u 0 diagramahub-backend chmod -R a+r /tmp/abench
+docker exec -w /app diagramahub-backend sh -c \
+  'PYTHONPATH=/app poetry run python /tmp/abench/mermaid_types.py you@example.com "label" \
+   deepseek:deepseek-flash gemini:gemini-3.8-flash 2>/dev/null' > mermaid-types.json
+# add --chat after the script name for the chat; then validate and print the summary:
+node scripts/ai-benchmark/validate_mermaid_types.js mermaid-types.json
+docker exec -u 0 diagramahub-backend rm -rf /tmp/abench
+```
+
+Results for 0.9.0 (DeepSeek `deepseek-flash` / Gemini `gemini-3.8-flash`):
+
+| Case | Without the reference | With the reference |
+|---|---|---|
+| Newer type requested: uses it and renders (generate) | 0/24 · 3/24 | 23/24 · 23/24 |
+| Newer type requested: uses it and renders (chat) | — | 21/24 · 23/24 |
+| Fix a broken diagram of a newer type | 10/14 · 10/14 | 14/14 · 14/14 |
+| Classic Mermaid (generate) | 10/10 · 10/10 | 10/10 · 10/10 |
+| Classic Mermaid (chat) | — | 10/10 · 10/10 |
+
+Without the reference the models drew almost everything as a flowchart (it rendered, but it
+wasn't what was asked). The one miss left in generate is "block diagram", answered with a flowchart.

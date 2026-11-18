@@ -19,7 +19,7 @@ import urllib.error
 import urllib.request
 
 from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from app.api.v1.ai_providers.clients.factory import AIClientFactory
 from app.api.v1.ai_providers.repository import AIProviderRepository
@@ -116,7 +116,7 @@ async def run_case(client, model: str, diagram_type: str, index: int, descriptio
 
 async def main() -> None:
     email, label, targets = sys.argv[1], sys.argv[2], sys.argv[3:]
-    db = AsyncIOMotorClient(os.environ["MONGO_URI"])[os.environ["DATABASE_NAME"]]
+    db = AsyncMongoClient(os.environ["MONGO_URI"])[os.environ["DATABASE_NAME"]]
     await init_beanie(database=db, document_models=[UserAISettingsInDB])
     user_id = str((await db.users.find_one({"email": email}))["_id"])
     repo = AIProviderRepository()

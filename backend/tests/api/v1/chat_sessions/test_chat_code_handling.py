@@ -25,6 +25,22 @@ def test_split_reply_returns_code_and_the_text_around_it(reply: str) -> None:
     assert text == "Listo, aquí está:\n\nAgregué el fin."
 
 
+@pytest.mark.parametrize(
+    "reply",
+    [
+        # Start marker and a block, but no end marker (seen from DeepSeek)
+        f"<<<DIAGRAM>>>\n```mermaid\n{CODE}\n```\nAgregué el fin.",
+        # A lone closing fence after bare code, with or without the start marker
+        f"<<<DIAGRAM>>>\n{CODE}\n```\nAgregué el fin.",
+        f"{CODE}\n```\nAgregué el fin.",
+    ],
+)
+def test_split_reply_stops_the_code_at_its_closing_fence(reply: str) -> None:
+    code, text = split(reply, "mermaid")
+    assert code == CODE
+    assert text == "Agregué el fin."
+
+
 def test_split_reply_handles_unclosed_blocks_and_bare_code() -> None:
     assert split(f"```mermaid\n{CODE}", "mermaid")[0] == CODE
     assert split("Aquí:\n@startuml\nA -> B\n@enduml", "plantuml")[0] == "@startuml\nA -> B\n@enduml"

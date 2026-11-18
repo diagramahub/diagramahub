@@ -1,0 +1,312 @@
+{
+  "_comment": "Syntax of the Mermaid diagram types the AI prompts teach, verified against the bundled mermaid (frontend/src/utils/__tests__/mermaidReference.test.ts parses every example and checks every invalid sample fails). Update together with the frontend's mermaid.",
+  "types": [
+    {
+      "keyword": "mindmap",
+      "use_for": "brainstorm / idea map around one central topic",
+      "rules": [
+        "Exactly one root; all other nodes nest under it by indentation.",
+        "Shapes: id[square], id(rounded), id((circle)), id{{hexagon}}, id))bang((, id)cloud(.",
+        "Text with parentheses or brackets goes quoted after an id: ads[\"Ads (paid)\"], never a bare \"quoted line\". Don't use front matter `layout: elk`."
+      ],
+      "example": "mindmap\n  root((Product launch))\n    Marketing\n      Blog post\n      ads[\"Social ads (paid)\"]\n    Engineering\n      qa{{Load testing}}\n    Support\n      help(Help center)",
+      "invalid": [
+        "mindmap\n  Topic A\n  Topic B",
+        "mindmap\n  root\n    Plan(phase (one))",
+        "mindmap\n  root((Trip))\n    \"Apps (maps)\""
+      ]
+    },
+    {
+      "keyword": "timeline",
+      "use_for": "chronological events or milestones by period",
+      "rules": [
+        "Lines are `period : event`; add events with more ` : event` or a next line starting with `:`.",
+        "`section Name` groups the following periods; no colon inside section names."
+      ],
+      "example": "timeline\n  title Product history\n  section Early days\n    2019 : Prototype\n    2020 : First customers : Seed round\n  section Growth\n    2022 : Team of 50\n         : Berlin office",
+      "invalid": [
+        "timeline\n  section Q1: kickoff\n    2024 : Planning"
+      ]
+    },
+    {
+      "keyword": "quadrantChart",
+      "use_for": "2x2 matrix rating items on two criteria (effort vs impact)",
+      "rules": [
+        "Points `Name: [x, y]` with x and y from 0 to 1 (no percentages or negatives).",
+        "`x-axis Low --> High`; quadrant-1 is top-right, 2 top-left, 3 bottom-left, 4 bottom-right.",
+        "Quote names with punctuation: \"SSO (beta)\": [0.7, 0.8]."
+      ],
+      "example": "quadrantChart\n  title Feature prioritization\n  x-axis Low effort --> High effort\n  y-axis Low impact --> High impact\n  quadrant-1 Plan carefully\n  quadrant-2 Quick wins\n  quadrant-3 Fill-ins\n  quadrant-4 Avoid\n  Dark mode: [0.25, 0.80]\n  \"SSO (beta)\": [0.75, 0.85]",
+      "invalid": [
+        "quadrantChart\n  x-axis Low --> High\n  y-axis Low --> High\n  Item A: [30, 60]"
+      ]
+    },
+    {
+      "keyword": "journey",
+      "use_for": "user journey steps scored by satisfaction",
+      "rules": [
+        "Tasks are `Task name: score: Actor1, Actor2` (colons, score 1 bad to 5 good) under `section Name`."
+      ],
+      "example": "journey\n  title Buying a laptop online\n  section Research\n    Compare models: 4: Customer\n    Read reviews: 3: Customer\n  section Purchase\n    Checkout: 2: Customer, Bank",
+      "invalid": [
+        "journey\n  section Research\n    Compare models, 4, Customer"
+      ]
+    },
+    {
+      "keyword": "requirementDiagram",
+      "use_for": "SysML requirements and the elements satisfying them",
+      "rules": [
+        "Blocks: requirement, functionalRequirement, interfaceRequirement, performanceRequirement, physicalRequirement, designConstraint, element {type, docref}.",
+        "Fields only: id, text, risk (low|medium|high), verifymethod (analysis|inspection|test|demonstration); quote id, text, type and docref values that have colons, slashes or hyphens: id: \"REQ-001\", docref: \"docs/mfa-guide.md\".",
+        "Relations `a - satisfies -> b`: contains, copies, derives, satisfies, verifies, refines, traces; `-->` fails."
+      ],
+      "example": "requirementDiagram\n  requirement login_req {\n    id: \"REQ-001\"\n    text: \"Sign in with email: password\"\n    risk: high\n    verifymethod: test\n  }\n  element login_page {\n    type: web page\n    docref: \"docs/auth-guide.md\"\n  }\n  login_page - satisfies -> login_req",
+      "invalid": [
+        "requirementDiagram\n  requirement r1 {\n    id: 1\n    risk: critical\n  }",
+        "requirementDiagram\n  requirement r1 {\n    id: 1\n  }\n  element e1 {\n    type: service\n  }\n  e1 - implements -> r1",
+        "requirementDiagram\n  requirement r1 {\n    id: 1\n  }\n  element e1 {\n    type: module\n    docref: docs/mfa-guide.md\n  }\n  e1 - satisfies -> r1",
+        "requirementDiagram\n  requirement r1 {\n    id: REQ-001\n    text: \"Login\"\n  }"
+      ]
+    },
+    {
+      "keyword": "C4Context",
+      "use_for": "C4 model of people and systems (C4Container, C4Component, C4Dynamic, C4Deployment work alike)",
+      "rules": [
+        "Call syntax with commas and double-quoted strings: Person(id, \"Label\", \"Description\"); System, SystemDb, System_Ext, Person_Ext.",
+        "Boundaries need braces: Enterprise_Boundary(id, \"Label\") { ... }.",
+        "Links only via Rel(from, to, \"label\", \"tech\") or BiRel(...); `-->` fails."
+      ],
+      "example": "C4Context\n  title Online shop\n  Person(customer, \"Customer\", \"Buys products\")\n  Enterprise_Boundary(b0, \"Shop\") {\n    System(web, \"Web store\", \"Catalogue and checkout\")\n    SystemDb(db, \"Orders DB\")\n  }\n  System_Ext(pay, \"Payment provider\")\n  Rel(customer, web, \"Uses\", \"HTTPS\")\n  Rel(web, pay, \"Charges cards\")",
+      "invalid": [
+        "C4Context\n  Person(user, \"User\")\n  System(app, \"App\")\n  user --> app",
+        "C4Context\n  Person(user, User of the app)"
+      ]
+    },
+    {
+      "keyword": "sankey-beta",
+      "use_for": "quantities flowing between stages (energy, budget, traffic)",
+      "rules": [
+        "CSV rows `source,target,value`, one per line; no header row, no arrows.",
+        "Quote names containing commas: \"Gas, oil\",Grid,25.",
+        "ASCII only: accented letters fail even inside quotes; drop the accents."
+      ],
+      "example": "sankey-beta\nSolar,Grid,40\nWind,Grid,35\n\"Gas, oil\",Grid,25\nGrid,Homes,60\nGrid,Industry,30\nGrid,Losses,10",
+      "invalid": [
+        "sankey-beta\nSolar -> Grid : 40",
+        "sankey-beta\nEnergía solar,Red,40"
+      ]
+    },
+    {
+      "keyword": "xychart-beta",
+      "use_for": "bar and/or line chart",
+      "rules": [
+        "`x-axis [a, b, c]` or `x-axis \"Title\" 0 --> 100`; series `bar [1, 2]`, `line \"Name\" [3, 4]` need brackets and plain numbers (no %).",
+        "Quote any title, category or name with accents. `xychart-beta horizontal` flips it."
+      ],
+      "example": "xychart-beta\n  title \"Monthly sales\"\n  x-axis [Jan, Feb, Mar, Apr]\n  y-axis \"Revenue (k$)\" 0 --> 100\n  bar \"Sales\" [30, 55, 80, 65]\n  line \"Target\" [40, 50, 60, 70]",
+      "invalid": [
+        "xychart-beta\n  x-axis [Jan, Feb]\n  bar 30, 55",
+        "xychart-beta\n  x-axis [Enero, Año]\n  bar [1, 2]"
+      ]
+    },
+    {
+      "keyword": "block-beta",
+      "use_for": "blocks on a manual column grid (layered system views)",
+      "rules": [
+        "`columns N` sets the grid; `id:2` spans 2 columns; `space` / `space:2` leaves gaps.",
+        "Groups are `block:id:span ... end` (no subgraph). Quote labels with spaces: a[\"Web app\"], db[(\"DB\")].",
+        "Edges `a --> b` or `a -- \"label\" --> b`."
+      ],
+      "example": "block-beta\n  columns 3\n  user[\"User\"] space api[\"API gateway\"]\n  block:backend:3\n    columns 2\n    svc(\"Orders service\") db[(\"Database\")]\n  end\n  user --> api\n  api -- \"REST\" --> svc\n  svc --> db",
+      "invalid": [
+        "block-beta\n  columns 2\n  a[Web app] b[Database]",
+        "block-beta\n  subgraph g\n    a\n  end"
+      ]
+    },
+    {
+      "keyword": "packet",
+      "use_for": "bit layout of a packet, protocol header or register",
+      "rules": [
+        "Fields `start-end: \"Label\"`, `bit: \"Label\"` or `+N: \"Label\"` (N bits); labels must be quoted.",
+        "Ranges start at 0, are contiguous (no gaps/overlaps) and written low-high."
+      ],
+      "example": "packet\n  title UDP header\n  0-15: \"Source port\"\n  16-31: \"Destination port\"\n  +16: \"Length\"\n  +16: \"Checksum\"\n  64-95: \"Data\"",
+      "invalid": [
+        "packet\n  0-15: Source port",
+        "packet\n  0-15: \"Source\"\n  20-31: \"Destination\""
+      ]
+    },
+    {
+      "keyword": "kanban",
+      "use_for": "kanban board of tasks by status column",
+      "rules": [
+        "Columns `id[Title]`; tasks `id[Task]` indented under their column; ids unique.",
+        "Task metadata: @{ assigned: 'ana', ticket: PRJ-12, priority: 'High' } (priority: 'Very High', 'High', 'Low', 'Very Low')."
+      ],
+      "example": "kanban\n  todo[To do]\n    t1[Write spec]@{ assigned: 'ana', priority: 'High' }\n    t2[Design API]\n  doing[In progress]\n    t3[Build login]@{ ticket: PRJ-12 }\n  done[Done]\n    t4[Set up CI]"
+    },
+    {
+      "keyword": "architecture-beta",
+      "use_for": "cloud/infrastructure services and groups with icons",
+      "rules": [
+        "`group id(icon)[Label]`, `service id(icon)[Label] in group`, `junction id`; icons: cloud, database, disk, internet, server.",
+        "Edges name a side at both ends: `a:R --> L:b` (T, B, L, R; `--` = no arrow); `a --> b` fails.",
+        "Groups have no body: no braces and no `end`; put each service in its group with `in groupId`. Ids ASCII, labels free text."
+      ],
+      "example": "architecture-beta\n  group cloud(cloud)[Public cloud]\n  service web(internet)[Web app] in cloud\n  service api(server)[API] in cloud\n  service db(database)[Database] in cloud\n  service files(disk)[Files] in cloud\n  web:R --> L:api\n  api:R --> L:db\n  api:B --> T:files",
+      "invalid": [
+        "architecture-beta\n  service a(server)[API]\n  service b(database)[DB]\n  a --> b",
+        "architecture-beta\n  group g(cloud)[Cloud] {\n    service a(server)[API]\n  }",
+        "architecture-beta\n  group g(cloud)[Cloud]\n    service a(server)[API] in g\n  end"
+      ]
+    },
+    {
+      "keyword": "radar-beta",
+      "use_for": "radar/spider chart comparing items on several criteria",
+      "rules": [
+        "`axis id[\"Label\"], id2[\"Label\"]` comma-separated; `curve id[\"Label\"]{v1, v2, ...}` with braces, one value per axis in order.",
+        "ids ASCII (accents go in the quoted label); scale with `max N` / `min N`."
+      ],
+      "example": "radar-beta\n  title Team skills\n  axis code[\"Coding\"], test[\"Testing\"], docs[\"Docs\"]\n  axis ops[\"Operations\"], ux[\"UX\"]\n  curve ana[\"Ana\"]{4, 3, 5, 2, 4}\n  curve ben[\"Ben\"]{2, 5, 3, 4, 3}\n  max 5\n  min 0",
+      "invalid": [
+        "radar-beta\n  axis speed cost quality\n  curve a{1, 2, 3}",
+        "radar-beta\n  axis a, b, c\n  curve x[1, 2, 3]"
+      ]
+    },
+    {
+      "keyword": "treemap-beta",
+      "use_for": "nested rectangles sized by value (budget, disk usage, market share)",
+      "rules": [
+        "Every name double-quoted; leaves `\"Name\": number`, parents without value; nesting by indentation."
+      ],
+      "example": "treemap-beta\n\"Budget\"\n    \"Engineering\"\n        \"Salaries\": 500\n        \"Cloud\": 120\n    \"Marketing\"\n        \"Ads\": 200",
+      "invalid": [
+        "treemap-beta\n  Budget\n    Salaries: 500"
+      ]
+    },
+    {
+      "keyword": "venn-beta",
+      "use_for": "overlapping sets / what groups share",
+      "rules": [
+        "Declare `set Id[\"Label\"]` before use; `union A,B[\"Label\"]` separates set ids with commas.",
+        "Ids are ASCII words (accents go in the [\"label\"]); optional size `:N`; indented `text id[\"Item\"]` adds items."
+      ],
+      "example": "venn-beta\n  title \"Data science skills\"\n  set Math[\"Statistics\"]\n  set Code[\"Programming\"]\n  set Domain[\"Domain expertise\"]\n  union Math,Code[\"Machine learning\"]\n  union Math,Code,Domain[\"Data science\"]\n    text ds1[\"Python\"]",
+      "invalid": [
+        "venn-beta\n  set A\n  set B\n  union A B",
+        "venn-beta\n  set A\n  union A,B[\"Both\"]"
+      ]
+    },
+    {
+      "keyword": "usecase-beta",
+      "use_for": "UML use cases: actors, use cases, system boundary",
+      "rules": [
+        "Declare actors `actor Id` or `actor Id(\"Label\")` (undeclared names become use cases); use cases Id(\"Label\") ellipse, Id[Label] box.",
+        "`systemBoundary id[\"Title\"] ... end` (no braces). Include/extend: `A ..> : include B`, `A ..> : extend B`; generalize `A --|> B`.",
+        "One statement per line, no semicolons; ids ASCII; quote labels with parentheses."
+      ],
+      "example": "usecase-beta\n  direction LR\n  actor Customer(\"Online customer\")\n  systemBoundary shop[\"Online shop\"]\n    Browse(\"Browse catalogue\")\n    Checkout(\"Check out\")\n    Pay(\"Pay by card\")\n  end\n  Customer --> Browse\n  Customer --> Checkout\n  Checkout ..> : include Pay",
+      "invalid": [
+        "usecase-beta\n  actor User\n  Login\n  Auth\n  Login ..> Auth : include",
+        "usecase-beta\n  actor User; actor Admin"
+      ]
+    },
+    {
+      "keyword": "swimlane-beta",
+      "use_for": "process flow in lanes by owner/team (cross-functional flowchart)",
+      "rules": [
+        "Flowchart syntax; each top-level `subgraph id [Lane] ... end` is a lane; optional direction (LR, TB) after the keyword.",
+        "Declare each node in one lane only; nested subgraphs are boxes, not lanes. classDef/style work."
+      ],
+      "example": "swimlane-beta LR\n  subgraph customer [Customer]\n    order[Place order]\n    receive([Receive goods])\n  end\n  subgraph store [Store]\n    check{In stock?}\n    ship[Ship order]\n  end\n  order --> check\n  check -->|yes| ship --> receive\n  check -.->|no| order",
+      "invalid": [
+        "swimlane-beta\n  subgraph A\n    x[Step]\n  subgraph B\n    y[Step]\n  end"
+      ]
+    },
+    {
+      "keyword": "agentflow-beta",
+      "use_for": "LLM agent workflows: agents, tasks, tools, decisions, docs",
+      "rules": [
+        "Containers `flow id[\"Label\"] ... end` (not subgraph); nodes `id[\"Label\"]@{ shape: task }`.",
+        "Shapes: task, tool, input, decision, refdoc, action or a Mermaid shape name; unknown ones fail.",
+        "Only these edges: `-->` sequence, `-.-` reference (no arrowhead), `--x` failure, labels `-- yes -->` or `-->|yes|`. There is no dotted or thick arrow: `-.->` and `==>` fail."
+      ],
+      "example": "agentflow-beta LR\n  ask[\"User question\"]@{ shape: input }\n  flow research[\"Research agent\"]\n    plan[\"Plan searches\"]@{ shape: task }\n    search[\"web_search\"]@{ shape: tool }\n    notes[\"Source notes\"]@{ shape: refdoc }\n    plan --> search\n    plan -.- notes\n  end\n  ok[\"Enough sources?\"]@{ shape: decision }\n  answer[\"Send answer\"]@{ shape: action }\n  ask --> plan\n  search --> ok\n  ok -- yes --> answer\n  ok -- no --x plan",
+      "invalid": [
+        "agentflow-beta\n  subgraph team\n    a[\"Plan\"]\n  end",
+        "agentflow-beta\n  a[\"Plan\"]\n  b[\"Notes\"]\n  a -.-> b"
+      ]
+    },
+    {
+      "keyword": "ishikawa-beta",
+      "use_for": "cause-and-effect / fishbone root-cause analysis",
+      "rules": [
+        "First line is the problem; categories below it; causes indented under categories. Plain text, no bullets or arrows."
+      ],
+      "example": "ishikawa-beta\n    Late deliveries\n    People\n        Untrained drivers\n    Process\n        Manual route planning\n    Equipment\n        Old trucks\n            Frequent breakdowns"
+    },
+    {
+      "keyword": "cynefin-beta",
+      "use_for": "Cynefin framework: classify situations by domain",
+      "rules": [
+        "Domain blocks only: complex, complicated, clear, chaotic, confusion (not simple or disorder).",
+        "Items are quoted strings, one per line under their domain; unquoted text fails.",
+        "Transitions `complex --> complicated : \"label\"` (label quoted or omitted)."
+      ],
+      "example": "cynefin-beta\n  title Incident handling\n  complex\n    \"Intermittent outage\"\n  complicated\n    \"Slow database queries\"\n  clear\n    \"Expired certificate\"\n  chaotic\n    \"Data center down\"\n  confusion\n    \"Report without details\"\n  chaotic --> complex : \"Stabilized\"",
+      "invalid": [
+        "cynefin-beta\n  complex\n    Investigate root cause",
+        "cynefin-beta\n  simple\n    \"Restart service\""
+      ]
+    },
+    {
+      "keyword": "wardley-beta",
+      "use_for": "Wardley map: value chain by visibility and evolution (strategy)",
+      "rules": [
+        "Coordinates `[visibility, evolution]`, each 0 to 1 (not x, y); `evolve Name 0.8` takes a bare number.",
+        "Quote names with accents, a leading digit, '/' or '.': component \"Café\" [0.5, 0.4] (spaces, hyphens fine).",
+        "`anchor` for users; `A -> B` links; decorators (inertia), (build), (buy), (outsource); note \"text\" [v, e]."
+      ],
+      "example": "wardley-beta\n  title Tea shop\n  anchor Customer [0.95, 0.60]\n  component Cup of tea [0.80, 0.55]\n  component Kettle [0.45, 0.35] (inertia)\n  component \"Power grid\" [0.15, 0.90] (buy)\n  Customer -> Cup of tea\n  Cup of tea -> Kettle\n  Kettle -> \"Power grid\"\n  evolve Kettle 0.70",
+      "invalid": [
+        "wardley-beta\n  component Café [0.5, 0.4]",
+        "wardley-beta\n  component API [50, 60]"
+      ]
+    },
+    {
+      "keyword": "treeView-beta",
+      "use_for": "file/folder tree or similar hierarchy",
+      "rules": [
+        "Nesting by indentation; trailing / marks a folder; `## text` adds a description."
+      ],
+      "example": "treeView-beta\n    my-app/\n        src/\n            main.ts ## entry point\n            utils/\n                format.ts\n        tests/\n        package.json"
+    },
+    {
+      "keyword": "eventmodeling",
+      "use_for": "event modeling: screens, commands, events, read models over time",
+      "rules": [
+        "One frame per line `tf NN type Name`, NN unique; types ui, cmd, evt, rmo (read model), pcr (processor).",
+        "Name is one ASCII token (letters, digits, _, . for namespace): no spaces, hyphens or accents.",
+        "Links are inferred in order; add one with `->> NN`; `rf` instead of `tf` breaks the inferred link."
+      ],
+      "example": "eventmodeling\n  tf 01 ui CartPage\n  tf 02 cmd AddItem { sku: string }\n  tf 03 evt ItemAdded\n  tf 04 rmo CartSummary ->> 03\n  tf 05 ui CheckoutPage\n  tf 06 cmd PlaceOrder\n  tf 07 evt OrderPlaced",
+      "invalid": [
+        "eventmodeling\n  tf 01 ui CartPage\n  tf 01 cmd AddItem",
+        "eventmodeling\n  tf 01 ui Cart Page"
+      ]
+    },
+    {
+      "keyword": "railroad-beta",
+      "use_for": "railroad diagram of a grammar or command syntax",
+      "rules": [
+        "Rules `name = ctor(...) ;` end with `;`; ctors: sequence, choice, optional, zeroOrMore, oneOrMore, terminal(\"x\"), nonterminal(\"x\").",
+        "Strings quoted, no trailing commas, ASCII rule names. EBNF/ABNF/PEG text needs railroad-ebnf-beta / -abnf-beta / -peg-beta."
+      ],
+      "example": "railroad-beta\n  title Signed number\n  number = sequence(\n    optional(choice(terminal(\"+\"), terminal(\"-\"))),\n    oneOrMore(nonterminal(\"digit\")),\n    optional(sequence(terminal(\".\"), oneOrMore(nonterminal(\"digit\"))))\n  ) ;\n  digit = choice(terminal(\"0\"), terminal(\"9\")) ;",
+      "invalid": [
+        "railroad-beta\n  sign = choice(terminal(\"+\"), terminal(\"-\"))",
+        "railroad-beta\n  sign = \"+\" | \"-\" ;"
+      ]
+    }
+  ]
+}

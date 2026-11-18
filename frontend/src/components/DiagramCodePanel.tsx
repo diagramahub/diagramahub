@@ -6,28 +6,44 @@ import { useTheme } from '../contexts/ThemeContext';
 import apiService from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import type { FixDiagramResponse } from '../types/ai';
+import { mermaidSyntaxError } from '../utils/mermaidCheck';
 
 // Compact fix button for the title bar
-function FixButton({ diagramId, errorContext, onFixSuccess, onFixError }: {
+function FixButton({ diagramId, diagramType, errorContext, onFixSuccess, onFixError }: {
   diagramId: string;
+  diagramType: string;
   errorContext: string;
   onFixSuccess: (response: FixDiagramResponse) => void;
   onFixError: (error: string) => void;
 }) {
   const [isFixing, setIsFixing] = useState(false);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const handleFix = async () => {
     setIsFixing(true);
+    const language = i18n.language?.startsWith('en') ? 'en' : 'es';
     try {
-      const response = await apiService.fixDiagram(diagramId, {
-        error_context: errorContext,
-        language: 'es'
-      });
+      let response = await apiService.fixDiagram(diagramId, { error_context: errorContext, language });
+      // The server can only check Mermaid structurally: the real parser runs here. A fix
+      // that still doesn't parse gets one more try with the new error.
+      if (diagramType === 'mermaid') {
+        let syntaxError = await mermaidSyntaxError(response.corrected_code);
+        if (syntaxError) {
+          response = await apiService.fixDiagram(diagramId, {
+            error_context: `${errorContext}\n\nA previous fix still fails with: ${syntaxError}\nThat attempt was:\n${response.corrected_code}`,
+            language,
+          });
+          syntaxError = await mermaidSyntaxError(response.corrected_code);
+        }
+        if (syntaxError) {
+          onFixError(t('editor.fixStillInvalid', { error: syntaxError }));
+          return;
+        }
+      }
       onFixSuccess(response);
     } catch (error: unknown) {
       const detail = apiErrorMessage(error);
-      onFixError(typeof detail === 'string' ? detail : 'Error al corregir el diagrama');
+      onFixError(typeof detail === 'string' ? detail : t('editor.fixFailed'));
     } finally {
       setIsFixing(false);
     }
@@ -165,6 +181,7 @@ export default function DiagramCodePanel({
           {hasError && diagramId && onFixSuccess && onFixError && (
             <FixButton
               diagramId={diagramId}
+              diagramType={diagramType}
               errorContext={errorMessage || 'Syntax error'}
               onFixSuccess={onFixSuccess}
               onFixError={onFixError}
