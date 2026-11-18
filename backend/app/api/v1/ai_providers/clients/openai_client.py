@@ -10,7 +10,7 @@ import httpx
 from typing import AsyncGenerator, Dict, Any, Optional
 
 from ..model_catalog import recommended_model
-from .base import BaseAIClient, provider_error
+from .base import CODE_MAX_TOKENS, BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
     build_chat_system_prompt,
@@ -182,7 +182,9 @@ class OpenAIClient(BaseAIClient):
                     {"role": "user", "content": prompt},
                 ],
                 response_format=None if is_dbml else {"type": "json_object"},
+                max_tokens=CODE_MAX_TOKENS,
             )
+            self.raise_if_truncated()
 
             if is_dbml:
                 fix_result = extract_fix_delimited(response_text, "OpenAI")

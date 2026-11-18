@@ -4,7 +4,8 @@ each endpoint needs.
 
 An endpoint a key may call must match one of ``RULES`` (first match wins);
 anything else (account, security, keys, admin, AI chat, ...) always needs a
-signed-in session. ``write`` includes ``read``.
+signed-in session. ``write`` includes ``read``. An action that exposes a stored
+diagram's code (AI fix, publishing, sharing) also needs read access to diagrams.
 """
 
 import re
@@ -41,36 +42,55 @@ AREA_LEVELS: dict[ApiKeyArea, tuple[AccessLevel, ...]] = {
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 
 Permissions = dict[ApiKeyArea, AccessLevel]
+# Fixed (area, level) requirements on top of a rule's areas.
+Needs = tuple[tuple[ApiKeyArea, AccessLevel], ...]
 
 
 @dataclass(frozen=True)
 class Rule:
     """Endpoints matching ``pattern`` need ``level`` (by HTTP method when None) on ``areas``.
 
-    ``areas`` empty means a key may never call them.
+    ``areas`` empty means a key may never call them. ``plus`` adds fixed
+    requirements on other areas; ``methods`` limits the rule to those methods.
     """
 
     pattern: re.Pattern[str]
     areas: tuple[ApiKeyArea, ...]
     level: Optional[AccessLevel] = None
+    plus: Needs = ()
+    methods: Optional[frozenset[str]] = None
 
 
-def _rule(pattern: str, *areas: ApiKeyArea, level: Optional[AccessLevel] = None) -> Rule:
-    return Rule(re.compile(pattern), tuple(areas), level)
+def _rule(
+    pattern: str,
+    *areas: ApiKeyArea,
+    level: Optional[AccessLevel] = None,
+    plus: Needs = (),
+    methods: Optional[set[str]] = None,
+) -> Rule:
+    return Rule(
+        re.compile(pattern), tuple(areas), level, plus, frozenset(methods) if methods else None
+    )
 
 
 A = ApiKeyArea
+READ_DIAGRAMS: Needs = ((ApiKeyArea.DIAGRAMS, AccessLevel.READ),)
 RULES: tuple[Rule, ...] = (
     # Never with a key: moderation.
     _rule(r"^/community/admin(/|$)"),
     # A fork creates a diagram in the user's project.
     _rule(r"^/community/diagrams/[^/]+/fork$", A.COMMUNITY, A.DIAGRAMS, level=AccessLevel.WRITE),
+    # Publishing makes the diagram's code public (and returns it).
+    _rule(r"^/community/diagrams$", A.COMMUNITY, plus=READ_DIAGRAMS, methods={"POST"}),
     _rule(r"^/community(/|$)", A.COMMUNITY),
     # AI with the user's providers.
     _rule(r"^/diagrams/convert$", A.AI, level=AccessLevel.WRITE),
-    _rule(r"^/diagrams/[^/]+/fix$", A.AI, level=AccessLevel.WRITE),
+    # Fixing returns the stored diagram's code.
+    _rule(r"^/diagrams/[^/]+/fix$", A.AI, level=AccessLevel.WRITE, plus=READ_DIAGRAMS),
     # Rendering doesn't change anything.
     _rule(r"^/diagrams/render$", A.DIAGRAMS, level=AccessLevel.READ),
+    # A new link lets anyone with it read the diagram.
+    _rule(r"^/shared-links$", A.SHARING, plus=READ_DIAGRAMS, methods={"POST"}),
     _rule(r"^/shared-links(/|$)", A.SHARING),
     _rule(r"^/projects/[^/]+/diagrams$", A.DIAGRAMS),
     # Importing creates folders and diagrams.
@@ -80,18 +100,19 @@ RULES: tuple[Rule, ...] = (
 )
 
 
-def required_access(
-    method: str, api_path: str
-) -> Optional[tuple[tuple[ApiKeyArea, ...], AccessLevel]]:
-    """Areas and level an endpoint needs; None when keys can't call it at all."""
+def required_access(method: str, api_path: str) -> Optional[Permissions]:
+    """Level an endpoint needs on each area; None when keys can't call it at all."""
+    method = method.upper()
     for rule in RULES:
+        if rule.methods is not None and method not in rule.methods:
+            continue
         if rule.pattern.match(api_path):
             if not rule.areas:
                 return None
             level = rule.level or (
-                AccessLevel.READ if method.upper() in SAFE_METHODS else AccessLevel.WRITE
+                AccessLevel.READ if method in SAFE_METHODS else AccessLevel.WRITE
             )
-            return rule.areas, level
+            return {**{area: level for area in rule.areas}, **dict(rule.plus)}
     return None
 
 

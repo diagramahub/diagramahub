@@ -96,13 +96,14 @@ Which area and level each path needs is decided by `api_tokens/permissions.py` (
 | `/projects…`, `/folders…` | `projects` |
 | `/projects/{id}/diagrams`, `/diagrams…` | `diagrams` (`POST /diagrams/render`: read) |
 | `/projects/{id}/import` | `projects` and `diagrams` · write |
-| `/diagrams/{id}/fix`, `/diagrams/convert` | `ai` · write |
-| `/shared-links…` | `sharing` |
-| `/community…` | `community` |
+| `/diagrams/{id}/fix` | `ai` · write and `diagrams` · read (returns the code) |
+| `/diagrams/convert` | `ai` · write |
+| `/shared-links…` | `sharing` (`POST /shared-links`: also `diagrams` · read) |
+| `/community…` | `community` (`POST /community/diagrams`, publishing: also `diagrams` · read) |
 | `/community/diagrams/{id}/fork` | `community` and `diagrams` · write |
 | `/community/admin…` and any other path | never with a key |
 
-Without the permission the answer is `403` with `{"error": "api_key_permission", "message": …, "needs": {"<area>": "<level>"}}`; an expired or revoked key gets `401`. Keys created before per-area permissions (global `read`/`write` `scope`) keep working with that level on every area except `ai`.
+Without the permission the answer is `403` with `{"error": "api_key_permission", "message": …, "needs": {"<area>": "<level>", …}}` (only what is missing); an expired or revoked key gets `401`. Keys created before per-area permissions (global `read`/`write` `scope`) keep working with that level on every area except `ai`.
 
 ```bash
 curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects

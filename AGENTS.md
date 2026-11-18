@@ -175,7 +175,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
 | **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
 | **community** | `community/` | Community portal: published diagram snapshots, stars, forks (via DiagramService + UsageLimiter), comments (one reply level), reports (3 hide until an admin reviews), featuring | — |
-| **api_tokens** | `api_tokens/` | API keys (`dh_pat_…`, SHA-256 hash stored; per-area permissions projects/diagrams/sharing/community/ai; `permissions.RULES` maps each path to the area and level it needs — a new route reachable with keys must be added there) | — |
+| **api_tokens** | `api_tokens/` | API keys (`dh_pat_…`, SHA-256 hash stored; per-area permissions projects/diagrams/sharing/community/ai; `permissions.RULES` maps each path to the level it needs per area — a new route reachable with keys must be added there; one that exposes a stored diagram's code also needs `diagrams` read) | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
 

@@ -2077,6 +2077,20 @@ IMPORTANTE: Usa EXACTAMENTE los delimitadores <<<EXPLANATION>>>, <<<CHANGES>>> y
     return prompt
 
 
+# A fix request on code that has no error (e.g. via the API) used to make
+# reasoning models search until the output limit: let them give it back.
+FIX_NO_ERROR_FALLBACK = {
+    "es": (
+        "Si no encuentras ningún error de sintaxis, no sigas buscando: devuelve el código "
+        "original sin cambios y dilo en el resumen de cambios."
+    ),
+    "en": (
+        "If you find no syntax error, don't keep looking: return the original code "
+        "unchanged and say so in the changes summary."
+    ),
+}
+
+
 def build_fix_prompt(
     diagram_code: str, diagram_type: str, error_context: Optional[str] = None, language: str = "es"
 ) -> str:
@@ -2095,11 +2109,13 @@ def build_fix_prompt(
     diagram_type_lower = diagram_type.lower()
 
     if "d2" in diagram_type_lower:
-        return build_d2_fix_prompt(diagram_code, error_context, language)
+        prompt = build_d2_fix_prompt(diagram_code, error_context, language)
     elif "plantuml" in diagram_type_lower or diagram_type_lower == "uml":
-        return build_plantuml_fix_prompt(diagram_code, error_context, language)
+        prompt = build_plantuml_fix_prompt(diagram_code, error_context, language)
     elif "dbml" in diagram_type_lower:
-        return build_dbml_fix_prompt(diagram_code, error_context, language)
+        prompt = build_dbml_fix_prompt(diagram_code, error_context, language)
     else:
         # Por defecto, usar prompt de Mermaid
-        return build_mermaid_fix_prompt(diagram_code, error_context, language)
+        prompt = build_mermaid_fix_prompt(diagram_code, error_context, language)
+    no_error = FIX_NO_ERROR_FALLBACK.get(language, FIX_NO_ERROR_FALLBACK["es"])
+    return f"{prompt}\n\n{no_error}"

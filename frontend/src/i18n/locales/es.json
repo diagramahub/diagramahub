@@ -1838,6 +1838,8 @@
     "permissions": "Permisos",
     "permissionsHint": "Escritura incluye lectura. Las rutas de tu cuenta, tu seguridad, las propias llaves y la administración siempre requieren iniciar sesión.",
     "noAccess": "Dale acceso al menos a un área.",
+    "needsDiagrams": "Para compartir, publicar o corregir con IA, la llave también necesita leer Diagramas.",
+    "grantDiagramsRead": "Dar lectura a Diagramas",
     "presets": {
       "read": "Solo lectura",
       "write": "Lectura y escritura",

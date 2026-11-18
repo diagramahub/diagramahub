@@ -167,16 +167,19 @@ class ApiTokenService:
                 detail="This endpoint doesn't accept API keys; sign in instead",
             )
         permissions = permissions_of(token)
-        areas, level = needed
-        missing = [area for area in areas if not grants(permissions[area], level)]
+        missing = {
+            area: level for area, level in needed.items() if not grants(permissions[area], level)
+        }
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail={
                     "error": "api_key_permission",
-                    "message": f"This API key needs {level.value} access to "
-                    + " and ".join(area.value for area in missing),
-                    "needs": {area.value: level.value for area in missing},
+                    "message": "This API key needs "
+                    + " and ".join(
+                        f"{level.value} access to {area.value}" for area, level in missing.items()
+                    ),
+                    "needs": {area.value: level.value for area, level in missing.items()},
                 },
             )
         if token.last_used_at is None or now - token.last_used_at >= LAST_USED_RESOLUTION:

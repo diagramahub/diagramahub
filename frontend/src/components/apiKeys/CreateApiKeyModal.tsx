@@ -45,6 +45,9 @@ export function CreateApiKeyModal({ isOpen, onClose, onCreated, baseUrl }: Creat
 
   const preset = matchingPreset(permissions);
   const hasAccess = API_KEY_AREAS.some((area) => permissions[area] !== 'none');
+  // Sharing, publishing and AI fixes expose a diagram's code: the server also asks to read diagrams.
+  const needsDiagrams =
+    permissions.diagrams === 'none' && (permissions.sharing === 'write' || permissions.community === 'write' || permissions.ai === 'write');
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,6 +221,14 @@ export function CreateApiKeyModal({ isOpen, onClose, onCreated, baseUrl }: Creat
                 </ul>
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('apiKeys.permissionsHint')}</p>
                 {!hasAccess && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{t('apiKeys.noAccess')}</p>}
+                {needsDiagrams && (
+                  <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                    {t('apiKeys.needsDiagrams')}{' '}
+                    <button type="button" onClick={() => setPermissions((p) => ({ ...p, diagrams: 'read' }))} className="font-medium underline hover:no-underline">
+                      {t('apiKeys.grantDiagramsRead')}
+                    </button>
+                  </p>
+                )}
               </fieldset>
               {error && <p className="text-sm text-red-600 dark:text-red-400" role="alert">{error}</p>}
             </div>

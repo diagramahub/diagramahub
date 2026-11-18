@@ -40,6 +40,11 @@ export function grantedAreas(permissions: ApiKeyPermissions): [ApiKeyArea, Acces
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
+type GrantedLevel = Exclude<AccessLevel, 'none'>;
+
+/** Fixed requirements on other areas (e.g. reading the diagram whose code is exposed). */
+type ExtraNeeds = [ApiKeyArea, GrantedLevel][];
+
 export interface EndpointDoc {
   /** i18n key under apiKeys.endpoints */
   key: string;
@@ -47,16 +52,28 @@ export interface EndpointDoc {
   path: string;
   /** Every area listed needs `level`. */
   areas: ApiKeyArea[];
-  level: Exclude<AccessLevel, 'none'>;
+  level: GrantedLevel;
+  also?: ExtraNeeds;
 }
 
-const e = (key: string, method: HttpMethod, path: string, areas: ApiKeyArea[], level: 'read' | 'write'): EndpointDoc => ({
+/** Exposing a stored diagram's code (AI fix, publishing, sharing) also needs to read diagrams. */
+const READ_DIAGRAMS: ExtraNeeds = [['diagrams', 'read']];
+
+const e = (key: string, method: HttpMethod, path: string, areas: ApiKeyArea[], level: GrantedLevel, also?: ExtraNeeds): EndpointDoc => ({
   key,
   method,
   path,
   areas,
   level,
+  ...(also ? { also } : {}),
 });
+
+/** Every area and level an endpoint or recipe needs (backend: permissions.required_access). */
+export function needsOf(entry: Pick<EndpointDoc, 'areas' | 'level' | 'also'>): [ApiKeyArea, GrantedLevel][] {
+  return [...entry.areas.map((area): [ApiKeyArea, GrantedLevel] => [area, entry.level]), ...(entry.also ?? [])];
+}
+
+const needsText = (entry: Pick<EndpointDoc, 'areas' | 'level' | 'also'>) => needsOf(entry).map(([a, l]) => `\`${a}:${l}\``).join(', ');
 
 /** What a key can call, grouped by area (backend: permissions.RULES). */
 export const API_REFERENCE: EndpointDoc[] = [
@@ -81,19 +98,19 @@ export const API_REFERENCE: EndpointDoc[] = [
   e('deleteDiagram', 'DELETE', '/diagrams/{diagram_id}', ['diagrams'], 'write'),
 
   e('getSharedLink', 'GET', '/shared-links/diagram/{diagram_id}', ['sharing'], 'read'),
-  e('createSharedLink', 'POST', '/shared-links', ['sharing'], 'write'),
+  e('createSharedLink', 'POST', '/shared-links', ['sharing'], 'write', READ_DIAGRAMS),
   e('updateSharedLink', 'PUT', '/shared-links/{link_id}', ['sharing'], 'write'),
   e('deleteSharedLink', 'DELETE', '/shared-links/{link_id}', ['sharing'], 'write'),
 
   e('myPublished', 'GET', '/community/my-published', ['community'], 'read'),
   e('publicationOfDiagram', 'GET', '/community/by-diagram/{diagram_id}', ['community'], 'read'),
   e('browseCommunity', 'GET', '/community/diagrams', ['community'], 'read'),
-  e('publish', 'POST', '/community/diagrams', ['community'], 'write'),
+  e('publish', 'POST', '/community/diagrams', ['community'], 'write', READ_DIAGRAMS),
   e('updatePublication', 'PUT', '/community/diagrams/{publication_id}', ['community'], 'write'),
   e('unpublish', 'DELETE', '/community/diagrams/{publication_id}', ['community'], 'write'),
   e('fork', 'POST', '/community/diagrams/{publication_id}/fork', ['community', 'diagrams'], 'write'),
 
-  e('fixDiagram', 'POST', '/diagrams/{diagram_id}/fix', ['ai'], 'write'),
+  e('fixDiagram', 'POST', '/diagrams/{diagram_id}/fix', ['ai'], 'write', READ_DIAGRAMS),
   e('convertDiagram', 'POST', '/diagrams/convert', ['ai'], 'write'),
 ];
 
@@ -105,6 +122,7 @@ export interface Recipe {
   body?: Record<string, unknown>;
   areas: ApiKeyArea[];
   level: 'read' | 'write';
+  also?: ExtraNeeds;
 }
 
 /** Everyday tasks shown as copy-paste examples. */
@@ -126,6 +144,7 @@ export const RECIPES: Recipe[] = [
     body: { diagram_id: 'DIAGRAM_ID', category: 'architecture', tags: ['api'], allow_comments: true },
     areas: ['community'],
     level: 'write',
+    also: READ_DIAGRAMS,
   },
   { key: 'unpublish', method: 'DELETE', path: '/community/diagrams/PUBLICATION_ID', areas: ['community'], level: 'write' },
   {
@@ -135,6 +154,7 @@ export const RECIPES: Recipe[] = [
     body: { diagram_id: 'DIAGRAM_ID', access_type: 'public', expiration_days: 30 },
     areas: ['sharing'],
     level: 'write',
+    also: READ_DIAGRAMS,
   },
   { key: 'unshare', method: 'DELETE', path: '/shared-links/LINK_ID', areas: ['sharing'], level: 'write' },
 ];
@@ -219,7 +239,7 @@ export function agentContext(t: Translate, baseUrl: string): string {
     lines.push(
       `### ${t(`apiKeys.recipes.${recipe.key}.title`)}`,
       '',
-      `${t(`apiKeys.recipes.${recipe.key}.description`)} (${d('needs')}: ${recipe.areas.map((a) => `\`${a}:${recipe.level}\``).join(', ')})`,
+      `${t(`apiKeys.recipes.${recipe.key}.description`)} (${d('needs')}: ${needsText(recipe)})`,
       '',
       '```bash',
       snippet(recipe, baseUrl, 'curl'),
@@ -231,7 +251,7 @@ export function agentContext(t: Translate, baseUrl: string): string {
   for (const area of API_KEY_AREAS) {
     lines.push(`### ${t(`apiKeys.areas.${area}.name`)} (\`${area}\`)`, '');
     for (const ep of API_REFERENCE.filter((e) => e.areas[0] === area)) {
-      lines.push(`- \`${ep.method} ${ep.path}\`: ${t(`apiKeys.endpoints.${ep.key}`)} (${ep.areas.map((a) => `\`${a}:${ep.level}\``).join(', ')})`);
+      lines.push(`- \`${ep.method} ${ep.path}\`: ${t(`apiKeys.endpoints.${ep.key}`)} (${needsText(ep)})`);
     }
     lines.push('');
   }

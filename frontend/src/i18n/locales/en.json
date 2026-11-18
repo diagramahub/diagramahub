@@ -1838,6 +1838,8 @@
     "permissions": "Permissions",
     "permissionsHint": "Write includes read. Your account, security, the keys themselves and administration always need you to sign in.",
     "noAccess": "Give the key access to at least one area.",
+    "needsDiagrams": "To share, publish or fix with AI, the key also needs to read Diagrams.",
+    "grantDiagramsRead": "Give read access to Diagrams",
     "presets": {
       "read": "Read only",
       "write": "Read and write",

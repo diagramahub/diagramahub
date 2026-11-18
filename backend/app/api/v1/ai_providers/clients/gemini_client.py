@@ -11,7 +11,7 @@ from google.genai import types
 from typing import AsyncGenerator, Dict, Any, Optional
 
 from ..model_catalog import recommended_model
-from .base import BaseAIClient, provider_error
+from .base import CODE_MAX_TOKENS, BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
     build_chat_system_prompt,
@@ -146,7 +146,10 @@ class GeminiClient(BaseAIClient):
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
-            response_text = await self._generate(prompt, temperature=0.3)
+            response_text = await self._generate(
+                prompt, temperature=0.3, max_tokens=CODE_MAX_TOKENS
+            )
+            self.raise_if_truncated()
 
             if diagram_type.lower() == "dbml":
                 fix_result = extract_fix_delimited(response_text, "Gemini")

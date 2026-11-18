@@ -29,6 +29,7 @@ Each area has its own level: **None**, **Read** or **Write** (write includes rea
 
 - AI is off in the presets: turn it on only if the key needs it.
 - **Importing** a project needs write on Projects and Diagrams, and **forking** needs write on Community and Diagrams.
+- **Sharing** (creating a link), **making public** and **fixing with AI** also need read on Diagrams, because they expose the diagram's code. Creating the key warns you when it's missing.
 - No key reaches your account, your security (password, MFA), your AI settings, the AI chat, the keys themselves or administration: those always need you to sign in.
 
 ## Use it

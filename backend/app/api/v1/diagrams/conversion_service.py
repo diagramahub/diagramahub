@@ -9,7 +9,7 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 
-from app.api.v1.ai_providers.clients.base import BaseAIClient
+from app.api.v1.ai_providers.clients.base import CODE_MAX_TOKENS, BaseAIClient
 from app.api.v1.ai_providers.clients.factory import AIClientFactory
 from app.api.v1.ai_providers.interfaces import IAIProviderRepository
 from app.api.v1.ai_providers.prompts import (
@@ -288,4 +288,7 @@ class DiagramConversionService:
         Uses the public ``complete()`` method of the BaseAIClient abstraction;
         each client maps it to its provider-specific call internally.
         """
-        return await client.complete(CONVERSION_SYSTEM_PROMPT, prompt)
+        client.last_truncated = False
+        reply = await client.complete(CONVERSION_SYSTEM_PROMPT, prompt, max_tokens=CODE_MAX_TOKENS)
+        client.raise_if_truncated()
+        return reply

@@ -96,13 +96,14 @@ Qué área y nivel exige cada ruta lo decide `api_tokens/permissions.py` (`RULES
 | `/projects…`, `/folders…` | `projects` |
 | `/projects/{id}/diagrams`, `/diagrams…` | `diagrams` (`POST /diagrams/render`: lectura) |
 | `/projects/{id}/import` | `projects` y `diagrams` · escritura |
-| `/diagrams/{id}/fix`, `/diagrams/convert` | `ai` · escritura |
-| `/shared-links…` | `sharing` |
-| `/community…` | `community` |
+| `/diagrams/{id}/fix` | `ai` · escritura y `diagrams` · lectura (devuelve el código) |
+| `/diagrams/convert` | `ai` · escritura |
+| `/shared-links…` | `sharing` (`POST /shared-links`: además `diagrams` · lectura) |
+| `/community…` | `community` (`POST /community/diagrams`, publicar: además `diagrams` · lectura) |
 | `/community/diagrams/{id}/fork` | `community` y `diagrams` · escritura |
 | `/community/admin…` y cualquier otra ruta | nunca con una llave |
 
-Sin el permiso necesario la respuesta es `403` con `{"error": "api_key_permission", "message": …, "needs": {"<área>": "<nivel>"}}`; una llave vencida o revocada recibe `401`. Las llaves anteriores a los permisos por área (`scope` global `read`/`write`) siguen funcionando con ese nivel en todas las áreas salvo `ai`.
+Sin el permiso necesario la respuesta es `403` con `{"error": "api_key_permission", "message": …, "needs": {"<área>": "<nivel>", …}}` (solo lo que falta); una llave vencida o revocada recibe `401`. Las llaves anteriores a los permisos por área (`scope` global `read`/`write`) siguen funcionando con ese nivel en todas las áreas salvo `ai`.
 
 ```bash
 curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects

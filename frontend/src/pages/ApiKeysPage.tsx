@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import apiService from '../services/api';
 import ConfirmModal from '../components/ConfirmModal';
 import { CreateApiKeyModal } from '../components/apiKeys/CreateApiKeyModal';
-import { API_KEY_AREAS, API_REFERENCE, RECIPES, agentContext, grantedAreas, levelLabel, snippet, type HttpMethod, type SnippetLanguage } from '../utils/apiKeys';
+import { API_KEY_AREAS, API_REFERENCE, RECIPES, agentContext, grantedAreas, levelLabel, needsOf, snippet, type HttpMethod, type SnippetLanguage } from '../utils/apiKeys';
 import { API_URL } from '../utils/runtimeConfig';
 import { dateLocale } from '../utils/locale';
 import { downloadBlob } from '../utils/download';
@@ -280,7 +280,7 @@ export default function ApiKeysPage() {
                     <MethodBadge method={recipe.method} />
                     <code className="font-mono text-xs text-gray-900 dark:text-gray-100 break-all">{recipe.path}</code>
                     <span className="ml-auto flex flex-wrap gap-1">
-                      {recipe.areas.map((area) => <PermissionChip key={area} area={area} level={recipe.level} />)}
+                      {needsOf(recipe).map(([area, level]) => <PermissionChip key={area} area={area} level={level} />)}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{t(`apiKeys.recipes.${recipe.key}.description`)}</p>
@@ -324,7 +324,7 @@ export default function ApiKeysPage() {
                           </span>
                           <span className="flex-1 text-gray-600 dark:text-gray-400">{t(`apiKeys.endpoints.${ep.key}`)}</span>
                           <span className="flex gap-1 flex-shrink-0">
-                            {ep.areas.map((a) => <PermissionChip key={a} area={a} level={ep.level} />)}
+                            {needsOf(ep).map(([a, level]) => <PermissionChip key={a} area={a} level={level} />)}
                           </span>
                         </li>
                       ))}

@@ -14,7 +14,8 @@ from ..prompts import (
 )
 
 # Diagram code can be long, and reasoning models spend part of the output
-# budget thinking: generating/improving gets a larger budget than chat.
+# budget thinking: code requests (generate, improve, fix, convert) get a larger
+# budget than chat.
 CODE_MAX_TOKENS = 8192
 # Code must follow a strict syntax: low temperature (ignored by models that
 # don't accept it).
@@ -157,6 +158,20 @@ class BaseAIClient(ABC):
         # Set by each provider's request method: True when the last reply was
         # cut at the output-token limit (finish/stop reason "length").
         self.last_truncated = False
+
+    def raise_if_truncated(self) -> None:
+        """Raise if the last reply stopped at the output limit (its code is incomplete).
+
+        Reasoning models can spend the whole budget thinking and answer nothing.
+
+        Raises:
+            TruncatedResponseError: the last reply was cut off
+        """
+        if self.last_truncated:
+            raise TruncatedResponseError(
+                "The reply was cut off at the model's output limit "
+                "(reasoning models can spend it thinking)"
+            )
 
     # Providers whose API this app calls with image input (vision).
     supports_images: bool = False

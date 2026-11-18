@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { API_KEY_AREAS, API_REFERENCE, AREA_LEVELS, RECIPES, agentContext, grantedAreas, matchingPreset, presetPermissions, snippet } from '../apiKeys';
+import { API_KEY_AREAS, API_REFERENCE, AREA_LEVELS, RECIPES, agentContext, grantedAreas, matchingPreset, needsOf, presetPermissions, snippet } from '../apiKeys';
 
 describe('API key permissions', () => {
   it('presets leave AI off', () => {
@@ -17,12 +17,19 @@ describe('API key permissions', () => {
 
   it('documents only levels each area can have', () => {
     for (const entry of [...API_REFERENCE, ...RECIPES]) {
-      for (const area of entry.areas) {
+      for (const [area, level] of needsOf(entry)) {
         expect(API_KEY_AREAS).toContain(area);
-        expect(AREA_LEVELS[area]).toContain(entry.level);
+        expect(AREA_LEVELS[area]).toContain(level);
       }
       expect(entry.level).toBe(entry.method === 'GET' ? 'read' : 'write');
     }
+  });
+
+  it('asks to read diagrams wherever a diagram\'s code is exposed', () => {
+    for (const key of ['fixDiagram', 'publish', 'createSharedLink']) {
+      expect(needsOf(API_REFERENCE.find((ep) => ep.key === key)!)).toContainEqual(['diagrams', 'read']);
+    }
+    expect(needsOf(API_REFERENCE.find((ep) => ep.key === 'convertDiagram')!)).toEqual([['ai', 'write']]);
   });
 });
 

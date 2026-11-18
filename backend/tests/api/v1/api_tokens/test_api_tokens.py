@@ -65,31 +65,40 @@ async def _diagram(client: AsyncClient) -> tuple[str, str]:
 # --------------------------------------------------------------------------- #
 
 
+P, D, S, C, AI = (
+    ApiKeyArea.PROJECTS,
+    ApiKeyArea.DIAGRAMS,
+    ApiKeyArea.SHARING,
+    ApiKeyArea.COMMUNITY,
+    ApiKeyArea.AI,
+)
+R, W = AccessLevel.READ, AccessLevel.WRITE
+
+
 @pytest.mark.parametrize(
     "method, path, expected",
     [
-        ("GET", "/projects", ((ApiKeyArea.PROJECTS,), AccessLevel.READ)),
-        ("POST", "/projects/p1/folders", ((ApiKeyArea.PROJECTS,), AccessLevel.WRITE)),
-        ("PUT", "/folders/f1", ((ApiKeyArea.PROJECTS,), AccessLevel.WRITE)),
-        ("POST", "/projects/p1/diagrams", ((ApiKeyArea.DIAGRAMS,), AccessLevel.WRITE)),
-        ("GET", "/projects/p1/diagrams", ((ApiKeyArea.DIAGRAMS,), AccessLevel.READ)),
-        (
-            "POST",
-            "/projects/p1/import",
-            ((ApiKeyArea.PROJECTS, ApiKeyArea.DIAGRAMS), AccessLevel.WRITE),
-        ),
-        ("PUT", "/diagrams/d1", ((ApiKeyArea.DIAGRAMS,), AccessLevel.WRITE)),
-        ("POST", "/diagrams/render", ((ApiKeyArea.DIAGRAMS,), AccessLevel.READ)),
-        ("POST", "/diagrams/d1/fix", ((ApiKeyArea.AI,), AccessLevel.WRITE)),
-        ("POST", "/diagrams/convert", ((ApiKeyArea.AI,), AccessLevel.WRITE)),
-        ("DELETE", "/shared-links/l1", ((ApiKeyArea.SHARING,), AccessLevel.WRITE)),
-        ("GET", "/community/my-published", ((ApiKeyArea.COMMUNITY,), AccessLevel.READ)),
-        ("POST", "/community/diagrams", ((ApiKeyArea.COMMUNITY,), AccessLevel.WRITE)),
-        (
-            "POST",
-            "/community/diagrams/x/fork",
-            ((ApiKeyArea.COMMUNITY, ApiKeyArea.DIAGRAMS), AccessLevel.WRITE),
-        ),
+        ("GET", "/projects", {P: R}),
+        ("POST", "/projects/p1/folders", {P: W}),
+        ("PUT", "/folders/f1", {P: W}),
+        ("POST", "/projects/p1/diagrams", {D: W}),
+        ("GET", "/projects/p1/diagrams", {D: R}),
+        ("POST", "/projects/p1/import", {P: W, D: W}),
+        ("PUT", "/diagrams/d1", {D: W}),
+        ("POST", "/diagrams/render", {D: R}),
+        # Fixing returns the diagram's code: it also needs to read diagrams.
+        ("POST", "/diagrams/d1/fix", {AI: W, D: R}),
+        ("POST", "/diagrams/convert", {AI: W}),
+        # A new link exposes the diagram; changing or revoking one doesn't.
+        ("POST", "/shared-links", {S: W, D: R}),
+        ("GET", "/shared-links/diagram/d1", {S: R}),
+        ("DELETE", "/shared-links/l1", {S: W}),
+        ("GET", "/community/my-published", {C: R}),
+        ("GET", "/community/diagrams", {C: R}),
+        # Publishing makes the code public.
+        ("POST", "/community/diagrams", {C: W, D: R}),
+        ("PUT", "/community/diagrams/x", {C: W}),
+        ("POST", "/community/diagrams/x/fork", {C: W, D: W}),
         ("PUT", "/community/admin/diagrams/x", None),
         ("GET", "/users/me", None),
         ("GET", "/api-tokens", None),
@@ -178,7 +187,8 @@ async def test_each_area_is_independent(authenticated_client: AsyncClient) -> No
 
 async def test_sharing_access_shares_and_unshares(authenticated_client: AsyncClient) -> None:
     _, diagram_id = await _diagram(authenticated_client)
-    token = (await _create_token(authenticated_client, {"sharing": "write"}))["token"]
+    perms = {"sharing": "write", "diagrams": "read"}
+    token = (await _create_token(authenticated_client, perms))["token"]
 
     async with KeyClient(authenticated_client, token) as key:
         created = await key.request("POST", "/shared-links", json={"diagram_id": diagram_id})
@@ -195,7 +205,8 @@ async def test_community_access_publishes_and_unpublishes(
 ) -> None:
     _, diagram_id = await _diagram(authenticated_client)
     reader = (await _create_token(authenticated_client, {"community": "read"}))["token"]
-    writer = (await _create_token(authenticated_client, {"community": "write"}))["token"]
+    perms = {"community": "write", "diagrams": "read"}
+    writer = (await _create_token(authenticated_client, perms))["token"]
     body = {"diagram_id": diagram_id, "category": "architecture", "tags": ["ci"]}
 
     async with KeyClient(authenticated_client, reader) as key:
@@ -247,6 +258,29 @@ async def test_ai_needs_its_own_permission(authenticated_client: AsyncClient) ->
 
     assert response.status_code == 403
     assert response.json()["detail"]["needs"] == {"ai": "write"}
+
+
+async def test_exposing_a_diagrams_code_needs_to_read_diagrams(
+    authenticated_client: AsyncClient,
+) -> None:
+    """AI fix, publishing and sharing hand out the code: no way around diagrams:read."""
+    _, diagram_id = await _diagram(authenticated_client)
+    no_diagrams = {**WRITE_ALL, "ai": "write", "diagrams": "none"}
+    token = (await _create_token(authenticated_client, no_diagrams))["token"]
+
+    async with KeyClient(authenticated_client, token) as key:
+        fix = await key.request("POST", f"/diagrams/{diagram_id}/fix", json={"language": "es"})
+        publish = await key.request(
+            "POST", "/community/diagrams", json={"diagram_id": diagram_id, "category": "uml"}
+        )
+        share = await key.request("POST", "/shared-links", json={"diagram_id": diagram_id})
+        browse = await key.request("GET", "/community/diagrams")
+
+    for denied in (fix, publish, share):
+        assert denied.status_code == 403
+        assert denied.json()["detail"]["needs"] == {"diagrams": "read"}
+    assert "read access to diagrams" in fix.json()["detail"]["message"]
+    assert browse.status_code == 200
 
 
 @pytest.mark.parametrize(
