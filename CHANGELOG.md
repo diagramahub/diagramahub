@@ -5,7 +5,7 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.9.0] - 2026-11-15
+## [0.9.0] - 2026-11-18
 
 ### Added
 - **Community portal** (`community` module, sidebar → Community): publish one of your text diagrams from a two-pane dialog (the diagram's description in a Markdown editor; category, up to 5 tags as chips, comments switch; a publication always stays in sync with its diagram's title, code and description; everything published is public under CC BY 4.0 and can be forked), a **Public** marker on published diagrams in the folder explorer, next to the editor's title and in the dashboard's recent diagrams (`GET /community/my-published`), browse (explore, featured, my stars, my publications; search, type, category; trending, stars, forks, newest), star, fork into your project (plan limit applies; attribution in the fork's description; every fork is recorded, and a published fork links back to its original), public comments with one level of replies, reports (3 hide the content until an admin reviews it) and admin moderation (feature, hide, restore, delete). Browsing, publication pages and comments are public (no sign-in needed; `COMMUNITY_PUBLIC=False` closes them): actions that save open a sign-up / sign-in prompt and bring the visitor back afterwards (also through MFA, OAuth and onboarding). Replaces the "coming soon" dialog.
