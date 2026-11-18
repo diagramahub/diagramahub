@@ -394,7 +394,12 @@
     "aiUsage": "AI Engine Usage",
     "totalAiMessages": "total AI messages",
     "noAiUsage": "No AI usage recorded",
-    "recentDiagrams": "Recently updated diagrams"
+    "recentDiagrams": "Recently updated diagrams",
+    "openProjects": "See all projects",
+    "openLastDiagram": "Open \"{{title}}\"",
+    "openSubscription": "See your subscription",
+    "projectsOfLimit": "of {{limit}} projects",
+    "diagramsOfLimit": "of {{limit}} diagrams"
   },
   "project": {
     "createTitle": "Create new project",
@@ -1320,11 +1325,7 @@
   "about": {
     "title": "About DiagramaHub",
     "intro": "An open-source, self-hostable platform for creating, organizing, and sharing diagrams from text.",
-    "whatIsTitle": "Diagrams as code",
     "whatIsDescription": "Create diagrams with Mermaid, PlantUML, D2, and DBML, keep code as the source of truth, and export it whenever you need it.",
-    "openSourceTitle": "Open and self-hostable",
-    "openSourceDescription": "DiagramaHub is built for teams and developers looking for a modern, private experience without vendor lock-in.",
-    "exploreRepository": "Explore the repository",
     "currentVersion": "Version {{version}}",
     "viewReleases": "View releases",
     "highlightsTitle": "Built for your workflow",
@@ -1346,7 +1347,36 @@
     "connectDescription": "Open source, community, and support.",
     "repository": "GitHub repository",
     "xAccount": "X account",
-    "contact": "Contact email"
+    "contact": "Contact email",
+    "star": {
+      "kicker": "Support the project",
+      "count_one": "{{count}} star on GitHub",
+      "count_other": "{{count}} stars on GitHub",
+      "titleFirst": "Be one of the first to star it",
+      "titleNoCount": "Support it with a star on GitHub",
+      "soFar_one": "{{count}} star so far",
+      "soFar_other": "{{count}} stars so far",
+      "cta": "Star it on GitHub",
+      "why": "It's free, takes two seconds and helps more teams find DiagramaHub.",
+      "reasonsTitle": "Your star makes a difference",
+      "reasons": {
+        "discover": {
+          "title": "More teams find it",
+          "description": "GitHub and search engines show projects with more stars first."
+        },
+        "trust": {
+          "title": "Confidence to adopt it",
+          "description": "Stars are the first thing people check when they evaluate an open-source tool."
+        },
+        "momentum": {
+          "title": "Momentum to keep going",
+          "description": "Every star tells the team it's worth improving further."
+        }
+      },
+      "howTitle": "How?",
+      "howSteps": "Open the repository, sign in to GitHub and press \"Star\" at the top right.",
+      "openRepository": "Open the repository"
+    }
   },
   "conversion": {
     "sketchToMermaid": "Sketch → Mermaid",

@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pymongo import AsyncMongoClient
 
 from app.api.v1.users.routes import router as users_router
+from app.api.v1.about.routes import router as about_router
 from app.api.v1.users.schemas import UserInDB
 from app.api.v1.projects.routes import router as projects_router
 from app.api.v1.projects.schemas import ProjectInDB
@@ -302,6 +303,7 @@ app.include_router(mfa_router, prefix=settings.API_V1_PREFIX, tags=["MFA"])
 app.include_router(oauth_router, prefix=settings.API_V1_PREFIX, tags=["OAuth"])
 app.include_router(api_tokens_router, prefix=settings.API_V1_PREFIX)
 app.include_router(community_router, prefix=settings.API_V1_PREFIX)
+app.include_router(about_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

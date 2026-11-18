@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     # (e.g. a private company instance). Anything that saves still needs sign-in.
     COMMUNITY_PUBLIC: bool = True
 
+    # About page: the open-source repository whose GitHub stars and forks it shows
+    # (asked by the server, cached for an hour). False hides them (no outbound call).
+    GITHUB_REPOSITORY: str = "diagramahub/diagramahub"
+    GITHUB_STATS_ENABLED: bool = True
+
     # MongoDB
     MONGO_URI: str = "mongodb://mongodb:27017"
     DATABASE_NAME: str = "diagramahub"

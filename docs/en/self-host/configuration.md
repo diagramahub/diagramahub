@@ -94,6 +94,8 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 | Variable | Default | What for |
 |---|---|---|
 | `COMMUNITY_PUBLIC` | `True` | Anyone, without signing in, can browse the [Community](../guide/community.md), open its diagrams and read the comments. With `False` the whole Community needs sign-in (for example, an internal company instance). Publishing, starring, commenting, forking and reporting always need an account. |
+| `GITHUB_STATS_ENABLED` | `True` | The **About** page shows the repository's GitHub stars and forks. The server asks GitHub (not the browser) and keeps them for an hour. With `False` no call is made to GitHub and the page only invites people to star it. |
+| `GITHUB_REPOSITORY` | `diagramahub/diagramahub` | Repository (`owner/name`) whose stars **About** shows. |
 
 ### Monitoring (optional)
 

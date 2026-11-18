@@ -169,6 +169,15 @@ export interface ProjectImportDiagramPreview {
   warnings: string[];
 }
 
+export interface RepositoryStats {
+  /** False when the server can't reach GitHub or the stats are turned off. */
+  available: boolean;
+  repository: string;
+  url: string;
+  stars: number | null;
+  forks: number | null;
+}
+
 export interface ProjectImportPreview {
   diagram_count: number;
   folder_count: number;
@@ -599,6 +608,12 @@ class ApiService {
   // Subscriptions
   async getMySubscription(): Promise<Subscription> {
     const response = await this.api.get<Subscription>('/api/v1/subscriptions/me');
+    return response.data;
+  }
+
+  /** GitHub stars and forks of the open-source repository (asked by the server, cached). */
+  async getRepositoryStats(): Promise<RepositoryStats> {
+    const response = await this.api.get<RepositoryStats>('/api/v1/about/repository');
     return response.data;
   }
 
