@@ -148,7 +148,7 @@ export default function ExportProjectModal({
         status === 429
           ? seconds ? t('projectExport.tooManyRetry', { seconds }) : t('projectExport.tooMany')
           : t('projectExport.error'),
-      )
+      );
     } finally {
       setExporting(false);
       setPdfProgress(null);

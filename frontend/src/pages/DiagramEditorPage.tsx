@@ -3593,23 +3593,12 @@ export default function DiagramEditorPage() {
             {/* Separator */}
             <div className="h-5 w-px bg-gray-300 dark:bg-gray-700 mx-1 hidden md:block" />
 
-            {/* Fullscreen toggle */}
-            <Tooltip
-              content={
-                isFullscreen
-                  ? t("editor.exitFullscreen")
-                  : t("editor.fullscreen")
-              }
-              position="bottom"
-            >
+            {/* Fullscreen: this toolbar only shows outside it (the exit button lives in the full-screen view). */}
+            <Tooltip content={t("editor.fullscreen")} position="bottom">
               <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
+                onClick={() => setIsFullscreen(true)}
                 className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
-                aria-label={
-                  isFullscreen
-                    ? t("editor.exitFullscreen")
-                    : t("editor.fullscreen")
-                }
+                aria-label={t("editor.fullscreen")}
               >
                 <svg
                   className="w-4 h-4"
@@ -3617,29 +3606,18 @@ export default function DiagramEditorPage() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  {isFullscreen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </>
-                  )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </button>
             </Tooltip>
