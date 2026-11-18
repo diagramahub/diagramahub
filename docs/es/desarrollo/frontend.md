@@ -97,8 +97,8 @@ flowchart TD
 La referencia obligatoria es [`DESIGN.md`](https://github.com/diagramahub/diagramahub/blob/main/DESIGN.md). Lo esencial:
 
 - **Sin librerías de UI ni de íconos**: solo TailwindCSS y componentes propios; íconos SVG inline estilo Heroicons.
-- **Identidad morada**: `bg-purple-600` / `hover:bg-purple-700`; botón principal `.btn-glass`. Peligro en `red-600`, éxito en `green-600`.
+- **Identidad morada plana** (0.9): sin degradados ni resplandores. Clases de componente en `index.css`: `btn` + `btn-primary` / `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-destructive` (`btn-sm` en filas), `input`, `card`, `badge`, `page-title`; `<BrandLogo />` para el logo. Tipografía Inter, empaquetada. Peligro en `red-600`, éxito en `green-600`.
 - **Modo oscuro en todo**: `darkMode: 'class'` y variantes `dark:` en cada color.
 - **Sin colores en `style`**: solo clases de Tailwind; CSS propio únicamente en `index.css` bajo `@layer components`.
-- **Accesibilidad mínima**: elementos `<button>`/`<a>` semánticos, `aria-label` en controles sin texto, foco visible `focus:ring-2 focus:ring-purple-500`, contraste AA.
+- **Accesibilidad mínima**: elementos `<button>`/`<a>` semánticos, `aria-label` en controles sin texto, foco visible (incluido en `btn`/`input`), contraste AA.
 - Páginas nuevas en `pages/` + ruta en `App.tsx`; UI reutilizable en `components/`.

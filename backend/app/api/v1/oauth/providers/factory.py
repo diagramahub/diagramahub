@@ -1,6 +1,7 @@
 """
 Factory for creating OAuth provider instances from vendor configuration.
 """
+
 from ..interfaces import IOAuthProvider
 
 
@@ -36,15 +37,12 @@ class OAuthProviderFactory:
         if not provider_class:
             supported = ", ".join(cls._providers.keys())
             raise ValueError(
-                f"Unsupported OAuth provider: '{vendor_type}'. "
-                f"Supported: {supported}"
+                f"Unsupported OAuth provider: '{vendor_type}'. " f"Supported: {supported}"
             )
         return provider_class(**config)
 
     @classmethod
-    def register(
-        cls, vendor_type: str, provider_class: type[IOAuthProvider]
-    ) -> None:
+    def register(cls, vendor_type: str, provider_class: type[IOAuthProvider]) -> None:
         """Register a new provider adapter. Used for extensibility."""
         cls._providers[vendor_type] = provider_class
 

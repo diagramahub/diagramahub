@@ -19,7 +19,7 @@ import time
 from types import SimpleNamespace
 
 from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 sys.path.insert(0, "/tmp")  # generate.py is copied next to this script
 from generate import CASES, KROKI_TYPES, kroki_validate  # noqa: E402
@@ -38,9 +38,10 @@ STARTERS = {
 
 
 class MemorySessions:
-    def __init__(self):
+    def __init__(self, user_id):
+        # The service checks the session belongs to the user.
         self.session = SimpleNamespace(
-            id="s1", status="active", summary=None, title=None, user_id="u", diagram_id="d"
+            id="s1", status="active", summary=None, title=None, user_id=user_id, diagram_id="d"
         )
 
     async def get_session_by_id(self, _sid):
@@ -74,7 +75,7 @@ class MemoryMessages:
 
 async def run_case(user_id, provider, model, diagram_type, index, description, sem):
     async with sem:
-        service = ChatSessionService(MemorySessions(), MemoryMessages(), AIProviderService(AIProviderRepository()))
+        service = ChatSessionService(MemorySessions(user_id), MemoryMessages(), AIProviderService(AIProviderRepository()))
         started = time.time()
         result = {"model": model, "type": diagram_type, "case": index}
         events = []
@@ -117,7 +118,7 @@ async def run_case(user_id, provider, model, diagram_type, index, description, s
 
 async def main():
     email, label, targets = sys.argv[1], sys.argv[2], sys.argv[3:]
-    db = AsyncIOMotorClient(os.environ["MONGO_URI"])[os.environ["DATABASE_NAME"]]
+    db = AsyncMongoClient(os.environ["MONGO_URI"])[os.environ["DATABASE_NAME"]]
     await init_beanie(database=db, document_models=[UserAISettingsInDB])
     user_id = str((await db.users.find_one({"email": email}))["_id"])
     sem = asyncio.Semaphore(4)

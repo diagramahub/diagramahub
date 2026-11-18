@@ -69,9 +69,9 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-6xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {t('editor.diffView.title')}
           </h2>
@@ -104,8 +104,8 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
                   {t('editor.lineCount', { count: originalLines.length })}
                 </span>
               </div>
-              <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm">
-                <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 border-b border-gray-300 dark:border-gray-600">
+              <div className="bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-gray-100 dark:bg-gray-900 px-3 py-1.5 border-b border-gray-300 dark:border-gray-700">
                   <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">original.{fileExtension}</span>
                 </div>
                 <pre className="overflow-x-auto">
@@ -118,10 +118,10 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
                             ? 'bg-red-50 dark:bg-red-900/20'
                             : line.type === 'unchanged'
                             ? ''
-                            : 'bg-gray-50 dark:bg-gray-800/50'
+                            : 'bg-gray-50 dark:bg-gray-900/50'
                         }`}
                       >
-                        <span className="inline-block w-12 flex-shrink-0 text-right pr-3 py-1 text-gray-400 dark:text-gray-500 select-none border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                        <span className="inline-block w-12 flex-shrink-0 text-right pr-3 py-1 text-gray-400 dark:text-gray-500 select-none border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
                           {line.original ? idx + 1 : ''}
                         </span>
                         <span className={`inline-block w-6 flex-shrink-0 text-center py-1 select-none ${
@@ -157,8 +157,8 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
                   {t('editor.lineCount', { count: correctedLines.length })}
                 </span>
               </div>
-              <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm">
-                <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 border-b border-gray-300 dark:border-gray-600">
+              <div className="bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+                <div className="bg-gray-100 dark:bg-gray-900 px-3 py-1.5 border-b border-gray-300 dark:border-gray-700">
                   <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">corrected.{fileExtension}</span>
                 </div>
                 <pre className="overflow-x-auto">
@@ -171,10 +171,10 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
                             ? 'bg-green-50 dark:bg-green-900/20'
                             : line.type === 'unchanged'
                             ? ''
-                            : 'bg-gray-50 dark:bg-gray-800/50'
+                            : 'bg-gray-50 dark:bg-gray-900/50'
                         }`}
                       >
-                        <span className="inline-block w-12 flex-shrink-0 text-right pr-3 py-1 text-gray-400 dark:text-gray-500 select-none border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                        <span className="inline-block w-12 flex-shrink-0 text-right pr-3 py-1 text-gray-400 dark:text-gray-500 select-none border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
                           {line.corrected ? idx + 1 : ''}
                         </span>
                         <span className={`inline-block w-6 flex-shrink-0 text-center py-1 select-none ${
@@ -203,16 +203,16 @@ export const DiagramDiffView: React.FC<DiagramDiffViewProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200 font-medium text-sm"
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 font-medium text-sm"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={onApply}
-            className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+            className="btn btn-primary"
           >
             {t('editor.diffView.apply')}
           </button>

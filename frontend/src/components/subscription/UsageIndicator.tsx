@@ -44,7 +44,7 @@ export default function UsageIndicator() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <div className="flex justify-center items-center py-4">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
         </div>
@@ -54,7 +54,7 @@ export default function UsageIndicator() {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
@@ -75,9 +75,9 @@ export default function UsageIndicator() {
   const diagPercentage = getPercentage(usage.diagrams.current, usage.diagrams.limit);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
       {/* Header */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
         <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Resource Usage</h2>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Track your current usage against plan limits</p>
       </div>

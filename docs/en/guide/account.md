@@ -109,6 +109,10 @@ Plans, their limits and their prices are defined by the instance operator. Every
 | **At the end of the period** (recommended) | You keep your plan until the period ends, then move to the free plan. |
 | **Immediately** | You move to the free plan right away, with no refund for the remaining time. |
 
+## API Keys
+
+Keys to use the API from scripts, CI or your own tools have their own section: **API Keys** in the sidebar. See [API Keys](api-keys.md).
+
 ## Delete your account
 
 In **Settings → Danger Zone**, use **Delete my account** and type `delete me` to confirm.

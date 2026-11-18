@@ -108,7 +108,7 @@ async def test_lost_claim_cannot_complete_or_release_the_new_owner(test_db) -> N
     old_lease = await repo.claim(EVENT_ID, EVENT_TYPE)
     assert old_lease is not None
     # The original delivery stalls past the stale threshold and a retry takes over.
-    await WebhookEventInDB.get_motor_collection().update_one(
+    await WebhookEventInDB.get_pymongo_collection().update_one(
         {"event_id": EVENT_ID},
         {"$set": {"processed_at": utcnow() - STALE_CLAIM_AFTER - timedelta(minutes=1)}},
     )

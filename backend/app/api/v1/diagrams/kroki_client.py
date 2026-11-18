@@ -5,6 +5,7 @@ Encapsulates HTTP communication with the Kroki service.
 Follows the Dependency Inversion Principle (SOLID) with an abstract
 interface and a concrete implementation using httpx.AsyncClient.
 """
+
 from abc import ABC, abstractmethod
 
 import httpx
@@ -131,6 +132,4 @@ class KrokiClient(IKrokiClient):
         except KrokiRenderError:
             raise
         except (httpx.TimeoutException, httpx.ConnectError) as exc:
-            raise KrokiTimeoutError(
-                f"Kroki service unreachable or timed out: {exc}"
-            ) from exc
+            raise KrokiTimeoutError(f"Kroki service unreachable or timed out: {exc}") from exc

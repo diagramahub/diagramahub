@@ -1,0 +1,72 @@
+[
+ {
+  "keyword": "venn-beta",
+  "code": "venn-beta\n  title \"Habilidades\"\n  set Matematicas\n  set Programacion\n  set Negocio\n  union Matematicas Programacion[\"Machine learning\"]\n  union Programacion Negocio[\"Software\"]\n",
+  "error": "Parse error on line 6:\n...  union Matematicas Programacion[\"Machin\n-----------------------^\nExpecting 'EOF', 'NEWLINE', 'TITLE', 'SET', 'BRACKET_LABEL', 'COLON', 'UNION', 'TEXT', 'INDENT_TEXT', 'STYLE', 'COMMA', got 'IDENTIFIER'"
+ },
+ {
+  "keyword": "wardley-beta",
+  "code": "wardley-beta\ntitle Tienda en línea\nanchor Cliente [0.95, 0.60]\ncomponent Catálogo [0.70, 0.50]\ncomponent Pagos [0.55, 0.75]\ncomponent Hosting [0.30, 0.85]\nCliente -> Catálogo\nCatálogo -> Pagos\nPagos -> Hosting\n",
+  "error": "Parsing failed: Lexer error on line 4, column 14: unexpected character: ->á<- at offset: 76, skipped 1 characters.\nLexer error on line 7, column 15: unexpected character: ->á<- at offset: 169, skipped 1 characters.\nLexer error on line 8, column 4: unexpected character: ->á<- at offset: 178, skipped 1 characters. Parse error on line 4, column 15: Expecting token of type '[' but found `logo`.\nParse "
+ },
+ {
+  "keyword": "usecase-beta",
+  "code": "usecase-beta\nactor Socio\nactor Bibliotecario\nusecase Buscar libro\nusecase Registrar préstamo\nSocio --> Buscar libro\nBibliotecario --> Registrar préstamo\n",
+  "error": "Error parsing usecase diagram: Expecting: one of these possible Token sequences:\n  1. [DEPENDENCY_ARROW]\n  2. [GENERALIZATION]\n  3. [FORWARD_SOLID]"
+ },
+ {
+  "keyword": "cynefin-beta",
+  "code": "cynefin-beta\n  title Problemas de TI\n  complex\n    Caída intermitente\n  clear\n    Contraseña olvidada\n  complex -> clear : Se documentó\n",
+  "error": "Parsing failed: Lexer error on line 4, column 5: unexpected character: ->C<- at offset: 51, skipped 5 characters.\nLexer error on line 4, column 11: unexpected character: ->i<- at offset: 57, skipped 12 characters.\nLexer error on line 6, column 5: unexpected character: ->C<- at offset: 82, skipped 10 characters.\nLexer error on line 6, column 16: unexpected character: ->o<- at offset: 93, skipped 8 "
+ },
+ {
+  "keyword": "treemap-beta",
+  "code": "treemap-beta\nPresupuesto\n    Ventas\n        Publicidad: 120\n        Viajes: 40\n    TI\n        Servidores: 200\n",
+  "error": "Parsing failed:  Parse error on line 2, column 1: Expecting token of type 'EOF' but found `Presupuesto`.\nParse error on line 3, column 5: Expecting: one of these possible Token sequences:\n  1. [STRING2]\n  2. [CLASS_DEF]"
+ },
+ {
+  "keyword": "radar-beta",
+  "code": "radar-beta\n  axis p[\"Precio\"], b[\"Batería\"], r[\"Rendimiento\"]\n  curve a[\"Laptop A\"] 80, 60, 90\n  curve c[\"Laptop B\"] 70, 85, 75\n",
+  "error": "Parsing failed:  Parse error on line 3, column 23: Expecting token of type '{' but found `80`.\nParse error on line 4, column 3: Expecting token of type '}' but found `curve`.\nParse error on line 4, column 23: Expecting token of type '{' but found `70`.\nParse error on line ?, column ?: Expecting token of type '}' but found ``."
+ },
+ {
+  "keyword": "architecture-beta",
+  "code": "architecture-beta\n    group nube(cloud)[Nube]\n    service web(internet)[Internet]\n    service api(server)[API] in nube\n    service db(database)[Base de datos] in nube\n    web --> api\n    api --> db\n",
+  "error": "Parsing failed:  Parse error on line 6, column 9: Expecting token of type ':' but found `--`.\nParse error on line 6, column 13: Expecting token of type 'ARROW_DIRECTION' but found `api`.\nParse error on line 7, column 9: Expecting token of type ':' but found `--`.\nParse error on line 7, column 13: Expecting token of type 'ARROW_DIRECTION' but found `db`."
+ },
+ {
+  "keyword": "eventmodeling",
+  "code": "eventmodeling\n\nui PantallaRegistro\ncmd RegistrarUsuario\nevt UsuarioRegistrado\nrmo VistaPerfil ->> UsuarioRegistrado\n",
+  "error": "Parsing failed:  Parse error on line 3, column 1: Expecting token of type 'EOF' but found `ui`."
+ },
+ {
+  "keyword": "swimlane-beta",
+  "code": "swimlane-beta LR\n  subgraph Empleado\n    pedir[Solicita reembolso]\n  subgraph Jefe\n    aprobar{¿Aprueba?}\n  end\n  pedir --> aprobar\n",
+  "error": "Parse error on line 9:\n... pedir --> aprobar\n---------------------^\nExpecting 'SEMI', 'NEWLINE', 'SPACE', 'EOF', 'subgraph', 'end', 'acc_title', 'acc_descr', 'acc_descr_multiline_value', 'AMP', 'COLON', 'STYLE', 'LINKSTYLE', 'CLASSDEF', 'CLASS', 'CLICK', 'DOWN', 'DEFAULT', 'NUM', 'COMMA', 'NODE_STRING', 'BRKT', 'MINUS', 'MULT', 'UNICODE_TEXT', 'direction_tb', 'direction_bt', 'direction_rl', 'direc"
+ },
+ {
+  "keyword": "railroad-beta",
+  "code": "railroad-beta\n    title Número\n    numero = sequence(optional(terminal(\"-\")), oneOrMore(nonterminal(\"digito\")))\n    digito = choice(terminal(\"0\"), terminal(\"9\"))\n",
+  "error": "Parsing failed:  Parse error on line 4, column 5: Expecting token of type ';' but found `digito`.\nParse error on line ?, column ?: Expecting token of type ';' but found ``."
+ },
+ {
+  "keyword": "xychart-beta",
+  "code": "xychart-beta\n    title \"Ventas\"\n    x-axis Ene, Feb, Mar, Abr\n    y-axis \"Ventas\" 0 --> 100\n    bar [30, 45, 60, 80]\n",
+  "error": "Parse error on line 3:\n...ntas\"    x-axis Ene, Feb, Mar, Abr    \n----------------------^\nExpecting 'title', 'X_AXIS', 'Y_AXIS', 'LINE', 'BAR', 'acc_title', 'acc_descr', 'acc_descr_multiline_value', 'SQUARE_BRACES_START', 'NUMBER_WITH_DECIMAL', 'NEWLINE', 'SEMI', 'EOF', got 'COMMA'"
+ },
+ {
+  "keyword": "block-beta",
+  "code": "block-beta\n  columns 3\n  cpu[\"CPU\"] mem[\"Memoria\"] gpu[\"GPU\"]\n  cpu -> mem\n",
+  "error": "Lexical error on line 4. Unrecognized text.\n...\"] gpu[\"GPU\"]  cpu -> mem\n----------------------^"
+ },
+ {
+  "keyword": "packet",
+  "code": "packet\n  0-15: Puerto origen\n  16-31: Puerto destino\n",
+  "error": "Parsing failed: Lexer error on line 2, column 9: unexpected character: ->P<- at offset: 15, skipped 6 characters.\nLexer error on line 2, column 16: unexpected character: ->o<- at offset: 22, skipped 6 characters.\nLexer error on line 3, column 10: unexpected character: ->P<- at offset: 38, skipped 6 characters.\nLexer error on line 3, column 17: unexpected character: ->d<- at offset: 45, skipped 7 c"
+ },
+ {
+  "keyword": "sankey-beta",
+  "code": "sankey-beta\nElectricidad -> Calefacción: 30\nGas -> Cocina: 20\n",
+  "error": "Parse error on line 2:\n...ricidad -> Calefacción: 30Gas -> Cocina\n-----------------------^\nExpecting 'NEWLINE', 'EOF', 'COMMA', got 'NON_ESCAPED_TEXT'"
+ }
+]

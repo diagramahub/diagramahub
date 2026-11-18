@@ -1,129 +1,113 @@
 """
 Validador de sintaxis para diagramas Mermaid, PlantUML, D2 y DBML.
 """
+
 import re
 from typing import Optional
 from pydantic import BaseModel, Field
 
+from .mermaid_types import (
+    MERMAID_DIAGRAM_KEYWORDS,
+    SUBGRAPH_DIAGRAMS,
+    mermaid_diagram_keyword,
+    mermaid_header_line,
+)
+
 
 class ValidationResult(BaseModel):
     """Resultado de validación de sintaxis."""
-    is_valid: bool = Field(
-        ...,
-        description="Si el código es sintácticamente válido"
-    )
+
+    is_valid: bool = Field(..., description="Si el código es sintácticamente válido")
     error_message: Optional[str] = Field(
-        None,
-        description="Mensaje de error si la validación falla"
+        None, description="Mensaje de error si la validación falla"
     )
-    error_line: Optional[int] = Field(
-        None,
-        description="Número de línea del error"
-    )
+    error_line: Optional[int] = Field(None, description="Número de línea del error")
 
 
 class SyntaxValidator:
     """Validador de sintaxis para diagramas Mermaid, PlantUML, D2 y DBML."""
-    
-    # Tipos de diagrama Mermaid válidos
-    VALID_MERMAID_TYPES = [
-        'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-        'stateDiagram', 'stateDiagram-v2', 'erDiagram', 'gantt',
-        'pie', 'journey', 'gitGraph', 'mindmap', 'timeline',
-        'quadrantChart', 'requirementDiagram', 'C4Context'
-    ]
-    
+
+    # Tipos de diagrama Mermaid válidos (los de la versión que renderiza el frontend)
+    VALID_MERMAID_TYPES = list(MERMAID_DIAGRAM_KEYWORDS)
+
     @staticmethod
     async def validate_mermaid(code: str) -> ValidationResult:
         """
-        Validar sintaxis de Mermaid.
-        
+        Validar la estructura de un diagrama Mermaid.
+
+        Solo comprueba lo que se puede comprobar sin el parser de Mermaid (que vive
+        en el navegador): que empiece con un tipo de diagrama conocido, saltando el
+        front matter (``---``) y las líneas ``%%``, y que los subgrafos de los
+        diagramas que los usan estén cerrados. ``end`` también cierra bloques en
+        otros diagramas (loop/alt en sequenceDiagram, bloques en block), así que el
+        balance solo se cuenta en flowchart, graph y swimlane.
+
         Args:
             code: Código del diagrama Mermaid
-            
+
         Returns:
             ValidationResult con resultado de validación
         """
         try:
-            # Verificar código vacío
             if not code or not code.strip():
                 return ValidationResult(
-                    is_valid=False,
-                    error_message="El código del diagrama está vacío"
+                    is_valid=False, error_message="El código del diagrama está vacío"
                 )
-            
-            lines = code.strip().split('\n')
-            
-            # Verificar tipo de diagrama válido en la primera línea
-            first_line = lines[0].strip()
-            
-            # Remover comentarios de la primera línea
-            first_line_no_comment = re.sub(r'%%.*$', '', first_line).strip()
-            
-            if not first_line_no_comment:
-                # Si la primera línea es solo un comentario, buscar la siguiente línea no vacía
-                for i, line in enumerate(lines[1:], start=1):
-                    line_clean = re.sub(r'%%.*$', '', line).strip()
-                    if line_clean:
-                        first_line_no_comment = line_clean
-                        break
-            
-            # Verificar si comienza con un tipo válido
-            diagram_type_found = False
-            for valid_type in SyntaxValidator.VALID_MERMAID_TYPES:
-                if first_line_no_comment.startswith(valid_type):
-                    diagram_type_found = True
-                    break
-            
-            if not diagram_type_found:
+
+            header, header_line = mermaid_header_line(code)
+            keyword = mermaid_diagram_keyword(code)
+            if keyword is None:
+                shown = header[:60] if header else "(vacío)"
                 return ValidationResult(
                     is_valid=False,
-                    error_message=f"Tipo de diagrama no reconocido. Debe comenzar con uno de: {', '.join(SyntaxValidator.VALID_MERMAID_TYPES)}",
-                    error_line=1
+                    error_message=(
+                        f"Tipo de diagrama Mermaid no reconocido: «{shown}». La primera línea "
+                        "(después del front matter) debe ser el tipo, por ejemplo flowchart LR, "
+                        "sequenceDiagram, classDiagram o venn-beta"
+                    ),
+                    error_line=header_line or 1,
                 )
-            
-            # Validaciones básicas de sintaxis
-            # Verificar balance de bloques (subgraph, etc.)
+
+            if keyword not in SUBGRAPH_DIAGRAMS:
+                return ValidationResult(is_valid=True)
+
             subgraph_count = 0
-            for i, line in enumerate(lines, start=1):
-                line_clean = re.sub(r'%%.*$', '', line).strip()
-                
-                if 'subgraph' in line_clean.lower():
+            for i, line in enumerate(code.split("\n"), start=1):
+                line_clean = re.sub(r"%%.*$", "", line).strip()
+
+                if re.match(r"subgraph\b", line_clean):
                     subgraph_count += 1
-                if line_clean.lower() == 'end':
+                if line_clean == "end":
                     subgraph_count -= 1
-                
-                # Verificar que no haya más 'end' que 'subgraph'
+
                 if subgraph_count < 0:
                     return ValidationResult(
                         is_valid=False,
                         error_message="'end' sin 'subgraph' correspondiente",
-                        error_line=i
+                        error_line=i,
                     )
-            
-            # Verificar que todos los subgraphs estén cerrados
+
             if subgraph_count > 0:
                 return ValidationResult(
                     is_valid=False,
-                    error_message=f"{subgraph_count} subgraph(s) sin cerrar (falta 'end')"
+                    error_message=f"{subgraph_count} subgraph(s) sin cerrar (falta 'end')",
                 )
-            
+
             return ValidationResult(is_valid=True)
-            
+
         except Exception as e:
             return ValidationResult(
-                is_valid=False,
-                error_message=f"Error al validar sintaxis: {str(e)}"
+                is_valid=False, error_message=f"Error al validar sintaxis: {str(e)}"
             )
-    
+
     @staticmethod
     async def validate_plantuml(code: str) -> ValidationResult:
         """
         Validar sintaxis de PlantUML.
-        
+
         Args:
             code: Código del diagrama PlantUML
-            
+
         Returns:
             ValidationResult con resultado de validación
         """
@@ -131,76 +115,75 @@ class SyntaxValidator:
             # Verificar código vacío
             if not code or not code.strip():
                 return ValidationResult(
-                    is_valid=False,
-                    error_message="El código del diagrama está vacío"
+                    is_valid=False, error_message="El código del diagrama está vacío"
                 )
-            
+
             # Verificar presencia de @startuml
-            if '@startuml' not in code:
+            if "@startuml" not in code:
                 return ValidationResult(
                     is_valid=False,
                     error_message="Falta la etiqueta @startuml al inicio del diagrama",
-                    error_line=1
+                    error_line=1,
                 )
-            
+
             # Verificar presencia de @enduml
-            if '@enduml' not in code:
+            if "@enduml" not in code:
                 return ValidationResult(
-                    is_valid=False,
-                    error_message="Falta la etiqueta @enduml al final del diagrama"
+                    is_valid=False, error_message="Falta la etiqueta @enduml al final del diagrama"
                 )
-            
+
             # Verificar orden correcto de tags
-            start_pos = code.find('@startuml')
-            end_pos = code.find('@enduml')
-            
+            start_pos = code.find("@startuml")
+            end_pos = code.find("@enduml")
+
             if start_pos > end_pos:
                 return ValidationResult(
-                    is_valid=False,
-                    error_message="@enduml aparece antes de @startuml"
+                    is_valid=False, error_message="@enduml aparece antes de @startuml"
                 )
-            
+
             # Verificar balance de bloques comunes
-            lines = code.split('\n')
+            lines = code.split("\n")
             block_stack = []
-            
+
             for i, line in enumerate(lines, start=1):
                 line_clean = line.strip()
-                
+
                 # Ignorar comentarios
                 if line_clean.startswith("'") or line_clean.startswith("/'"):
                     continue
-                
+
                 # Detectar inicio de bloques
-                if any(keyword in line_clean for keyword in ['package ', 'namespace ', 'class ', 'interface ', 'enum ']):
-                    if '{' in line_clean:
-                        block_stack.append(('block', i))
-                
+                if any(
+                    keyword in line_clean
+                    for keyword in ["package ", "namespace ", "class ", "interface ", "enum "]
+                ):
+                    if "{" in line_clean:
+                        block_stack.append(("block", i))
+
                 # Detectar cierre de bloques
-                if line_clean == '}':
+                if line_clean == "}":
                     if not block_stack:
                         return ValidationResult(
                             is_valid=False,
                             error_message="'}' sin bloque correspondiente",
-                            error_line=i
+                            error_line=i,
                         )
                     block_stack.pop()
-            
+
             # Verificar que todos los bloques estén cerrados
             if block_stack:
                 return ValidationResult(
                     is_valid=False,
-                    error_message=f"{len(block_stack)} bloque(s) sin cerrar (falta '}}' )"
+                    error_message=f"{len(block_stack)} bloque(s) sin cerrar (falta '}}' )",
                 )
-            
+
             return ValidationResult(is_valid=True)
-            
+
         except Exception as e:
             return ValidationResult(
-                is_valid=False,
-                error_message=f"Error al validar sintaxis: {str(e)}"
+                is_valid=False, error_message=f"Error al validar sintaxis: {str(e)}"
             )
-    
+
     @staticmethod
     async def _kroki_verdict(diagram_type: str, code: str) -> ValidationResult:
         """Validate with the real renderer; valid when Kroki can't be reached.
@@ -447,13 +430,22 @@ class SyntaxValidator:
         """
         diagram_type_lower = diagram_type.lower()
 
-        if 'mermaid' in diagram_type_lower or diagram_type_lower in ['flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'journey']:
+        if "mermaid" in diagram_type_lower or diagram_type_lower in [
+            "flowchart",
+            "sequence",
+            "class",
+            "state",
+            "er",
+            "gantt",
+            "pie",
+            "journey",
+        ]:
             return await SyntaxValidator.validate_mermaid(code)
-        elif 'plantuml' in diagram_type_lower or diagram_type_lower == 'uml':
+        elif "plantuml" in diagram_type_lower or diagram_type_lower == "uml":
             return await SyntaxValidator.validate_plantuml(code)
-        elif 'd2' in diagram_type_lower:
+        elif "d2" in diagram_type_lower:
             return await SyntaxValidator.validate_d2(code)
-        elif 'dbml' in diagram_type_lower:
+        elif "dbml" in diagram_type_lower:
             return await SyntaxValidator.validate_dbml(code)
         else:
             # Por defecto, intentar validar como Mermaid

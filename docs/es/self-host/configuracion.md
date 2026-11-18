@@ -29,6 +29,7 @@ minúsculas.
 | `JWT_ALGORITHM` | `HS256` | No | Algoritmo de firma de los JWT. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No | **Sin efecto.** Se acepta para no romper archivos `.env` existentes, pero la duración de la sesión la fija cada inicio de sesión (ver [Autenticación](../seguridad/autenticacion.md)). |
 | `AI_ENCRYPTION_KEY` | vacío | **Sí, en la práctica** | Clave Fernet que cifra en la base de datos las API keys de los proveedores de IA, la configuración de las integraciones (Resend, Stripe, Google) y los secretos TOTP del MFA. Si falta, esas operaciones fallan. |
+| `AI_ENCRYPTION_KEY_PREVIOUS` | vacío | No | Claves que antes fueron `AI_ENCRYPTION_KEY`, separadas por comas. Siguen descifrando los datos existentes mientras [rotas la clave](mantenimiento.md#rotar-la-clave-de-cifrado); los datos nuevos siempre usan la clave actual. |
 
 Genera ambos secretos así:
 
@@ -87,6 +88,14 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 | `MAX_IMPORT_UPLOAD_BYTES` | `20971520` (20 MB) | Tamaño máximo de una subida de importación de proyecto (ZIP o archivos sueltos). |
 | `MAX_IMPORT_FILES` | `500` | Número máximo de archivos en una importación. |
 | `MAX_IMPORT_UNCOMPRESSED_BYTES` | `52428800` (50 MB) | Tamaño máximo que puede ocupar un ZIP una vez descomprimido. |
+
+### Comunidad
+
+| Variable | Por defecto | Para qué |
+|---|---|---|
+| `COMMUNITY_PUBLIC` | `True` | Cualquiera, sin iniciar sesión, puede explorar la [Comunidad](../guia/comunidad.md), abrir sus diagramas y leer los comentarios. Con `False` toda la Comunidad pide iniciar sesión (por ejemplo, en una instalación interna de una empresa). Publicar, dar estrella, comentar, hacer fork y reportar siempre requieren una cuenta. |
+| `GITHUB_STATS_ENABLED` | `True` | La página **Acerca de** muestra las estrellas y forks del repositorio en GitHub. Las pide el servidor (no el navegador) y las guarda una hora. Con `False` no se hace ninguna llamada a GitHub y la página solo invita a dar una estrella. |
+| `GITHUB_REPOSITORY` | `diagramahub/diagramahub` | Repositorio (`dueño/nombre`) cuyas estrellas muestra **Acerca de**. |
 
 ### Monitoreo (opcional)
 

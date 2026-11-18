@@ -60,10 +60,23 @@ import MobileBottomToolbar from "../components/MobileBottomToolbar";
 import BottomSheet from "../components/BottomSheet";
 import { useDiagramErrorDetection } from "../hooks/useDiagramErrorDetection";
 import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
-import { configInitBlockManager } from "../utils/configInitBlockManager";
+import { configInitBlockManager, splitFrontmatter } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
 import { apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
+import {
+  MERMAID_CURVES,
+  MERMAID_DEFAULTS,
+  MERMAID_FONT_SIZES,
+  MERMAID_LAYOUTS,
+  MERMAID_LOOKS,
+  MERMAID_THEMES,
+} from "../utils/mermaidOptions";
+import { PublishToCommunityModal } from "../components/community/PublishToCommunityModal";
+import { PublicBadge } from "../components/community/PublicBadge";
+import { FavoriteStarButton } from "../components/FavoriteStarButton";
+import { usePublishedDiagrams } from "../hooks/usePublishedDiagrams";
+import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -86,10 +99,10 @@ export default function DiagramEditorPage() {
   );
   const [diagramTitle, setDiagramTitle] = useState("New Diagram");
   const [diagramDescription, setDiagramDescription] = useState("");
-  const [diagramTheme, setDiagramTheme] = useState("default");
-  const [diagramLayout, setDiagramLayout] = useState("dagre");
-  const [diagramLook, setDiagramLook] = useState("classic");
-  const [diagramCurve, setDiagramCurve] = useState("basis");
+  const [diagramTheme, setDiagramTheme] = useState<string>(MERMAID_DEFAULTS.theme);
+  const [diagramLayout, setDiagramLayout] = useState<string>(MERMAID_DEFAULTS.layout);
+  const [diagramLook, setDiagramLook] = useState<string>(MERMAID_DEFAULTS.look);
+  const [diagramCurve, setDiagramCurve] = useState<string>(MERMAID_DEFAULTS.curve);
   const [diagramFontFamily, setDiagramFontFamily] = useState("");
   const [diagramFontSize, setDiagramFontSize] = useState("16");
   const [plantUMLTheme, setPlantUMLTheme] = useState("");
@@ -137,7 +150,10 @@ export default function DiagramEditorPage() {
     fontFamily: string,
     fontSize: string,
   ): string => {
-    let config = `---\nconfig:\n  theme: ${theme}\n  layout: ${layout}\n  look: ${look}\n  flowchart:\n    curve: ${curve}`;
+    // The default layout (ELK) is left to Mermaid: naming it forces ELK on
+    // diagrams with their own engine, and a mindmap then fails to render.
+    const layoutLine = layout && layout !== MERMAID_DEFAULTS.layout ? `\n  layout: ${layout}` : "";
+    let config = `---\nconfig:\n  theme: ${theme}${layoutLine}\n  look: ${look}\n  flowchart:\n    curve: ${curve}`;
 
     // Add themeVariables if fontFamily or fontSize are set
     if (fontFamily || fontSize) {
@@ -176,6 +192,19 @@ export default function DiagramEditorPage() {
       // Remove init block from diagram code before adding frontmatter for rendering
       const parseResult = configInitBlockManager.parseConfig(diagramCode);
       const codeWithoutInit = parseResult.contentWithoutInit;
+      // The diagram brings its own front matter (e.g. `config: flowchart:
+      // stepNumbers`): a second one in front would break it, so the editor's
+      // settings go after it as an init block, without the keys it sets.
+      if (splitFrontmatter(codeWithoutInit).frontmatter) {
+        return configInitBlockManager.embedConfig(codeWithoutInit, {
+          theme: diagramTheme,
+          layout: diagramLayout,
+          look: diagramLook,
+          curve: diagramCurve || undefined,
+          fontFamily: diagramFontFamily || undefined,
+          fontSize: diagramFontSize ? parseInt(diagramFontSize) : undefined,
+        });
+      }
       return (
         generateFrontmatter(
           diagramTheme,
@@ -402,6 +431,9 @@ export default function DiagramEditorPage() {
 
   // Share diagram state
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const { published: publishedDiagrams, refreshPublished } = usePublishedDiagrams();
+  const currentPublication = diagramId ? publishedDiagrams.get(diagramId) : undefined;
   const [isShared, setIsShared] = useState(false);
 
   // Use error detection hook
@@ -1000,15 +1032,15 @@ export default function DiagramEditorPage() {
               setDiagramFontSize(
                 parseResult.config.fontSize?.toString() || "16",
               );
-              setDiagramCurve(parseResult.config.curve || "basis");
+              setDiagramCurve(parseResult.config.curve || MERMAID_DEFAULTS.curve);
             } else {
               // Fallback to default values if no init block found
-              setDiagramTheme("default");
-              setDiagramLayout("dagre");
-              setDiagramLook("classic");
+              setDiagramTheme(MERMAID_DEFAULTS.theme);
+              setDiagramLayout(MERMAID_DEFAULTS.layout);
+              setDiagramLook(MERMAID_DEFAULTS.look);
               setDiagramFontFamily("");
               setDiagramFontSize("16");
-              setDiagramCurve("basis");
+              setDiagramCurve(MERMAID_DEFAULTS.curve);
             }
 
             // Keep the full content (with init block if present)
@@ -1482,6 +1514,12 @@ export default function DiagramEditorPage() {
       if (save) void persistDiagram(save);
     };
   }, [diagramId, persistDiagram]);
+
+  // Before publishing: send the pending edit now instead of waiting for the debounce.
+  const flushPendingSave = useCallback(async () => {
+    const save = pendingSave.current;
+    if (save && !inFlightSave.current) await persistDiagram(save);
+  }, [persistDiagram]);
 
   // Tab hidden / closing: flush now; warn before unload if something is pending.
   useEffect(() => {
@@ -2296,11 +2334,17 @@ export default function DiagramEditorPage() {
     setIsPanning(false);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.05 : 0.05;
     setZoom((prev) => Math.max(0.1, prev + delta)); // Sin límite máximo, mínimo 10%
   };
+  // Native non-passive listener: React's onWheel can't preventDefault (page would scroll).
+  useNonPassiveWheel(
+    containerRef,
+    activeTab === "code" && !isFreehandDiagram ? handleWheel : null,
+    currentDiagram?.id,
+  );
 
   // Export functions
   const buildExportData = (): DiagramExportData => {
@@ -2860,6 +2904,36 @@ export default function DiagramEditorPage() {
     }
   };
 
+  // Starring isn't an edit: it is saved on its own and doesn't touch updated_at.
+  const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
+  const handleToggleFavorite = async (diagramId: string, favorite: boolean) => {
+    setFavoriteBusyId(diagramId);
+    try {
+      await api.setDiagramFavorite(diagramId, favorite);
+      const mark = (diagram: Diagram) =>
+        diagram.id === diagramId ? { ...diagram, is_favorite: favorite } : diagram;
+      setCurrentDiagram((prev) => (prev ? mark(prev) : prev));
+      setProject((prev) =>
+        prev
+          ? {
+              ...prev,
+              diagrams: prev.diagrams.map(mark),
+              folders: prev.folders.map((folder) => ({
+                ...folder,
+                diagrams: folder.diagrams.map(mark),
+              })),
+            }
+          : prev,
+      );
+    } catch (err) {
+      console.error("Error updating favorite:", err);
+      setFixError(t("favorite.error"));
+      setTimeout(() => setFixError(null), 5000);
+    } finally {
+      setFavoriteBusyId(null);
+    }
+  };
+
   const handleCloneDiagram = (diagramId: string, diagramName: string) => {
     setCloneDiagramModal({ isOpen: true, diagramId, diagramName });
   };
@@ -2965,10 +3039,10 @@ export default function DiagramEditorPage() {
   }
 
   return (
-    <div className="h-screen bg-white dark:bg-gray-900 flex flex-col overflow-hidden">
+    <div className="h-screen bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
       {/* Unified Toolbar */}
       {!isFullscreen && !isMobile && (
-        <div className="flex items-center h-9 px-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center h-9 px-3 border-b border-gray-200 bg-white dark:bg-gray-950 dark:border-gray-800 flex-shrink-0">
           {/* Left: project name + diagram title */}
           <div className="flex items-center gap-1.5 min-w-0">
             {/* Project name with selector */}
@@ -2995,14 +3069,14 @@ export default function DiagramEditorPage() {
               </button>
               {/* Project selector dropdown */}
               {showProjectSelector && (
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-                  <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-800 z-50 overflow-hidden">
+                  <div className="p-2 border-b border-gray-100 dark:border-gray-800">
                     <input
                       type="text"
                       value={projectSearchQuery}
                       onChange={(e) => setProjectSearchQuery(e.target.value)}
                       placeholder={t("breadcrumb.searchProjects")}
-                      className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded px-2 py-1.5 focus:ring-1 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                      className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5 focus:ring-1 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                       autoFocus
                     />
                   </div>
@@ -3020,7 +3094,7 @@ export default function DiagramEditorPage() {
                         <button
                           key={p.id}
                           onClick={() => handleSelectProject(p.id)}
-                          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2 ${
+                          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-2 ${
                             p.id === projectId
                               ? "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
                               : "text-gray-700 dark:text-gray-300"
@@ -3041,7 +3115,7 @@ export default function DiagramEditorPage() {
             <Tooltip content={t("editor.structure")} position="bottom">
               <button
                 onClick={() => setShowFloatingSidebar(!showFloatingSidebar)}
-                className={`floating-sidebar-button p-1 rounded-md transition-colors flex-shrink-0 ${showFloatingSidebar ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`floating-sidebar-button p-1 rounded-md transition-colors flex-shrink-0 ${showFloatingSidebar ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.structure")}
               >
                 <svg
@@ -3096,6 +3170,27 @@ export default function DiagramEditorPage() {
                 </svg>
               </button>
             )}
+            {/* Favorite: listed on the dashboard */}
+            {!isEditingDiagramTitle && currentDiagram && (
+              <FavoriteStarButton
+                favorite={!!currentDiagram.is_favorite}
+                busy={favoriteBusyId === currentDiagram.id}
+                onToggle={() =>
+                  handleToggleFavorite(currentDiagram.id, !currentDiagram.is_favorite)
+                }
+              />
+            )}
+            {/* Published to the community: opens the publication settings */}
+            {!isEditingDiagramTitle && currentPublication && (
+              <button
+                type="button"
+                onClick={() => setShowPublishModal(true)}
+                className="flex-shrink-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                aria-label={`${t(currentPublication.hidden ? "community.public.hidden" : "community.public.label")} · ${t("community.public.manage")}`}
+              >
+                <PublicBadge hidden={currentPublication.hidden} />
+              </button>
+            )}
             {/* New diagram button — hidden when editing title */}
             {!isEditingDiagramTitle && (
               <button
@@ -3129,7 +3224,7 @@ export default function DiagramEditorPage() {
             <Tooltip content={t("editor.code")} position="bottom">
               <button
                 onClick={() => setShowCodeView(!showCodeView)}
-                className={`floating-code-button p-1.5 rounded-md transition-colors ${showCodeView ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`floating-code-button p-1.5 rounded-md transition-colors ${showCodeView ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.code")}
               >
                 <svg
@@ -3153,7 +3248,7 @@ export default function DiagramEditorPage() {
             <Tooltip content={t("editor.description")} position="bottom">
               <button
                 onClick={() => setShowDescriptionView(!showDescriptionView)}
-                className={`floating-description-button p-1.5 rounded-md transition-colors ${showDescriptionView ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`floating-description-button p-1.5 rounded-md transition-colors ${showDescriptionView ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.description")}
               >
                 <svg
@@ -3177,7 +3272,7 @@ export default function DiagramEditorPage() {
             <Tooltip content={t("editor.appearance")} position="bottom">
               <button
                 onClick={() => setShowAppearanceEditor(!showAppearanceEditor)}
-                className={`floating-appearance-button p-1.5 rounded-md transition-colors ${showAppearanceEditor ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`floating-appearance-button p-1.5 rounded-md transition-colors ${showAppearanceEditor ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.appearance")}
               >
                 <svg
@@ -3198,7 +3293,7 @@ export default function DiagramEditorPage() {
             )}
 
             {/* Separator */}
-            <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+            <div className="h-5 w-px bg-gray-300 dark:bg-gray-700 mx-1" />
 
             {/* AI Chat button */}
             <Tooltip content={t("editor.aiChat")} position="bottom">
@@ -3222,13 +3317,13 @@ export default function DiagramEditorPage() {
             </Tooltip>
 
             {/* Separator */}
-            <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+            <div className="h-5 w-px bg-gray-300 dark:bg-gray-700 mx-1" />
 
             {/* Export button (sketches export as PNG, see ExportDiagramModal) */}
             <Tooltip content={t("editor.exportDiagram")} position="bottom">
               <button
                 onClick={() => setShowExportModal(true)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
                 aria-label={t("editor.exportDiagram")}
               >
                 <svg
@@ -3259,7 +3354,7 @@ export default function DiagramEditorPage() {
               <button
                 onClick={() => setShowShareModal(true)}
                 disabled={!diagramId}
-                className={`p-1.5 rounded-md transition-colors ${!diagramId ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : isShared ? "text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`p-1.5 rounded-md transition-colors ${!diagramId ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : isShared ? "text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/50" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.shareDiagram")}
               >
                 <svg
@@ -3278,6 +3373,25 @@ export default function DiagramEditorPage() {
               </button>
             </Tooltip>
 
+            {/* Publish to the community */}
+            {currentDiagram && currentDiagram.diagram_type !== "freehand" && (
+              <Tooltip
+                content={!diagramId ? t("editor.saveDiagramFirst") : currentPublication ? t("community.public.manage") : t("community.publish.button")}
+                position="bottom"
+              >
+                <button
+                  onClick={() => setShowPublishModal(true)}
+                  disabled={!diagramId}
+                  className={`p-1.5 rounded-md transition-colors ${!diagramId ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : currentPublication ? "text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-500/10" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
+                  aria-label={currentPublication ? t("community.public.manage") : t("community.publish.button")}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+              </Tooltip>
+            )}
+
             {/* Move diagram to another project */}
             <Tooltip content={t("editor.moveDiagram")} position="bottom">
               <button
@@ -3285,7 +3399,7 @@ export default function DiagramEditorPage() {
                   currentDiagram && handleMoveDiagram(currentDiagram.id, currentDiagram.title)
                 }
                 disabled={!currentDiagram}
-                className={`p-1.5 rounded-md transition-colors ${!currentDiagram ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`p-1.5 rounded-md transition-colors ${!currentDiagram ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.moveDiagram")}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3301,7 +3415,7 @@ export default function DiagramEditorPage() {
                   currentDiagram && handleCloneDiagram(currentDiagram.id, currentDiagram.title)
                 }
                 disabled={!currentDiagram}
-                className={`p-1.5 rounded-md transition-colors ${!currentDiagram ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                className={`p-1.5 rounded-md transition-colors ${!currentDiagram ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                 aria-label={t("editor.duplicateDiagram")}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3313,7 +3427,7 @@ export default function DiagramEditorPage() {
             {/* Convert diagram type button */}
             {isConverting && conversionProvider && conversionModel && (
               <span
-                className="hidden lg:inline-flex items-center rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                className="badge hidden lg:inline-flex items-center"
                 aria-live="polite"
               >
                 {t("conversion.usingModel", {
@@ -3336,7 +3450,7 @@ export default function DiagramEditorPage() {
                 <button
                   onClick={() => setShowConvertMenu(!showConvertMenu)}
                   disabled={!currentDiagram || isConverting}
-                  className={`p-1.5 rounded-md transition-colors ${!currentDiagram || isConverting ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700"}`}
+                  className={`p-1.5 rounded-md transition-colors ${!currentDiagram || isConverting ? "text-gray-300 cursor-not-allowed dark:text-gray-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800"}`}
                   aria-label={t("conversion.convertType")}
                 >
                   {isConverting ? (
@@ -3378,7 +3492,7 @@ export default function DiagramEditorPage() {
               </Tooltip>
               {/* Convert dropdown menu */}
               {showConvertMenu && currentDiagram && (
-                <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
+                <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg py-1 z-50 min-w-[160px]">
                   <p className="px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                     {t("conversion.convertTo")}
                   </p>
@@ -3410,13 +3524,13 @@ export default function DiagramEditorPage() {
             </div>
 
             {/* Separator */}
-            <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1" />
+            <div className="h-5 w-px bg-gray-300 dark:bg-gray-700 mx-1" />
 
             {/* Zoom controls */}
             <div className="hidden md:flex items-center gap-0.5">
               <button
                 onClick={handleZoomOut}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
                 aria-label={t("editor.zoomOut")}
               >
                 <svg
@@ -3438,7 +3552,7 @@ export default function DiagramEditorPage() {
               </span>
               <button
                 onClick={handleZoomIn}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
                 aria-label={t("editor.zoomIn")}
               >
                 <svg
@@ -3457,7 +3571,7 @@ export default function DiagramEditorPage() {
               </button>
               <button
                 onClick={handleFitToScreen}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
                 aria-label={t("editor.fitToScreen")}
               >
                 <svg
@@ -3477,25 +3591,14 @@ export default function DiagramEditorPage() {
             </div>
 
             {/* Separator */}
-            <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1 hidden md:block" />
+            <div className="h-5 w-px bg-gray-300 dark:bg-gray-700 mx-1 hidden md:block" />
 
-            {/* Fullscreen toggle */}
-            <Tooltip
-              content={
-                isFullscreen
-                  ? t("editor.exitFullscreen")
-                  : t("editor.fullscreen")
-              }
-              position="bottom"
-            >
+            {/* Fullscreen: this toolbar only shows outside it (the exit button lives in the full-screen view). */}
+            <Tooltip content={t("editor.fullscreen")} position="bottom">
               <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
-                aria-label={
-                  isFullscreen
-                    ? t("editor.exitFullscreen")
-                    : t("editor.fullscreen")
-                }
+                onClick={() => setIsFullscreen(true)}
+                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-md transition-colors"
+                aria-label={t("editor.fullscreen")}
               >
                 <svg
                   className="w-4 h-4"
@@ -3503,29 +3606,18 @@ export default function DiagramEditorPage() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  {isFullscreen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </>
-                  )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </button>
             </Tooltip>
@@ -3544,7 +3636,7 @@ export default function DiagramEditorPage() {
           role="status"
           aria-live="polite"
           aria-hidden={!isSwitchingDiagram}
-          className={`absolute inset-y-0 right-0 z-30 flex items-center justify-center bg-gray-50 dark:bg-gray-800 transition-opacity ease-out ${
+          className={`absolute inset-y-0 right-0 z-30 flex items-center justify-center bg-gray-50 dark:bg-gray-900 transition-opacity ease-out ${
             isSwitchingDiagram
               ? "opacity-100 duration-150"
               : "opacity-0 duration-300 pointer-events-none"
@@ -3579,6 +3671,7 @@ export default function DiagramEditorPage() {
                   projectName={project?.name || ""}
                   projectEmoji={project?.emoji}
                   projectId={projectId || ""}
+                  publishedDiagrams={publishedDiagrams}
                   diagrams={filteredSidebarData.diagrams}
                   folders={filteredSidebarData.folders}
                   currentDiagramId={diagramId}
@@ -3591,12 +3684,14 @@ export default function DiagramEditorPage() {
                   onDeleteDiagram={handleDeleteDiagram}
                   onRenameDiagram={renameDiagram}
                   onDuplicateDiagram={handleCloneDiagram}
+                  onToggleFavorite={handleToggleFavorite}
                   onMoveDiagramToFolder={moveDiagramToFolder}
                   onMoveDiagramToProject={handleMoveDiagram}
                   onDeleteFolder={handleDeleteFolder}
                   onEditFolder={handleEditFolder}
                   onExportProject={() => setExportProjectModal({ isOpen: true, folderId: null })}
                   onExportFolder={(id) => setExportProjectModal({ isOpen: true, folderId: id })}
+                  onPresent={(folderId) => navigate(`/projects/${projectId}/present${folderId ? `?folder=${folderId}` : ''}`)}
                   onImportFiles={openImport}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
@@ -3630,9 +3725,9 @@ export default function DiagramEditorPage() {
               onKeyDown={handleFileBrowserResizeKeyDown}
               onDoubleClick={() => setFileBrowserWidth(FILE_BROWSER_DEFAULT_WIDTH)}
               title={t("fileBrowser.resize")}
-              className="flex items-center justify-center w-1.5 cursor-col-resize flex-shrink-0 bg-gray-100 dark:bg-gray-700 hover:bg-purple-200 dark:hover:bg-purple-800 active:bg-purple-300 focus:outline-none focus:bg-purple-300 dark:focus:bg-purple-700 transition-colors"
+              className="flex items-center justify-center w-1.5 cursor-col-resize flex-shrink-0 bg-gray-100 dark:bg-gray-800 hover:bg-purple-200 dark:hover:bg-purple-800 active:bg-purple-300 focus:outline-none focus:bg-purple-300 dark:focus:bg-purple-700 transition-colors"
             >
-              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-700 rounded-full" />
             </div>
           </div>
         )}
@@ -3661,7 +3756,7 @@ export default function DiagramEditorPage() {
             );
 
             const previewPanel = (
-              <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-800 relative h-full">
+              <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 relative h-full">
                 {/* Floating Modals */}
 
                 {/* Appearance Editor Modal */}
@@ -3671,8 +3766,8 @@ export default function DiagramEditorPage() {
                     currentDiagram?.diagram_type === "plantuml" ||
                     currentDiagram?.diagram_type === "d2" ||
                     currentDiagram?.diagram_type === "dbml") && (
-                    <div className="floating-appearance absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white dark:bg-gray-800 sm:rounded-lg shadow-xl sm:border border-gray-200 dark:border-gray-700 sm:max-h-[calc(100vh-100px)] overflow-y-auto">
-                      <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                    <div className="floating-appearance absolute top-0 left-0 sm:top-4 sm:left-4 z-30 w-full sm:w-80 h-full sm:h-auto bg-white dark:bg-gray-900 sm:rounded-lg shadow-xl sm:border border-gray-200 dark:border-gray-800 sm:max-h-[calc(100vh-100px)] overflow-y-auto">
+                      <div className="p-4 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center justify-between">
                           <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {t("editor.diagramAppearance")}
@@ -3710,15 +3805,13 @@ export default function DiagramEditorPage() {
                                 onChange={(e) =>
                                   setDiagramTheme(e.target.value)
                                 }
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
-                                <option value="default">Default</option>
-                                <option value="base">
-                                  Base (Personalizable)
-                                </option>
-                                <option value="dark">Dark</option>
-                                <option value="forest">Forest</option>
-                                <option value="neutral">Neutral</option>
+                                {MERMAID_THEMES.map((theme) => (
+                                  <option key={theme} value={theme}>
+                                    {t(`mermaidOptions.themes.${theme}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div>
@@ -3730,10 +3823,13 @@ export default function DiagramEditorPage() {
                                 onChange={(e) =>
                                   setDiagramLayout(e.target.value)
                                 }
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
-                                <option value="dagre">Dagre</option>
-                                <option value="elk">ELK</option>
+                                {MERMAID_LAYOUTS.map((layout) => (
+                                  <option key={layout} value={layout}>
+                                    {t(`mermaidOptions.layouts.${layout}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div>
@@ -3743,58 +3839,52 @@ export default function DiagramEditorPage() {
                               <select
                                 value={diagramLook}
                                 onChange={(e) => setDiagramLook(e.target.value)}
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
-                                <option value="classic">
-                                  Classic (Tradicional)
-                                </option>
-                                <option value="neo">Neo (Moderno)</option>
-                                <option value="handDrawn">
-                                  Hand Drawn (Sketch)
-                                </option>
+                                {MERMAID_LOOKS.map((look) => (
+                                  <option key={look} value={look}>
+                                    {t(`mermaidOptions.looks.${look}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Tipo de Líneas
+                                {t("mermaidOptions.curve")}
                               </label>
                               <select
                                 value={diagramCurve}
                                 onChange={(e) =>
                                   setDiagramCurve(e.target.value)
                                 }
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
-                                <option value="basis">Suaves (Basis)</option>
-                                <option value="linear">Rectas (Linear)</option>
-                                <option value="step">Escalones (Step)</option>
-                                <option value="stepBefore">
-                                  Escalones Antes
-                                </option>
-                                <option value="stepAfter">
-                                  Escalones Después
-                                </option>
+                                {MERMAID_CURVES.map((curve) => (
+                                  <option key={curve || "default"} value={curve}>
+                                    {t(`mermaidOptions.curves.${curve || "default"}`)}
+                                  </option>
+                                ))}
                               </select>
                             </div>
 
                             {/* Global Styling Options */}
-                            <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                               <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                                Estilos Globales
+                                {t("mermaidOptions.globalStyles")}
                               </p>
                               <div className="space-y-3">
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Fuente
+                                    {t("mermaidOptions.font")}
                                   </label>
                                   <select
                                     value={diagramFontFamily}
                                     onChange={(e) =>
                                       setDiagramFontFamily(e.target.value)
                                     }
-                                    className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                    className="input"
                                   >
-                                    <option value="">Por defecto</option>
+                                    <option value="">{t("mermaidOptions.fontDefault")}</option>
                                     <option value="Arial, sans-serif">
                                       Arial
                                     </option>
@@ -3820,22 +3910,20 @@ export default function DiagramEditorPage() {
                                 </div>
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Tamaño de Fuente (px)
+                                    {t("mermaidOptions.fontSize")}
                                   </label>
                                   <select
                                     value={diagramFontSize}
                                     onChange={(e) =>
                                       setDiagramFontSize(e.target.value)
                                     }
-                                    className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                    className="input"
                                   >
-                                    <option value="12">12px (Pequeño)</option>
-                                    <option value="14">14px (Normal)</option>
-                                    <option value="16">16px (Mediano)</option>
-                                    <option value="18">18px (Grande)</option>
-                                    <option value="20">
-                                      20px (Muy Grande)
-                                    </option>
+                                    {MERMAID_FONT_SIZES.map((size) => (
+                                      <option key={size} value={size}>
+                                        {t(`mermaidOptions.fontSizes.${size}`)}
+                                      </option>
+                                    ))}
                                   </select>
                                 </div>
                               </div>
@@ -3855,7 +3943,7 @@ export default function DiagramEditorPage() {
                                 onChange={(e) =>
                                   setPlantUMLTheme(e.target.value)
                                 }
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
                                 <option value="">Sin tema (por defecto)</option>
                                 <optgroup label="🎨 Estilos Modernos">
@@ -3939,7 +4027,7 @@ export default function DiagramEditorPage() {
                                 onChange={(e) =>
                                   setD2ThemeId(Number(e.target.value))
                                 }
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
                                 <optgroup label="☀️ Light">
                                   {D2_THEMES.light.map((theme) => (
@@ -3971,7 +4059,7 @@ export default function DiagramEditorPage() {
                         )}
 
                         {/* Background Customization - Always visible */}
-                        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="pt-3 border-t border-gray-200 dark:border-gray-800">
                           <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">
                             Fondo del Visualizador
                           </p>
@@ -3997,7 +4085,7 @@ export default function DiagramEditorPage() {
                                     className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110 ${
                                       backgroundColor === color
                                         ? "border-purple-500 ring-2 ring-purple-200"
-                                        : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                                        : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                                     }`}
                                     style={{ backgroundColor: color }}
                                     title={name}
@@ -4014,7 +4102,7 @@ export default function DiagramEditorPage() {
                                 onChange={(e) =>
                                   setBackgroundPattern(e.target.value)
                                 }
-                                className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                                className="input"
                               >
                                 <option value="plain">
                                   ▭ Plano (Sin patrón)
@@ -4197,11 +4285,6 @@ export default function DiagramEditorPage() {
                       ? handleMouseUp
                       : undefined
                   }
-                  onWheel={
-                    activeTab === "code" && !isFreehandDiagram
-                      ? handleWheel
-                      : undefined
-                  }
                   {...(isFreehandDiagram ? {} : touchHandlers)}
                   style={{
                     cursor: isFreehandDiagram
@@ -4257,7 +4340,7 @@ export default function DiagramEditorPage() {
 
                 {/* Barra de Estado Inferior */}
                 {!isFullscreen && (
-                  <div className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-2 sm:px-4 py-1.5 sm:py-2">
+                  <div className="sticky bottom-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 px-2 sm:px-4 py-1.5 sm:py-2">
                     {/* nowrap: when side panels narrow the preview, the left info scrolls
                         horizontally instead of wrapping, and the clock never shrinks. */}
                     <div className="flex items-center justify-between gap-3 text-xs whitespace-nowrap">
@@ -4401,7 +4484,7 @@ export default function DiagramEditorPage() {
                         </div>
                         {currentDiagram?.created_at && (
                           <>
-                            <div className="h-3 w-px bg-gray-300 dark:bg-gray-600"></div>
+                            <div className="h-3 w-px bg-gray-300 dark:bg-gray-700"></div>
                             <span className="text-gray-500 dark:text-gray-400">
                               {new Date(
                                 currentDiagram.created_at,
@@ -4458,7 +4541,7 @@ export default function DiagramEditorPage() {
                 {showCodeView && !isMobile && (
                   <div
                     onMouseDown={handleCodeResizeMouseDown}
-                    className="flex-shrink-0 w-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-purple-400 dark:hover:bg-purple-500 active:bg-purple-500 cursor-col-resize transition-colors flex items-center justify-center"
+                    className="flex-shrink-0 w-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-purple-400 dark:hover:bg-purple-500 active:bg-purple-500 cursor-col-resize transition-colors flex items-center justify-center"
                   >
                     <div className="w-0.5 h-8 bg-gray-400 dark:bg-gray-500 rounded-full" />
                   </div>
@@ -4478,13 +4561,13 @@ export default function DiagramEditorPage() {
             {/* Resize handle — outside the overflow-hidden panel so it's always accessible */}
             <div
               onMouseDown={handleDescriptionResizeMouseDown}
-              className="floating-description-resize-handle hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
+              className="floating-description-resize-handle hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-800"
               title={t("editor.dragToResize")}
             >
-              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+              <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-700 rounded-full" />
             </div>
             <div
-              className="floating-description fixed inset-0 sm:static sm:inset-auto border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col flex-shrink-0 overflow-hidden z-40 sm:z-auto"
+              className="floating-description fixed inset-0 sm:static sm:inset-auto border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 overflow-hidden z-40 sm:z-auto"
               style={{
                 width:
                   typeof window !== "undefined" && window.innerWidth < 640
@@ -4493,7 +4576,7 @@ export default function DiagramEditorPage() {
               }}
             >
               {/* Header */}
-              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <svg
@@ -4514,7 +4597,7 @@ export default function DiagramEditorPage() {
                     </h3>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-md px-1 py-0.5 mr-1">
+                    <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-md px-1 py-0.5 mr-1">
                       <button
                         onClick={() =>
                           setDescriptionFontSize((prev) =>
@@ -4576,7 +4659,7 @@ export default function DiagramEditorPage() {
                       className={`p-1.5 rounded transition-colors ${
                         isDescriptionPinned
                           ? "text-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30"
-                          : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          : "text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                       }`}
                       title={
                         isDescriptionPinned
@@ -4597,7 +4680,7 @@ export default function DiagramEditorPage() {
                         setShowDescriptionView(false);
                         setIsDescriptionPinned(false);
                       }}
-                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     >
                       <svg
                         className="w-4 h-4"
@@ -4644,7 +4727,7 @@ export default function DiagramEditorPage() {
                   <button
                     onClick={handleGenerateDescription}
                     disabled={generatingDescription || !diagramCode.trim()}
-                    className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                    className="btn btn-primary w-full flex items-center justify-center space-x-2"
                   >
                     {generatingDescription ? (
                       <>
@@ -4710,10 +4793,10 @@ export default function DiagramEditorPage() {
             {!isMobile && (
               <div
                 onMouseDown={handleChatResizeMouseDown}
-                className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-700 border-l border-gray-200 dark:border-gray-700"
+                className="hidden sm:flex items-center justify-center w-2 cursor-col-resize hover:bg-purple-200 active:bg-purple-300 transition-colors flex-shrink-0 bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-800"
                 title={t("editor.dragToResize")}
               >
-                <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-600 rounded-full" />
+                <div className="w-0.5 h-8 bg-gray-300 dark:bg-gray-700 rounded-full" />
               </div>
             )}
             <AIChatPanel
@@ -4781,10 +4864,10 @@ export default function DiagramEditorPage() {
       {showNewDiagramModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
-            className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? "max-w-2xl" : "max-w-lg"}`}
+            className={`bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full mx-4 ${isFirstDiagram ? "max-w-2xl" : "max-w-lg"}`}
           >
             {isFirstDiagram && (
-              <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700 text-center">
+              <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-800 text-center">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full mb-4">
                   <svg
                     className="w-8 h-8 text-purple-600 dark:text-purple-400"
@@ -4810,7 +4893,7 @@ export default function DiagramEditorPage() {
             )}
 
             {!isFirstDiagram && (
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {t("editor.newDiagram")}
                 </h3>
@@ -4830,7 +4913,7 @@ export default function DiagramEditorPage() {
                   value={newDiagramName}
                   onChange={(e) => setNewDiagramName(e.target.value)}
                   placeholder={t("editor.diagramNamePlaceholder")}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  className="input h-10"
                   autoFocus
                 />
                 {isFirstDiagram && (
@@ -4886,7 +4969,7 @@ export default function DiagramEditorPage() {
                       className={`flex items-center gap-3 px-4 py-3 border-2 rounded-lg transition-all text-left ${
                         newDiagramType === type
                           ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                          : "border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                       }`}
                     >
                       <span
@@ -4936,7 +5019,7 @@ export default function DiagramEditorPage() {
                       onChange={(e) =>
                         setNewDiagramFolderId(e.target.value || null)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="input"
                     >
                       <option value="">{t("editor.newDiagramModal.noFolder")}</option>
                       {project.folders.map((folder) => (
@@ -4974,14 +5057,14 @@ export default function DiagramEditorPage() {
             </div>
 
             <div
-              className={`border-t border-gray-200 dark:border-gray-700 ${isFirstDiagram ? "px-8 py-6" : "px-6 py-4 flex justify-end gap-3"}`}
+              className={`border-t border-gray-200 dark:border-gray-800 ${isFirstDiagram ? "px-8 py-6" : "px-6 py-4 flex justify-end gap-3"}`}
             >
               {isFirstDiagram ? (
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleCreateDiagram}
                     disabled={creatingDiagram || !newDiagramName.trim()}
-                    className="w-full px-6 py-3 text-sm font-semibold bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    className="btn btn-primary w-full"
                   >
                     {creatingDiagram ? (
                       <span className="flex items-center justify-center">
@@ -5014,7 +5097,7 @@ export default function DiagramEditorPage() {
                   <button
                     onClick={() => navigate("/dashboard")}
                     disabled={creatingDiagram}
-                    className="w-full px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 disabled:text-gray-400 transition-colors"
+                    className="btn btn-ghost w-full"
                   >
                     {t("editor.newDiagramModal.backToDashboard")}
                   </button>
@@ -5029,14 +5112,14 @@ export default function DiagramEditorPage() {
                       setIsFirstDiagram(false);
                     }}
                     disabled={creatingDiagram}
-                    className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="btn btn-secondary"
                   >
                     {t("common.cancel")}
                   </button>
                   <button
                     onClick={handleCreateDiagram}
                     disabled={creatingDiagram || !newDiagramName.trim()}
-                    className="px-6 py-3 text-sm font-semibold bg-purple-600 text-white btn-glass rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                    className="btn btn-primary"
                   >
                     {creatingDiagram ? (
                       <span className="flex items-center justify-center">
@@ -5076,8 +5159,8 @@ export default function DiagramEditorPage() {
       {/* New Folder Modal */}
       {showNewFolderModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {t("editor.newFolder")}
               </h3>
@@ -5100,7 +5183,7 @@ export default function DiagramEditorPage() {
                     if (e.key === "Enter" && !creatingFolder) handleCreateFolder();
                   }}
                   placeholder={t("editor.folderNamePlaceholder")}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="input"
                   autoFocus
                 />
               </div>
@@ -5133,7 +5216,7 @@ export default function DiagramEditorPage() {
                       className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                         newFolderColor === color
                           ? "border-gray-900 dark:border-white scale-110 ring-2 ring-purple-300"
-                          : "border-gray-300 dark:border-gray-600"
+                          : "border-gray-300 dark:border-gray-700"
                       }`}
                       style={{ backgroundColor: color }}
                     />
@@ -5142,7 +5225,7 @@ export default function DiagramEditorPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setShowNewFolderModal(false);
@@ -5150,14 +5233,14 @@ export default function DiagramEditorPage() {
                   setNewFolderColor("#3B82F6");
                 }}
                 disabled={creatingFolder}
-                className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="btn btn-secondary"
               >
                 {t("common.cancel")}
               </button>
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
-                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="btn btn-primary"
               >
                 {creatingFolder
                   ? t("folder.creating")
@@ -5253,6 +5336,19 @@ export default function DiagramEditorPage() {
       )}
 
       {/* Fix Diagram Diff Modal */}
+      {diagramId && (
+        <PublishToCommunityModal
+          isOpen={showPublishModal}
+          onClose={() => setShowPublishModal(false)}
+          diagramId={diagramId}
+          diagramType={currentDiagram?.diagram_type || "mermaid"}
+          description={diagramDescription}
+          onDescriptionChange={setDiagramDescription}
+          onBeforePublish={flushPendingSave}
+          onPublicationChange={refreshPublished}
+        />
+      )}
+
       {showFixDiffModal && fixResult && (
         <DiagramDiffView
           originalCode={fixResult.original_code}
@@ -5273,7 +5369,7 @@ export default function DiagramEditorPage() {
           aria-modal="true"
           aria-labelledby="conversion-progress-title"
         >
-          <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 text-center shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+          <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 text-center shadow-lg ring-1 ring-black/5 dark:ring-white/10 dark:border-gray-800 dark:bg-gray-900">
             <svg
               className="mx-auto h-9 w-9 animate-spin text-purple-600 dark:text-purple-400"
               fill="none"
@@ -5352,9 +5448,9 @@ export default function DiagramEditorPage() {
       {/* Generated Description Confirmation Modal */}
       {showDescriptionConfirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
@@ -5415,7 +5511,7 @@ export default function DiagramEditorPage() {
                   </div>
                 </div>
               ) : (
-                <div className="prose prose-sm max-w-none prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-700 dark:prose-code:text-purple-300 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/30 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600">
+                <div className="prose prose-sm max-w-none prose-headings:text-gray-900 dark:prose-headings:text-gray-100 prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-ul:text-gray-700 dark:prose-ul:text-gray-300 prose-ol:text-gray-700 dark:prose-ol:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-code:text-purple-700 dark:prose-code:text-purple-300 prose-code:bg-purple-50 dark:prose-code:bg-purple-900/30 prose-blockquote:text-gray-600 dark:prose-blockquote:text-gray-400 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-700">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {generatedDescription}
                   </ReactMarkdown>
@@ -5424,7 +5520,7 @@ export default function DiagramEditorPage() {
             </div>
 
             {/* Refine Input */}
-            <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-800">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -5437,12 +5533,12 @@ export default function DiagramEditorPage() {
                   }}
                   placeholder={t("ai.description.refinePlaceholder")}
                   disabled={refining}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                  className="input flex-1 disabled:opacity-50"
                 />
                 <button
                   onClick={handleRefineDescription}
                   disabled={refining || !refineInput.trim()}
-                  className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="btn btn-primary flex items-center gap-2"
                 >
                   {refining ? (
                     <>
@@ -5475,10 +5571,10 @@ export default function DiagramEditorPage() {
             </div>
 
             {/* Footer - Actions */}
-            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
               <button
                 onClick={handleRejectDescription}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                className="btn btn-secondary"
               >
                 {t("ai.description.reject")}
               </button>
@@ -5573,7 +5669,7 @@ export default function DiagramEditorPage() {
                 />
               </div>
               {/* AI Generate / Refine button — same as desktop */}
-              <div className="flex-shrink-0 pt-3 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex-shrink-0 pt-3 border-t border-gray-100 dark:border-gray-800">
                 {diagramDescription.trim() ? (
                   <button
                     onClick={() => {
@@ -5602,7 +5698,7 @@ export default function DiagramEditorPage() {
                   <button
                     onClick={handleGenerateDescription}
                     disabled={generatingDescription || !diagramCode.trim()}
-                    className="w-full bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+                    className="btn btn-primary w-full flex items-center justify-center space-x-2"
                   >
                     {generatingDescription ? (
                       <>
@@ -5656,10 +5752,12 @@ export default function DiagramEditorPage() {
               projectName={project?.name || ""}
               projectEmoji={project?.emoji}
               projectId={projectId || ""}
+              publishedDiagrams={publishedDiagrams}
               diagrams={project?.diagrams || []}
               folders={project?.folders || []}
               currentDiagramId={diagramId}
               onClose={() => setShowFloatingSidebar(false)}
+              onPresent={(folderId) => navigate(`/projects/${projectId}/present${folderId ? `?folder=${folderId}` : ''}`)}
               onNewDiagram={(folderId) => {
                 setShowFloatingSidebar(false);
                 handleNewDiagram(folderId || null);
@@ -5676,6 +5774,7 @@ export default function DiagramEditorPage() {
                 })
               }
               onRenameDiagram={renameDiagram}
+              onToggleFavorite={handleToggleFavorite}
               onDuplicateDiagram={(id, name) => {
                 setShowFloatingSidebar(false);
                 handleCloneDiagram(id, name);
@@ -5745,13 +5844,13 @@ export default function DiagramEditorPage() {
                     <select
                       value={diagramTheme}
                       onChange={(e) => setDiagramTheme(e.target.value)}
-                      className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600"
+                      className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-800 dark:border-gray-700"
                     >
-                      <option value="default">Default</option>
-                      <option value="dark">Dark</option>
-                      <option value="forest">Forest</option>
-                      <option value="neutral">Neutral</option>
-                      <option value="base">Base</option>
+                      {MERMAID_THEMES.map((theme) => (
+                        <option key={theme} value={theme}>
+                          {t(`mermaidOptions.themes.${theme}`)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -5761,10 +5860,13 @@ export default function DiagramEditorPage() {
                     <select
                       value={diagramLayout}
                       onChange={(e) => setDiagramLayout(e.target.value)}
-                      className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600"
+                      className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-800 dark:border-gray-700"
                     >
-                      <option value="dagre">Dagre</option>
-                      <option value="elk">ELK</option>
+                      {MERMAID_LAYOUTS.map((layout) => (
+                        <option key={layout} value={layout}>
+                          {t(`mermaidOptions.layouts.${layout}`)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </>
@@ -5788,7 +5890,7 @@ export default function DiagramEditorPage() {
                 <select
                   value={backgroundPattern}
                   onChange={(e) => setBackgroundPattern(e.target.value)}
-                  className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-700 dark:border-gray-600"
+                  className="w-full border rounded px-2 py-1.5 text-sm dark:bg-gray-800 dark:border-gray-700"
                 >
                   <option value="plain">{t("editor.plain")}</option>
                   <option value="dots">{t("editor.dots")}</option>

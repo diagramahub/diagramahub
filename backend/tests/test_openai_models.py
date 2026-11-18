@@ -3,6 +3,7 @@ Test script para verificar compatibilidad de modelos OpenAI configurados.
 Ejecutar dentro del contenedor:
   docker exec diagramahub-backend python tests/test_openai_models.py
 """
+
 import asyncio
 import sys
 import os
@@ -11,7 +12,7 @@ import time
 # Add backend root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from cryptography.fernet import Fernet
 
 # ── Config ──────────────────────────────────────────────────────────────
@@ -66,7 +67,10 @@ async def run_model_check(api_key: str, model: str):
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a diagram expert. Return only mermaid code, no markdown fences."},
+            {
+                "role": "system",
+                "content": "You are a diagram expert. Return only mermaid code, no markdown fences.",
+            },
             {"role": "user", "content": SIMPLE_DIAGRAM_PROMPT},
         ],
         "max_completion_tokens": 1024,
@@ -79,9 +83,11 @@ async def run_model_check(api_key: str, model: str):
         elapsed = time.time() - t0
 
         if resp.status_code != 200:
-            print_result("Generate diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed)
+            print_result(
+                "Generate diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed
+            )
             return
-        
+
         data = resp.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         if not content:
@@ -99,8 +105,14 @@ async def run_model_check(api_key: str, model: str):
     payload2 = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a diagram expert. Return only the improved mermaid code, no markdown fences."},
-            {"role": "user", "content": f"Here is a mermaid diagram:\n\n{diagram_code}\n\n{IMPROVE_PROMPT}"},
+            {
+                "role": "system",
+                "content": "You are a diagram expert. Return only the improved mermaid code, no markdown fences.",
+            },
+            {
+                "role": "user",
+                "content": f"Here is a mermaid diagram:\n\n{diagram_code}\n\n{IMPROVE_PROMPT}",
+            },
         ],
         "max_completion_tokens": 1024,
     }
@@ -112,7 +124,9 @@ async def run_model_check(api_key: str, model: str):
         elapsed = time.time() - t0
 
         if resp.status_code != 200:
-            print_result("Improve diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed)
+            print_result(
+                "Improve diagram", False, f"HTTP {resp.status_code}: {resp.text[:300]}", elapsed
+            )
             return
 
         data = resp.json()
@@ -184,7 +198,7 @@ async def main():
     print("=" * 60)
 
     # Connect to MongoDB and find OpenAI providers
-    client = AsyncIOMotorClient(MONGO_URI)
+    client = AsyncMongoClient(MONGO_URI)
     db = client[DATABASE_NAME]
     collection = db["user_ai_settings"]
 
@@ -197,14 +211,16 @@ async def main():
                 try:
                     api_key = decrypt_key(p["api_key"])
                     model = p.get("model", "gpt-4o-mini")
-                    openai_configs.append({"api_key": api_key, "model": model, "user_id": doc.get("user_id", "?")})
+                    openai_configs.append(
+                        {"api_key": api_key, "model": model, "user_id": doc.get("user_id", "?")}
+                    )
                 except Exception as e:
                     print(f"⚠️  Could not decrypt key for user {doc.get('user_id', '?')}: {e}")
 
     if not openai_configs:
         print("\n⚠️  No active OpenAI providers found in the database.")
         print("   Make sure you have configured an OpenAI provider in DiagramaHub settings.")
-        client.close()
+        await client.close()
         return
 
     print(f"\nFound {len(openai_configs)} active OpenAI config(s):")
@@ -223,7 +239,7 @@ async def main():
     print(f"\n{'=' * 60}")
     print("✅ Test complete")
     print("=" * 60)
-    client.close()
+    await client.close()
 
 
 if __name__ == "__main__":

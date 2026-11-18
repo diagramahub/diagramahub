@@ -49,9 +49,9 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-6xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {/* Conversion icon */}
@@ -168,7 +168,7 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 activeView === view
                   ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
             >
               {t(`conversion.modal.${view}`)}
@@ -196,8 +196,8 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
                   />
                 </div>
               ) : (
-                <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden shadow-sm h-[40vh] min-h-[280px]">
-                  <div className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 border-b border-gray-300 dark:border-gray-600">
+                <div className="bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm h-[40vh] min-h-[280px]">
+                  <div className="bg-gray-100 dark:bg-gray-900 px-3 py-1.5 border-b border-gray-300 dark:border-gray-700">
                     <span className="text-xs text-gray-600 dark:text-gray-400 font-mono">
                       diagram.{sourceExt}
                     </span>
@@ -228,7 +228,7 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
                   />
                 </div>
               ) : (
-                <div className="bg-white dark:bg-gray-900 border border-green-300 dark:border-green-700 rounded-lg overflow-hidden shadow-sm h-[40vh] min-h-[280px]">
+                <div className="bg-white dark:bg-gray-950 border border-green-300 dark:border-green-700 rounded-lg overflow-hidden shadow-sm h-[40vh] min-h-[280px]">
                   <div className="bg-green-50 dark:bg-green-900/30 px-3 py-1.5 border-b border-green-300 dark:border-green-700">
                     <span className="text-xs text-green-700 dark:text-green-400 font-mono">
                       diagram.{targetExt}
@@ -246,21 +246,21 @@ export const DiagramConversionModal: React.FC<DiagramConversionModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <p className="text-xs text-gray-500 dark:text-gray-400">
             {t("conversion.modal.footerNote")}
           </p>
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200 font-medium text-sm"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 font-medium text-sm"
             >
               {t("common.cancel")}
             </button>
             <button
               onClick={onApply}
               disabled={!canApply}
-              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary"
             >
               {t("conversion.modal.applyConversion")}
             </button>

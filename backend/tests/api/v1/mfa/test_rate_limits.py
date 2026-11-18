@@ -4,6 +4,7 @@ Integration tests for rate limiting on MFA verification.
 A six-digit code is guessable, so attempts must be bounded even for a caller
 holding a valid temporary MFA token.
 """
+
 import pytest
 from httpx import AsyncClient
 

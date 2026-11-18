@@ -1,34 +1,49 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Editor, type OnMount } from '@monaco-editor/react';
-import type { Monaco } from '@monaco-editor/react';
-import { registerD2Language } from '../utils/d2Language';
+import { MONACO_DARK_THEME, monacoLanguageFor, setupMonaco } from '../utils/monacoSetup';
 import { useTheme } from '../contexts/ThemeContext';
 import apiService from '../services/api';
 import { apiErrorMessage } from '../utils/apiError';
 import type { FixDiagramResponse } from '../types/ai';
+import { mermaidSyntaxError } from '../utils/mermaidCheck';
 
 // Compact fix button for the title bar
-function FixButton({ diagramId, errorContext, onFixSuccess, onFixError }: {
+function FixButton({ diagramId, diagramType, errorContext, onFixSuccess, onFixError }: {
   diagramId: string;
+  diagramType: string;
   errorContext: string;
   onFixSuccess: (response: FixDiagramResponse) => void;
   onFixError: (error: string) => void;
 }) {
   const [isFixing, setIsFixing] = useState(false);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const handleFix = async () => {
     setIsFixing(true);
+    const language = i18n.language?.startsWith('en') ? 'en' : 'es';
     try {
-      const response = await apiService.fixDiagram(diagramId, {
-        error_context: errorContext,
-        language: 'es'
-      });
+      let response = await apiService.fixDiagram(diagramId, { error_context: errorContext, language });
+      // The server can only check Mermaid structurally: the real parser runs here. A fix
+      // that still doesn't parse gets one more try with the new error.
+      if (diagramType === 'mermaid') {
+        let syntaxError = await mermaidSyntaxError(response.corrected_code);
+        if (syntaxError) {
+          response = await apiService.fixDiagram(diagramId, {
+            error_context: `${errorContext}\n\nA previous fix still fails with: ${syntaxError}\nThat attempt was:\n${response.corrected_code}`,
+            language,
+          });
+          syntaxError = await mermaidSyntaxError(response.corrected_code);
+        }
+        if (syntaxError) {
+          onFixError(t('editor.fixStillInvalid', { error: syntaxError }));
+          return;
+        }
+      }
       onFixSuccess(response);
     } catch (error: unknown) {
       const detail = apiErrorMessage(error);
-      onFixError(typeof detail === 'string' ? detail : 'Error al corregir el diagrama');
+      onFixError(typeof detail === 'string' ? detail : t('editor.fixFailed'));
     } finally {
       setIsFixing(false);
     }
@@ -143,53 +158,14 @@ export default function DiagramCodePanel({
     }
   }, [isVisible]);
 
-  const monacoLanguage = diagramType === 'd2' ? 'd2' : diagramType === 'plantuml' ? 'java' : 'markdown';
-  const editorTheme = theme === 'dark' ? 'kiro-dark' : 'light';
+  const monacoLanguage = monacoLanguageFor(diagramType);
+  const editorTheme = theme === 'dark' ? MONACO_DARK_THEME : 'light';
   const fileExtension = diagramType === 'plantuml' ? 'diagram.puml' : diagramType === 'd2' ? 'diagram.d2' : diagramType === 'dbml' ? 'diagram.dbml' : 'diagram.mmd';
-
-  const handleEditorWillMount = (monaco: Monaco) => {
-    registerD2Language(monaco);
-
-    // Define custom Kiro dark theme (matching sidebar dark bg)
-    monaco.editor.defineTheme('kiro-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [
-        { token: 'comment', foreground: '6b7280', fontStyle: 'italic' },
-        { token: 'keyword', foreground: 'c084fc' },
-        { token: 'string', foreground: 'a78bfa' },
-        { token: 'number', foreground: 'e879f9' },
-        { token: 'type', foreground: '818cf8' },
-        { token: 'variable', foreground: 'e2e8f0' },
-        { token: 'function', foreground: 'c4b5fd' },
-        { token: 'operator', foreground: 'a5b4fc' },
-        { token: 'delimiter', foreground: '94a3b8' },
-      ],
-      colors: {
-        'editor.background': '#1f2937',
-        'editor.foreground': '#e2e8f0',
-        'editor.lineHighlightBackground': '#2d3748',
-        'editor.selectionBackground': '#7c3aed40',
-        'editor.inactiveSelectionBackground': '#7c3aed20',
-        'editorCursor.foreground': '#a78bfa',
-        'editorLineNumber.foreground': '#4b5563',
-        'editorLineNumber.activeForeground': '#a78bfa',
-        'editor.selectionHighlightBackground': '#7c3aed30',
-        'editorIndentGuide.background1': '#374151',
-        'editorIndentGuide.activeBackground1': '#7c3aed50',
-        'editorBracketMatch.background': '#7c3aed30',
-        'editorBracketMatch.border': '#7c3aed',
-        'scrollbarSlider.background': '#7c3aed30',
-        'scrollbarSlider.hoverBackground': '#7c3aed50',
-        'scrollbarSlider.activeBackground': '#7c3aed70',
-      },
-    });
-  };
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-950 overflow-hidden">
       {/* Title bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs font-mono text-gray-600 dark:text-gray-400">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,6 +181,7 @@ export default function DiagramCodePanel({
           {hasError && diagramId && onFixSuccess && onFixError && (
             <FixButton
               diagramId={diagramId}
+              diagramType={diagramType}
               errorContext={errorMessage || 'Syntax error'}
               onFixSuccess={onFixSuccess}
               onFixError={onFixError}
@@ -234,7 +211,7 @@ export default function DiagramCodePanel({
       {/* Editor — uses pixel height from ResizeObserver */}
       <div ref={editorContainerRef} className="flex-1 min-h-0 overflow-hidden">
         <Editor
-          beforeMount={handleEditorWillMount}
+          beforeMount={setupMonaco}
           onMount={handleEditorDidMount}
           height={`${editorHeight}px`}
           language={monacoLanguage}
@@ -276,7 +253,7 @@ export default function DiagramCodePanel({
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 text-xs font-mono text-gray-600 dark:text-gray-400 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1 bg-gray-100 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 text-xs font-mono text-gray-600 dark:text-gray-400 flex-shrink-0">
         <div className="flex items-center gap-2">
           {hasError ? (
             <span className="flex items-center gap-1 text-red-400">

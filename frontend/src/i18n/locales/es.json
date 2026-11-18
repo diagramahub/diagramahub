@@ -93,6 +93,7 @@
     "required": "Este campo es requerido",
     "emailInvalid": "Correo electrónica inválido",
     "passwordMin": "La contraseña debe tener al menos 12 caracteres",
+    "passwordMaxBytes": "La contraseña no puede pasar de 72 bytes (las letras con acento y los emoji ocupan más de uno)",
     "passwordUppercase": "La contraseña debe contener al menos una letra mayúscula",
     "passwordLowercase": "La contraseña debe contener al menos una letra minúscula",
     "passwordNumber": "La contraseña debe contener al menos un número",
@@ -104,6 +105,7 @@
   "password": {
     "strength": {
       "minLength": "Al menos 12 caracteres",
+      "maxBytes": "Máximo 72 bytes (los acentos y emoji cuentan doble o más)",
       "uppercase": "Al menos una letra mayúscula",
       "lowercase": "Al menos una letra minúscula",
       "digit": "Al menos un número",
@@ -151,13 +153,12 @@
       "noAiModels": "Sin modelos conectados"
     },
     "plans": {
-      "notSynced": "Plan no sincronizado con gateway de pago",
+      "notSynced": "Este plan de pago todavía no tiene producto en la pasarela de pago, así que nadie puede pagarlo.",
       "delete": "Eliminar plan",
-      "deactivate": "Desactivar plan",
-      "deactivateAction": "Desactivar",
-      "noGateway": "Sin Gateway",
-      "deactivateConfirm": "¿Desactivar el plan \"{{name}}\"? Las suscripciones existentes se mantendrán activas, pero nuevos usuarios no podrán suscribirse. El producto se archivará en Stripe.",
-      "deleteConfirm": "¿Estás seguro de eliminar el plan \"{{name}}\"? Esta acción eliminará el plan de la base de datos y de Stripe. Esta acción no se puede deshacer.",
+      "deactivate": "Dejar de ofrecer el plan",
+      "deactivateAction": "Dejar de ofrecer",
+      "deactivateConfirm": "¿Dejar de ofrecer el plan «{{name}}»? Las suscripciones actuales siguen igual; los usuarios nuevos ya no podrán elegirlo.",
+      "deleteConfirm": "¿Eliminar el plan «{{name}}»? Se borra de DiagramaHub y se archiva en la pasarela de pago. No se puede deshacer.",
       "deletePrice": "Eliminar precio",
       "deletePriceConfirm": "¿Estás seguro de eliminar el precio en {{currency}}? El precio se desactivará en Stripe.",
       "namePlaceholder": "ej: Pro, Enterprise",
@@ -165,7 +166,104 @@
       "descriptionPlaceholder": "Breve descripción de las características del plan",
       "projectsPlaceholder": "ej: 10",
       "diagramsPlaceholder": "ej: 100",
-      "selectCurrency": "Seleccionar moneda..."
+      "selectCurrency": "Seleccionar moneda...",
+      "create": "Nuevo plan",
+      "summary": {
+        "activePlans": "Planes activos",
+        "activeOf": "{{active}} de {{total}}",
+        "subscribers": "Suscriptores activos",
+        "paidPlans": "Planes de pago activos"
+      },
+      "gatewayWarning_one": "El plan {{names}} es de pago pero no está conectado a una pasarela de pago, así que nadie puede pagarlo todavía.",
+      "gatewayWarning_other": "{{count}} planes de pago ({{names}}) no están conectados a una pasarela de pago, así que nadie puede pagarlos todavía.",
+      "gatewayWarningAction": "Configurar en Integraciones",
+      "free": "Gratis",
+      "perMonth": "/mes",
+      "defaultPlan": "Plan de las cuentas nuevas",
+      "inactive": "No disponible",
+      "projects_one": "{{count}} proyecto",
+      "projects_other": "{{count}} proyectos",
+      "unlimitedProjects": "Proyectos ilimitados",
+      "diagrams_one": "{{count}} diagrama",
+      "diagrams_other": "{{count}} diagramas",
+      "unlimitedDiagrams": "Diagramas ilimitados",
+      "subscribers_one": "{{count}} suscriptor activo",
+      "subscribers_other": "{{count}} suscriptores activos",
+      "gatewaySynced": "Conectado a {{provider}}",
+      "noGateway": "Sin pasarela de pago",
+      "available": "Disponible",
+      "unavailable": "No disponible",
+      "toggleLabel": "«{{name}}» disponible para suscribirse",
+      "edit": "Editar",
+      "currencies": "Monedas",
+      "hideCurrencies": "Ocultar monedas",
+      "otherCurrencies": "También en {{list}}",
+      "deleteDisabled": "Solo se puede eliminar un plan sin suscriptores activos",
+      "messages": {
+        "created": "Plan «{{name}}» creado.",
+        "updated": "Plan «{{name}}» guardado.",
+        "activated": "El plan «{{name}}» ya se puede elegir.",
+        "deactivated": "El plan «{{name}}» ya no se ofrece a usuarios nuevos.",
+        "deleted": "Plan «{{name}}» eliminado.",
+        "loadError": "No se pudieron cargar los planes.",
+        "actionError": "No se pudo completar la acción.",
+        "dismiss": "Cerrar aviso"
+      },
+      "empty": {
+        "title": "Todavía no hay planes",
+        "description": "Crea el primero: define sus límites y su precio mensual."
+      },
+      "form": {
+        "createTitle": "Nuevo plan",
+        "editTitle": "Editar «{{name}}»",
+        "close": "Cerrar",
+        "name": "Nombre",
+        "code": "Código",
+        "codeHelp": "Identificador único: mayúsculas, números, guiones y guiones bajos.",
+        "codeFreeLocked": "El código del plan gratuito no se puede cambiar.",
+        "description": "Descripción",
+        "priceUsd": "Precio mensual (USD)",
+        "priceHelp": "0 para un plan gratuito.",
+        "priceLocked": "El precio no se puede cambiar mientras el plan tenga suscriptores activos.",
+        "otherCurrencies": "Precios en otras monedas",
+        "otherCurrenciesHelp": "La pasarela cobra a cada cliente en la moneda que le corresponde.",
+        "addCurrency": "Agregar moneda",
+        "removeCurrency": "Quitar {{currency}}",
+        "limits": "Límites",
+        "maxProjects": "Proyectos",
+        "maxDiagrams": "Diagramas",
+        "unlimited": "Ilimitados",
+        "status": "Disponible para suscribirse",
+        "statusOn": "Los usuarios pueden elegir este plan.",
+        "statusOff": "Los usuarios nuevos no pueden elegirlo; las suscripciones actuales siguen.",
+        "save": "Guardar cambios",
+        "create": "Crear plan",
+        "saving": "Guardando…",
+        "errors": {
+          "name": "Escribe el nombre del plan.",
+          "code": "Escribe el código del plan.",
+          "price": "El precio debe ser un número igual o mayor a 0.",
+          "projects": "El límite de proyectos debe ser un número igual o mayor a 0.",
+          "diagrams": "El límite de diagramas debe ser un número igual o mayor a 0.",
+          "save": "No se pudo guardar el plan."
+        }
+      },
+      "prices": {
+        "title": "Precio en otra moneda",
+        "currency": "Moneda",
+        "amount": "Monto mensual",
+        "amountPerMonth": "Monto/mes",
+        "add": "Agregar precio",
+        "adding": "Guardando…",
+        "none": "Solo en USD",
+        "remove": "Quitar el precio en {{currency}}",
+        "errors": {
+          "currency": "Elige una moneda.",
+          "amount": "El monto debe ser mayor a 0.",
+          "add": "No se pudo agregar el precio.",
+          "remove": "No se pudo quitar el precio."
+        }
+      }
     }
   },
   "chat": {
@@ -232,7 +330,8 @@
       "deleteMessage": "Error al eliminar el mensaje",
       "noStreamBody": "El servidor no devolvió una respuesta. Inténtalo de nuevo.",
       "network": "Se interrumpió la conexión. Inténtalo de nuevo."
-    }
+    },
+    "readsImages": "Lee imágenes"
   },
   "installation": {
     "title": "Bienvenido a DiagramaHub",
@@ -295,7 +394,77 @@
     "aiUsage": "Uso de motores de IA",
     "totalAiMessages": "mensajes totales con IA",
     "noAiUsage": "Sin uso de IA registrado",
-    "recentDiagrams": "Últimos diagramas actualizados"
+    "recentDiagrams": "Últimos diagramas actualizados",
+    "openProjects": "Ver todos los proyectos",
+    "openLastDiagram": "Abrir «{{title}}»",
+    "openSubscription": "Ver tu suscripción",
+    "projectsOfLimit": "de {{limit}} proyectos",
+    "diagramsOfLimit": "de {{limit}} diagramas",
+    "activity": {
+      "title": "Actividad",
+      "subtitle": "Diagramas en los que trabajaste cada día · últimas 12 semanas",
+      "diagramsWorked_one": "{{count}} diagrama trabajado",
+      "diagramsWorked_other": "{{count}} diagramas trabajados",
+      "activeDays_one": "{{count}} día activo",
+      "activeDays_other": "{{count}} días activos",
+      "currentStreak": "Racha actual",
+      "longestStreak": "Mejor racha",
+      "streakDays_one": "{{count}} día",
+      "streakDays_other": "{{count}} días",
+      "less": "Menos",
+      "more": "Más",
+      "cell_one": "{{date}}: {{count}} diagrama",
+      "cell_other": "{{date}}: {{count}} diagramas",
+      "cellNone": "{{date}}: sin actividad",
+      "hint": "Pasa el cursor por un día para ver el detalle",
+      "chartLabel": "Mapa de actividad: {{worked}} en {{active}} durante las últimas 12 semanas",
+      "tableCaption": "Días con actividad",
+      "tableDate": "Día",
+      "tableCount": "Diagramas",
+      "empty": "Aún no hay actividad. Crea o edita un diagrama y aparecerá aquí.",
+      "loadError": "No se pudo cargar la actividad.",
+      "diagramsLabel": "Diagramas trabajados",
+      "activeDaysLabel": "Días activos"
+    },
+    "impact": {
+      "title": "Impacto en la Comunidad",
+      "stars": "Estrellas",
+      "forks": "Forks",
+      "views": "Vistas",
+      "comments": "Comentarios",
+      "publications_one": "{{count}} publicación",
+      "publications_other": "{{count}} publicaciones",
+      "starsLast30": "+{{count}} estrellas en 30 días",
+      "top": "Tu publicación más destacada",
+      "openTop": "Abrir «{{title}}» en la Comunidad",
+      "seeMine": "Ver mis publicaciones",
+      "emptyTitle": "Aún no has publicado",
+      "emptyDescription": "Publica un diagrama en la Comunidad para recibir estrellas, forks y comentarios.",
+      "explore": "Explorar la Comunidad"
+    },
+    "favorites": {
+      "title": "Favoritos",
+      "subtitle": "Tus diagramas marcados con estrella",
+      "diagram": "Diagrama",
+      "project": "Proyecto",
+      "type": "Tipo",
+      "updated": "Última edición",
+      "actions": "Acciones",
+      "open": "Abrir «{{title}}»",
+      "remove": "Quitar «{{title}}» de favoritos",
+      "removed": "«{{title}}» ya no está en favoritos",
+      "undo": "Deshacer",
+      "removeError": "No se pudo quitar de favoritos. Inténtalo de nuevo.",
+      "emptyTitle": "Aún no tienes favoritos",
+      "emptyDescription": "Marca un diagrama con la estrella junto a su título en el editor, o desde su menú en el explorador, y tendrás aquí un acceso directo.",
+      "showing": "Mostrando {{shown}} de {{total}}"
+    }
+  },
+  "favorite": {
+    "add": "Añadir a favoritos",
+    "remove": "Quitar de favoritos",
+    "marked": "En favoritos",
+    "error": "No se pudo actualizar favoritos. Inténtalo de nuevo."
   },
   "project": {
     "createTitle": "Crear nuevo proyecto",
@@ -436,7 +605,7 @@
     "selectLanguage": "Selecciona tu idioma preferido",
     "cancelEdit": "Cancelar",
     "saveChanges": "Guardar Cambios",
-    "invalidImageType": "Por favor selecciona un archivo de imagen válido",
+    "invalidImageType": "Elige una imagen PNG, JPEG, GIF, WebP, AVIF o BMP",
     "imageTooLarge": "La imagen debe ser menor a 2MB",
     "allFieldsRequired": "Todos los campos son obligatorios",
     "passwordsDoNotMatch": "Las contraseñas no coinciden",
@@ -456,7 +625,7 @@
   "settings": {
     "title": "Ajustes",
     "comingSoon": "Próximamente",
-    "comingSoonDescription": "Estamos trabajando en nuevas opciones de configuración para mejorar tu experiencia. Pronto podrás personalizar temas, notificaciones y mucho más.",
+    "pageDescription": "Integraciones de IA, tokens de API y tu cuenta.",
     "futureFeatures": "Próximas funcionalidades",
     "appearance": "Apariencia",
     "appearanceDescription": "Personaliza el tema y la apariencia de la aplicación",
@@ -560,6 +729,8 @@
     "noErrors": "Sin errores",
     "fixing": "Corrigiendo...",
     "fixWithAI": "Corregir con IA",
+    "fixStillInvalid": "La IA no logró una corrección que dibuje (después de reintentar): {{error}}",
+    "fixFailed": "No se pudo corregir el diagrama",
     "fix": "Corregir",
     "copied": "¡Copiado!",
     "copyCode": "Copiar código",
@@ -720,7 +891,17 @@
     "exporting": "Exportando…",
     "error": "No fue posible exportar. Inténtalo de nuevo.",
     "tooMany": "Demasiadas exportaciones seguidas. Espera un momento e inténtalo de nuevo.",
-    "tooManyRetry": "Demasiadas exportaciones seguidas. Inténtalo de nuevo en {{seconds}} s."
+    "tooManyRetry": "Demasiadas exportaciones seguidas. Inténtalo de nuevo en {{seconds}} s.",
+    "formatPdf": "PDF",
+    "formatPdfHint": "Una página por diagrama, con portada e índice. Se genera en tu navegador; los pizarrones no se incluyen.",
+    "pdfSummary": "{{diagrams}} en el PDF (sin contar pizarrones)",
+    "pdfProgress": "Generando PDF {{done}}/{{total}}…",
+    "pdfExportedOn": "Exportado el {{date}}",
+    "pdfContents": "Contenido",
+    "pdfSketchesSkipped_one": "{{count}} pizarrón no se incluye: ábrelo y expórtalo como PNG.",
+    "pdfSketchesSkipped_other": "{{count}} pizarrones no se incluyen: ábrelos y expórtalos como PNG.",
+    "pdfRenderError": "Este diagrama no se pudo renderizar.",
+    "pdfPage": "pág. {{page}}"
   },
   "fileBrowser": {
     "actionsFor": "Acciones de {{name}}",
@@ -743,7 +924,12 @@
     "deleteDiagramError": "No fue posible eliminar el diagrama. Inténtalo de nuevo.",
     "createFolderError": "No fue posible crear la carpeta. Inténtalo de nuevo.",
     "renameFolderError": "No fue posible renombrar la carpeta. Inténtalo de nuevo.",
-    "deleteFolderError": "No fue posible eliminar la carpeta. Inténtalo de nuevo."
+    "deleteFolderError": "No fue posible eliminar la carpeta. Inténtalo de nuevo.",
+    "inContent": "En el contenido",
+    "searchingContent": "Buscando en el contenido…",
+    "contentSearchError": "No se pudo buscar en el contenido.",
+    "filterByType": "Filtrar por tipo",
+    "allTypes": "Todos"
   },
   "errors": {
     "genericError": "Ocurrió un error",
@@ -1076,13 +1262,13 @@
   },
   "ai": {
     "title": "Integraciones de IA",
-    "subtitle": "Conecta proveedores de IA para generar descripciones automáticas de tus diagramas",
+    "subtitle": "Conecta tus propios proveedores de IA para generar, mejorar, corregir y conversar sobre tus diagramas. Tus claves se guardan cifradas.",
     "noProviders": "No tienes proveedores configurados",
-    "noProvidersDescription": "Agrega una clave API para comenzar a generar descripciones con IA",
-    "addProvider": "Agregar Proveedor",
-    "editProvider": "Editar Proveedor",
-    "removeProvider": "Eliminar Proveedor",
-    "testProvider": "Probar Conexión",
+    "noProvidersDescription": "Agrega la clave API de un proveedor (Gemini, OpenAI, Claude, DeepSeek o MiniMax) para usar la IA en el editor.",
+    "addProvider": "Agregar proveedor",
+    "editProvider": "Editar proveedor",
+    "removeProvider": "Eliminar proveedor",
+    "testProvider": "Probar conexión",
     "providers": {
       "gemini": "Google Gemini",
       "openai": "OpenAI GPT",
@@ -1115,7 +1301,8 @@
       "advancedSettings": "Configuración avanzada",
       "recommended": "Recomendado",
       "retired": "retirado",
-      "retiredHint": "Este modelo ya no está en la lista; sigue funcionando mientras el proveedor lo ofrezca. Puedes cambiarlo al editar."
+      "retiredHint": "Este modelo ya no está en la lista; sigue funcionando mientras el proveedor lo ofrezca. Puedes cambiarlo al editar.",
+      "readsImages": "lee imágenes"
     },
     "settings": {
       "autoGenerate": "Generar descripciones automáticamente",
@@ -1198,7 +1385,8 @@
       "invalid_key": "La llave de API no es válida o no tiene permisos.",
       "model_unavailable": "El modelo elegido no está disponible para esta llave. Elige otro modelo.",
       "provider_error": "El proveedor respondió con un error. Revisa la llave y el modelo e inténtalo de nuevo."
-    }
+    },
+    "makeDefault": "Usar «{{name}}» como predeterminado"
   },
   "oauth": {
     "divider": "o",
@@ -1248,7 +1436,19 @@
     "generateError": "Error al generar el enlace",
     "revokeError": "Error al revocar el enlace",
     "enterCodePlaceholder": "Ingresa el código",
-    "sharedViewLabel": "Vista compartida"
+    "sharedViewLabel": "Vista compartida",
+    "allowEmbed": "Permitir incrustar",
+    "allowEmbedDesc": "Otros sitios pueden mostrar el diagrama en un iframe",
+    "updateError": "No se pudo actualizar el enlace",
+    "embedCode": "Código para insertar",
+    "copyEmbedCode": "Copiar código",
+    "qrTitle": "Código QR",
+    "qrDesc": "Abre el enlace desde un teléfono o en una presentación",
+    "qrShow": "Mostrar QR",
+    "qrHide": "Ocultar QR",
+    "qrAlt": "Código QR del enlace compartido",
+    "qrDownload": "Descargar PNG",
+    "qrError": "No se pudo generar el código QR"
   },
   "export": {
     "error": {
@@ -1289,18 +1489,12 @@
     "community": "Comunidad",
     "about": "Acerca de",
     "comingSoon": "Próximamente",
-    "communityModalTitle": "Comunidad DiagramaHub",
-    "communityModalDescription": "Estamos trabajando en un espacio donde podrás compartir tus diagramas, descubrir los de otros usuarios y colaborar con la comunidad. ¡Mantente atento!",
-    "communityModalClose": "Entendido"
+    "apiKeys": "API Keys"
   },
   "about": {
     "title": "Acerca de DiagramaHub",
     "intro": "Una plataforma de código abierto y autoalojable para crear, organizar y compartir diagramas a partir de texto.",
-    "whatIsTitle": "Diagramas como código",
     "whatIsDescription": "Crea diagramas con Mermaid, PlantUML, D2 y DBML, conserva el código como fuente de verdad y expórtalo cuando lo necesites.",
-    "openSourceTitle": "Abierto y autoalojable",
-    "openSourceDescription": "DiagramaHub está construido para equipos y desarrolladores que buscan una experiencia moderna, privada y sin dependencia de un proveedor.",
-    "exploreRepository": "Explorar el repositorio",
     "currentVersion": "Versión {{version}}",
     "viewReleases": "Ver releases",
     "highlightsTitle": "Hecho para tu flujo de trabajo",
@@ -1322,7 +1516,36 @@
     "connectDescription": "Código abierto, comunidad y soporte.",
     "repository": "Repositorio en GitHub",
     "xAccount": "Cuenta en X",
-    "contact": "Correo de contacto"
+    "contact": "Correo de contacto",
+    "star": {
+      "kicker": "Apoya el proyecto",
+      "count_one": "{{count}} estrella en GitHub",
+      "count_other": "{{count}} estrellas en GitHub",
+      "titleFirst": "Sé de los primeros en darle una estrella",
+      "titleNoCount": "Apóyalo con una estrella en GitHub",
+      "soFar_one": "{{count}} estrella hasta ahora",
+      "soFar_other": "{{count}} estrellas hasta ahora",
+      "cta": "Dar una estrella en GitHub",
+      "why": "Es gratis, toma dos segundos y ayuda a que más equipos descubran DiagramaHub.",
+      "reasonsTitle": "Tu estrella hace la diferencia",
+      "reasons": {
+        "discover": {
+          "title": "Más equipos lo encuentran",
+          "description": "GitHub y los buscadores muestran primero los proyectos con más estrellas."
+        },
+        "trust": {
+          "title": "Confianza para adoptarlo",
+          "description": "Las estrellas son lo primero que revisa quien evalúa una herramienta de código abierto."
+        },
+        "momentum": {
+          "title": "Impulso para seguir",
+          "description": "Cada estrella le dice al equipo que vale la pena seguir mejorándolo."
+        }
+      },
+      "howTitle": "¿Cómo?",
+      "howSteps": "Abre el repositorio, inicia sesión en GitHub y pulsa «Star» arriba a la derecha.",
+      "openRepository": "Abrir el repositorio"
+    }
   },
   "conversion": {
     "sketchToMermaid": "Boceto → Mermaid",
@@ -1461,5 +1684,558 @@
     "wrongCode": "Código de acceso incorrecto",
     "tooManyAttempts": "Demasiados intentos",
     "verifyError": "Error al verificar el código"
+  },
+  "promptHistory": {
+    "button": "Historial",
+    "title": "Historial de prompts",
+    "searchPlaceholder": "Buscar en tus prompts",
+    "empty": "Aún no hay prompts. Los que generen un diagrama en el chat aparecerán aquí.",
+    "noResults": "Ningún prompt coincide con la búsqueda.",
+    "error": "No se pudo cargar el historial.",
+    "delete": "Borrar del historial",
+    "operation": {
+      "creation": "Creación",
+      "improvement": "Mejora"
+    }
+  },
+  "embed": {
+    "notAllowed": "El propietario no permite incrustar este diagrama.",
+    "openInDiagramaHub": "Abrir en DiagramaHub"
+  },
+  "presentation": {
+    "presentProject": "Presentar proyecto",
+    "presentFolder": "Presentar carpeta",
+    "counter": "{{current}} de {{total}}",
+    "previous": "Diagrama anterior",
+    "next": "Diagrama siguiente",
+    "notes": "Notas",
+    "fullscreen": "Pantalla completa",
+    "exitFullscreen": "Salir de pantalla completa",
+    "exit": "Salir de la presentación",
+    "empty": "No hay diagramas para presentar.",
+    "loadError": "No se pudo cargar el proyecto.",
+    "back": "Volver al editor"
+  },
+  "imageToDiagram": {
+    "button": "Desde imagen",
+    "title": "Diagrama desde una imagen",
+    "subtitle": "Sube una foto de un pizarrón, una captura o un boceto y la IA lo convierte en código del diagrama actual.",
+    "drop": "Haz clic, arrastra una imagen aquí o pégala con Ctrl/Cmd+V",
+    "formats": "PNG, JPEG o WebP, hasta 4 MB",
+    "previewAlt": "Imagen elegida",
+    "instructions": "Indicaciones (opcional)",
+    "instructionsPlaceholder": "Por ejemplo: de izquierda a derecha, agrupa por equipo",
+    "generate": "Generar",
+    "generating": "Convirtiendo…",
+    "result": "Resultado",
+    "apply": "Aplicar al diagrama",
+    "replaceWarning": "Aplicarlo reemplaza el código actual del diagrama.",
+    "errors": {
+      "tooLarge": "La imagen pasa de 4 MB.",
+      "notImage": "El archivo no es una imagen PNG, JPEG o WebP.",
+      "notSupported": "Este proveedor no lee imágenes. Usa Gemini, OpenAI o Claude.",
+      "truncated": "La respuesta se cortó antes de terminar el diagrama. Intenta con una imagen más simple.",
+      "empty": "La IA no devolvió un diagrama. Intenta con otra imagen o agrega indicaciones.",
+      "noProvider": "No tienes un proveedor de IA activo. Agrega una API key en Configuración.",
+      "generic": "No se pudo generar el diagrama."
+    },
+    "buttonHint": "Convierte una foto, captura o boceto en un diagrama",
+    "needsImageModel": "Elige un modelo que lea imágenes (Gemini, OpenAI o Claude) para usar esta función",
+    "modelWithoutImages": "{{model}} no lee imágenes. Elige en el chat un modelo marcado con el ícono de imagen (Gemini, OpenAI o Claude).",
+    "progress": {
+      "title": "Convirtiendo la imagen en diagrama",
+      "elapsed": "{{seconds}} s",
+      "theModel": "el modelo",
+      "steps": {
+        "upload": "Subir la imagen",
+        "analyze": "La IA lee la imagen y escribe el código",
+        "render": "Dibujar la vista previa"
+      },
+      "uploading": "Subiendo…",
+      "uploadingPercent": "Subiendo… {{percent}} %",
+      "rendering": "Preparando la vista previa…",
+      "hints": {
+        "reading": "{{model}} está leyendo la imagen…",
+        "elements": "Identificando elementos, textos y conexiones…",
+        "writing": "Escribiendo el código {{type}}…",
+        "reviewing": "Revisando que el diagrama esté completo…",
+        "slow": "Está tardando más de lo normal. Los modelos que razonan pueden tardar hasta 2 minutos."
+      },
+      "cancel": "Cancelar conversión",
+      "cancelled": "Conversión cancelada. Puedes volver a generar cuando quieras.",
+      "doneIn": "Listo en {{seconds}} s"
+    }
+  },
+  "mermaidOptions": {
+    "themes": {
+      "redux-color": "Redux color (predeterminado)",
+      "redux": "Redux",
+      "redux-dark-color": "Redux oscuro color",
+      "redux-dark": "Redux oscuro",
+      "neo": "Neo",
+      "neo-dark": "Neo oscuro",
+      "default": "Clásico",
+      "base": "Base (personalizable)",
+      "dark": "Oscuro",
+      "forest": "Bosque",
+      "neutral": "Neutral"
+    },
+    "layouts": {
+      "elk": "ELK (predeterminado)",
+      "dagre": "Dagre"
+    },
+    "looks": {
+      "neo": "Neo (predeterminado)",
+      "classic": "Clásico",
+      "handDrawn": "A mano"
+    },
+    "curve": "Tipo de líneas",
+    "curves": {
+      "default": "Predeterminado",
+      "basis": "Suaves (basis)",
+      "linear": "Rectas (linear)",
+      "step": "Escalones (step)",
+      "stepBefore": "Escalones antes",
+      "stepAfter": "Escalones después"
+    },
+    "globalStyles": "Estilos globales",
+    "font": "Fuente",
+    "fontDefault": "Predeterminada",
+    "fontSize": "Tamaño de fuente (px)",
+    "fontSizes": {
+      "12": "12 px (pequeño)",
+      "14": "14 px (normal)",
+      "16": "16 px (mediano)",
+      "18": "18 px (grande)",
+      "20": "20 px (muy grande)"
+    }
+  },
+  "community": {
+    "title": "Comunidad",
+    "subtitle": "Diagramas públicos de la comunidad: explóralos, dales estrella y haz fork para usarlos en tus proyectos.",
+    "publishCta": "Publicar un diagrama",
+    "publishHint": "Abre un diagrama y usa «Publicar en la Comunidad» en la barra del editor.",
+    "tabs": {
+      "explore": "Explorar",
+      "featured": "Destacados",
+      "starred": "Mis estrellas",
+      "mine": "Mis publicaciones",
+      "reports": "Reportes"
+    },
+    "searchPlaceholder": "Buscar por título, autor o etiqueta…",
+    "filterByType": "Filtrar por tipo",
+    "allTypes": "Todos",
+    "sortLabel": "Ordenar",
+    "sort": {
+      "trending": "Tendencia",
+      "stars": "Más estrellas",
+      "forks": "Más forks",
+      "recent": "Más recientes"
+    },
+    "categoriesLabel": "Categorías",
+    "allCategories": "Todas",
+    "categories": {
+      "architecture": "Arquitectura",
+      "databases": "Bases de datos",
+      "business-processes": "Procesos de negocio",
+      "devops": "DevOps",
+      "uml": "UML",
+      "security": "Seguridad",
+      "ai-data": "IA y datos",
+      "education": "Educación"
+    },
+    "resultCount_one": "{{count}} diagrama",
+    "resultCount_other": "{{count}} diagramas",
+    "loadError": "No se pudo cargar la Comunidad.",
+    "emptyTitle": "Nada por aquí",
+    "empty": "Ningún diagrama coincide con los filtros.",
+    "emptyMineTitle": "Aún no publicas nada",
+    "emptyMine": "Abre un diagrama y usa «Publicar en la Comunidad» en la barra del editor.",
+    "loadMore": "Cargar más",
+    "previewError": "Vista previa no disponible",
+    "featured": "Destacado",
+    "hiddenBadge": "Oculto",
+    "star": "Dar estrella",
+    "unstar": "Quitar estrella",
+    "starred": "Con estrella",
+    "forks": "Forks",
+    "comments": "Comentarios",
+    "views": "Vistas",
+    "updated": "Actualizado",
+    "notFound": "Este diagrama no existe o ya no está publicado.",
+    "backToCommunity": "Volver a la Comunidad",
+    "hiddenNotice": "Esta publicación está oculta por reportes de la comunidad. Solo la ven su autor y los administradores.",
+    "publishedOn": "publicado el {{date}}",
+    "commentsTitle": "Comentarios ({{count}})",
+    "commentPlaceholder": "Escribe un comentario público (Markdown)…",
+    "commentHint": "Sé amable: los comentarios se pueden reportar.",
+    "comment": "Comentar",
+    "commentsOff": "El autor desactivó los comentarios.",
+    "noComments": "Aún no hay comentarios. Sé el primero.",
+    "replyingTo": "Respondiendo a {{name}}.",
+    "reply": "Responder",
+    "delete": "Borrar",
+    "report": "Reportar",
+    "authorBadge": "Autor",
+    "fork": "Fork a mi cuenta",
+    "copyLink": "Copiar enlace",
+    "linkCopied": "Enlace copiado.",
+    "moreFromAuthor": "Del mismo autor",
+    "reportDiagram": "Reportar este diagrama",
+    "forkDescription": "Se crea una copia editable en tu proyecto. Cuenta para el límite de tu plan.",
+    "forkProject": "Proyecto destino",
+    "forkName": "Título",
+    "forkTitleDefault": "{{title}} (fork)",
+    "forkNoProjects": "Primero crea un proyecto.",
+    "forkAttribution": "La descripción del fork incluye la atribución al autor y la licencia.",
+    "forkedFrom": "Fork de <original>«{{title}}»</original> de {{owner}}",
+    "forkConfirm": "Hacer fork",
+    "forking": "Creando…",
+    "forkLimit": "No se pudo hacer el fork: revisa el límite de tu plan o el proyecto elegido.",
+    "reportTitle": "Reportar",
+    "reportDescription": "Cuéntanos qué está mal (spam, datos sensibles, contenido ofensivo…). Los administradores lo revisan.",
+    "reportReason": "Motivo",
+    "reportSend": "Enviar reporte",
+    "reportSent": "Gracias, enviamos tu reporte.",
+    "actionError": "No se pudo completar la acción.",
+    "tooFast": "Demasiadas acciones seguidas. Espera un momento.",
+    "owner": {
+      "title": "Tu publicación",
+      "unpublish": "Retirar de la Comunidad",
+      "unpublishTitle": "Retirar publicación",
+      "unpublishMessage": "El diagrama deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan.",
+      "synced": "Se mantiene sincronizada con tu diagrama: los cambios se publican solos."
+    },
+    "admin": {
+      "title": "Moderación",
+      "feature": "Destacar",
+      "unfeature": "Quitar de destacados",
+      "hide": "Ocultar",
+      "restore": "Restaurar (cierra los reportes)",
+      "remove": "Eliminar publicación"
+    },
+    "reports": {
+      "empty": "No hay reportes abiertos.",
+      "review": "Revisar",
+      "target": {
+        "diagram": "Diagrama",
+        "comment": "Comentario"
+      }
+    },
+    "publish": {
+      "button": "Publicar en la Comunidad",
+      "title": "Publicar en la Comunidad",
+      "subtitle": "Lo publicado lo puede ver cualquiera, incluso sin cuenta, y se mantiene sincronizado con tu diagrama.",
+      "category": "Categoría",
+      "tags": "Etiquetas",
+      "tagsPlaceholder": "Escribe una etiqueta…",
+      "tagsMore": "Otra etiqueta…",
+      "tagsHint": "Enter o coma para agregar · {{count}}/{{max}}",
+      "tagsFull": "Llegaste al máximo de {{max}} etiquetas.",
+      "removeTag": "Quitar la etiqueta {{tag}}",
+      "description": "Descripción pública",
+      "allowComments": "Permitir comentarios",
+      "sensitiveWarning": "Revisa que el diagrama no tenga datos sensibles (credenciales, nombres de clientes, IPs internas). Al publicar aceptas las normas de la Comunidad.",
+      "confirm": "Publicar",
+      "publishing": "Publicando…",
+      "published": "¡Publicado!",
+      "unpublished": "Publicación retirada.",
+      "error": "No se pudo publicar el diagrama.",
+      "notPublishable": "Los pizarrones todavía no se pueden publicar.",
+      "alreadyPublished": "Este diagrama está publicado: {{stars}} estrellas, {{forks}} forks.",
+      "viewInCommunity": "Ver en la Comunidad",
+      "licenseNotice": "Todo lo que se publica en la Comunidad es público bajo la licencia <licenseLink>{{license}}</licenseLink>: cualquiera puede verlo, hacer fork y adaptarlo, siempre dándote crédito. Cada fork queda registrado y suma a tu publicación.",
+      "manageTitle": "Tu publicación en la Comunidad",
+      "descriptionHint": "Es la descripción del diagrama: lo que cambies aquí se guarda en él y se publica.",
+      "descriptionPlaceholder": "Cuenta qué muestra el diagrama, para quién es y cómo usarlo…",
+      "commentsHint": "Otros usuarios pueden comentar y responder en tu publicación.",
+      "syncNotice": "Siempre sincronizado: el título, el código y la descripción se actualizan solos cuando cambias el diagrama.",
+      "statusPublished": "Publicado",
+      "save": "Guardar cambios",
+      "saving": "Guardando…",
+      "saved": "Cambios guardados."
+    },
+    "viewer": {
+      "label": "Visor del diagrama",
+      "zoomIn": "Acercar",
+      "zoomOut": "Alejar",
+      "fit": "Ajustar a la vista",
+      "fullscreen": "Pantalla completa",
+      "exitFullscreen": "Salir de pantalla completa",
+      "hint": "Arrastra para mover · Ctrl/⌘ + rueda o pellizca para hacer zoom · doble clic para ajustar",
+      "hintFullscreen": "Arrastra para mover · rueda para hacer zoom · Esc para salir"
+    },
+    "detail": {
+      "description": "Descripción",
+      "code": "Código",
+      "lines_one": "{{count}} línea",
+      "lines_other": "{{count}} líneas",
+      "copyCode": "Copiar código",
+      "codeCopied": "Código copiado.",
+      "showMore": "Mostrar más",
+      "showLess": "Mostrar menos",
+      "noDescription": "El autor no agregó una descripción.",
+      "details": "Detalles",
+      "stars": "Estrellas",
+      "license": "Licencia"
+    },
+    "public": {
+      "label": "Público",
+      "hidden": "Oculto",
+      "tooltip": "Publicado en la Comunidad: todos los usuarios pueden verlo.",
+      "hiddenTooltip": "Publicado, pero oculto por moderación: los demás no pueden verlo.",
+      "manage": "Administrar la publicación"
+    },
+    "signIn": {
+      "title": "Únete para continuar",
+      "register": "Crear cuenta gratis",
+      "registerShort": "Crear cuenta",
+      "login": "Iniciar sesión",
+      "notNow": "Ahora no",
+      "comeBack": "Al terminar volverás a esta página.",
+      "commentCta": "Inicia sesión o crea una cuenta para comentar.",
+      "commentButton": "Comentar",
+      "reasons": {
+        "star": "Crea una cuenta para dar estrella a los diagramas que te gustan y encontrarlos después en «Mis estrellas».",
+        "fork": "Crea una cuenta para copiar este diagrama a uno de tus proyectos y editarlo.",
+        "comment": "Crea una cuenta para comentar y responder en la Comunidad.",
+        "report": "Crea una cuenta para reportar contenido que incumpla las normas.",
+        "publish": "Crea una cuenta para publicar tus propios diagramas en la Comunidad.",
+        "tabs": "Crea una cuenta para ver tus estrellas y tus publicaciones."
+      }
+    }
+  },
+  "errorBoundary": {
+    "title": "Algo salió mal",
+    "message": "Esta pantalla tuvo un error. Recarga la página; si se repite, avísanos.",
+    "chunkTitle": "Hay una versión nueva",
+    "chunkMessage": "No se pudo cargar esta pantalla, probablemente porque se publicó una versión nueva. Recarga la página.",
+    "reload": "Recargar"
+  },
+  "markdownEditor": {
+    "placeholder": "Escribe tu descripción en Markdown…",
+    "editing": "Editando descripción · Markdown",
+    "done": "Listo",
+    "edit": "Editar",
+    "empty": "Sin descripción",
+    "add": "Agregar descripción",
+    "toolbar": {
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "strikethrough": "Tachado",
+      "heading-1": "Título 1",
+      "heading-2": "Título 2",
+      "heading-3": "Título 3",
+      "unordered-list": "Lista",
+      "ordered-list": "Lista numerada",
+      "code": "Código",
+      "quote": "Cita",
+      "link": "Enlace",
+      "table": "Tabla",
+      "horizontal-rule": "Línea horizontal",
+      "preview": "Vista previa",
+      "side-by-side": "Lado a lado"
+    }
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "subtitle": "Conecta DiagramaHub con tus scripts, tu CI o tus herramientas: consulta tus proyectos y diagramas, cambia su código y descripción, publícalos en la Comunidad o compártelos. Cada llave solo puede hacer lo que le permitas.",
+    "settingsLink": "Crea llaves para usar la API desde tus scripts e integraciones.",
+    "newKey": "Nueva API key",
+    "yourKeys": "Tus llaves",
+    "count_one": "{{count}} llave",
+    "count_other": "{{count}} llaves",
+    "empty": "Aún no tienes API keys.",
+    "emptyHint": "Crea una para empezar a usar la API.",
+    "createTitle": "Nueva API key",
+    "createSubtitle": "Elige qué puede hacer. Puedes revocarla cuando quieras.",
+    "createdTitle": "API key creada",
+    "name": "Nombre",
+    "namePlaceholder": "Por ejemplo: CI de documentación",
+    "expiration": "Vigencia",
+    "days_one": "{{count}} día",
+    "days_other": "{{count}} días",
+    "never": "Sin vencimiento",
+    "permissions": "Permisos",
+    "permissionsHint": "Escritura incluye lectura. Las rutas de tu cuenta, tu seguridad, las propias llaves y la administración siempre requieren iniciar sesión.",
+    "noAccess": "Dale acceso al menos a un área.",
+    "needsDiagrams": "Para compartir, publicar o corregir con IA, la llave también necesita leer Diagramas.",
+    "grantDiagramsRead": "Dar lectura a Diagramas",
+    "presets": {
+      "read": "Solo lectura",
+      "write": "Lectura y escritura",
+      "custom": "Personalizado"
+    },
+    "levels": {
+      "none": "Ninguno",
+      "read": "Lectura",
+      "write": "Escritura",
+      "use": "Usar"
+    },
+    "areas": {
+      "projects": {
+        "name": "Proyectos",
+        "description": "Proyectos y carpetas: listarlos, crearlos, renombrarlos, exportarlos y borrarlos."
+      },
+      "diagrams": {
+        "name": "Diagramas",
+        "description": "Código, título y descripción; crear, mover, duplicar, buscar y borrar."
+      },
+      "sharing": {
+        "name": "Compartir",
+        "description": "Enlaces compartidos: crearlos, cambiarlos y revocarlos."
+      },
+      "community": {
+        "name": "Comunidad",
+        "description": "Publicar, cambiar la configuración y retirar tus diagramas; explorar y hacer fork."
+      },
+      "ai": {
+        "name": "IA",
+        "description": "Corregir y convertir diagramas con tus proveedores de IA (consume tu cuota)."
+      }
+    },
+    "create": "Crear llave",
+    "creating": "Creando…",
+    "copyNow": "Copia la llave ahora: no se volverá a mostrar. Si la pierdes, revócala y crea otra.",
+    "keyLabel": "API key",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "done": "Listo",
+    "tryIt": "Pruébala",
+    "tryItHint": "Guárdala en una variable de entorno y haz tu primera llamada:",
+    "createdOn": "creada el {{date}}",
+    "expiresOn": "vence el {{date}}",
+    "neverExpires": "sin vencimiento",
+    "lastUsed": "último uso el {{date}}",
+    "neverUsed": "sin usar",
+    "expired": "Vencida",
+    "revoke": "Revocar",
+    "revokeTitle": "Revocar API key",
+    "revokeMessage": "La llave «{{name}}» dejará de funcionar de inmediato. Esta acción no se puede deshacer.",
+    "loadError": "No se pudieron cargar las llaves.",
+    "createError": "No se pudo crear la llave.",
+    "revokeError": "No se pudo revocar la llave.",
+    "usage": {
+      "title": "Cómo usarla",
+      "subtitle": "Ejemplos listos para copiar de las tareas más comunes.",
+      "baseUrl": "URL base",
+      "copyBaseUrl": "Copiar la URL base",
+      "auth": "Autenticación",
+      "errors": "Errores",
+      "errorsText": "401: llave inválida, vencida o revocada. 403: a la llave le falta un permiso; la respuesta dice cuál (needs).",
+      "recipes": "Ejemplos",
+      "language": "Lenguaje",
+      "copyCode": "Copiar el ejemplo",
+      "envHint": "Los ejemplos leen la llave de la variable de entorno DIAGRAMAHUB_API_KEY. Reemplaza PROJECT_ID, DIAGRAM_ID, etc. por los IDs reales."
+    },
+    "recipes": {
+      "listProjects": {
+        "title": "Listar proyectos",
+        "description": "Tus proyectos con su número de diagramas."
+      },
+      "getProject": {
+        "title": "Ver un proyecto",
+        "description": "Un proyecto con sus carpetas y diagramas (incluye los IDs)."
+      },
+      "updateDiagram": {
+        "title": "Cambiar código y descripción",
+        "description": "Actualiza el código y la descripción de un diagrama. Manda solo los campos que cambian. Si está publicado, la Comunidad lo refleja sola."
+      },
+      "publish": {
+        "title": "Hacer público",
+        "description": "Publica el diagrama en la Comunidad bajo CC BY 4.0. Categorías: architecture, databases, business-processes, devops, uml, security, ai-data, education."
+      },
+      "unpublish": {
+        "title": "Hacer privado",
+        "description": "Retira la publicación. El ID de la publicación lo da GET /community/by-diagram/DIAGRAM_ID."
+      },
+      "share": {
+        "title": "Compartir con un enlace",
+        "description": "Crea un enlace público (o protegido con access_code) que vence en 5, 10 o 30 días, o nunca (null)."
+      },
+      "unshare": {
+        "title": "Dejar de compartir",
+        "description": "Revoca el enlace. Su ID lo da GET /shared-links/diagram/DIAGRAM_ID."
+      }
+    },
+    "reference": {
+      "title": "Referencia",
+      "subtitle": "Lo que una llave puede llamar, por área, y el permiso que necesita. Las rutas cuelgan de la URL base.",
+      "outside": "Cualquier otra ruta (cuenta, seguridad, llaves, chat con IA, ajustes de IA y administración) responde 403 a una API key."
+    },
+    "endpoints": {
+      "listProjects": "Tus proyectos",
+      "getProject": "Un proyecto con sus carpetas y diagramas",
+      "exportProject": "Exportar el proyecto (zip o markdown)",
+      "createProject": "Crear un proyecto",
+      "updateProject": "Renombrar o cambiar el emoji",
+      "deleteProject": "Borrar un proyecto y su contenido",
+      "createFolder": "Crear una carpeta",
+      "getFolder": "Una carpeta con sus diagramas",
+      "updateFolder": "Renombrar una carpeta",
+      "deleteFolder": "Borrar una carpeta",
+      "recentDiagrams": "Tus diagramas más recientes",
+      "searchDiagrams": "Buscar en títulos, descripciones y código",
+      "getDiagram": "Un diagrama: código, descripción y configuración",
+      "createDiagram": "Crear un diagrama",
+      "updateDiagram": "Cambiar título, código, descripción o carpeta",
+      "moveDiagram": "Moverlo a otro proyecto",
+      "duplicateDiagram": "Duplicarlo",
+      "deleteDiagram": "Borrarlo",
+      "getSharedLink": "El enlace activo de un diagrama",
+      "createSharedLink": "Compartir: crear un enlace",
+      "updateSharedLink": "Cambiar vencimiento, código o permisos del enlace",
+      "deleteSharedLink": "Dejar de compartir: revocar el enlace",
+      "myPublished": "Tus diagramas publicados",
+      "publicationOfDiagram": "La publicación de un diagrama (o null)",
+      "browseCommunity": "Explorar la Comunidad",
+      "publish": "Hacer público: publicar en la Comunidad",
+      "updatePublication": "Cambiar categoría, etiquetas o comentarios",
+      "unpublish": "Hacer privado: retirar la publicación",
+      "fork": "Hacer fork a uno de tus proyectos",
+      "fixDiagram": "Corregir un diagrama con IA",
+      "convertDiagram": "Convertir a otro lenguaje con IA"
+    },
+    "tabs": {
+      "keys": "Tus llaves",
+      "docs": "Documentación"
+    },
+    "docsTeaser": "¿Cómo se usa? Ejemplos, referencia y contexto listo para tu agente de IA en Documentación",
+    "agent": {
+      "title": "Contexto para agentes de IA",
+      "description": "Copia toda la documentación en Markdown para dársela a un agente como Claude o Codex: URL base, autenticación, permisos, errores, ejemplos y todos los endpoints. No incluye ninguna llave.",
+      "copy": "Copiar para IA",
+      "download": "Descargar .md"
+    },
+    "agentDoc": {
+      "title": "API de DiagramaHub: contexto para un agente de IA",
+      "intro": "Usa esta API REST para consultar y cambiar los proyectos y diagramas de un usuario de DiagramaHub (Mermaid, PlantUML, D2 y DBML): leerlos, cambiar su código y su descripción, hacerlos públicos o privados en la Comunidad y compartirlos con un enlace. Las peticiones y respuestas son JSON.",
+      "baseUrl": "URL base",
+      "auth": "Autenticación",
+      "authKey": "Lee la API key de la variable de entorno DIAGRAMAHUB_API_KEY. No la escribas en el código, en commits ni en la conversación.",
+      "permissions": "Permisos",
+      "permissionsIntro": "Cada API key tiene un nivel por área. `write` incluye `read`; `none` no da acceso. Los métodos GET necesitan `read`; POST, PUT y DELETE necesitan `write`.",
+      "area": "Área",
+      "levels": "Niveles",
+      "covers": "Qué cubre",
+      "permissionsOutside": "Ninguna API key llega a la cuenta, la seguridad, las propias llaves, los ajustes o el chat de IA ni a la administración (responden 403).",
+      "errors": "Errores",
+      "error401": "la llave no existe, venció o fue revocada.",
+      "error403": "a la llave le falta un permiso; `needs` dice cuál. Pide al usuario una llave con ese permiso en vez de reintentar:",
+      "error404": "no existe o no es del usuario.",
+      "error422": "el cuerpo no cumple el esquema; `detail` dice qué campo.",
+      "error429": "demasiadas peticiones; espera lo que diga la cabecera Retry-After.",
+      "tasks": "Tareas comunes",
+      "needs": "permiso",
+      "endpoints": "Endpoints",
+      "endpointsIntro": "Rutas relativas a la URL base, con el permiso que necesita cada una.",
+      "notes": "Notas",
+      "noteIds": "Los IDs son cadenas de 24 caracteres hexadecimales. Para encontrarlos: GET /projects, luego GET /projects/{project_id} (carpetas y diagramas) o GET /diagrams/search?q=texto.",
+      "noteTypes": "diagram_type: mermaid, plantuml, d2 o dbml (los pizarrones, freehand, no se pueden publicar). El código va en content y la descripción, en Markdown, en description. El servidor solo revisa Mermaid estructuralmente: valida con mermaid.parse (o renderizando) el código que devuelve una corrección con IA antes de guardarlo.",
+      "noteUpdate": "PUT /diagrams/{diagram_id} acepta solo los campos que cambian (title, content, description, folder_id). Si el diagrama está publicado, la Comunidad muestra los cambios sola.",
+      "noteCommunity": "Publicar (POST /community/diagrams) pide diagram_id, category ({{categories}}), tags (hasta 5) y allow_comments. Lo publicado es público bajo CC BY 4.0. Para hacerlo privado, borra la publicación; su ID lo da GET /community/by-diagram/{diagram_id}.",
+      "noteSharing": "Compartir (POST /shared-links): diagram_id, access_type public o protected (con access_code de 4 a 20 caracteres), expiration_days 5, 10, 30 o null, allow_copy_code y allow_embed. Para dejar de compartir, DELETE /shared-links/{link_id}; el ID lo da GET /shared-links/diagram/{diagram_id}.",
+      "noteSafety": "Antes de borrar algo o de hacer público un diagrama, confírmalo con el usuario."
+    }
   }
 }

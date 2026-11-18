@@ -75,8 +75,8 @@ export default function SubscriptionCard() {
       active: { color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300', text: t('subscription.status.active') },
       pending: { color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300', text: t('subscription.status.pending') },
       payment_failed: { color: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300', text: t('subscription.status.payment_failed') },
-      cancelled: { color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300', text: t('subscription.status.cancelled') },
-      expired: { color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300', text: t('subscription.status.expired') },
+      cancelled: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300', text: t('subscription.status.cancelled') },
+      expired: { color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300', text: t('subscription.status.expired') },
     };
 
     const badge = badges[status] || badges.active;
@@ -89,7 +89,7 @@ export default function SubscriptionCard() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
@@ -99,7 +99,7 @@ export default function SubscriptionCard() {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
@@ -109,7 +109,7 @@ export default function SubscriptionCard() {
 
   if (!subscription) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <p className="text-gray-600 dark:text-gray-400">{t('subscription.errors.noSubscription')}</p>
       </div>
     );
@@ -123,14 +123,14 @@ export default function SubscriptionCard() {
   return (
     <>
       {isAdmin ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
             <div className="flex justify-between items-start">
               <div>
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('subscription.currentPlan')}</h2>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{t('subscription.planDetails')}</p>
               </div>
-              <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
+              <span className="badge leading-5">
                 Administrador
               </span>
             </div>
@@ -145,7 +145,7 @@ export default function SubscriptionCard() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Acceso completo sin límites</p>
               </div>
             </div>
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
               <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <svg className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,9 +164,9 @@ export default function SubscriptionCard() {
           </div>
         </div>
       ) : (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
         {/* Header */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('subscription.currentPlan')}</h2>
@@ -183,7 +183,7 @@ export default function SubscriptionCard() {
             <div className="flex items-baseline gap-3 mb-2">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{subscription.plan.name}</h3>
               {subscription.plan.is_free && (
-                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
                   {t('subscription.plans.free')}
                 </span>
               )}
@@ -200,7 +200,7 @@ export default function SubscriptionCard() {
           </div>
 
           {/* Plan Features */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
             <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{t('subscription.planFeatures')}</h4>
             <div className="space-y-2">
               <div className="flex items-center text-sm">
@@ -228,7 +228,7 @@ export default function SubscriptionCard() {
 
           {/* Subscription Dates */}
           {isPaidPlan && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
               <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">{t('subscription.billingInformation')}</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -253,7 +253,7 @@ export default function SubscriptionCard() {
 
           {/* Cancellation Notice */}
           {isCancelled && subscription.current_period_end && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-6">
               <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
                 <div className="flex">
                   <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,11 +272,11 @@ export default function SubscriptionCard() {
 
           {/* Actions */}
           {isPaidPlan && subscription.status === 'active' && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-3">
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-3">
               <button
                 onClick={handleUpdatePaymentMethod}
                 disabled={updatingPayment}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                className="btn btn-secondary w-full flex items-center justify-center gap-2"
               >
                 {updatingPayment ? (
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -294,7 +294,7 @@ export default function SubscriptionCard() {
                 <>
                   <button
                     onClick={() => setShowCancelModal(true)}
-                    className="w-full px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium"
+                    className="btn btn-danger w-full"
                   >
                     {t('subscription.cancelSubscription')}
                   </button>

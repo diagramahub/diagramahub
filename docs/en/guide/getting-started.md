@@ -69,7 +69,7 @@ The sidebar takes you around the app:
 
 | Item | What you'll find |
 |---|---|
-| **Home** | A summary of your workspace: projects, diagrams, last activity, current plan, recently updated diagrams and AI engine usage |
+| **Home** | A summary of your workspace: projects, diagrams, last activity and current plan; your **activity** over the last 12 weeks (diagrams worked on per day, active days and streaks), the **Community impact** of what you published (stars, forks, views, comments and your top publication), your **favorite** diagrams, AI engine usage and recently updated diagrams |
 | **Projects** | The list of all your projects |
 | **Profile** | Your details, password and two-step verification (MFA) |
 | **Settings** | Your AI providers (BYOL) and account deletion |

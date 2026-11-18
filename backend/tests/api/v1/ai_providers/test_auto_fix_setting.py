@@ -5,7 +5,9 @@ from httpx import AsyncClient
 
 
 @pytest.mark.integration
-async def test_auto_fix_is_on_by_default_and_can_be_turned_off(authenticated_client: AsyncClient) -> None:
+async def test_auto_fix_is_on_by_default_and_can_be_turned_off(
+    authenticated_client: AsyncClient,
+) -> None:
     initial = (await authenticated_client.get("/api/v1/ai/settings")).json()
     off = await authenticated_client.put("/api/v1/ai/settings/auto-fix", json={"enabled": False})
     again = (await authenticated_client.get("/api/v1/ai/settings")).json()

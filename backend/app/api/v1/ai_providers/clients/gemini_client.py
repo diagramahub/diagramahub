@@ -11,7 +11,7 @@ from google.genai import types
 from typing import AsyncGenerator, Dict, Any, Optional
 
 from ..model_catalog import recommended_model
-from .base import BaseAIClient, provider_error
+from .base import CODE_MAX_TOKENS, BaseAIClient, provider_error
 from ..prompts import (
     build_description_prompt,
     build_chat_system_prompt,
@@ -27,7 +27,12 @@ class GeminiClient(BaseAIClient):
         self, api_key: str, model: Optional[str] = None, parameters: Dict[str, Any] = None
     ):
         super().__init__(api_key, model or recommended_model("gemini"), parameters or {})
-        self.client = genai.Client(api_key=self.api_key)
+        # google-genai 3 defaults to the `v1` API, where preview models and the
+        # `*-latest` aliases are missing; keep `v1beta`, the default of earlier SDKs.
+        self.client = genai.Client(
+            api_key=self.api_key,
+            http_options=types.HttpOptions(api_version="v1beta"),
+        )
 
     def _gen_config(
         self,
@@ -68,9 +73,29 @@ class GeminiClient(BaseAIClient):
             system_instruction=system_prompt,
         )
 
+    supports_images = True
+
+    async def complete_with_image(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image: bytes,
+        mime_type: str,
+        *,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """generate_content with the image as an inline part before the text."""
+        return await self._generate(
+            [types.Part.from_bytes(data=image, mime_type=mime_type), user_prompt],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_instruction=system_prompt,
+        )
+
     async def _generate(
         self,
-        prompt: str,
+        prompt: "str | list[types.Part | str]",
         temperature: float | None = None,
         max_tokens: int | None = None,
         system_instruction: str | None = None,
@@ -121,7 +146,10 @@ class GeminiClient(BaseAIClient):
 
         prompt = build_fix_prompt(diagram_code, diagram_type, error_context, language)
         try:
-            response_text = await self._generate(prompt, temperature=0.3)
+            response_text = await self._generate(
+                prompt, temperature=0.3, max_tokens=CODE_MAX_TOKENS
+            )
+            self.raise_if_truncated()
 
             if diagram_type.lower() == "dbml":
                 fix_result = extract_fix_delimited(response_text, "Gemini")

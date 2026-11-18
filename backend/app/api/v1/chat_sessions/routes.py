@@ -20,6 +20,7 @@ from .schemas import (
     ChatMessageResponse,
     ChatSessionWithMessagesResponse,
 )
+from app.api.v1.prompt_history.repository import PromptHistoryRepository
 
 router = APIRouter(prefix="/chat-sessions", tags=["chat-sessions"])
 
@@ -42,6 +43,7 @@ def get_chat_session_service() -> ChatSessionService:
         session_repo=ChatSessionRepository(),
         message_repo=ChatMessageRepository(),
         ai_service=AIProviderService(repository=AIProviderRepository()),
+        prompt_history_repo=PromptHistoryRepository(),
     )
 
 

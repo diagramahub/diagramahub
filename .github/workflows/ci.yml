@@ -1,0 +1,158 @@
+# Continuous integration: tests, lint, dependency audits and image scans.
+#
+# Runs on every pull request and on pushes to main and release branches.
+# Every job must pass before a pull request can be merged (configure the
+# branch protection's required status checks with the job names below).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'release/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, tests, audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      # D2 validation tests render through a real Kroki (same version as deploy/).
+      kroki:
+        image: yuzutech/kroki:0.36.0
+        ports:
+          - 8000:8000
+    env:
+      APP_ENV: development
+      MONGO_URI: mongodb://localhost:27017
+      KROKI_URL: http://localhost:8000
+      DATABASE_NAME: diagramahub_ci
+      # Test-only values: the job generates nothing it needs to keep.
+      JWT_SECRET: ci-only-jwt-secret-not-used-anywhere-else-0123456789
+      POETRY_VIRTUALENVS_IN_PROJECT: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry==2.5.1
+
+      - name: Cache virtualenv
+        uses: actions/cache@v6
+        with:
+          path: backend/.venv
+          key: venv-${{ runner.os }}-py3.13-${{ hashFiles('backend/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Generate a throwaway encryption key
+        run: |
+          key=$(poetry run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+          echo "::add-mask::$key"
+          echo "AI_ENCRYPTION_KEY=$key" >> "$GITHUB_ENV"
+
+      - name: Ruff
+        run: poetry run ruff check app tests scripts
+
+      - name: Black
+        run: poetry run black --check app tests scripts
+
+      - name: Tests (coverage floor 60%)
+        run: poetry run pytest --cov-fail-under=60 -p no:cacheprovider
+
+      - name: Audit dependencies (pip-audit)
+        run: |
+          poetry run pip install --quiet pip-audit
+          poetry run pip-audit --strict --progress-spinner off
+
+  frontend:
+    name: Frontend (lint, tests, build, audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      # pnpm's version comes from "packageManager" in package.json.
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
+
+  images:
+    name: Images (build and scan)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: backend
+            context: backend
+            target: ''
+          - name: frontend
+            context: frontend
+            target: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build ${{ matrix.name }} image
+        env:
+          NAME: ${{ matrix.name }}
+          CONTEXT: ${{ matrix.context }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          args=(-t "diagramahub-$NAME:ci")
+          if [ -n "$TARGET" ]; then args+=(--target "$TARGET"); fi
+          docker build "${args[@]}" "$CONTEXT"
+
+      # Pinned by commit: third-party action (tag v0.36.0).
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: diagramahub-${{ matrix.name }}:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'

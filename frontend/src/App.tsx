@@ -2,11 +2,13 @@ import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { CommunityShell } from './components/community/CommunityShell';
 import PrivateRoute from './components/PrivateRoute';
 import SidebarLayout from './components/SidebarLayout';
 import InstallationGuard from './components/InstallationGuard';
 import { PresentationProvider } from './contexts/PresentationContext';
 import { lazyWithPreload, type PreloadableComponent } from './utils/lazyWithPreload';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 
 // Route-level code splitting: each page is its own chunk, so e.g. the login
 // screen no longer downloads the editor, Mermaid or the export libraries.
@@ -26,12 +28,17 @@ const UserManagementPage = lazyWithPreload(() => import('./pages/UserManagementP
 const PlansPage = lazyWithPreload(() => import('./pages/PlansPage'));
 const ProjectsPage = lazyWithPreload(() => import('./pages/ProjectsPage'));
 const SharedDiagramPage = lazyWithPreload(() => import('./pages/SharedDiagramPage'));
+const EmbedDiagramPage = lazyWithPreload(() => import('./pages/EmbedDiagramPage'));
+const FolderPresentationPage = lazyWithPreload(() => import('./pages/FolderPresentationPage'));
+const CommunityPage = lazyWithPreload(() => import('./pages/CommunityPage'));
+const CommunityDiagramPage = lazyWithPreload(() => import('./pages/CommunityDiagramPage'));
 const ForgotPasswordPage = lazyWithPreload(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazyWithPreload(() => import('./pages/ResetPasswordPage'));
 const MfaVerifyPage = lazyWithPreload(() => import('./pages/MfaVerifyPage'));
 const OAuthCallbackPage = lazyWithPreload(() => import('./pages/OAuthCallbackPage'));
 const NotFoundPage = lazyWithPreload(() => import('./pages/NotFoundPage'));
 const AboutPage = lazyWithPreload(() => import('./pages/AboutPage'));
+const ApiKeysPage = lazyWithPreload(() => import('./pages/ApiKeysPage'));
 
 function hasStoredSession(): boolean {
   try {
@@ -44,6 +51,7 @@ function hasStoredSession(): boolean {
 // Which page chunk each URL needs. Keep in sync with <Routes> below.
 const ROUTE_CHUNKS: [RegExp, PreloadableComponent<object>][] = [
   [/^\/shared\//, SharedDiagramPage],
+  [/^\/embed\//, EmbedDiagramPage],
   [/^\/setup/, InstallationWizardPage],
   [/^\/login/, LoginPage],
   [/^\/register/, RegisterPage],
@@ -52,11 +60,15 @@ const ROUTE_CHUNKS: [RegExp, PreloadableComponent<object>][] = [
   [/^\/mfa-verify/, MfaVerifyPage],
   [/^\/oauth\/callback/, OAuthCallbackPage],
   [/^\/onboarding/, OnboardingWizardPage],
+  [/^\/community\/[^/]+/, CommunityDiagramPage],
+  [/^\/community\/?$/, CommunityPage],
+  [/^\/projects\/[^/]+\/present/, FolderPresentationPage],
   [/^\/projects\/[^/]+/, DiagramEditorPage],
   [/^\/(dashboard\/?)?$/, DashboardPage],
   [/^\/projects-list/, ProjectsPage],
   [/^\/profile/, ProfilePage],
   [/^\/settings/, SettingsPage],
+  [/^\/api-keys/, ApiKeysPage],
   [/^\/subscription/, SubscriptionPage],
   [/^\/integrations/, IntegrationsPage],
   [/^\/about/, AboutPage],
@@ -96,7 +108,7 @@ if (typeof window !== 'undefined') {
 /** Shown while a route chunk loads (usually a few ms on a warm cache). */
 function RouteFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" role="status" aria-busy="true">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950" role="status" aria-busy="true">
       <svg className="w-8 h-8 animate-spin text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -109,10 +121,13 @@ function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
+      <RouteErrorBoundary>
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         {/* Public route — no AuthProvider, no PrivateRoute */}
         <Route path="/shared/:token" element={<SharedDiagramPage />} />
+        {/* Public, framable (nginx): the minimal view for <iframe> embeds */}
+        <Route path="/embed/:token" element={<EmbedDiagramPage />} />
 
         {/* All other routes wrapped in AuthProvider */}
         <Route
@@ -136,6 +151,16 @@ function App() {
                     element={
                       <PrivateRoute>
                         <OnboardingWizardPage />
+                      </PrivateRoute>
+                    }
+                  />
+
+                  {/* Folder / project presentation — full screen, no Sidebar */}
+                  <Route
+                    path="/projects/:projectId/present"
+                    element={
+                      <PrivateRoute>
+                        <FolderPresentationPage />
                       </PrivateRoute>
                     }
                   />
@@ -167,6 +192,23 @@ function App() {
                   />
 
                   {/* Authenticated routes with Sidebar */}
+                  {/* Community portal: public (anonymous visitors can browse and read) */}
+                  <Route
+                    path="/community"
+                    element={
+                      <CommunityShell>
+                        <CommunityPage />
+                      </CommunityShell>
+                    }
+                  />
+                  <Route
+                    path="/community/:id"
+                    element={
+                      <CommunityShell>
+                        <CommunityDiagramPage />
+                      </CommunityShell>
+                    }
+                  />
                   <Route
                     path="/dashboard"
                     element={
@@ -203,6 +245,16 @@ function App() {
                       <PrivateRoute>
                         <SidebarLayout>
                           <SettingsPage />
+                        </SidebarLayout>
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="/api-keys"
+                    element={
+                      <PrivateRoute>
+                        <SidebarLayout>
+                          <ApiKeysPage />
                         </SidebarLayout>
                       </PrivateRoute>
                     }
@@ -277,6 +329,7 @@ function App() {
         />
       </Routes>
       </Suspense>
+      </RouteErrorBoundary>
       </BrowserRouter>
     </ThemeProvider>
   );

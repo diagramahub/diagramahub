@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan, CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
 import { apiErrorMessage } from '../../utils/apiError';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
 
 interface CurrencyPriceFormProps {
   plan: Plan;
@@ -9,39 +11,31 @@ interface CurrencyPriceFormProps {
   onSuccess: () => void;
 }
 
+/** Add a plan's monthly price in another currency. */
 export default function CurrencyPriceForm({ plan, onClose, onSuccess }: CurrencyPriceFormProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const panelRef = useDialogA11y(true, onClose, !loading);
 
-  const configuredCurrencies = Object.keys(plan.prices ?? {});
-  const availableCurrencies = SUPPORTED_CURRENCIES.filter(
-    (c) => c !== 'usd' && !configuredCurrencies.includes(c)
-  );
-
+  const configured = Object.keys(plan.prices ?? {});
+  const availableCurrencies = SUPPORTED_CURRENCIES.filter((c) => c !== 'usd' && !configured.includes(c));
   const [currency, setCurrency] = useState(availableCurrencies[0] ?? '');
   const [amount, setAmount] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!currency) {
-      setError('Selecciona una moneda');
-      return;
-    }
-
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError('El monto debe ser un número mayor a 0');
-      return;
-    }
+    if (!currency) return setError(t('admin.plans.prices.errors.currency'));
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed <= 0) return setError(t('admin.plans.prices.errors.amount'));
 
     setLoading(true);
     try {
-      await apiService.addPlanPrice(plan.id, { currency, amount: parsedAmount });
+      await apiService.addPlanPrice(plan.id, { currency, amount: parsed });
       onSuccess();
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error al agregar precio');
+      setError(apiErrorMessage(err) || t('admin.plans.prices.errors.add'));
     } finally {
       setLoading(false);
     }
@@ -49,84 +43,54 @@ export default function CurrencyPriceForm({ plan, onClose, onSuccess }: Currency
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Agregar precio en moneda
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="currency-price-title"
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-sm w-full"
+      >
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+          <h2 id="currency-price-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {t('admin.plans.prices.title')}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{plan.name}</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-6 space-y-4">
-          {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="px-6 py-5 space-y-4">
+            {error && (
+              <div role="alert" className="px-4 py-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-900/60 rounded-lg text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="currency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {t('admin.plans.prices.currency')}
+                </label>
+                <select id="currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="input">
+                  {availableCurrencies.map((c) => (
+                    <option key={c} value={c}>
+                      {CURRENCY_FLAGS[c] ?? ''} {c.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  {t('admin.plans.prices.amount')}
+                </label>
+                <input id="amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} className="input tabular-nums" placeholder="0.00" />
+              </div>
             </div>
-          )}
-
-          {/* Currency select */}
-          <div>
-            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Moneda
-            </label>
-            <select
-              id="currency"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              {availableCurrencies.map((c) => (
-                <option key={c} value={c}>
-                  {CURRENCY_FLAGS[c] ?? ''} {c.toUpperCase()}
-                </option>
-              ))}
-            </select>
           </div>
-
-          {/* Amount input */}
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Monto (por mes)
-            </label>
-            <input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              placeholder="0.00"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={loading || availableCurrencies.length === 0}
-              className="flex-1 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {loading && (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
-              {loading ? 'Guardando...' : 'Agregar precio'}
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2">
+            <button type="button" onClick={onClose} disabled={loading} className="btn btn-secondary">
+              {t('common.cancel')}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              Cancelar
+            <button type="submit" disabled={loading || availableCurrencies.length === 0} className="btn btn-primary">
+              {loading ? t('admin.plans.prices.adding') : t('admin.plans.prices.add')}
             </button>
           </div>
         </form>

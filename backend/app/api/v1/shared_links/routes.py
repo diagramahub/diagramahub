@@ -5,7 +5,7 @@ FastAPI routes for shared links (authenticated endpoints).
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 
 from app.api.v1.diagrams.repository import DiagramRepository
 from app.api.deps import get_current_user_id
@@ -17,6 +17,7 @@ from .schemas import (
     UpdateSharedLinkRequest,
 )
 from .services import SharedLinkService
+from app.api.v1.users import audit_log
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +45,19 @@ def get_shared_link_service() -> SharedLinkService:
 )
 async def create_shared_link(
     request: CreateSharedLinkRequest,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: SharedLinkService = Depends(get_shared_link_service),
 ):
     """Create a new shared link for a diagram."""
-    return await service.create_shared_link(request, user_id)
+    result = await service.create_shared_link(request, user_id)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_SHARED_LINK_CREATED,
+        user_id,
+        http_request,
+        details=f"diagram={request.diagram_id} access={result.access_type}",
+    )
+    return result
 
 
 @router.get(
@@ -71,11 +80,20 @@ async def get_shared_link_by_diagram(
 async def update_shared_link(
     link_id: str,
     request: UpdateSharedLinkRequest,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: SharedLinkService = Depends(get_shared_link_service),
 ):
     """Update shared link configuration."""
-    return await service.update_shared_link(link_id, request, user_id)
+    result = await service.update_shared_link(link_id, request, user_id)
+    changed = sorted(request.model_dump(exclude_unset=True))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_SHARED_LINK_UPDATED,
+        user_id,
+        http_request,
+        details=f"link={link_id} fields={','.join(changed) or '-'}",
+    )
+    return result
 
 
 @router.delete(
@@ -83,8 +101,13 @@ async def update_shared_link(
 )
 async def revoke_shared_link(
     link_id: str,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: SharedLinkService = Depends(get_shared_link_service),
 ):
     """Revoke (deactivate) a shared link."""
-    return await service.revoke_shared_link(link_id, user_id)
+    result = await service.revoke_shared_link(link_id, user_id)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_SHARED_LINK_REVOKED, user_id, http_request, details=f"link={link_id}"
+    )
+    return result

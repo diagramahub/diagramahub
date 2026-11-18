@@ -51,13 +51,13 @@ export default function ChatSessionSelector({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="flex-1 flex items-center gap-2 px-3 py-1.5 text-xs text-left bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-w-0"
+          className="flex-1 flex items-center gap-2 px-3 py-1.5 text-xs text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors min-w-0"
         >
           <span className="truncate flex-1 text-gray-700 dark:text-gray-300 font-medium">
             {activeSession ? sessionTitle(activeSession) : t('chat.sessions.select')}
           </span>
           {activeSession?.status === 'finalized' && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-full flex-shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full flex-shrink-0">
               {t('chat.sessions.finalized')}
             </span>
           )}
@@ -79,14 +79,14 @@ export default function ChatSessionSelector({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-20 max-h-60 overflow-y-auto">
           {sessions.length === 0 ? (
             <p className="px-3 py-2 text-xs text-gray-400 dark:text-gray-500 text-center">{t('chat.sessions.none')}</p>
           ) : (
             sessions.map((session) => (
               <div
                 key={session.id}
-                className={`group flex items-center gap-1 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${
+                className={`group flex items-center gap-1 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer ${
                   session.id === activeSessionId ? 'bg-purple-50 dark:bg-purple-900/20' : ''
                 }`}
               >
@@ -101,7 +101,7 @@ export default function ChatSessionSelector({
                       if (e.key === 'Escape') setEditingId(null);
                     }}
                     autoFocus
-                    className="flex-1 text-xs px-1 py-0.5 border border-purple-300 dark:border-purple-600 rounded focus:ring-1 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="flex-1 text-xs px-1 py-0.5 border border-purple-300 dark:border-purple-600 rounded focus:ring-1 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
                 ) : (
                   <>

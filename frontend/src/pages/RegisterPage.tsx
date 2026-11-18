@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
@@ -7,6 +7,9 @@ import OAuthButtons from '../components/OAuthButtons';
 import LanguageSelector from '../components/LanguageSelector';
 import AnimatedBackground from '../components/AnimatedBackground';
 import ThemeToggleButton from '../components/ThemeToggleButton';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
+import { rememberReturnTo } from '../utils/returnTo';
+import { BrandLogo } from '../components/BrandLogo';
 
 const RegisterPage: React.FC = () => {
   const { t } = useTranslation();
@@ -20,6 +23,12 @@ const RegisterPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  // Came from a public page (e.g. the community): go back there after onboarding.
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get('next');
+  React.useEffect(() => {
+    rememberReturnTo(next);
+  }, [next]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +43,11 @@ const RegisterPage: React.FC = () => {
     // Validate password strength
     if (password.length < 12) {
       setError(t('validation.passwordMin'));
+      return;
+    }
+
+    if (exceedsPasswordMaxBytes(password)) {
+      setError(t('validation.passwordMaxBytes'));
       return;
     }
 
@@ -82,19 +96,10 @@ const RegisterPage: React.FC = () => {
         <ThemeToggleButton />
         <LanguageSelector />
       </div>
-      <div className="max-w-md w-full space-y-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg p-8 rounded-xl shadow-2xl border border-white/40 dark:border-gray-700/40">
+      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-900 p-8 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold">
-            <span
-              style={{
-                background: 'linear-gradient(135deg, #7c3aed, #a855f7, #9333ea)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              DiagramaHub
-            </span>
+          <h2 className="mt-6 flex justify-center">
+            <BrandLogo size="lg" />
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             {t('auth.registerSubtitle')}
@@ -117,7 +122,7 @@ const RegisterPage: React.FC = () => {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 dark:bg-gray-700/50 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
+                className="input relative focus:z-10"
                 placeholder={t('installation.fullNamePlaceholder')}
               />
             </div>
@@ -133,7 +138,7 @@ const RegisterPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 dark:bg-gray-700/50 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
+                className="input relative focus:z-10"
                 placeholder={t('common.email')}
               />
             </div>
@@ -150,7 +155,7 @@ const RegisterPage: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 dark:bg-gray-700/50 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
+                  className="input relative pr-10 focus:z-10"
                   placeholder={t('common.password')}
                 />
                 <button
@@ -189,7 +194,7 @@ const RegisterPage: React.FC = () => {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-gray-100 dark:bg-gray-700/50 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 focus:z-10 sm:text-sm"
+                  className="input relative pr-10 focus:z-10"
                   placeholder={t('common.confirmPassword')}
                 />
                 <button
@@ -217,7 +222,7 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary group relative w-full flex justify-center"
             >
               {loading ? t('auth.registering') : t('auth.registerButton')}
             </button>

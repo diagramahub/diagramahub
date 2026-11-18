@@ -3,94 +3,69 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan, PlanCreate, PlanUpdate, CURRENCY_FLAGS, SUPPORTED_CURRENCIES } from '../../types/subscription';
 import { apiErrorMessage } from '../../utils/apiError';
+import { useDialogA11y } from '../../hooks/useDialogA11y';
+import { isUnlimited } from '../../utils/plans';
 
-const NON_USD_CURRENCIES = SUPPORTED_CURRENCIES.filter(c => c !== 'usd');
+const NON_USD_CURRENCIES = SUPPORTED_CURRENCIES.filter((c) => c !== 'usd');
 
 interface PlanFormProps {
+  /** null: create a new plan. */
   plan: Plan | null;
   onClose: () => void;
-  onSuccess: () => void;
+  /** Called with the saved plan's name. */
+  onSuccess: (name: string) => void;
 }
 
-export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
-  const [loading, setLoading] = useState(false);
-  const { t } = useTranslation();
-  const [error, setError] = useState('');
+const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+const helpClass = 'mt-1 text-xs text-gray-500 dark:text-gray-400';
 
-  // Form fields
+/** Create or edit a plan: name, code, price (USD and other currencies), limits, availability. */
+export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const panelRef = useDialogA11y(true, onClose, !loading);
+
   const [name, setName] = useState(plan?.name || '');
   const [code, setCode] = useState(plan?.code || '');
   const [description, setDescription] = useState(plan?.description || '');
   const [priceUsd, setPriceUsd] = useState(plan?.price_usd?.toString() || '0');
-  const [maxProjects, setMaxProjects] = useState(plan?.max_projects?.toString() || '');
-  const [maxDiagrams, setMaxDiagrams] = useState(plan?.max_diagrams?.toString() || '');
-  const [unlimitedProjects, setUnlimitedProjects] = useState(plan?.max_projects === null || plan?.max_projects === -1);
-  const [unlimitedDiagrams, setUnlimitedDiagrams] = useState(plan?.max_diagrams === null || plan?.max_diagrams === -1);
+  const [maxProjects, setMaxProjects] = useState(isUnlimited(plan?.max_projects) ? '' : String(plan?.max_projects ?? ''));
+  const [maxDiagrams, setMaxDiagrams] = useState(isUnlimited(plan?.max_diagrams) ? '' : String(plan?.max_diagrams ?? ''));
+  const [unlimitedProjects, setUnlimitedProjects] = useState(plan ? isUnlimited(plan.max_projects) : false);
+  const [unlimitedDiagrams, setUnlimitedDiagrams] = useState(plan ? isUnlimited(plan.max_diagrams) : false);
   const [isActive, setIsActive] = useState(plan?.is_active ?? true);
 
-  // Multi-currency prices state
-  const [currencyPrices, setCurrencyPrices] = useState<Record<string, string>>(() => {
-    const existing: Record<string, string> = {};
-    if (plan?.prices) {
-      Object.entries(plan.prices).forEach(([currency, amount]) => {
-        if (currency !== 'usd') {
-          existing[currency] = amount.toString();
-        }
-      });
-    }
-    return existing;
-  });
+  // Prices in other currencies (only when creating; an existing plan manages them on its card).
+  const [currencyPrices, setCurrencyPrices] = useState<Record<string, string>>({});
   const [newCurrency, setNewCurrency] = useState('');
 
   const hasSubscribers = plan ? plan.active_subscriptions > 0 : false;
   const isFreePlan = plan?.is_free || false;
-  const availableCurrencies = NON_USD_CURRENCIES.filter(c => !(c in currencyPrices));
-
-  const handleCodeChange = (value: string) => {
-    // Auto-format: uppercase, no spaces, only alphanumeric, hyphens and underscores
-    setCode(value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''));
-  };
+  const availableCurrencies = NON_USD_CURRENCIES.filter((c) => !(c in currencyPrices));
+  const titleId = 'plan-form-title';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!name.trim()) {
-      setError('El nombre del plan es requerido');
-      return;
-    }
-
-    if (!code.trim()) {
-      setError('El código del plan es requerido');
-      return;
-    }
-
+    if (!name.trim()) return setError(t('admin.plans.form.errors.name'));
+    if (!code.trim()) return setError(t('admin.plans.form.errors.code'));
     const price = parseFloat(priceUsd);
-    if (isNaN(price) || price < 0) {
-      setError('El precio debe ser un número válido no negativo');
-      return;
-    }
+    if (isNaN(price) || price < 0) return setError(t('admin.plans.form.errors.price'));
 
     let projects: number | null = null;
     if (!unlimitedProjects) {
-      projects = parseInt(maxProjects);
-      if (isNaN(projects) || projects < 0) {
-        setError('Máx. proyectos debe ser un número válido no negativo');
-        return;
-      }
+      projects = parseInt(maxProjects, 10);
+      if (isNaN(projects) || projects < 0) return setError(t('admin.plans.form.errors.projects'));
     }
-
     let diagrams: number | null = null;
     if (!unlimitedDiagrams) {
-      diagrams = parseInt(maxDiagrams);
-      if (isNaN(diagrams) || diagrams < 0) {
-        setError('Máx. diagramas debe ser un número válido no negativo');
-        return;
-      }
+      diagrams = parseInt(maxDiagrams, 10);
+      if (isNaN(diagrams) || diagrams < 0) return setError(t('admin.plans.form.errors.diagrams'));
     }
 
     setLoading(true);
-
     try {
       if (plan) {
         const updateData: PlanUpdate = {
@@ -100,23 +75,15 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
           max_diagrams: diagrams,
           is_active: isActive,
         };
-        if (!isFreePlan) {
-          updateData.code = code.trim();
-        }
-        if (!hasSubscribers) {
-          updateData.price_usd = price;
-        }
+        if (!isFreePlan) updateData.code = code.trim();
+        if (!hasSubscribers) updateData.price_usd = price;
         await apiService.updatePlan(plan.id, updateData);
       } else {
-        // Build prices dict from currency inputs
         const additionalPrices: Record<string, number> = {};
         Object.entries(currencyPrices).forEach(([currency, amountStr]) => {
-          const amt = parseFloat(amountStr);
-          if (!isNaN(amt) && amt > 0) {
-            additionalPrices[currency] = amt;
-          }
+          const amount = parseFloat(amountStr);
+          if (!isNaN(amount) && amount > 0) additionalPrices[currency] = amount;
         });
-
         const createData: PlanCreate = {
           name: name.trim(),
           code: code.trim(),
@@ -128,285 +95,262 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
         };
         await apiService.createPlan(createData);
       }
-      onSuccess();
+      onSuccess(name.trim());
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || `Error ${plan ? 'actualizando' : 'creando'} plan`);
+      setError(apiErrorMessage(err) || t('admin.plans.form.errors.save'));
     } finally {
       setLoading(false);
     }
   };
 
+  const limitField = (
+    id: string,
+    label: string,
+    value: string,
+    setValue: (v: string) => void,
+    unlimited: boolean,
+    setUnlimited: (v: boolean) => void,
+    placeholder: string,
+  ) => (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min="0"
+        value={unlimited ? '' : value}
+        onChange={(e) => setValue(e.target.value)}
+        disabled={unlimited}
+        placeholder={unlimited ? '∞' : placeholder}
+        className="input"
+      />
+      <label className="mt-2 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <input type="checkbox" checked={unlimited} onChange={(e) => setUnlimited(e.target.checked)} />
+        {t('admin.plans.form.unlimited')}
+      </label>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            {plan ? 'Editar Plan' : 'Crear Nuevo Plan'}
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-xl w-full max-h-[90vh] flex flex-col"
+      >
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
+          <h2 id={titleId} className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {plan ? t('admin.plans.form.editTitle', { name: plan.name }) : t('admin.plans.form.createTitle')}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" onClick={onClose} disabled={loading} className="btn btn-ghost btn-sm !px-2" aria-label={t('admin.plans.form.close')}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="px-6 py-6 space-y-6">
-          {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        <form onSubmit={handleSubmit} className="flex flex-col min-h-0" noValidate>
+          <div className="px-6 py-5 space-y-5 overflow-y-auto">
+            {error && (
+              <div role="alert" className="px-4 py-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-900/60 rounded-lg text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="plan-name" className={labelClass}>
+                  {t('admin.plans.form.name')}
+                </label>
+                <input id="plan-name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder={t('admin.plans.namePlaceholder')} required />
+              </div>
+              <div>
+                <label htmlFor="plan-code" className={labelClass}>
+                  {t('admin.plans.form.code')}
+                </label>
+                <input
+                  id="plan-code"
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                  className="input font-mono"
+                  placeholder={t('admin.plans.codePlaceholder')}
+                  disabled={isFreePlan}
+                  aria-describedby="plan-code-help"
+                  required
+                />
+              </div>
             </div>
-          )}
-
-          {/* Plan Name */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Nombre del Plan *
-            </label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-              placeholder={t('admin.plans.namePlaceholder')}
-            />
-          </div>
-
-          {/* Plan Code */}
-          <div>
-            <label htmlFor="code" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Código *
-            </label>
-            <input
-              id="code"
-              type="text"
-              value={code}
-              onChange={(e) => handleCodeChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 font-mono"
-              placeholder={t('admin.plans.codePlaceholder')}
-              disabled={isFreePlan}
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {isFreePlan
-                ? 'El código del plan gratuito no se puede cambiar'
-                : 'Identificador único. Solo mayúsculas, números, guiones y guiones bajos'}
+            <p id="plan-code-help" className={`${helpClass} -mt-3`}>
+              {isFreePlan ? t('admin.plans.form.codeFreeLocked') : t('admin.plans.form.codeHelp')}
             </p>
-          </div>
 
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Descripción
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-              placeholder={t('admin.plans.descriptionPlaceholder')}
-            />
-          </div>
-
-          {/* Price */}
-          <div>
-            <label htmlFor="price" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Precio (USD/mes) *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400">$</span>
-              <input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={priceUsd}
-                onChange={(e) => setPriceUsd(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                placeholder="0.00"
-                disabled={hasSubscribers}
+            <div>
+              <label htmlFor="plan-description" className={labelClass}>
+                {t('admin.plans.form.description')}
+              </label>
+              <textarea
+                id="plan-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="input h-auto py-2"
+                placeholder={t('admin.plans.descriptionPlaceholder')}
               />
             </div>
-            {hasSubscribers && (
-              <p className="mt-1 text-xs text-amber-600">
-                No se puede cambiar el precio porque este plan tiene suscriptores activos
-              </p>
-            )}
-          </div>
 
-          {/* Multi-currency Prices */}
-          {parseFloat(priceUsd) > 0 && (
+            {/* Price */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Precios en otras monedas
+              <label htmlFor="plan-price" className={labelClass}>
+                {t('admin.plans.form.priceUsd')}
               </label>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                Agrega precios en monedas adicionales. Stripe mostrará automáticamente el precio correcto según la ubicación del usuario.
+              <div className="relative sm:max-w-[12rem]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400" aria-hidden="true">
+                  $
+                </span>
+                <input
+                  id="plan-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={priceUsd}
+                  onChange={(e) => setPriceUsd(e.target.value)}
+                  className="input pl-7 tabular-nums"
+                  disabled={hasSubscribers}
+                  aria-describedby="plan-price-help"
+                />
+              </div>
+              <p id="plan-price-help" className={hasSubscribers ? 'mt-1 text-xs text-amber-700 dark:text-amber-400' : helpClass}>
+                {hasSubscribers ? t('admin.plans.form.priceLocked') : t('admin.plans.form.priceHelp')}
               </p>
+            </div>
 
-              {/* Currency price rows */}
-              <div className="space-y-2">
-                {Object.entries(currencyPrices).map(([currency, amount]) => (
-                  <div key={currency} className="flex items-center gap-2">
-                    <span className="text-lg w-8">{CURRENCY_FLAGS[currency] ?? '🏳️'}</span>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-12">{currency.toUpperCase()}</span>
-                    <div className="relative flex-1">
-                      <span className="absolute left-3 top-2 text-gray-500 dark:text-gray-400 text-sm">$</span>
+            {/* Other currencies (new paid plans) */}
+            {!plan && parseFloat(priceUsd) > 0 && (
+              <fieldset>
+                <legend className={labelClass}>{t('admin.plans.form.otherCurrencies')}</legend>
+                <p className={`${helpClass} mt-0 mb-3`}>{t('admin.plans.form.otherCurrenciesHelp')}</p>
+                <div className="space-y-2">
+                  {Object.entries(currencyPrices).map(([currency, amount]) => (
+                    <div key={currency} className="flex items-center gap-2">
+                      <span className="w-6 text-base" aria-hidden="true">
+                        {CURRENCY_FLAGS[currency] ?? ''}
+                      </span>
+                      <label htmlFor={`price-${currency}`} className="w-12 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {currency.toUpperCase()}
+                      </label>
                       <input
+                        id={`price-${currency}`}
                         type="number"
                         step="0.01"
                         min="0.01"
                         value={amount}
-                        onChange={(e) => setCurrencyPrices(prev => ({...prev, [currency]: e.target.value}))}
-                        className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
+                        onChange={(e) => setCurrencyPrices((prev) => ({ ...prev, [currency]: e.target.value }))}
+                        className="input flex-1 tabular-nums"
                         placeholder="0.00"
                       />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCurrencyPrices((prev) => {
+                            const next = { ...prev };
+                            delete next[currency];
+                            return next;
+                          })
+                        }
+                        className="btn btn-ghost btn-sm !px-2"
+                        aria-label={t('admin.plans.form.removeCurrency', { currency: currency.toUpperCase() })}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
+                  ))}
+                </div>
+                {availableCurrencies.length > 0 && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <select
+                      value={newCurrency}
+                      onChange={(e) => setNewCurrency(e.target.value)}
+                      className="input w-auto"
+                      aria-label={t('admin.plans.prices.currency')}
+                    >
+                      <option value="">{t('admin.plans.selectCurrency')}</option>
+                      {availableCurrencies.map((c) => (
+                        <option key={c} value={c}>
+                          {CURRENCY_FLAGS[c] ?? ''} {c.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
                     <button
                       type="button"
+                      disabled={!newCurrency}
                       onClick={() => {
-                        const updated = {...currencyPrices};
-                        delete updated[currency];
-                        setCurrencyPrices(updated);
+                        setCurrencyPrices((prev) => ({ ...prev, [newCurrency]: '' }));
+                        setNewCurrency('');
                       }}
-                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
+                      className="btn btn-secondary btn-sm"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      {t('admin.plans.form.addCurrency')}
                     </button>
                   </div>
-                ))}
-              </div>
+                )}
+              </fieldset>
+            )}
 
-              {/* Add currency button */}
-              {availableCurrencies.length > 0 && (
-                <div className="mt-2 flex items-center gap-2">
-                  <select
-                    value={newCurrency}
-                    onChange={(e) => setNewCurrency(e.target.value)}
-                    className="px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-                  >
-                    <option value="">{t('admin.plans.selectCurrency')}</option>
-                    {availableCurrencies.map(c => (
-                      <option key={c} value={c}>
-                        {CURRENCY_FLAGS[c] ?? '🏳️'} {c.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={!newCurrency}
-                    onClick={() => {
-                      if (newCurrency) {
-                        setCurrencyPrices(prev => ({...prev, [newCurrency]: ''}));
-                        setNewCurrency('');
-                      }
-                    }}
-                    className="px-3 py-1.5 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Agregar moneda
-                  </button>
+            {/* Limits */}
+            <fieldset>
+              <legend className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">{t('admin.plans.form.limits')}</legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {limitField('plan-projects', t('admin.plans.form.maxProjects'), maxProjects, setMaxProjects, unlimitedProjects, setUnlimitedProjects, t('admin.plans.projectsPlaceholder'))}
+                {limitField('plan-diagrams', t('admin.plans.form.maxDiagrams'), maxDiagrams, setMaxDiagrams, unlimitedDiagrams, setUnlimitedDiagrams, t('admin.plans.diagramsPlaceholder'))}
+              </div>
+            </fieldset>
+
+            {/* Availability (existing paid plans) */}
+            {plan && !isFreePlan && (
+              <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <div>
+                  <p id="plan-status-label" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t('admin.plans.form.status')}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {isActive ? t('admin.plans.form.statusOn') : t('admin.plans.form.statusOff')}
+                  </p>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Max Projects */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Máx. Proyectos *
-            </label>
-            <div className="flex items-center gap-4 mb-2">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={unlimitedProjects}
-                  onChange={(e) => setUnlimitedProjects(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Ilimitados</span>
-              </label>
-            </div>
-            {!unlimitedProjects && (
-              <input
-                type="number"
-                min="0"
-                value={maxProjects}
-                onChange={(e) => setMaxProjects(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-                placeholder={t('admin.plans.projectsPlaceholder')}
-              />
-            )}
-          </div>
-
-          {/* Max Diagrams */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Máx. Diagramas *
-            </label>
-            <div className="flex items-center gap-4 mb-2">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={unlimitedDiagrams}
-                  onChange={(e) => setUnlimitedDiagrams(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Ilimitados</span>
-              </label>
-            </div>
-            {!unlimitedDiagrams && (
-              <input
-                type="number"
-                min="0"
-                value={maxDiagrams}
-                onChange={(e) => setMaxDiagrams(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-gray-100"
-                placeholder={t('admin.plans.diagramsPlaceholder')}
-              />
-            )}
-          </div>
-
-          {/* Status (only in edit mode, not for free plan) */}
-          {plan && !isFreePlan && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado del plan</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {isActive ? 'Los usuarios pueden suscribirse a este plan' : 'Este plan no está disponible para nuevas suscripciones'}
-                </p>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isActive}
+                  aria-labelledby="plan-status-label"
+                  onClick={() => setIsActive(!isActive)}
+                  className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 ${
+                    isActive ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-700'
+                  }`}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsActive(!isActive)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Guardando...' : plan ? 'Actualizar Plan' : 'Crear Plan'}
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-2">
+            <button type="button" onClick={onClose} disabled={loading} className="btn btn-secondary">
+              {t('common.cancel')}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              Cancelar
+            <button type="submit" disabled={loading} className="btn btn-primary">
+              {loading && (
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {loading ? t('admin.plans.form.saving') : plan ? t('admin.plans.form.save') : t('admin.plans.form.create')}
             </button>
           </div>
         </form>

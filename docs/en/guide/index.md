@@ -62,6 +62,14 @@ If you are installing or running your own instance, see the [Self-host](../self-
 
     [:octicons-arrow-right-24: Share](sharing.md)
 
+-   :material-earth: **Community**
+
+    ---
+
+    Publish diagrams, browse other people's, star, comment and fork them.
+
+    [:octicons-arrow-right-24: Community](community.md)
+
 -   :material-presentation: **Presentation mode**
 
     ---

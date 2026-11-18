@@ -3,13 +3,16 @@ Security audit log for tracking authentication and account events.
 
 Stores events in a MongoDB collection for SOC2 CC7.2 compliance.
 """
+
 import logging
 from datetime import datetime
 from typing import Optional
 
 from beanie import Document
 from pydantic import Field
+from fastapi import Request
 from pymongo import IndexModel
+from app.core.client_ip import get_client_ip
 from app.core.clock import utcnow
 
 logger = logging.getLogger(__name__)
@@ -61,6 +64,27 @@ EVENT_OAUTH_LOGIN_SUCCESS = "oauth_login_success"
 EVENT_OAUTH_LOGIN_FAILED = "oauth_login_failed"
 EVENT_OAUTH_ACCOUNT_LINKED = "oauth_account_linked"
 
+# Sensitive actions outside authentication (invariant #7)
+EVENT_AI_PROVIDER_ADDED = "ai_provider_added"
+EVENT_AI_PROVIDER_UPDATED = "ai_provider_updated"
+EVENT_AI_PROVIDER_REMOVED = "ai_provider_removed"
+EVENT_SHARED_LINK_CREATED = "shared_link_created"
+EVENT_SHARED_LINK_UPDATED = "shared_link_updated"
+EVENT_SHARED_LINK_REVOKED = "shared_link_revoked"
+EVENT_INTEGRATION_CREATED = "integration_created"
+EVENT_INTEGRATION_UPDATED = "integration_updated"
+EVENT_INTEGRATION_DELETED = "integration_deleted"
+EVENT_INTEGRATION_SET_DEFAULT = "integration_set_default"
+EVENT_PLAN_CREATED = "plan_created"
+EVENT_PLAN_UPDATED = "plan_updated"
+EVENT_PLAN_DELETED = "plan_deleted"
+EVENT_PLAN_PRICE_ADDED = "plan_price_added"
+EVENT_API_TOKEN_CREATED = "api_token_created"
+EVENT_API_TOKEN_REVOKED = "api_token_revoked"
+EVENT_COMMUNITY_PUBLISHED = "community_published"
+EVENT_COMMUNITY_UNPUBLISHED = "community_unpublished"
+EVENT_COMMUNITY_MODERATED = "community_moderated"
+
 
 async def log_event(
     event: str,
@@ -80,4 +104,38 @@ async def log_event(
         )
         await entry.insert()
     except Exception:
-        logger.warning("Failed to write audit log: %s %s", event, user_email)
+        logger.warning("Failed to write audit log entry", exc_info=True)
+
+
+async def log_event_for_user_id(
+    event: str,
+    user_id: str,
+    request: Optional[Request] = None,
+    details: Optional[str] = None,
+) -> None:
+    """Write an audit entry for a request authenticated by user id.
+
+    Resolves the user's email (the field the admin audit view searches by) and
+    the client IP. Like :func:`log_event`, failures are logged but never raise,
+    so an audit problem never blocks the action itself.
+    """
+    try:
+        # Imported here: the users schemas module is heavy and this one is
+        # imported by many modules at startup.
+        from beanie import PydanticObjectId
+
+        from app.api.v1.users.schemas import UserInDB
+
+        user = await UserInDB.get(PydanticObjectId(user_id))
+        email = user.email if user else f"unknown:{user_id}"
+        ip_address = get_client_ip(request) if request is not None else None
+    except Exception:
+        logger.warning("Failed to resolve audit context", exc_info=True)
+        email, ip_address = f"unknown:{user_id}", None
+    await log_event(
+        event,
+        user_email=email,
+        user_id=user_id,
+        ip_address=ip_address,
+        details=details,
+    )

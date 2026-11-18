@@ -2,12 +2,16 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PinIcon } from './PinIcon';
+import { ContentSearchResults } from './ContentSearchResults';
+import { PublicBadge } from './community/PublicBadge';
+import { STAR_PATH, StarIcon } from './FavoriteStarButton';
 
 interface DiagramItem {
   id: string;
   title: string;
   diagram_type: string;
   folder_id?: string | null;
+  is_favorite?: boolean;
 }
 
 interface FolderItem {
@@ -38,6 +42,8 @@ interface DiagramFileBrowserProps {
   onExportProject?: () => void;
   /** Export one folder (folder menu). */
   onExportFolder?: (id: string) => void;
+  /** Present a folder (id) or the whole project (null) in full screen. */
+  onPresent?: (folderId: string | null) => void;
   /** Import files into a folder (null = root); `files` is null when the user should pick them. */
   onImportFiles?: (files: File[] | null, folderId: string | null) => void;
   onDragStart: (id: string) => void;
@@ -58,6 +64,10 @@ interface DiagramFileBrowserProps {
   /** Desktop only: when provided, renders a pin toggle in the header. */
   isPinned?: boolean;
   onTogglePin?: () => void;
+  /** Star or unstar a diagram (favorites are listed on the dashboard). */
+  onToggleFavorite?: (id: string, favorite: boolean) => void;
+  /** Diagrams published to the Community (marked with a globe). */
+  publishedDiagrams?: Map<string, { hidden: boolean }>;
 }
 
 /** Compact type badge per diagram engine (format identifiers, not translatable copy). */
@@ -69,7 +79,7 @@ const DIAGRAM_BADGES: Record<string, { label: string; name: string; className: s
   freehand: { label: 'DRAW', name: 'Freehand', className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
 };
 
-const FALLBACK_BADGE = { label: 'TXT', name: '', className: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' };
+const FALLBACK_BADGE = { label: 'TXT', name: '', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300' };
 
 type MenuTarget =
   | { kind: 'diagram'; id: string; view: 'main' | 'folders' }
@@ -78,9 +88,9 @@ type MenuState = MenuTarget & { x: number; y: number };
 
 const MENU_WIDTH = 176; // w-44
 const menuItemClass =
-  'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700';
+  'w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800';
 const rowActionClass =
-  'p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-600/60 rounded focus:outline-none focus:ring-2 focus:ring-purple-500';
+  'p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded focus:outline-none focus:ring-2 focus:ring-purple-500';
 
 function Icon({ d, className = 'w-3.5 h-3.5' }: { d: string; className?: string }) {
   return (
@@ -106,6 +116,7 @@ const ICONS = {
   newFolder: 'M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z',
   search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
   download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
+  present: 'M3 4h18M4 4v10a2 2 0 002 2h12a2 2 0 002-2V4M12 16v4m-4 0h8M10 8l4 2.5-4 2.5V8z',
   upload: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12',
 };
 
@@ -134,12 +145,14 @@ export default function DiagramFileBrowser({
   onDeleteDiagram,
   onRenameDiagram,
   onDuplicateDiagram,
+  onToggleFavorite,
   onMoveDiagramToFolder,
   onMoveDiagramToProject,
   onDeleteFolder,
   onEditFolder,
   onExportProject,
   onExportFolder,
+  onPresent,
   onImportFiles,
   onDragStart,
   onDragOver,
@@ -158,10 +171,12 @@ export default function DiagramFileBrowser({
   closeOnSelect = true,
   isPinned,
   onTogglePin,
+  publishedDiagrams,
 }: DiagramFileBrowserProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renamingDiagramId, setRenamingDiagramId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -172,18 +187,32 @@ export default function DiagramFileBrowser({
   const isFileDrag = (e: React.DragEvent) => Array.from(e.dataTransfer.types).includes('Files');
 
   const query = searchQuery.toLowerCase().trim();
-  const isSearching = query.length > 0;
+  const isSearching = query.length > 0 || typeFilter !== null;
+
+  // Types present in the project, for the filter chips.
+  const presentTypes = useMemo(() => {
+    const types = new Set<string>();
+    diagrams.forEach(d => types.add(d.diagram_type || 'mermaid'));
+    folders.forEach(f => f.diagrams.forEach(d => types.add(d.diagram_type || 'mermaid')));
+    return Object.keys(DIAGRAM_BADGES).filter(type => types.has(type));
+  }, [diagrams, folders]);
 
   const filteredData = useMemo(() => {
-    if (!query) return { diagrams, folders };
-    const matches = (d: DiagramItem) => d.title.toLowerCase().includes(query);
+    if (!isSearching) return { diagrams, folders };
+    const ofType = (d: DiagramItem) => !typeFilter || (d.diagram_type || 'mermaid') === typeFilter;
+    const matches = (d: DiagramItem) => ofType(d) && (!query || d.title.toLowerCase().includes(query));
     const fd = diagrams.filter(matches);
     const ff = folders
-      // A folder whose name matches keeps all its diagrams; otherwise only the matching ones.
-      .map(f => (f.name.toLowerCase().includes(query) ? f : { ...f, diagrams: f.diagrams.filter(matches) }))
-      .filter(f => f.name.toLowerCase().includes(query) || f.diagrams.length > 0);
+      // A folder whose name matches keeps all its diagrams (of the chosen type); otherwise only the matching ones.
+      .map(f => (query && f.name.toLowerCase().includes(query) ? { ...f, diagrams: f.diagrams.filter(ofType) } : { ...f, diagrams: f.diagrams.filter(matches) }))
+      .filter(f => f.diagrams.length > 0 || (!typeFilter && !!query && f.name.toLowerCase().includes(query)));
     return { diagrams: fd, folders: ff };
-  }, [diagrams, folders, query]);
+  }, [diagrams, folders, query, typeFilter, isSearching]);
+
+  const titleMatchIds = useMemo(
+    () => new Set([...filteredData.diagrams, ...filteredData.folders.flatMap(f => f.diagrams)].map(d => d.id)),
+    [filteredData],
+  );
 
   const totalDiagrams = diagrams.length + folders.reduce((acc, f) => acc + f.diagrams.length, 0);
   const shownDiagrams = filteredData.diagrams.length + filteredData.folders.reduce((acc, f) => acc + f.diagrams.length, 0);
@@ -385,7 +414,7 @@ export default function DiagramFileBrowser({
             }}
             onBlur={commitRename}
             aria-label={t('fileBrowser.rename')}
-            className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             ref={focusAndSelect}
           />
         </div>
@@ -399,7 +428,7 @@ export default function DiagramFileBrowser({
         className={`group flex items-center gap-1 mx-1 rounded transition-colors ${
           isCurrent
             ? 'bg-purple-100 dark:bg-purple-900/40'
-            : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+            : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'
         } ${draggedDiagramId === diagram.id ? 'opacity-40' : ''}`}
       >
         <button
@@ -435,6 +464,15 @@ export default function DiagramFileBrowser({
             {badge.label}
           </span>
           <span className="truncate">{diagram.title}</span>
+          {diagram.is_favorite && (
+            <svg className="w-3 h-3 flex-shrink-0 text-amber-500 dark:text-amber-400" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label={t('favorite.marked')}>
+              <title>{t('favorite.marked')}</title>
+              <path d={STAR_PATH} />
+            </svg>
+          )}
+          {publishedDiagrams?.has(diagram.id) && (
+            <PublicBadge compact hidden={publishedDiagrams.get(diagram.id)?.hidden} className="ml-auto" />
+          )}
         </button>
 
         <button
@@ -456,7 +494,7 @@ export default function DiagramFileBrowser({
   const renderMenu = () => {
     if (!menu) return null;
 
-    let content: React.ReactNode = null;
+    let content: React.ReactNode;
 
     if (menu.kind === 'diagram') {
       const diagram = findDiagram(menu.id);
@@ -474,7 +512,7 @@ export default function DiagramFileBrowser({
               <Icon d={ICONS.back} />
               {t('fileBrowser.moveToFolder')}
             </button>
-            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+            <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
             <div className="max-h-56 overflow-y-auto">
               {targets.map(target => {
                 const isHere = target.id === currentFolderId;
@@ -513,6 +551,12 @@ export default function DiagramFileBrowser({
               {t('fileBrowser.rename')}
               <span className="text-[10px] ml-auto text-gray-400">F2</span>
             </button>
+            {onToggleFavorite && (
+              <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onToggleFavorite(diagram.id, !diagram.is_favorite); }}>
+                <StarIcon filled={!!diagram.is_favorite} className="w-3.5 h-3.5 flex-shrink-0 text-amber-500 dark:text-amber-400" />
+                {diagram.is_favorite ? t('favorite.remove') : t('favorite.add')}
+              </button>
+            )}
             <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onDuplicateDiagram(diagram.id, diagram.title); }}>
               <Icon d={ICONS.duplicate} />
               {t('fileBrowser.duplicate')}
@@ -526,7 +570,7 @@ export default function DiagramFileBrowser({
               <Icon d={ICONS.project} />
               {t('fileBrowser.moveToProject')}
             </button>
-            <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+            <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
             <button
               role="menuitem"
               className={`${menuItemClass} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}
@@ -557,13 +601,19 @@ export default function DiagramFileBrowser({
               {t('projectImport.importHere')}
             </button>
           )}
+          {onPresent && folder.diagrams.length > 0 && (
+            <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onPresent(folder.id); }}>
+              <Icon d={ICONS.present} />
+              {t('presentation.presentFolder')}
+            </button>
+          )}
           {onExportFolder && (
             <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onExportFolder(folder.id); }}>
               <Icon d={ICONS.download} />
               {t('projectExport.exportFolder')}
             </button>
           )}
-          <div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />
+          <div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />
           <button
             role="menuitem"
             className={`${menuItemClass} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20`}
@@ -580,7 +630,7 @@ export default function DiagramFileBrowser({
       <div
         ref={menuRef}
         role="menu"
-        className="fixed z-50 w-44 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
+        className="fixed z-50 w-44 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg"
         style={{ left: menu.x, top: menu.y }}
       >
         {content}
@@ -592,9 +642,9 @@ export default function DiagramFileBrowser({
   const showRootDropZone = !!draggedDiagramId && locationOf(draggedDiagramId) !== null;
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="h-full flex flex-col bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden">
       {/* Header — project identity + actions */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
         <div className="flex items-center gap-2 min-w-0" title={projectName}>
           <span className="text-sm flex-shrink-0">{projectEmoji || '📁'}</span>
           <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{projectName}</span>
@@ -611,6 +661,11 @@ export default function DiagramFileBrowser({
               <Icon d={ICONS.upload} className="w-4 h-4" />
             </button>
           )}
+          {onPresent && (
+            <button onClick={() => onPresent(null)} className={rowActionClass} aria-label={t('presentation.presentProject')} title={t('presentation.presentProject')}>
+              <Icon d={ICONS.present} className="w-4 h-4" />
+            </button>
+          )}
           {onExportProject && (
             <button onClick={onExportProject} className={rowActionClass} aria-label={t('projectExport.exportProject')} title={t('projectExport.exportProject')}>
               <Icon d={ICONS.download} className="w-4 h-4" />
@@ -622,7 +677,7 @@ export default function DiagramFileBrowser({
               className={`p-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                 isPinned
                   ? 'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30'
-                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
               aria-label={isPinned ? t('editor.unpinPanel') : t('editor.pinPanel')}
               aria-pressed={!!isPinned}
@@ -638,7 +693,7 @@ export default function DiagramFileBrowser({
       </div>
 
       {/* Search */}
-      <div className="px-2 py-1.5 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
+      <div className="px-2 py-1.5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
         <div className="relative">
           <span className="absolute inset-y-0 left-2 flex items-center text-gray-400 dark:text-gray-500 pointer-events-none">
             <Icon d={ICONS.search} className="w-3 h-3" />
@@ -650,7 +705,7 @@ export default function DiagramFileBrowser({
             onKeyDown={(e) => { if (e.key === 'Escape' && searchQuery) { e.stopPropagation(); setSearchQuery(''); } }}
             placeholder={t('editor.searchDiagrams')}
             aria-label={t('editor.searchDiagrams')}
-            className="w-full text-xs border border-gray-200 dark:border-gray-600 rounded pl-6 pr-6 py-1 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+            className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded pl-6 pr-6 py-1 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
           {searchQuery && (
             <button
@@ -662,6 +717,40 @@ export default function DiagramFileBrowser({
             </button>
           )}
         </div>
+        {presentTypes.length > 1 && (
+          <div role="group" aria-label={t('fileBrowser.filterByType')} className="flex flex-wrap gap-1 mt-1.5">
+            <button
+              type="button"
+              onClick={() => setTypeFilter(null)}
+              aria-pressed={typeFilter === null}
+              className={`px-1.5 py-0.5 text-[10px] font-semibold rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                typeFilter === null
+                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {t('fileBrowser.allTypes')}
+            </button>
+            {presentTypes.map(type => {
+              const badge = DIAGRAM_BADGES[type];
+              const selected = typeFilter === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTypeFilter(selected ? null : type)}
+                  aria-pressed={selected}
+                  title={badge.name}
+                  className={`px-1.5 py-0.5 text-[10px] font-bold rounded focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                    selected ? badge.className : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {badge.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* File tree — the whole area is the project-root drop zone */}
@@ -713,7 +802,7 @@ export default function DiagramFileBrowser({
                     onChange={(e) => onEditingFolderNameChange(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') onSaveFolderEdit(); if (e.key === 'Escape') onCancelFolderEdit(); }}
                     aria-label={t('fileBrowser.rename')}
-                    className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="flex-1 min-w-0 text-xs border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     ref={focusAndSelect}
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -726,7 +815,7 @@ export default function DiagramFileBrowser({
                 </div>
               ) : (
                 <div
-                  className="group flex items-center rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                  className="group flex items-center rounded hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
                   onContextMenu={(e) => openMenuAt(e, { kind: 'folder', id: folder.id })}
                 >
                   <button
@@ -777,7 +866,7 @@ export default function DiagramFileBrowser({
 
               {/* Folder children */}
               {open && (
-                <div role="group" className="ml-3 border-l border-gray-200 dark:border-gray-700">
+                <div role="group" className="ml-3 border-l border-gray-200 dark:border-gray-800">
                   {folder.diagrams.map(d => renderDiagramRow(d, 2))}
                   {folder.diagrams.length === 0 && (
                     <button
@@ -797,6 +886,16 @@ export default function DiagramFileBrowser({
         {/* Root diagrams */}
         {filteredData.diagrams.map(d => renderDiagramRow(d, 1))}
 
+        {/* Matches inside descriptions and code (the tree only matches titles) */}
+        <ContentSearchResults
+          projectId={projectId}
+          query={searchQuery.trim()}
+          diagramType={typeFilter}
+          excludeIds={titleMatchIds}
+          onOpen={handleSelectDiagram}
+          badgeFor={(type) => DIAGRAM_BADGES[type] || FALLBACK_BADGE}
+        />
+
         {/* Empty state */}
         {!hasContent && (
           <div className="text-center py-6 px-3 text-gray-400 dark:text-gray-500">
@@ -814,7 +913,7 @@ export default function DiagramFileBrowser({
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 border-t border-gray-200 dark:border-gray-700 text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
+      <div className="flex items-center justify-between px-3 py-1 border-t border-gray-200 dark:border-gray-800 text-[10px] text-gray-500 dark:text-gray-400 flex-shrink-0">
         <span>
           {isSearching
             ? t('fileBrowser.filteredCount', { shown: shownDiagrams, total: totalDiagrams })

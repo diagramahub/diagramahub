@@ -41,7 +41,7 @@ class WebhookEventRepository(IWebhookEventRepository):
 
         # Already known: take it over only if its claim is stale. The status and
         # timestamp filter makes the takeover atomic across concurrent deliveries.
-        result = await WebhookEventInDB.get_motor_collection().update_one(
+        result = await WebhookEventInDB.get_pymongo_collection().update_one(
             {
                 "event_id": event_id,
                 "status": WebhookEventStatus.PROCESSING,
@@ -53,7 +53,7 @@ class WebhookEventRepository(IWebhookEventRepository):
 
     async def mark_processed(self, event_id: str, lease: str) -> bool:
         """Mark the event as processed if ``lease`` still holds its claim."""
-        result = await WebhookEventInDB.get_motor_collection().update_one(
+        result = await WebhookEventInDB.get_pymongo_collection().update_one(
             {
                 "event_id": event_id,
                 "status": WebhookEventStatus.PROCESSING,
@@ -65,7 +65,7 @@ class WebhookEventRepository(IWebhookEventRepository):
 
     async def release(self, event_id: str, lease: str) -> None:
         """Delete an unfinished claim held by ``lease`` so Stripe's retry runs the event."""
-        await WebhookEventInDB.get_motor_collection().delete_one(
+        await WebhookEventInDB.get_pymongo_collection().delete_one(
             {
                 "event_id": event_id,
                 "status": WebhookEventStatus.PROCESSING,

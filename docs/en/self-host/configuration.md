@@ -29,6 +29,7 @@ Variables are defined in `backend/app/core/config.py` and are case-sensitive.
 | `JWT_ALGORITHM` | `HS256` | No | JWT signing algorithm. |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No | **No effect.** Accepted so existing `.env` files keep working, but each sign-in sets the session lifetime (see [Authentication](../security/authentication.md)). |
 | `AI_ENCRYPTION_KEY` | empty | **Yes, in practice** | Fernet key that encrypts in the database the AI providers' API keys, the integrations' configuration (Resend, Stripe, Google) and the MFA TOTP secrets. If missing, those operations fail. |
+| `AI_ENCRYPTION_KEY_PREVIOUS` | empty | No | Comma-separated keys that were `AI_ENCRYPTION_KEY` before. They still decrypt existing data while you [rotate the key](maintenance.md#rotating-the-encryption-key); new data always uses the current key. |
 
 Generate both secrets like this:
 
@@ -87,6 +88,14 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 | `MAX_IMPORT_UPLOAD_BYTES` | `20971520` (20 MB) | Maximum size of a project import upload (ZIP or loose files). |
 | `MAX_IMPORT_FILES` | `500` | Maximum number of files in one import. |
 | `MAX_IMPORT_UNCOMPRESSED_BYTES` | `52428800` (50 MB) | Maximum size a ZIP may expand to. |
+
+### Community
+
+| Variable | Default | What for |
+|---|---|---|
+| `COMMUNITY_PUBLIC` | `True` | Anyone, without signing in, can browse the [Community](../guide/community.md), open its diagrams and read the comments. With `False` the whole Community needs sign-in (for example, an internal company instance). Publishing, starring, commenting, forking and reporting always need an account. |
+| `GITHUB_STATS_ENABLED` | `True` | The **About** page shows the repository's GitHub stars and forks. The server asks GitHub (not the browser) and keeps them for an hour. With `False` no call is made to GitHub and the page only invites people to star it. |
+| `GITHUB_REPOSITORY` | `diagramahub/diagramahub` | Repository (`owner/name`) whose stars **About** shows. |
 
 ### Monitoring (optional)
 

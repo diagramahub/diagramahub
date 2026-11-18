@@ -488,9 +488,7 @@ class TestChangePasswordOAuthOnly:
             json={"email": registered_user["email"], "password": recovered},
         )
         assert login.status_code == 200
-        authenticated_client.headers["Authorization"] = (
-            f"Bearer {login.json()['access_token']}"
-        )
+        authenticated_client.headers["Authorization"] = f"Bearer {login.json()['access_token']}"
 
         response = await authenticated_client.put(
             "/api/v1/users/change-password",
@@ -508,9 +506,7 @@ class TestMePasswordSignals:
     """GET /users/me tells the UI whether the change-password form applies."""
 
     @pytest.mark.asyncio
-    async def test_me_reports_password_capable_account(
-        self, authenticated_client: AsyncClient
-    ):
+    async def test_me_reports_password_capable_account(self, authenticated_client: AsyncClient):
         response = await authenticated_client.get("/api/v1/users/me")
 
         assert response.status_code == 200
@@ -548,9 +544,7 @@ class TestLegacyLinkedAccounts:
     and answer 403, forcing an unnecessary reset on a working password.
     """
 
-    async def _make_legacy_linked(
-        self, email: str, *, linked_at_creation: bool
-    ) -> UserInDB:
+    async def _make_legacy_linked(self, email: str, *, linked_at_creation: bool) -> UserInDB:
         """Rebuild an account as a legacy document with a provider linked."""
         user = await UserInDB.find_one(UserInDB.email == email)
         # Legacy documents simply lack the field, so it loads as the default.
@@ -561,9 +555,7 @@ class TestLegacyLinkedAccounts:
                 provider="google",
                 provider_user_id="legacy-google-1",
                 linked_at=(
-                    user.created_at
-                    if linked_at_creation
-                    else user.created_at + timedelta(days=30)
+                    user.created_at if linked_at_creation else user.created_at + timedelta(days=30)
                 ),
             )
         ]

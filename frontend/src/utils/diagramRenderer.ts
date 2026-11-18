@@ -59,6 +59,8 @@ async function renderMermaid(source: string): Promise<{ svg: string } | { error:
   // 'strict' runs every HTML label through DOMPurify while Mermaid renders it.
   // 'loose' left labels unsanitized and Mermaid inserts the SVG into the DOM to
   // measure it, so event handlers in a label ran before sanitizeSvg() was applied.
+  // Theme, layout and look are Mermaid 12's defaults unless the diagram's
+  // %%{init}%% block sets them.
   mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   try {

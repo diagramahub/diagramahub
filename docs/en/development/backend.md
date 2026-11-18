@@ -42,7 +42,7 @@ flowchart LR
 !!! warning "Rule"
     Routes hold no business logic and services never import concrete repositories: they receive them already built (dependency injection with `Depends`).
 
-## The 12 modules
+## The 14 modules
 
 | Module | Purpose | Files beyond the base pattern |
 |---|---|---|
@@ -58,6 +58,8 @@ flowchart LR
 | `integrations/` | Admin configuration of email, payment and OAuth vendors | `email_service.py`, `email_vendors/` (Resend), `vendor_factory.py` |
 | `mfa/` | TOTP and email-code MFA, recovery codes, admin MFA management | `totp_service.py`, `admin_service.py`, `rate_limiter.py` |
 | `oauth/` | OAuth 2.0 / OpenID Connect login (Google; extensible through `IOAuthProvider`) | `providers/` (`google.py`, `factory.py`) |
+| `community/` | Community portal: publications (snapshots), stars, forks (through `DiagramService` + `UsageLimiter`), comments, reports and moderation | — |
+| `api_tokens/` | API keys: create (shown once, SHA-256 stored), list, revoke; per-area permissions (`permissions.py`: `RULES` decides the area and level each path needs); `deps.get_current_user_email` accepts them | — |
 
 !!! info "Where data lives"
     MFA data is stored on the user document itself (`UserInDB`), which is why `mfa/` doesn't register a `Document` of its own.

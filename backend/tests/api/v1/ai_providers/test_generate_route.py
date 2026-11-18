@@ -19,8 +19,17 @@ class FakeClient(BaseAIClient):
         self.reply, self.truncated = reply, truncated
         self.calls: list[dict] = []
 
-    async def complete(self, system_prompt, user_prompt, *, max_tokens=None, temperature=None):  # noqa: ANN001, ANN201
-        self.calls.append({"system": system_prompt, "user": user_prompt, "max_tokens": max_tokens, "temperature": temperature})
+    async def complete(
+        self, system_prompt, user_prompt, *, max_tokens=None, temperature=None
+    ):  # noqa: ANN001, ANN201
+        self.calls.append(
+            {
+                "system": system_prompt,
+                "user": user_prompt,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+        )
         self.last_truncated = self.truncated
         return self.reply
 
@@ -39,21 +48,32 @@ class FakeClient(BaseAIClient):
 
 
 def _provider() -> SimpleNamespace:
-    return SimpleNamespace(provider=AIProviderType.OPENAI, api_key="k", model="fake-model", parameters={})
+    return SimpleNamespace(
+        provider=AIProviderType.OPENAI, api_key="k", model="fake-model", parameters={}
+    )
 
 
 async def _generate(client: AsyncClient, fake: FakeClient):  # noqa: ANN202
-    with patch.object(AIProviderRepository, "get_active_provider", AsyncMock(return_value=_provider())), patch(
-        "app.api.v1.ai_providers.services.AIClientFactory.create_client", return_value=fake
+    with (
+        patch.object(
+            AIProviderRepository, "get_active_provider", AsyncMock(return_value=_provider())
+        ),
+        patch("app.api.v1.ai_providers.services.AIClientFactory.create_client", return_value=fake),
     ):
         return await client.post(
             "/api/v1/ai/generate-diagram",
-            json={"description": "Un flujo de inicio de sesión con MFA", "diagram_type": "mermaid", "language": "es"},
+            json={
+                "description": "Un flujo de inicio de sesión con MFA",
+                "diagram_type": "mermaid",
+                "language": "es",
+            },
         )
 
 
 @pytest.mark.integration
-async def test_generate_returns_the_extracted_code_with_the_code_budget(authenticated_client: AsyncClient) -> None:
+async def test_generate_returns_the_extracted_code_with_the_code_budget(
+    authenticated_client: AsyncClient,
+) -> None:
     fake = FakeClient("Aquí está:\n```mermaid\ngraph TD\n  A-->B\n```")
     response = await _generate(authenticated_client, fake)
 
@@ -66,7 +86,9 @@ async def test_generate_returns_the_extracted_code_with_the_code_budget(authenti
 
 @pytest.mark.integration
 async def test_truncated_reply_is_a_422_with_its_code(authenticated_client: AsyncClient) -> None:
-    response = await _generate(authenticated_client, FakeClient("```mermaid\ngraph TD\n  A-->", truncated=True))
+    response = await _generate(
+        authenticated_client, FakeClient("```mermaid\ngraph TD\n  A-->", truncated=True)
+    )
 
     assert response.status_code == 422
     assert response.json()["detail"] == {"error": "response_truncated"}

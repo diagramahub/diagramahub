@@ -10,15 +10,26 @@ from pydantic import ConfigDict, BaseModel, Field
 from pymongo import ASCENDING, DESCENDING, IndexModel
 from app.core.clock import utcnow
 
+MERMAID_DEFAULT_THEME = "redux-color"
+MERMAID_DEFAULT_LAYOUT = "elk"
+MERMAID_DEFAULT_LOOK = "neo"
+
 
 class MermaidConfig(BaseModel):
     """Mermaid diagram configuration."""
 
+    # Defaults follow Mermaid 12: ELK layout, the `redux-color` theme and the `neo` look.
     theme: str = Field(
-        default="default", description="Mermaid theme (default, dark, forest, neutral, base)"
+        default=MERMAID_DEFAULT_THEME,
+        description=(
+            "Mermaid theme (redux-color, redux, redux-dark, redux-dark-color, neo, neo-dark, "
+            "default, dark, forest, neutral, base)"
+        ),
     )
-    layout: str = Field(default="dagre", description="Layout engine (dagre, elk)")
-    look: str = Field(default="classic", description="Visual style (classic, handDrawn)")
+    layout: str = Field(default=MERMAID_DEFAULT_LAYOUT, description="Layout engine (elk, dagre)")
+    look: str = Field(
+        default=MERMAID_DEFAULT_LOOK, description="Visual style (neo, classic, handDrawn)"
+    )
     handDrawnSeed: Optional[int] = Field(
         default=None, description="Seed for handDrawn look randomization"
     )
@@ -152,6 +163,9 @@ class DiagramInDB(Document):
     viewport_zoom: Optional[float] = 1.0
     viewport_x: Optional[float] = 0.0
     viewport_y: Optional[float] = 0.0
+    # Marked with a star by its owner: listed on the dashboard.
+    is_favorite: bool = False
+    favorited_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -162,6 +176,12 @@ class DiagramInDB(Document):
             "folder_id",
             # Serves the dashboard "recent" query: filter by project, newest first.
             IndexModel([("project_id", ASCENDING), ("updated_at", DESCENDING)]),
+            # Serves the dashboard favorites: only starred diagrams are indexed.
+            IndexModel(
+                [("project_id", ASCENDING), ("updated_at", DESCENDING)],
+                name="favorites_by_project",
+                partialFilterExpression={"is_favorite": True},
+            ),
         ]
 
 
@@ -186,6 +206,77 @@ class DiagramSummary(BaseModel):
         }
 
 
+class DiagramSearchHit(BaseModel):
+    """Fields a search needs to match and build a snippet (no config/preferences)."""
+
+    id: PydanticObjectId = Field(alias="_id")
+    title: str
+    content: str = ""
+    description: Optional[str] = None
+    diagram_type: str
+    project_id: str
+    folder_id: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Settings:
+        projection = {
+            "_id": 1,
+            "title": 1,
+            "content": 1,
+            "description": 1,
+            "diagram_type": 1,
+            "project_id": 1,
+            "folder_id": 1,
+            "created_at": 1,
+            "updated_at": 1,
+        }
+
+
+class DiagramListEntry(BaseModel):
+    """A diagram in a dashboard list, with its project."""
+
+    id: str
+    title: str
+    diagram_type: str
+    project_id: str
+    project_name: str
+    project_emoji: str
+    updated_at: datetime
+
+
+class FavoriteDiagrams(BaseModel):
+    """The user's starred diagrams (most recently edited first) and how many there are."""
+
+    items: list[DiagramListEntry]
+    total: int
+
+
+class FavoriteState(BaseModel):
+    """A diagram's star after marking or unmarking it."""
+
+    id: str
+    is_favorite: bool
+
+
+SEARCHABLE_DIAGRAM_TYPES = ("mermaid", "plantuml", "d2", "dbml", "freehand")
+
+
+class DiagramSearchResult(BaseModel):
+    """One diagram found by a search, with where the text matched."""
+
+    id: str
+    title: str
+    diagram_type: str
+    project_id: str
+    project_name: str
+    project_emoji: str
+    folder_id: Optional[str] = None
+    matched_in: str  # "title" | "description" | "content"
+    snippet: str  # text around the first match ("" for title matches)
+    updated_at: datetime
+
+
 class DiagramResponse(BaseModel):
     """Model for diagram API responses."""
 
@@ -201,6 +292,7 @@ class DiagramResponse(BaseModel):
     viewport_zoom: Optional[float] = None
     viewport_x: Optional[float] = None
     viewport_y: Optional[float] = None
+    is_favorite: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -226,6 +318,7 @@ def diagram_to_response(diagram: DiagramInDB) -> dict:
         "viewport_zoom": diagram.viewport_zoom,
         "viewport_x": diagram.viewport_x,
         "viewport_y": diagram.viewport_y,
+        "is_favorite": diagram.is_favorite,
         "created_at": diagram.created_at,
         "updated_at": diagram.updated_at,
     }
@@ -291,7 +384,8 @@ class ConvertDiagramRequest(BaseModel):
         ..., description="Tipo de diagrama destino (mermaid, plantuml, d2, dbml)"
     )
     provider: Optional[str] = Field(
-        None, description="Proveedor de IA específico a usar (opcional, usa default si no se indica)"
+        None,
+        description="Proveedor de IA específico a usar (opcional, usa default si no se indica)",
     )
     model: Optional[str] = Field(
         None, description="Modelo específico a usar con el proveedor seleccionado (opcional)"

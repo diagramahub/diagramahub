@@ -1,6 +1,7 @@
 """
 Main FastAPI application entry point.
 """
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -8,9 +9,12 @@ from beanie import init_beanie
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from app.api.v1.users.routes import router as users_router
+from app.api.v1.about.routes import router as about_router
+from app.api.v1.activity.routes import router as activity_router
+from app.api.v1.activity.schemas import DiagramActivityInDB
 from app.api.v1.users.schemas import UserInDB
 from app.api.v1.projects.routes import router as projects_router
 from app.api.v1.projects.schemas import ProjectInDB
@@ -27,7 +31,10 @@ from app.api.v1.chat_sessions.schemas import ChatSessionInDB, ChatMessageInDB
 from app.api.v1.subscriptions.routes import router as subscriptions_router
 from app.api.v1.subscriptions.webhook_routes import router as webhooks_router
 from app.api.v1.subscriptions.schemas import (
-    PlanInDB, SubscriptionInDB, StripeConfigInDB, WebhookEventInDB
+    PlanInDB,
+    SubscriptionInDB,
+    StripeConfigInDB,
+    WebhookEventInDB,
 )
 from app.api.v1.shared_links.schemas import SharedLinkInDB, AccessLogInDB
 from app.api.v1.shared_links.routes import router as shared_links_router
@@ -41,6 +48,16 @@ from app.api.v1.mfa.schemas import MfaTokenAttempt
 from app.api.v1.users.audit_log import AuditLogEntry
 from app.core.config import settings
 from app.core.request_limits import BodySizeLimitMiddleware
+from app.api.v1.api_tokens.routes import router as api_tokens_router
+from app.api.v1.api_tokens.schemas import ApiTokenInDB
+from app.api.v1.community.routes import router as community_router
+from app.api.v1.community.schemas import (
+    CommunityCommentInDB,
+    CommunityReportInDB,
+    CommunityStarInDB,
+    CommunityForkInDB,
+    PublishedDiagramInDB,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -127,17 +144,17 @@ async def lifespan(app: FastAPI):
         logger.info("Sentry initialized (environment=%s)", settings.APP_ENV)
 
     # Startup: Initialize MongoDB connection
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client: AsyncMongoClient = AsyncMongoClient(settings.MONGO_URI)
     database = client[settings.DATABASE_NAME]
 
     # Initialize Beanie with document models
     await init_beanie(
         database=database,
         document_models=[
-            UserInDB, 
-            ProjectInDB, 
-            DiagramInDB, 
-            FolderInDB, 
+            UserInDB,
+            ProjectInDB,
+            DiagramInDB,
+            FolderInDB,
             UserAISettingsInDB,
             PlanInDB,
             SubscriptionInDB,
@@ -152,13 +169,20 @@ async def lifespan(app: FastAPI):
             AuditLogEntry,
             OAuthStateToken,
             MfaTokenAttempt,
+            ApiTokenInDB,
+            PublishedDiagramInDB,
+            CommunityStarInDB,
+            CommunityForkInDB,
+            CommunityCommentInDB,
+            CommunityReportInDB,
+            DiagramActivityInDB,
         ],
     )
 
     yield
 
     # Shutdown: Close MongoDB connection
-    client.close()
+    await client.close()
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +204,7 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # Security Headers Middleware (OWASP A05)
 # ---------------------------------------------------------------------------
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to every response."""
@@ -235,6 +260,7 @@ if _is_production:
             content={"detail": "Internal server error"},
         )
 
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -262,16 +288,26 @@ app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(projects_router, prefix=settings.API_V1_PREFIX)
 app.include_router(diagrams_router, prefix=settings.API_V1_PREFIX)
 app.include_router(folders_router, prefix=settings.API_V1_PREFIX)
-app.include_router(ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"])
+app.include_router(
+    ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"]
+)
 app.include_router(subscriptions_router, prefix=settings.API_V1_PREFIX, tags=["Subscriptions"])
 app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX, tags=["Webhooks"])
 app.include_router(prompt_history_router, prefix=settings.API_V1_PREFIX)
 app.include_router(chat_sessions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(shared_links_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links"])
-app.include_router(shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"])
-app.include_router(integrations_router, prefix=settings.API_V1_PREFIX, tags=["Integrations (Admin)"])
+app.include_router(
+    shared_links_public_router, prefix=settings.API_V1_PREFIX, tags=["Shared Links (Public)"]
+)
+app.include_router(
+    integrations_router, prefix=settings.API_V1_PREFIX, tags=["Integrations (Admin)"]
+)
 app.include_router(mfa_router, prefix=settings.API_V1_PREFIX, tags=["MFA"])
 app.include_router(oauth_router, prefix=settings.API_V1_PREFIX, tags=["OAuth"])
+app.include_router(api_tokens_router, prefix=settings.API_V1_PREFIX)
+app.include_router(community_router, prefix=settings.API_V1_PREFIX)
+app.include_router(about_router, prefix=settings.API_V1_PREFIX)
+app.include_router(activity_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")

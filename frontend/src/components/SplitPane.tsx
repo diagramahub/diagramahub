@@ -100,7 +100,7 @@ export default function SplitPane({
         aria-valuenow={Math.round(splitPercent)}
       >
         {/* Visible bar */}
-        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 group-hover:bg-purple-300 group-active:bg-purple-400 dark:group-hover:bg-purple-600 dark:group-active:bg-purple-500 transition-colors" />
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 group-hover:bg-purple-300 group-active:bg-purple-400 dark:group-hover:bg-purple-600 dark:group-active:bg-purple-500 transition-colors" />
         {/* Grip indicator (three dots) */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none">
           <span className="block w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 group-hover:bg-purple-500 dark:group-hover:bg-purple-300 transition-colors" />

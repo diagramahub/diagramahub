@@ -21,10 +21,16 @@ from .schemas import (
     UpdateProviderRequest,
     TestProviderResponse,
 )
-from .clients.base import EmptyResponseError, TruncatedResponseError
+from .clients.base import (
+    EmptyResponseError,
+    ImagesNotSupportedError,
+    ProviderError,
+    TruncatedResponseError,
+)
 from .clients.factory import AIClientFactory
+from .model_catalog import supports_images
 from .clients.base import BaseAIClient
-from app.core.security import mask_api_key
+from app.core.security import mask_stored_api_key
 
 
 import re
@@ -37,6 +43,26 @@ def _strip_think_tags(text: str) -> str:
     if "<think>" in text:
         text = text[: text.index("<think>")].strip()
     return text.strip()
+
+
+# Diagram from image: a whiteboard photo is a few MB at most; the request body
+# limit (MAX_REQUEST_BODY_BYTES, 5 MB) also leaves room for the multipart form.
+MAX_IMAGE_BYTES = 4 * 1024 * 1024
+IMAGE_TYPES_ACCEPTED = ("image/png", "image/jpeg", "image/webp")
+
+
+def sniff_image_type(data: bytes) -> Optional[str]:
+    """MIME type from the file's magic bytes (PNG, JPEG, WebP), or None.
+
+    The declared Content-Type of an upload is not trusted.
+    """
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
 
 
 class AIProviderService:
@@ -64,7 +90,7 @@ class AIProviderService:
         masked_providers = []
         for provider in settings.providers:
             provider_dict = provider.model_dump()
-            provider_dict["api_key"] = mask_api_key(provider.api_key)
+            provider_dict["api_key"] = mask_stored_api_key(provider.api_key)
             masked_providers.append(AIProviderResponse(**provider_dict))
 
         return UserAISettingsResponse(
@@ -532,7 +558,7 @@ class AIProviderService:
         except TruncatedResponseError:
             # The code hit the output limit: incomplete code would not render
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "response_truncated"},
             )
         except EmptyResponseError:
@@ -550,6 +576,113 @@ class AIProviderService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Unexpected error: {str(e)}",
             )
+
+    async def generate_diagram_from_image(
+        self,
+        user_id: str,
+        image: bytes,
+        diagram_type: str,
+        language: str = "es",
+        instructions: Optional[str] = None,
+        provider: Optional[AIProviderType] = None,
+        model: Optional[str] = None,
+    ) -> GenerateDiagramResponse:
+        """
+        Recreate the diagram in an image (whiteboard photo, screenshot, sketch) as code.
+
+        Args:
+            user_id: User ID
+            image: Image bytes (PNG, JPEG or WebP, at most ``MAX_IMAGE_BYTES``)
+            diagram_type: Target type (mermaid, plantuml, d2, dbml)
+            language: User's language (es, en)
+            instructions: Optional extra instructions from the user
+            provider: Provider to use (the default one when omitted)
+            model: Model to use, e.g. the one picked in the chat (the provider's when omitted)
+
+        Returns:
+            Generated diagram code
+
+        Raises:
+            HTTPException 400: Not a supported image (``invalid_image``) or too big (``image_too_large``)
+            HTTPException 404: No active AI provider
+            HTTPException 422: The provider or model can't read images (``images_not_supported``)
+                or the reply was cut off (``response_truncated``)
+            HTTPException 502: The reply had no code (``empty_response``)
+        """
+        import time
+
+        if len(image) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "image_too_large"}
+            )
+        mime_type = sniff_image_type(image)
+        if mime_type is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail={"error": "invalid_image"}
+            )
+
+        provider_config = await self.repository.get_active_provider(user_id, provider)
+        if not provider_config:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No active AI provider configured. Please add an API key in settings.",
+            )
+        model_id = model or provider_config.model
+        try:
+            client = AIClientFactory.create_client(
+                provider=provider_config.provider,
+                api_key=provider_config.api_key,
+                model=model_id,
+                parameters=provider_config.parameters,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+        if not supports_images(model_id, client.supports_images):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error": "images_not_supported",
+                    "provider": provider_config.provider.value,
+                    "model": model_id,
+                },
+            )
+        try:
+            start_time = time.time()
+            diagram_code = await client.generate_diagram_from_image(
+                image, mime_type, diagram_type, language, instructions
+            )
+        except ImagesNotSupportedError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error": "images_not_supported",
+                    "provider": provider_config.provider.value,
+                    "model": model_id,
+                },
+            )
+        except TruncatedResponseError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"error": "response_truncated"},
+            )
+        except EmptyResponseError:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY, detail={"error": "empty_response"}
+            )
+        except ProviderError as e:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error generating diagram: {str(e)}",
+            )
+        return GenerateDiagramResponse(
+            diagram_code=diagram_code,
+            provider_used=provider_config.provider,
+            model_used=model_id,
+            generation_time=time.time() - start_time,
+        )
 
     async def improve_diagram(
         self, user_id: str, request: ImproveDiagramRequest
@@ -617,7 +750,7 @@ class AIProviderService:
         except TruncatedResponseError:
             # The code hit the output limit: incomplete code would not render
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "response_truncated"},
             )
         except EmptyResponseError:

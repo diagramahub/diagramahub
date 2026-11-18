@@ -5,6 +5,7 @@ Both routes consult module-level limiter singletons, so these tests shrink the
 configured budget with monkeypatch instead of firing the production number of
 requests. The shipped numbers are pinned separately.
 """
+
 from unittest.mock import AsyncMock, patch
 
 import pytest

@@ -7,6 +7,11 @@ import EditProviderModal from './EditProviderModal';
 import ConfirmModal from './ConfirmModal';
 import { ErrorToast } from './ErrorToast';
 import { apiErrorMessage } from '../utils/apiError';
+import { modelReadsImages } from '../utils/imageInput';
+import { STAR_PATH } from './FavoriteStarButton';
+
+const ACTION_BUTTON =
+  'p-1.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500';
 
 export default function AIIntegrationsSection() {
   const { t } = useTranslation();
@@ -89,214 +94,168 @@ export default function AIIntegrationsSection() {
     setEditingProvider(null);
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-12 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
-        </div>
-      </div>
-    );
-  }
+  const providers = settings
+    ? [...settings.providers]
+        .map((provider, index) => ({ provider, index }))
+        // Default first, then the rest in the order they were added.
+        .sort((a, b) => Number(settings.default_provider === b.provider.provider) - Number(settings.default_provider === a.provider.provider))
+    : [];
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+      <section className="card" aria-labelledby="ai-integrations-title">
         {/* Header */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('ai.title')}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{t('ai.subtitle')}</p>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors flex items-center space-x-2 self-start sm:self-auto flex-shrink-0"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 id="ai-integrations-title" className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{t('ai.title')}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{t('ai.subtitle')}</p>
+          </div>
+          {!!settings?.providers.length && (
+            <button type="button" onClick={() => setIsModalOpen(true)} className="btn btn-secondary btn-sm self-start sm:self-auto flex-shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span>{t('ai.addProvider')}</span>
+              {t('ai.addProvider')}
             </button>
-          </div>
+          )}
         </div>
 
-        {/* Providers List */}
+        {/* Providers */}
         <div className="px-4 sm:px-6 py-4">
-          {!settings?.providers.length ? (
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" aria-busy="true">
+              {[0, 1].map((i) => (
+                <div key={i} className="h-40 rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
+              ))}
+            </div>
+          ) : !providers.length ? (
             <div className="text-center py-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full mb-4">
-                <svg
-                  className="w-8 h-8 text-gray-400 dark:text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full mb-3" aria-hidden="true">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">{t('ai.noProviders')}</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">{t('ai.noProvidersDescription')}</p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
-              >
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('ai.noProviders')}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 mb-4 max-w-md mx-auto">{t('ai.noProvidersDescription')}</p>
+              <button type="button" onClick={() => setIsModalOpen(true)} className="btn btn-primary">
                 {t('ai.addProvider')}
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {/* Sort providers: default first, then others */}
-              {[...settings.providers]
-                .sort((a, b) => {
-                  const aIsDefault = settings.default_provider === a.provider;
-                  const bIsDefault = settings.default_provider === b.provider;
-                  if (aIsDefault && !bIsDefault) return -1;
-                  if (!aIsDefault && bIsDefault) return 1;
-                  return 0;
-                })
-                .map((provider) => {
-                  // Find original index for API calls
-                  const originalIndex = settings.providers.findIndex(p => p === provider);
-                  const isDefault = settings.default_provider === provider.provider;
-                  const isAvailable = AI_PROVIDER_STATUS[provider.provider] === 'available';
+            <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {providers.map(({ provider, index }) => {
+                const isDefault = settings?.default_provider === provider.provider;
+                const isAvailable = AI_PROVIDER_STATUS[provider.provider] === 'available';
+                const providerName = AI_PROVIDER_NAMES[provider.provider];
+                const name = provider.display_name || providerName;
+                const retired = !AI_PROVIDER_MODELS[provider.provider]?.some((m) => m.id === provider.model);
+                const readsImages = modelReadsImages(provider.provider, provider.model);
+                const busy = actionLoading !== null;
 
                 return (
-                  <div
-                    key={originalIndex}
-                    className={`p-4 border rounded-lg ${
-                      isDefault ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700'
+                  <li
+                    key={index}
+                    className={`rounded-xl border bg-white dark:bg-gray-900 p-4 flex flex-col ${
+                      isDefault
+                        ? 'border-purple-300 dark:border-purple-800 ring-1 ring-purple-200/70 dark:ring-purple-900/50'
+                        : 'border-gray-200 dark:border-gray-800'
                     }`}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 sm:space-x-3 sm:gap-0">
-                          <img
-                            src={`/images/ai-providers/${provider.provider}.svg`}
-                            alt={AI_PROVIDER_NAMES[provider.provider]}
-                            className="w-6 h-6 object-contain"
-                          />
-                          <h4 className="text-base font-medium text-gray-900 dark:text-gray-100">
-                            {provider.display_name || AI_PROVIDER_NAMES[provider.provider]}
-                          </h4>
-                          {isDefault && (
-                            <span className="px-2 py-1 text-xs font-medium text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/30 rounded-full">
-                              {t('ai.status.default')}
-                            </span>
-                          )}
-                          {!isAvailable && (
-                            <span className="px-2 py-1 text-xs font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
-                              {t('ai.status.comingSoon')}
-                            </span>
-                          )}
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              provider.is_active
-                                ? 'text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/30'
-                                : 'text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700'
-                            }`}
-                          >
-                            {provider.is_active ? t('ai.status.active') : t('ai.status.inactive')}
-                          </span>
-                        </div>
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            <span className="font-medium">{t('ai.form.provider')}:</span>{' '}
-                            {AI_PROVIDER_NAMES[provider.provider]}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            <span className="font-medium">{t('ai.form.model')}:</span> {provider.model}
-                            {!AI_PROVIDER_MODELS[provider.provider]?.some(m => m.id === provider.model) && (
-                              <span className="ml-1 text-xs text-amber-600 dark:text-amber-400" title={t('ai.form.retiredHint')}>({t('ai.form.retired')})</span>
-                            )}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            <span className="font-medium">{t('ai.form.apiKey')}:</span>{' '}
-                            <code className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                              {provider.api_key}
-                            </code>
-                          </p>
-                        </div>
+                    {/* Name */}
+                    <div className="flex items-start gap-3">
+                      <span className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+                        <img src={`/images/ai-providers/${provider.provider}.svg`} alt="" className="w-5 h-5 object-contain" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={name}>{name}</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{providerName}</p>
                       </div>
+                      {isDefault && <span className="badge flex-shrink-0">{t('ai.status.default')}</span>}
+                    </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center space-x-2 ml-4">
-                        <button
-                          onClick={() => handleEditProvider(provider, originalIndex)}
-                          disabled={actionLoading !== null}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-                          title={t('ai.editProvider')}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
+                    {/* Model and key */}
+                    <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 text-xs">
+                      <dt className="text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('ai.form.model')}</dt>
+                      <dd className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-mono text-gray-800 dark:text-gray-200 truncate" title={provider.model}>{provider.model}</span>
+                        {readsImages && (
+                          <svg className="w-3.5 h-3.5 flex-shrink-0 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" role="img" aria-label={t('ai.form.readsImages')}>
+                            <title>{t('ai.form.readsImages')}</title>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                        </button>
-                        {isAvailable && (
-                          <button
-                            onClick={() => handleSetDefault(originalIndex)}
-                            disabled={actionLoading === `default-${originalIndex}`}
-                            className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
-                              isDefault
-                                ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
-                                : 'text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
-                            title={t('ai.form.isDefault')}
-                          >
-                            <svg 
-                              className="w-5 h-5" 
-                              fill={isDefault ? 'currentColor' : 'none'} 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
+                        )}
+                        {retired && (
+                          <span className="flex-shrink-0 text-amber-600 dark:text-amber-400" title={t('ai.form.retiredHint')}>({t('ai.form.retired')})</span>
+                        )}
+                      </dd>
+                      <dt className="text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('ai.form.apiKey')}</dt>
+                      <dd className="font-mono text-gray-500 dark:text-gray-400 truncate">{provider.api_key}</dd>
+                    </dl>
+
+                    {/* Status and actions */}
+                    <div className="mt-auto pt-3">
+                      <div className="mt-1 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400 min-w-0">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${provider.is_active ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-600'}`} aria-hidden="true" />
+                          <span className="truncate">
+                            {provider.is_active ? t('ai.status.active') : t('ai.status.inactive')}
+                            {!isAvailable && ` · ${t('ai.status.comingSoon')}`}
+                          </span>
+                        </span>
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          {isAvailable && !isDefault && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetDefault(index)}
+                              disabled={busy}
+                              className={ACTION_BUTTON}
+                              aria-label={t('ai.makeDefault', { name })}
+                              title={t('ai.makeDefault', { name })}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                              />
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={STAR_PATH} />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleEditProvider(provider, index)}
+                            disabled={busy}
+                            className={ACTION_BUTTON}
+                            aria-label={`${t('ai.editProvider')}: ${name}`}
+                            title={t('ai.editProvider')}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
-                        )}
-                        <button
-                          onClick={() => setRemoveIndex(originalIndex)}
-                          disabled={actionLoading === `remove-${originalIndex}`}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-                          title={t('ai.removeProvider')}
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setRemoveIndex(index)}
+                            disabled={busy}
+                            className={`${ACTION_BUTTON} hover:!text-red-600 dark:hover:!text-red-400`}
+                            aria-label={`${t('ai.removeProvider')}: ${name}`}
+                            title={t('ai.removeProvider')}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
         {/* Preferences */}
-        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-800">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
-              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500"
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 dark:border-gray-700 rounded focus:ring-purple-500"
               checked={settings?.auto_fix_generated !== false}
               disabled={!settings}
               onChange={(e) => handleAutoFixChange(e.target.checked)}
@@ -307,7 +266,7 @@ export default function AIIntegrationsSection() {
             </span>
           </label>
         </div>
-      </div>
+      </section>
 
       {/* Modal */}
       <AddProviderModal

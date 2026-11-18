@@ -7,7 +7,7 @@ import { AI_PROVIDER_MODELS } from "../../types/ai";
 // defaults); the pickers must offer exactly its `listed` models.
 const catalogPath = resolve(__dirname, "../../../../backend/app/api/v1/ai_providers/model_catalog.json");
 const catalog = JSON.parse(readFileSync(catalogPath, "utf8")) as {
-  models: { provider: string; id: string; listed?: boolean; recommended?: boolean }[];
+  models: { provider: string; id: string; listed?: boolean; recommended?: boolean; images?: boolean }[];
 };
 
 describe("AI model catalog", () => {
@@ -17,6 +17,10 @@ describe("AI model catalog", () => {
       expect(options.map((o) => o.id), provider).toEqual(listed.map((m) => m.id));
       expect(options.filter((o) => o.recommended).map((o) => o.id), provider).toEqual(
         listed.filter((m) => m.recommended).map((m) => m.id),
+      );
+      // The image indicator and "From image" follow the catalog's `images`.
+      expect(options.filter((o) => o.images).map((o) => o.id), provider).toEqual(
+        listed.filter((m) => m.images).map((m) => m.id),
       );
     }
   });

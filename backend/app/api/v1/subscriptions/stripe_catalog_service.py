@@ -7,6 +7,7 @@ with `currency_options` that includes all configured currencies.
 Stripe Checkout then automatically resolves the correct currency
 based on the customer's location/card.
 """
+
 import logging
 
 import stripe

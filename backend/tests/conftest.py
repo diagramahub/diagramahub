@@ -2,15 +2,14 @@
 Shared pytest fixtures and configuration for all tests.
 """
 
-import asyncio
-from typing import AsyncGenerator, Generator
+from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from beanie import init_beanie
 from faker import Faker
 from httpx import ASGITransport, AsyncClient
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from app.api.v1.ai_providers.schemas import UserAISettingsInDB
 from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB
@@ -33,20 +32,21 @@ from app.api.v1.users.schemas import UserInDB as User
 from app.core.config import settings
 from app.main import app
 from tests.utils import generate_test_password, generate_weak_password
+from app.api.v1.api_tokens.schemas import ApiTokenInDB
+from app.api.v1.activity.schemas import DiagramActivityInDB
+from app.api.v1.community.schemas import (
+    CommunityCommentInDB,
+    CommunityReportInDB,
+    CommunityStarInDB,
+    CommunityForkInDB,
+    PublishedDiagramInDB,
+)
 
 # Initialize Faker
 fake = Faker()
 
 # Test database configuration
 TEST_DATABASE_NAME = f"{settings.DATABASE_NAME}_test"
-
-
-@pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture(autouse=True)
@@ -84,7 +84,7 @@ async def test_db() -> AsyncGenerator:
     Drops the database after each test to ensure isolation.
     """
     # Create MongoDB client
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client: AsyncMongoClient = AsyncMongoClient(settings.MONGO_URI)
 
     # Initialize Beanie with test database
     await init_beanie(
@@ -108,6 +108,13 @@ async def test_db() -> AsyncGenerator:
             AuditLogEntry,
             OAuthStateToken,
             MfaTokenAttempt,
+            ApiTokenInDB,
+            PublishedDiagramInDB,
+            CommunityStarInDB,
+            CommunityForkInDB,
+            CommunityCommentInDB,
+            CommunityReportInDB,
+            DiagramActivityInDB,
         ],
     )
 
@@ -115,7 +122,7 @@ async def test_db() -> AsyncGenerator:
 
     # Cleanup: Drop test database after each test
     await client.drop_database(TEST_DATABASE_NAME)
-    client.close()
+    await client.close()
 
 
 @pytest_asyncio.fixture(scope="function")

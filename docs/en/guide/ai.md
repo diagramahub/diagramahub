@@ -15,25 +15,25 @@ DiagramaHub follows a **BYOL** model (*Bring Your Own LLM*): you connect **your 
 ## Configure a provider
 
 1. Go to **Settings → AI Integrations**.
-2. Click **Add Provider** and choose the provider.
+2. Click **Add provider** and choose the provider.
 3. Paste your **API Key** and choose the **Model**. The suggested model is marked **Recommended**.
 4. Optionally give it a **Custom name** (for example "My Gemini account").
-5. Use **Test Connection** to check the key before saving it.
+5. Use **Test connection** to check the key before saving it.
 
 If the test fails, the message tells you why: invalid key or missing permissions, an account with no credits, the provider's rate limit, or a model that is not available for that key.
 
-You can connect several providers. Mark one with **Use as default** and temporarily turn off the ones you don't want to use with **Active**. A connection's provider cannot be changed: if you want another one, create a new connection.
+You can connect several providers; each one shows as a card with its model (an image icon if it reads images) and its masked key (for example `AIza...xyz`). Make one the default with the star on its card and temporarily turn off the ones you don't want to use with **Active**. A connection's provider cannot be changed: if you want another one, create a new connection.
 
-??? note "Available models (0.8.x)"
+??? note "Available models (0.9.x)"
     The list comes from the server's model catalog. It may change between versions.
 
-    | Provider | Models | Recommended |
-    |---|---|---|
-    | Google Gemini | `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview` | `gemini-3.8-flash` |
-    | OpenAI GPT | `gpt-6-luna`, `gpt-6.1-sol`, `gpt-6-astra`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-4.1-mini` | `gpt-6-luna` |
-    | Anthropic Claude | `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5-20251001` | `claude-sonnet-5-5` |
-    | DeepSeek | `deepseek-flash`, `deepseek-v4-pro` | `deepseek-flash` |
-    | Minimax | `MiniMax-M2.7`, `MiniMax-M3`, `MiniMax-M2.7-highspeed` | `MiniMax-M2.7` |
+    | Provider | Models | Recommended | Read images |
+    |---|---|---|---|
+    | Google Gemini | `gemini-3.8-flash`, `gemini-4-carbon`, `gemini-4-hydrogen`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` | `gemini-3.8-flash` | Yes |
+    | OpenAI GPT | `gpt-6-luna`, `gpt-6.2-sol`, `gpt-6.2-astra`, `gpt-6.1-terra` | `gpt-6-luna` | Yes |
+    | Anthropic Claude | `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-2`, `claude-haiku-5-5` | `claude-sonnet-5-5` | Yes |
+    | DeepSeek | `deepseek-flash`, `deepseek-v4-pro` | `deepseek-flash` | No |
+    | Minimax | `MiniMax-M2.7`, `MiniMax-M3`, `MiniMax-M2.7-highspeed` | `MiniMax-M2.7` | No |
 
     If a model you already had configured leaves the list, it is shown as **retired**. It keeps working as long as the provider offers it, and you can change it when editing the connection.
 
@@ -88,6 +88,22 @@ When a conversation gets close to the model's context limit, DiagramaHub **summa
 ### Language
 
 The assistant replies in the UI language (Spanish or English), including the labels of the diagrams it generates.
+
+### Prompt history
+
+**History**, in the chat footer, lists the prompts that produced a diagram (not the quick actions), newest first. Search them, click one to put it back in the input, or remove it.
+
+### Diagram from an image
+
+**From image**, in the chat footer, turns a whiteboard photo, a screenshot or a hand-drawn sketch into code of the current diagram's type:
+
+1. Choose, drop or paste (++ctrl+v++ / ++cmd+v++) a PNG, JPEG or WebP image of up to 4 MB.
+2. Optionally add instructions ("left to right", "group by team").
+3. **Generate**, check the preview and **Apply to diagram** (it replaces the current code).
+
+While it converts, the dialog shows each step (uploading the image, the AI reading it and writing the code, the preview) and the elapsed seconds; it usually takes 5 to 30 seconds, and up to 2 minutes with reasoning models. **Cancel conversion** stops it.
+
+It uses the model selected in the chat, which must read images: the **Gemini, OpenAI and Claude** ones, marked with an image icon in the chat's model picker (and with "reads images" when you set up the provider). With a model that can't read images, such as DeepSeek's and MiniMax's, the button is disabled and says why. The image is sent to that provider with your API key and is not stored by DiagramaHub.
 
 ## Automatic fixing
 

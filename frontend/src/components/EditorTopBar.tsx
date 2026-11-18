@@ -57,7 +57,7 @@ export default function EditorTopBar({
   };
 
   return (
-    <div className="flex items-center h-10 px-3 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 flex-shrink-0">
+    <div className="flex items-center h-10 px-3 border-b border-gray-200 bg-white dark:bg-gray-950 dark:border-gray-800 flex-shrink-0">
       {/* Back to Dashboard */}
       <button
         onClick={() => navigate('/dashboard')}

@@ -47,14 +47,14 @@ En **Apariencia** puedes ajustar:
 
 | Opción | Valores |
 |---|---|
-| **Tema** | Default, Base (personalizable), Dark, Forest, Neutral |
-| **Layout** | Dagre, ELK |
-| **Estilo** | Classic, Neo, Hand Drawn (aspecto de boceto) |
-| Tipo de líneas | Basis (suaves), Linear (rectas), Step, Step Before, Step After |
+| **Tema** | **Redux color** (predeterminado), Redux, Redux oscuro color, Redux oscuro, Neo, Neo oscuro, Clásico, Base (personalizable), Oscuro, Bosque, Neutral |
+| **Layout** | **ELK** (predeterminado), Dagre |
+| **Estilo** | **Neo** (predeterminado), Clásico, A mano (aspecto de boceto) |
+| Tipo de líneas | Predeterminado, Suaves (basis), Rectas (linear), Escalones, Escalones antes, Escalones después |
 | Fuente | Por defecto, Arial, Helvetica, Verdana, Trebuchet MS, Georgia, Courier New, Times New Roman |
 | Tamaño de fuente | 12, 14, 16, 18 o 20 px |
 
-Estas opciones se guardan dentro del propio código del diagrama como un bloque de inicialización de Mermaid (`%%{init: ...}%%`), así que viajan con el código cuando lo copias o exportas.
+Estas opciones se guardan dentro del propio código del diagrama como un bloque de inicialización de Mermaid (`%%{init: ...}%%`), así que viajan con el código cuando lo copias o exportas. Los valores predeterminados son los de Mermaid 12: un diagrama sin bloque de inicialización (por ejemplo, uno generado por la IA o pegado) también los usa.
 
 !!! tip
     Los diagramas Mermaid nuevos usan fondo con **Cuadrícula** por defecto; el resto, fondo **Plano**. Puedes cambiarlo en **Apariencia**.

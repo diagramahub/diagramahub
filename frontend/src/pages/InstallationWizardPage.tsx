@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import LanguageSelector from '../components/LanguageSelector';
 import { apiErrorMessage } from '../utils/apiError';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
 
 const TIMEZONES = [
   { value: 'America/Mexico_City', label: 'Ciudad de México (GMT-6)' },
@@ -46,6 +47,7 @@ export default function InstallationWizardPage() {
   const validatePassword = (pwd: string): string | null => {
     // Same policy as the backend (users/schemas.py): 12+ chars, upper, lower, digit, special.
     if (pwd.length < 12) return t('validation.passwordMin');
+    if (exceedsPasswordMaxBytes(pwd)) return t('validation.passwordMaxBytes');
     if (!/[A-Z]/.test(pwd)) return t('validation.passwordUppercase');
     if (!/[a-z]/.test(pwd)) return t('validation.passwordLowercase');
     if (!/[0-9]/.test(pwd)) return t('validation.passwordNumber');
@@ -124,7 +126,7 @@ export default function InstallationWizardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
         {/* Language Selector */}
         <div className="flex justify-end mb-4">
@@ -133,12 +135,12 @@ export default function InstallationWizardPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600 rounded-xl mb-4">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100 mb-2">
             {t('installation.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
@@ -153,12 +155,12 @@ export default function InstallationWizardPage() {
               <div key={s} className="flex items-center">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all ${step >= s
                   ? 'bg-purple-500 border-purple-500 text-white'
-                  : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                   }`}>
                   {s}
                 </div>
                 {s < 3 && (
-                  <div className={`w-16 h-1 transition-all ${step > s ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-600'
+                  <div className={`w-16 h-1 transition-all ${step > s ? 'bg-purple-500' : 'bg-gray-300 dark:bg-gray-700'
                     }`} />
                 )}
               </div>
@@ -172,7 +174,7 @@ export default function InstallationWizardPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8">
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -199,7 +201,7 @@ export default function InstallationWizardPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="input"
                   placeholder={t('installation.emailPlaceholder')}
                   autoFocus
                 />
@@ -213,7 +215,7 @@ export default function InstallationWizardPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="input"
                   placeholder={t('installation.passwordPlaceholder')}
                 />
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -229,7 +231,7 @@ export default function InstallationWizardPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="input"
                   placeholder={t('installation.repeatPassword')}
                 />
               </div>
@@ -256,7 +258,7 @@ export default function InstallationWizardPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="input"
                   placeholder={t('installation.fullNamePlaceholder')}
                   autoFocus
                 />
@@ -297,7 +299,7 @@ export default function InstallationWizardPage() {
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="input"
                   autoFocus
                 >
                   {TIMEZONES.map((tz) => (
@@ -323,7 +325,7 @@ export default function InstallationWizardPage() {
               </div>
 
               {/* Summary */}
-              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-2">
+              <div className="bg-gray-50 dark:bg-gray-950/50 rounded-lg p-4 space-y-2">
                 <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{t('installation.summary')}</p>
                 <div className="space-y-1">
                   <p className="text-sm"><span className="font-medium">{t('common.email')}:</span> {email}</p>
@@ -336,13 +338,13 @@ export default function InstallationWizardPage() {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
             <button
               onClick={handleBack}
               disabled={step === 1 || loading}
               className={`px-6 py-2 rounded-lg font-medium transition-colors ${step === 1 || loading
                 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
             >
               {t('common.back')}
@@ -352,7 +354,7 @@ export default function InstallationWizardPage() {
               <button
                 onClick={handleNext}
                 disabled={loading}
-                className="px-6 py-2 bg-purple-500 text-white btn-glass rounded-lg font-medium hover:bg-purple-600 transition-colors disabled:opacity-50"
+                className="btn btn-primary"
               >
                 {t('common.next')}
               </button>
@@ -360,7 +362,7 @@ export default function InstallationWizardPage() {
               <button
                 onClick={handleFinish}
                 disabled={loading}
-                className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="btn btn-primary"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

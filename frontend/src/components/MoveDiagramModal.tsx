@@ -62,12 +62,12 @@ export default function MoveDiagramModal({
       role="presentation"
     >
       <div
-        className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-800"
+        className="w-full max-w-md rounded-xl bg-white shadow-lg ring-1 ring-black/5 dark:ring-white/10 dark:bg-gray-900"
         role="dialog"
         aria-modal="true"
         aria-labelledby="move-diagram-title"
       >
-        <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-700">
+        <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
           <h3 id="move-diagram-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {t("editor.moveDiagram")}
           </h3>
@@ -86,7 +86,7 @@ export default function MoveDiagramModal({
               value={targetProjectId}
               onChange={(event) => setTargetProjectId(event.target.value)}
               disabled={isLoadingProjects || isMoving || availableProjects.length === 0}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+              className="input disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">{t("editor.selectTargetProject")}</option>
               {availableProjects.map((project) => (
@@ -102,12 +102,12 @@ export default function MoveDiagramModal({
             )}
           </div>
         </div>
-        <div className="flex justify-end gap-3 rounded-b-lg bg-gray-50 px-6 py-4 dark:bg-gray-900/50">
+        <div className="flex justify-end gap-3 rounded-b-xl bg-gray-50 px-6 py-4 dark:bg-gray-950/50">
           <button
             type="button"
             onClick={onClose}
             disabled={isMoving}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            className="btn btn-secondary"
           >
             {t("common.cancel")}
           </button>
@@ -115,7 +115,7 @@ export default function MoveDiagramModal({
             type="button"
             onClick={handleConfirm}
             disabled={!targetProjectId || isMoving}
-            className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            className="btn btn-primary flex items-center gap-2"
           >
             {isMoving && (
               <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

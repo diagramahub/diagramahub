@@ -89,7 +89,7 @@ export default function Tooltip({ content, children, position = 'top', delay = 2
           className={`fixed z-[9999] pointer-events-none ${getTransformClass()}`}
           style={{ top: coords.top, left: coords.left }}
         >
-          <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+          <div className="bg-gray-900 dark:bg-gray-800 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
             {content}
           </div>
         </div>,

@@ -19,8 +19,10 @@ RUN apk update && apk upgrade --no-cache && apk add --no-cache \
     openssl-dev \
     cargo
 
-# Install Poetry (2.x: 1.8.3 and its dulwich dependency carried advisories)
-RUN pip install --no-cache-dir poetry==2.5.1
+# Install Poetry (2.x: 1.8.3 and its dulwich dependency carried advisories).
+# pip itself is upgraded first: it vendors msgpack and urllib3, which carry advisories in older pips.
+RUN pip install --no-cache-dir --upgrade pip==26.3 \
+    && pip install --no-cache-dir poetry==2.5.1
 
 # Install into the system interpreter (no virtualenv). Set as env vars rather
 # than `poetry config`, which would be stored in root's home and be invisible
@@ -32,13 +34,16 @@ ENV POETRY_VIRTUALENVS_CREATE=false \
 COPY pyproject.toml poetry.lock README.md ./
 
 # Generate lock file and install dependencies
-# In production, skip dev dependencies
+# In production, skip dev dependencies and remove pip afterwards: nothing
+# installs packages at runtime, and pip vendors setuptools (pkg_resources),
+# which carries advisories of its own.
 ARG APP_ENV=production
 RUN if [ "$APP_ENV" = "development" ] || [ "$APP_ENV" = "dev" ]; then \
         poetry install --no-interaction --no-ansi --no-root; \
     else \
         poetry install --no-interaction --no-ansi --no-root --only main && \
-        pip install --no-cache-dir gunicorn; \
+        pip install --no-cache-dir gunicorn && \
+        pip uninstall -y pip; \
     fi \
     && apk del .build-deps \
     && rm -rf /root/.cache /var/cache/apk/*

@@ -37,4 +37,4 @@ CURRENCY_CONFIG = {
 
 # Usage thresholds for notifications
 USAGE_WARNING_THRESHOLD = 0.8  # 80%
-USAGE_LIMIT_THRESHOLD = 1.0    # 100%
+USAGE_LIMIT_THRESHOLD = 1.0  # 100%

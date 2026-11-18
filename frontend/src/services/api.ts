@@ -29,7 +29,8 @@ import {
   Folder,
   FolderWithDiagrams,
   CreateFolderRequest,
-  UpdateFolderRequest
+  UpdateFolderRequest,
+  DiagramSearchResult
 } from '../types/project';
 import {
   UserAISettings,
@@ -96,6 +97,22 @@ import {
   OAuthAuthorizeResponse
 } from '../types/oauth';
 import { API_URL } from '../utils/runtimeConfig';
+import type { ApiToken, CreateApiTokenRequest, CreatedApiToken } from '../types/apiTokens';
+import type {
+  CommunityCategory,
+  CommunityComment,
+  CommunityReport,
+  CommunitySort,
+  CommunityTab,
+  PublicationCard,
+  PublicationDetail,
+  PublicationPage,
+  PublishableType,
+  PublishedSource,
+  PublishRequest,
+  UpdatePublicationRequest,
+} from '../types/community';
+import type { ActivityHeatmap, CommunityImpact, FavoriteDiagrams } from '../types/dashboard';
 
 export type ProjectExportFormat = 'zip' | 'markdown';
 export type ProjectExportVariant = 'ai' | 'standard';
@@ -153,6 +170,15 @@ export interface ProjectImportDiagramPreview {
   warnings: string[];
 }
 
+export interface RepositoryStats {
+  /** False when the server can't reach GitHub or the stats are turned off. */
+  available: boolean;
+  repository: string;
+  url: string;
+  stars: number | null;
+  forks: number | null;
+}
+
 export interface ProjectImportPreview {
   diagram_count: number;
   folder_count: number;
@@ -185,7 +211,7 @@ const KEEPALIVE_MAX_BODY_BYTES = 60_000;
  * `language` key (see i18n/config.ts). Only `es` / `en` are supported.
  */
 function currentLanguage(): 'es' | 'en' {
-  let stored: string | null = null;
+  let stored: string | null;
   try {
     stored = localStorage.getItem('language');
   } catch {
@@ -334,6 +360,11 @@ class ApiService {
   }
 
   // Diagram endpoints
+  async searchDiagrams(params: { q: string; project_id?: string; type?: string; limit?: number }): Promise<DiagramSearchResult[]> {
+    const response = await this.api.get<DiagramSearchResult[]>('/api/v1/diagrams/search', { params });
+    return response.data;
+  }
+
   async getDiagram(diagramId: string): Promise<Diagram> {
     const response = await this.api.get<Diagram>(`/api/v1/diagrams/${diagramId}`);
     return response.data;
@@ -474,6 +505,37 @@ class ApiService {
     return response.data;
   }
 
+  async diagramFromImage(data: {
+    image: File;
+    diagramType: string;
+    language: 'es' | 'en';
+    instructions?: string;
+    provider?: string;
+    model?: string;
+    /** Upload progress, 0-1. */
+    onUploadProgress?: (fraction: number) => void;
+    signal?: AbortSignal;
+  }): Promise<GenerateDiagramResponse> {
+    const form = new FormData();
+    form.append('image', data.image);
+    form.append('diagram_type', data.diagramType);
+    form.append('language', data.language);
+    if (data.instructions) form.append('instructions', data.instructions);
+    if (data.provider) form.append('provider', data.provider);
+    if (data.model) form.append('model', data.model);
+    // multipart explicitly: with the instance's JSON default, axios would turn the
+    // FormData into JSON and drop the file.
+    const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/diagram-from-image', form, {
+      timeout: 120_000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+      signal: data.signal,
+      onUploadProgress: data.onUploadProgress
+        ? (event) => data.onUploadProgress?.(event.total ? Math.min(event.loaded / event.total, 1) : 0)
+        : undefined,
+    });
+    return response.data;
+  }
+
   async generateDiagram(data: GenerateDiagramRequest): Promise<GenerateDiagramResponse> {
     const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/generate-diagram', data);
     return response.data;
@@ -525,7 +587,12 @@ class ApiService {
     return response.data;
   }
 
-  async deactivatePlan(planId: string): Promise<void> {
+  /**
+   * Delete a plan: removed (and archived in the gateway) when it has no active
+   * subscribers, otherwise only deactivated by the server. To stop offering a plan,
+   * use updatePlan(id, { is_active: false }).
+   */
+  async deletePlan(planId: string): Promise<void> {
     await this.api.delete(`/api/v1/admin/plans/${planId}`);
   }
 
@@ -542,6 +609,12 @@ class ApiService {
   // Subscriptions
   async getMySubscription(): Promise<Subscription> {
     const response = await this.api.get<Subscription>('/api/v1/subscriptions/me');
+    return response.data;
+  }
+
+  /** GitHub stars and forks of the open-source repository (asked by the server, cached). */
+  async getRepositoryStats(): Promise<RepositoryStats> {
+    const response = await this.api.get<RepositoryStats>('/api/v1/about/repository');
     return response.data;
   }
 
@@ -573,6 +646,117 @@ class ApiService {
   async downloadInvoice(invoiceId: string): Promise<{ pdf_url: string }> {
     const response = await this.api.get(`/api/v1/subscriptions/invoices/${invoiceId}/pdf-url`);
     return response.data;
+  }
+
+  // ============================================================================
+  // Community portal
+  // ============================================================================
+
+  async listCommunity(params: {
+    tab?: CommunityTab;
+    q?: string;
+    category?: CommunityCategory;
+    type?: PublishableType;
+    sort?: CommunitySort;
+    page?: number;
+    page_size?: number;
+  }): Promise<PublicationPage> {
+    const response = await this.api.get<PublicationPage>('/api/v1/community/diagrams', { params });
+    return response.data;
+  }
+
+  async getPublication(id: string): Promise<PublicationDetail> {
+    const response = await this.api.get<PublicationDetail>(`/api/v1/community/diagrams/${id}`);
+    return response.data;
+  }
+
+  async getMyPublishedDiagrams(): Promise<PublishedSource[]> {
+    const response = await this.api.get<PublishedSource[]>('/api/v1/community/my-published');
+    return response.data;
+  }
+
+  async getPublicationOfDiagram(diagramId: string): Promise<PublicationCard | null> {
+    const response = await this.api.get<PublicationCard | null>(`/api/v1/community/by-diagram/${diagramId}`);
+    return response.data;
+  }
+
+  async publishDiagram(data: PublishRequest): Promise<PublicationDetail> {
+    const response = await this.api.post<PublicationDetail>('/api/v1/community/diagrams', data);
+    return response.data;
+  }
+
+  async updatePublication(id: string, data: UpdatePublicationRequest): Promise<PublicationDetail> {
+    const response = await this.api.put<PublicationDetail>(`/api/v1/community/diagrams/${id}`, data);
+    return response.data;
+  }
+
+  async unpublishDiagram(id: string): Promise<void> {
+    await this.api.delete(`/api/v1/community/diagrams/${id}`);
+  }
+
+  async setStar(id: string, starred: boolean): Promise<{ starred: boolean; stars_count: number }> {
+    const url = `/api/v1/community/diagrams/${id}/star`;
+    const response = starred ? await this.api.put(url) : await this.api.delete(url);
+    return response.data;
+  }
+
+  async forkPublication(id: string, data: { project_id: string; title?: string; folder_id?: string }): Promise<{ diagram_id: string; project_id: string; title: string }> {
+    const response = await this.api.post(`/api/v1/community/diagrams/${id}/fork`, data);
+    return response.data;
+  }
+
+  async listCommunityComments(id: string): Promise<CommunityComment[]> {
+    const response = await this.api.get<CommunityComment[]>(`/api/v1/community/diagrams/${id}/comments`);
+    return response.data;
+  }
+
+  async addCommunityComment(id: string, data: { text: string; parent_id?: string }): Promise<CommunityComment> {
+    const response = await this.api.post<CommunityComment>(`/api/v1/community/diagrams/${id}/comments`, data);
+    return response.data;
+  }
+
+  async deleteCommunityComment(id: string, commentId: string): Promise<void> {
+    await this.api.delete(`/api/v1/community/diagrams/${id}/comments/${commentId}`);
+  }
+
+  async reportCommunity(data: { target_type: 'diagram' | 'comment'; target_id: string; reason: string }): Promise<void> {
+    await this.api.post('/api/v1/community/reports', data);
+  }
+
+  async listCommunityReports(): Promise<CommunityReport[]> {
+    const response = await this.api.get<CommunityReport[]>('/api/v1/community/admin/reports');
+    return response.data;
+  }
+
+  async moderatePublication(id: string, data: { featured?: boolean; hidden?: boolean }): Promise<PublicationDetail> {
+    const response = await this.api.put<PublicationDetail>(`/api/v1/community/admin/diagrams/${id}`, data);
+    return response.data;
+  }
+
+  async moderateCommunityComment(commentId: string, hidden: boolean): Promise<void> {
+    await this.api.put(`/api/v1/community/admin/comments/${commentId}`, { hidden });
+  }
+
+  async dismissCommunityReports(data: { target_type: 'diagram' | 'comment'; target_id: string }): Promise<void> {
+    await this.api.post('/api/v1/community/admin/reports/dismiss', { ...data, reason: 'dismissed' });
+  }
+
+  // ============================================================================
+  // Personal API tokens
+  // ============================================================================
+
+  async listApiTokens(): Promise<ApiToken[]> {
+    const response = await this.api.get<ApiToken[]>('/api/v1/api-tokens');
+    return response.data;
+  }
+
+  async createApiToken(data: CreateApiTokenRequest): Promise<CreatedApiToken> {
+    const response = await this.api.post<CreatedApiToken>('/api/v1/api-tokens', data);
+    return response.data;
+  }
+
+  async revokeApiToken(tokenId: string): Promise<void> {
+    await this.api.delete(`/api/v1/api-tokens/${tokenId}`);
   }
 
   // ============================================================================
@@ -660,6 +844,33 @@ class ApiService {
 
   async getProviderUsageStats(): Promise<{ provider_counts: Record<string, number>; total_messages: number }> {
     const response = await this.api.get<{ provider_counts: Record<string, number>; total_messages: number }>('/api/v1/chat-sessions/stats/provider-usage');
+    return response.data;
+  }
+
+  /** Starred diagrams, most recently edited first, and how many there are. */
+  async getFavoriteDiagrams(limit = 10): Promise<FavoriteDiagrams> {
+    const response = await this.api.get<FavoriteDiagrams>('/api/v1/diagrams/favorites', { params: { limit } });
+    return response.data;
+  }
+
+  /** Star or unstar a diagram (it doesn't count as an edit). */
+  async setDiagramFavorite(diagramId: string, favorite: boolean): Promise<{ id: string; is_favorite: boolean }> {
+    const url = `/api/v1/diagrams/${diagramId}/favorite`;
+    const response = favorite ? await this.api.put(url) : await this.api.delete(url);
+    return response.data;
+  }
+
+  /** Different diagrams worked on per day, ending today in `timeZone`. */
+  async getActivityHeatmap(days = 84, timeZone?: string): Promise<ActivityHeatmap> {
+    const response = await this.api.get<ActivityHeatmap>('/api/v1/activity/heatmap', {
+      params: { days, ...(timeZone ? { tz: timeZone } : {}) },
+    });
+    return response.data;
+  }
+
+  /** What the user's publications have received from the community. */
+  async getCommunityImpact(): Promise<CommunityImpact> {
+    const response = await this.api.get<CommunityImpact>('/api/v1/community/me/impact');
     return response.data;
   }
 

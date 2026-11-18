@@ -97,8 +97,8 @@ flowchart TD
 The mandatory reference is [`DESIGN.md`](https://github.com/diagramahub/diagramahub/blob/main/DESIGN.md). The essentials:
 
 - **No UI or icon libraries**: TailwindCSS and in-house components only; inline Heroicons-style SVG icons.
-- **Purple identity**: `bg-purple-600` / `hover:bg-purple-700`; primary button `.btn-glass`. Danger in `red-600`, success in `green-600`.
+- **Flat purple identity** (0.9): no gradients or glows. Component classes in `index.css`: `btn` + `btn-primary` / `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-destructive` (`btn-sm` for rows), `input`, `card`, `badge`, `page-title`; `<BrandLogo />` for the logo. Inter font, bundled. Danger in `red-600`, success in `green-600`.
 - **Dark mode everywhere**: `darkMode: 'class'` and `dark:` variants on every color.
 - **No colors in `style`**: Tailwind classes only; custom CSS only in `index.css` under `@layer components`.
-- **Minimum accessibility**: semantic `<button>`/`<a>` elements, `aria-label` on text-less controls, visible focus `focus:ring-2 focus:ring-purple-500`, AA contrast.
+- **Minimum accessibility**: semantic `<button>`/`<a>` elements, `aria-label` on text-less controls, visible focus (built into `btn`/`input`), AA contrast.
 - New pages in `pages/` + route in `App.tsx`; reusable UI in `components/`.

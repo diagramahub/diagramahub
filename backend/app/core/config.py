@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.8.6"
+    VERSION: str = "0.9.0"
     API_V1_PREFIX: str = "/api/v1"
 
     # Global request body limit (bytes). Generous on purpose: freehand
@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     MAX_IMPORT_UPLOAD_BYTES: int = 20 * 1024 * 1024
     MAX_IMPORT_FILES: int = 500
     MAX_IMPORT_UNCOMPRESSED_BYTES: int = 50 * 1024 * 1024
+
+    # Community: anyone (signed in or not) can browse publications, open them
+    # and read their comments. False keeps the whole community behind sign-in
+    # (e.g. a private company instance). Anything that saves still needs sign-in.
+    COMMUNITY_PUBLIC: bool = True
+
+    # About page: the open-source repository whose GitHub stars and forks it shows
+    # (asked by the server, cached for an hour). False hides them (no outbound call).
+    GITHUB_REPOSITORY: str = "diagramahub/diagramahub"
+    GITHUB_STATS_ENABLED: bool = True
 
     # MongoDB
     MONGO_URI: str = "mongodb://mongodb:27017"
@@ -36,6 +46,16 @@ class Settings(BaseSettings):
     # oauth/). Kept so existing .env files that still set it keep loading.
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     AI_ENCRYPTION_KEY: str | None = None  # For encrypting AI provider API keys
+    # Key rotation: comma-separated keys that were AI_ENCRYPTION_KEY before. They
+    # still decrypt existing data; new data is always encrypted with the current
+    # key. Re-encrypt with `python -m scripts.rotate_encryption_key --apply`, then
+    # remove them.
+    AI_ENCRYPTION_KEY_PREVIOUS: str = ""
+
+    @property
+    def previous_encryption_keys(self) -> list[str]:
+        """Parse AI_ENCRYPTION_KEY_PREVIOUS into a list (empty entries dropped)."""
+        return [k.strip() for k in self.AI_ENCRYPTION_KEY_PREVIOUS.split(",") if k.strip()]
 
     # CORS - use FRONTEND_URL as default origin, override with comma-separated URLs
     BACKEND_CORS_ORIGINS: str = ""

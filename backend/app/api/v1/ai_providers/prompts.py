@@ -7,6 +7,9 @@ utilizadas por los clientes de IA (OpenAI, Claude, Gemini, DeepSeek).
 import re
 from typing import Optional
 
+from ..diagrams.mermaid_types import MERMAID_DIAGRAM_KEYWORDS
+from .mermaid_reference import other_mermaid_types_reference, type_reference_for_code
+
 # ------------------------------------------------------------------ #
 #  Contexto de tipos de diagrama
 # ------------------------------------------------------------------ #
@@ -931,7 +934,11 @@ _VERIFIED_RULES = {
         "- Choose the diagram type from the request: a process or decision flow -> flowchart; "
         "messages between actors/services over time -> sequenceDiagram; classes and their "
         "relationships -> classDiagram; states and transitions -> stateDiagram-v2; data model -> "
-        "erDiagram; schedule -> gantt; idea hierarchy -> mindmap; dated events -> timeline.\n"
+        "erDiagram; schedule -> gantt; idea hierarchy -> mindmap; dated events -> timeline. "
+        "For anything else (sets, cause and effect, value chains, boards, charts, file trees, "
+        "use cases, lanes…) pick the matching type from OTHER MERMAID DIAGRAM TYPES and copy "
+        "its syntax exactly. Moving/animated arrows, a step-by-step animation or BPMN -> a "
+        "flowchart with the FLOWCHART EXTRAS.\n"
         "- Node ids: ASCII letters, digits and underscores only, no spaces or accents; never a "
         "keyword (end, graph, flowchart, subgraph, style, class, classDef, click, default). "
         'Put every visible text in double quotes: login["Iniciar sesión (MFA)"]. Text with ( ) [ ] { } '
@@ -979,6 +986,11 @@ _VERIFIED_RULES = {
 }
 
 
+def _other_types_section(diagram_type: str) -> str:
+    """The newer Mermaid types' syntax (Mermaid only), followed by a blank line."""
+    return f"{other_mermaid_types_reference()}\n\n" if diagram_type == "mermaid" else ""
+
+
 def build_code_system_prompt(diagram_type: str, language: str = "es") -> str:
     """System prompt shared by "generate" and "improve" (stable, cacheable).
 
@@ -992,6 +1004,7 @@ def build_code_system_prompt(diagram_type: str, language: str = "es") -> str:
         "renders without errors on the first try.\n\n"
         f"{get_diagram_context(diagram_type, 'en')}\n\n"
         f"{_VERIFIED_RULES.get(diagram_type, '')}\n\n"
+        f"{_other_types_section(diagram_type)}"
         "PRIORITIES, in order:\n"
         "1. Valid syntax: only constructs from the reference above.\n"
         "2. Faithful to the request: include every element and relationship asked for; do not "
@@ -1009,6 +1022,20 @@ def build_code_system_prompt(diagram_type: str, language: str = "es") -> str:
 def build_generate_user_prompt(description: str) -> str:
     """User message for "generate": just the request."""
     return f"Create this diagram:\n{description.strip()}"
+
+
+def build_image_user_prompt(instructions: str | None = None) -> str:
+    """User message for "diagram from image": recreate the attached picture as code."""
+    prompt = (
+        "Recreate the diagram in the attached image (a photo of a whiteboard, a screenshot or "
+        "a hand-drawn sketch) as diagram code. Keep its elements, groupings and connections, "
+        "and write the texts exactly as they appear in the image (don't translate them). "
+        "Pick the diagram kind that fits best (flowchart, sequence, class, ER, ...). If part of "
+        "the image is unreadable, make the most reasonable choice instead of leaving it out."
+    )
+    if instructions and instructions.strip():
+        prompt += f"\n\nAdditional instructions:\n{instructions.strip()}"
+    return prompt
 
 
 def build_improve_user_prompt(diagram_code: str, improvement_request: str) -> str:
@@ -1067,6 +1094,8 @@ def extract_diagram_code(text: str) -> str:
 def build_chat_system_prompt(diagram_code: str, diagram_type: str, language: str = "es") -> str:
     """System prompt para conversacion con contexto de diagrama."""
     context = get_diagram_context(diagram_type, language)
+    if diagram_type == "mermaid":
+        context = f"{context}\n\n{other_mermaid_types_reference()}"
     if language == "es":
         return (
             f"Eres un asistente experto en diagramas {diagram_type}. El usuario esta trabajando "
@@ -1099,7 +1128,7 @@ def build_unified_chat_prompt(
     # Rules checked against the real renderers (also used by generate/improve)
     verified_rules = (
         f"{_VERIFIED_RULES[diagram_type]}\n\n" if diagram_type in _VERIFIED_RULES else ""
-    )
+    ) + _other_types_section(diagram_type)
     action_instruction = _get_chat_action_instruction(preset_action, language)
 
     # Add Kroki rendering context for server-rendered types
@@ -1744,6 +1773,9 @@ def build_mermaid_fix_prompt(
 {error_context}
 """
 
+    type_reference = type_reference_for_code(diagram_code)
+    type_section = f"\n{type_reference}\n" if type_reference else ""
+
     prompt = f"""{lang["intro"]}
 
 CÓDIGO ORIGINAL:
@@ -1757,8 +1789,8 @@ CÓDIGO ORIGINAL:
 - Etiquetas en flechas: -->|texto|, -.->|texto|
 - Subgrafos: subgraph titulo ... end
 - Comentarios: %% comentario
-- Tipos válidos: graph, flowchart, sequenceDiagram, classDiagram, stateDiagram, erDiagram, gantt, pie, journey
-
+- Tipos válidos (conserva el del diagrama): {", ".join(MERMAID_DIAGRAM_KEYWORDS)}
+{type_section}
 {lang["instructions_label"]}
 {chr(10).join(lang["instructions"])}
 
@@ -2061,6 +2093,20 @@ IMPORTANTE: Usa EXACTAMENTE los delimitadores <<<EXPLANATION>>>, <<<CHANGES>>> y
     return prompt
 
 
+# A fix request on code that has no error (e.g. via the API) used to make
+# reasoning models search until the output limit: let them give it back.
+FIX_NO_ERROR_FALLBACK = {
+    "es": (
+        "Si no encuentras ningún error de sintaxis, no sigas buscando: devuelve el código "
+        "original sin cambios y dilo en el resumen de cambios."
+    ),
+    "en": (
+        "If you find no syntax error, don't keep looking: return the original code "
+        "unchanged and say so in the changes summary."
+    ),
+}
+
+
 def build_fix_prompt(
     diagram_code: str, diagram_type: str, error_context: Optional[str] = None, language: str = "es"
 ) -> str:
@@ -2079,11 +2125,13 @@ def build_fix_prompt(
     diagram_type_lower = diagram_type.lower()
 
     if "d2" in diagram_type_lower:
-        return build_d2_fix_prompt(diagram_code, error_context, language)
+        prompt = build_d2_fix_prompt(diagram_code, error_context, language)
     elif "plantuml" in diagram_type_lower or diagram_type_lower == "uml":
-        return build_plantuml_fix_prompt(diagram_code, error_context, language)
+        prompt = build_plantuml_fix_prompt(diagram_code, error_context, language)
     elif "dbml" in diagram_type_lower:
-        return build_dbml_fix_prompt(diagram_code, error_context, language)
+        prompt = build_dbml_fix_prompt(diagram_code, error_context, language)
     else:
         # Por defecto, usar prompt de Mermaid
-        return build_mermaid_fix_prompt(diagram_code, error_context, language)
+        prompt = build_mermaid_fix_prompt(diagram_code, error_context, language)
+    no_error = FIX_NO_ERROR_FALLBACK.get(language, FIX_NO_ERROR_FALLBACK["es"])
+    return f"{prompt}\n\n{no_error}"

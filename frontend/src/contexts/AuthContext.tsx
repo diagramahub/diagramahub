@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error: unknown) {
-      throw new Error(apiErrorMessage(error) || 'Login failed');
+      throw new Error(apiErrorMessage(error) || 'Login failed', { cause: error });
     }
   };
 
@@ -125,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Auto login after registration
       await login(email, password);
     } catch (error: unknown) {
-      throw new Error(apiErrorMessage(error) || 'Registration failed');
+      throw new Error(apiErrorMessage(error) || 'Registration failed', { cause: error });
     }
   };
 

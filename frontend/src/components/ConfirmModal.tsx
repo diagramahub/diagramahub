@@ -48,9 +48,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-3">
             {isDangerous && (
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -69,22 +69,18 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
           <button
             onClick={onClose}
             disabled={isConfirming}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn btn-secondary"
           >
             {cancelText ?? t('common.cancel')}
           </button>
           <button
             onClick={handleConfirm}
             disabled={isConfirming}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-              isDangerous
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-purple-600 hover:bg-purple-700 btn-glass'
-            }`}
+            className={`btn ${isDangerous ? 'btn-destructive' : 'btn-primary'}`}
           >
             {isConfirming && (
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

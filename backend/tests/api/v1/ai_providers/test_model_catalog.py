@@ -15,7 +15,9 @@ PROVIDERS = [p.value for p in AIProviderType]
 
 def test_every_provider_has_exactly_one_recommended_listed_model() -> None:
     for provider in PROVIDERS:
-        recommended = [m for m in model_catalog.all_models() if m.provider == provider and m.recommended]
+        recommended = [
+            m for m in model_catalog.all_models() if m.provider == provider and m.recommended
+        ]
         assert len(recommended) == 1, provider
         assert recommended[0].listed, provider
 
@@ -54,8 +56,13 @@ class _Response:
 OK = _Response(200, {"content": [{"type": "text", "text": "OK"}]})
 
 
-@pytest.mark.parametrize(("model", "expects_temperature"), [("claude-sonnet-5-5", False), ("claude-haiku-4-5-20251001", True)])
-async def test_claude_sends_temperature_only_when_the_model_accepts_it(model: str, expects_temperature: bool) -> None:
+@pytest.mark.parametrize(
+    ("model", "expects_temperature"),
+    [("claude-sonnet-5-5", False), ("claude-haiku-4-5-20251001", True)],
+)
+async def test_claude_sends_temperature_only_when_the_model_accepts_it(
+    model: str, expects_temperature: bool
+) -> None:
     post = AsyncMock(return_value=OK)
     with patch("httpx.AsyncClient.post", post):
         assert await ClaudeClient("k" * 20, model).complete("system", "hi") == "OK"
@@ -64,7 +71,9 @@ async def test_claude_sends_temperature_only_when_the_model_accepts_it(model: st
 
 
 async def test_claude_retries_without_temperature_when_an_unknown_model_rejects_it() -> None:
-    rejected = _Response(400, {"type": "error", "error": {"message": "`temperature` is deprecated for this model."}})
+    rejected = _Response(
+        400, {"type": "error", "error": {"message": "`temperature` is deprecated for this model."}}
+    )
     post = AsyncMock(side_effect=[rejected, OK])
     with patch("httpx.AsyncClient.post", post):
         assert await ClaudeClient("k" * 20, "claude-future-9").complete("system", "hi") == "OK"

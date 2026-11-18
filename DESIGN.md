@@ -3,7 +3,7 @@
 Source of truth for maintaining visual and experience consistency in the frontend.
 Every new component or page must follow the rules in this document.
 
-> Scope: `frontend/` (React 19 + TypeScript + Vite 7 + TailwindCSS v3).
+> Scope: `frontend/` (React 19 + TypeScript 6 + Vite 8 + TailwindCSS v3).
 > For code architecture and backend, see `AGENTS.md`.
 
 ---
@@ -24,7 +24,7 @@ Every new component or page must follow the rules in this document.
 | Area | Technology |
 |------|-----------|
 | Framework | React 19 + TypeScript (strict) |
-| Build | Vite 7 |
+| Build | Vite 8 |
 | Styling | TailwindCSS v3 (`darkMode: 'class'`) + `@tailwindcss/typography` plugin |
 | Routing | `react-router-dom` v7 |
 | HTTP | Axios (via `services/api.ts`) |
@@ -38,68 +38,86 @@ Every new component or page must follow the rules in this document.
 
 ---
 
-## 3. Brand identity and colors
+## 3. Brand identity, colors and controls (design system 0.9)
 
-Purple is the primary identity. Never hardcode hex in `style`; use Tailwind classes.
+Since 0.9 the UI is **flat and compact**: solid brand purple without gradients, glow or blur; 36px controls; two corner radii; borders instead of heavy shadows. The component classes live in `index.css` (`@layer components`). **Use them instead of long utility strings** — never copy a button's 15 classes again.
+
+### Colors
+
+Purple is the brand. Never hardcode hex in `style`; use Tailwind classes.
 
 | Purpose | Tailwind class |
 |---------|----------------|
-| Primary gradient | `bg-gradient-to-r from-purple-600 via-purple-400 to-purple-700` |
-| Primary solid | `bg-purple-600`, `text-purple-600` |
-| Primary hover | `bg-purple-700` |
-| Primary active/selected (soft backgrounds) | `bg-purple-100 text-purple-700` (dark: `dark:bg-purple-900/40 dark:text-purple-300`) |
+| Primary (buttons, active marks) | `bg-purple-600` → hover `bg-purple-700` → active `bg-purple-800` |
+| Primary text / links | `text-purple-600` (dark: `dark:text-purple-400`) |
+| Soft purple (badges, selected choices) | `bg-purple-50 text-purple-700` (dark: `dark:bg-purple-500/10 dark:text-purple-300`) |
 | Danger / destructive | `bg-red-600`, `text-red-600` |
 | Success | `bg-green-600`, `text-green-600` |
 | Warning | `bg-amber-500`, `text-amber-600` |
-| Info | `bg-blue-600`, `text-blue-600` |
-| Neutral text | `text-gray-700`, `text-gray-500` |
-| Borders | `border-gray-200` (dark: `dark:border-gray-700`) |
-| Base background | `bg-white` (dark: `dark:bg-gray-800` / `dark:bg-gray-900`) |
+| Neutral text | `text-gray-900` (titles), `text-gray-700`, `text-gray-500` (secondary) |
+| Borders | `border-gray-200` (dark: `dark:border-gray-800`) |
+| Page background | `bg-gray-50` (dark: `dark:bg-gray-950`) |
+| Surfaces (cards, panels, modals) | `bg-white` (dark: `dark:bg-gray-900`) |
+| Raised/hover inside a surface | `bg-gray-50`/`bg-gray-100` (dark: `dark:bg-gray-800`) |
 
-### Primary "glass" button
+No gradients on UI chrome: buttons, logos, avatars, banners and page backgrounds are flat. The only exceptions are illustrations (404 page, About hero) and diagram content.
 
-Primary actions use the `.btn-glass` class (defined in `index.css` under `@layer components`), which provides a glassmorphism effect with purple shadow.
+### Buttons
 
-**Canonical primary button** — reference implementation: `CreateProjectModal.tsx`. All modals and primary CTAs must use exactly these classes (solid `bg-purple-600`, no gradient):
+Combine `.btn` with one variant; add `.btn-sm` (32px) for rows, toolbars and inline actions, `.btn-lg` (40px) only for a lone hero CTA. Layout utilities (`w-full`, `flex-1`, `mt-4`…) go next to them.
+
+| Class | Use |
+|-------|-----|
+| `btn btn-primary` | The main action of a page, form or modal (one per view) |
+| `btn btn-secondary` | Cancel, close and neutral actions |
+| `btn btn-ghost` | Low-emphasis actions (toolbars, "back to…") |
+| `btn btn-danger` | Outlined destructive action in a list or row (revoke, remove) |
+| `btn btn-destructive` | Solid red button that confirms a deletion |
 
 ```tsx
-<button
-  type="submit"
-  disabled={loading || !canSubmit}
-  className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
->
-  {loading ? (
-    <span className="flex items-center justify-center">
-      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+<div className="flex justify-end gap-2">
+  <button type="button" onClick={onClose} disabled={loading} className="btn btn-secondary">
+    {t('common.cancel')}
+  </button>
+  <button type="submit" disabled={loading || !canSubmit} className="btn btn-primary">
+    {loading && (
+      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
       </svg>
-      {t('action.processing')}
-    </span>
-  ) : (
-    t('action.label')
-  )}
-</button>
-```
-
-**Canonical secondary button** (cancel / neutral actions — same height as primary):
-
-```tsx
-<button
-  type="button"
-  onClick={onClose}
-  disabled={loading}
-  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
->
-  {t('common.cancel')}
-</button>
+    )}
+    {loading ? t('action.processing') : t('action.label')}
+  </button>
+</div>
 ```
 
 Button rules:
-- Primary: solid `bg-purple-600` + `btn-glass` + `py-3 px-6 rounded-lg font-semibold`, `hover:bg-purple-700`, purple focus ring, disabled `bg-gray-400`. Never use the gradient on buttons.
-- Secondary: outlined `border-gray-300`, `py-3 px-6` so it matches the primary height.
-- Async actions: keep the button visible and swap its label for the spinner + a "Processing…" text.
-- Destructive actions: `bg-red-600 hover:bg-red-700` (no `btn-glass`).
+- Height comes from the class (`h-9` / `h-8`); never add `py-3 px-6` or `font-semibold`.
+- Focus ring only for keyboard users (`focus-visible`), built into `.btn`.
+- Disabled state is built in (`opacity-50`, `cursor-not-allowed`); don't swap to `bg-gray-400`.
+- Async actions keep the button and show a spinner + "Processing…" label.
+- Icon-only buttons: `btn btn-ghost btn-sm !px-2` + `aria-label`.
+
+### Fields, cards, badges
+
+| Class | Use |
+|-------|-----|
+| `input` | Text inputs, selects and textareas (add `h-auto py-2` on a textarea) |
+| `card` | White/gray-900 surface with a 1px border and 12px radius |
+| `badge` | Small purple tag (plan, scope, "Default") |
+| `page-title` | The page `h1` (`text-xl font-semibold tracking-tight`) |
+
+Checkboxes and radios take the brand color through `accent-color` (set globally in `index.css`).
+
+### Radii and elevation
+
+- `rounded-md` (6px): buttons, inputs, menu items, badges.
+- `rounded-xl` (12px): cards, panels, modals.
+- Cards: border only (`shadow-sm` at most). Modals: `shadow-lg ring-1 ring-black/5 dark:ring-white/10`. Menus/popovers: `shadow-lg`. No `shadow-2xl`, no colored glows.
+
+### Brand logo
+
+Use `<BrandLogo />` (`components/BrandLogo.tsx`): a flat purple "Dh" mark plus the wordmark. `size="sm" | "md" | "lg"`, `markOnly` for the collapsed sidebar. Never recreate the logo with gradient text.
 
 ---
 
@@ -108,26 +126,26 @@ Button rules:
 - Class-based: `darkMode: 'class'`. The `dark` class is applied on `document.documentElement`.
 - Managed by `ThemeContext` (`contexts/ThemeContext.tsx`), persisted in `localStorage` under the `theme` key.
 - Toggle available via `ThemeToggleButton`.
-- **Rule**: every background/border/text color must declare its `dark:` variant. Examples:
-  - `bg-white dark:bg-gray-800`
+- **Rule**: every background/border/text color must declare its `dark:` variant. Dark palette (0.9): page `gray-950`, surfaces `gray-900`, raised/hover `gray-800`, borders `gray-800` (inputs `gray-700`). Examples:
+  - `bg-white dark:bg-gray-900`
   - `text-gray-700 dark:text-gray-300`
-  - `border-gray-200 dark:border-gray-700`
+  - `border-gray-200 dark:border-gray-800`
 
 ---
 
 ## 5. Typography
 
-- System font (defined in `index.css` on `body`): stack `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', ...`.
+- UI font: **Inter** (variable, SIL OFL 1.1), bundled in `public/fonts/inter/` and declared in `index.css` (Latin and Latin Extended subsets), with the system stack as fallback. Don't load fonts from a CDN.
 - Monospace code: `source-code-pro, Menlo, Monaco, Consolas, ...`.
 - Type scale (Tailwind):
 
 | Use | Class |
 |-----|-------|
-| Page title | `text-2xl font-bold text-gray-900 dark:text-gray-100` |
-| Section/modal title | `text-lg font-semibold` |
+| Page title | `page-title` (`text-xl font-semibold tracking-tight`) |
+| Section/modal title | `text-base`–`text-lg font-semibold` (card titles `text-[15px]`) |
 | Body | `text-sm` |
 | Metadata / minor labels | `text-xs text-gray-500 dark:text-gray-400` |
-| Micro (shortcuts, badges) | `text-[10px]` |
+| Micro (shortcuts, badges) | `text-[10px]`–`text-[11px]` |
 
 - Rendered markdown uses `prose` classes from `@tailwindcss/typography`:
   ```tsx
@@ -177,13 +195,14 @@ Add custom CSS **only** when Tailwind utilities are insufficient, following thes
 
 | Class / selector | Purpose |
 |------------------|---------|
-| `.btn-glass` (`@layer components`) | Glassmorphism button with purple shadow (includes dark, hover, active variants) |
+| `.btn`, `.btn-primary`, `.btn-secondary`, `.btn-ghost`, `.btn-danger`, `.btn-destructive`, `.btn-sm`, `.btn-lg` (`@layer components`) | Buttons (see §3) |
+| `.input`, `.card`, `.badge`, `.page-title` (`@layer components`) | Fields, surfaces, tags, page headings (see §3) |
+| `accent-color` on checkbox/radio (`@layer base`) | Brand purple for native checkboxes and radios |
 | `.scrollbar-hide` (`@layer utilities`) | Hide scrollbar while keeping scroll |
 | `.chat-markdown` | Compact markdown for AI chat bubbles |
 | `.animate-slide-in-right` | Chat panel slide-in animation |
 | `.markdown-wysiwyg` | EasyMDE overrides for the description panel |
 | `.EasyMDEContainer` | SimpleMDE editor customization (toolbar, CodeMirror, preview) |
-| `@keyframes float-1..5` | Animated background blobs on auth pages (`AnimatedBackground`) |
 
 Every custom style must include its `.dark` counterpart.
 
@@ -273,6 +292,7 @@ Before creating a new one, check if it exists:
 | `BottomSheet` / `MobileBottomToolbar` | Mobile patterns |
 | `SplitPane` | Resizable panes |
 | `PremiumAvatar` / `UserMenu` | User identity |
+| `BrandLogo` | DiagramaHub mark + wordmark (sidebar, navbar, auth, shared view) |
 | `UsageBadge` / `UpgradePlanModal` | Billing / limits |
 
 Component conventions:
@@ -289,10 +309,11 @@ Component conventions:
 ```tsx
 <div className="p-6">
   <div className="flex justify-between items-center mb-6">
-    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('page.title')}</h1>
-    <button className="btn-glass bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-      {t('action.create')}
-    </button>
+    <div>
+      <h1 className="page-title">{t('page.title')}</h1>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('page.description')}</p>
+    </div>
+    <button className="btn btn-primary">{t('action.create')}</button>
   </div>
   {/* Content */}
 </div>
@@ -305,20 +326,14 @@ Fixed backdrop with semi-transparent overlay, centered panel, and an actions foo
 ```tsx
 {isOpen && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
       </div>
       <div className="px-6 py-4">{/* body */}</div>
-      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg flex gap-3 justify-end">
-        <button onClick={onClose}
-          className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          {t('common.cancel')}
-        </button>
-        <button onClick={onConfirm}
-          className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
-          {t('common.confirm')}
-        </button>
+      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-2 justify-end">
+        <button onClick={onClose} className="btn btn-secondary">{t('common.cancel')}</button>
+        <button onClick={onConfirm} className="btn btn-primary">{t('common.confirm')}</button>
       </div>
     </div>
   </div>
@@ -327,7 +342,7 @@ Fixed backdrop with semi-transparent overlay, centered panel, and an actions foo
 
 Notes:
 - `z-50` for modals; context/floating menus above when needed.
-- Destructive panel uses `bg-red-600 hover:bg-red-700` (no `btn-glass`).
+- Destructive confirmation uses `btn btn-destructive`. With three actions, put the destructive one first with `btn-danger sm:mr-auto`.
 - Show spinner + "Processing..." state during async actions.
 
 ### Form fields
@@ -337,13 +352,7 @@ Notes:
   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
     {t('field.label')} <span className="text-red-500">*</span>
   </label>
-  <input
-    type="text"
-    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2
-               focus:ring-2 focus:ring-purple-500 focus:border-transparent
-               dark:bg-gray-700 dark:text-gray-100"
-    placeholder={t('field.placeholder')}
-  />
+  <input type="text" className="input" placeholder={t('field.placeholder')} />
   {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
 </div>
 ```
@@ -351,8 +360,8 @@ Notes:
 ### Cards
 
 ```tsx
-<div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+<div className="card p-6">
+  <h3 className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
   <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
 </div>
 ```
@@ -371,7 +380,7 @@ Fixed bottom-right toast for async action errors:
 
 - Compact width (`w-44`), `text-xs` items, `w-3.5 h-3.5` icon on the left, `text-[10px] ml-auto` shortcut.
 - Close on outside click.
-- Separators with `<div className="h-px bg-gray-200 dark:bg-gray-700 my-1" />`.
+- Separators with `<div className="h-px bg-gray-200 dark:bg-gray-800 my-1" />`.
 
 ---
 
@@ -391,7 +400,7 @@ Fixed bottom-right toast for async action errors:
 
 - Interactive elements are `<button>` or `<a>` — never `onClick` on a `<div>`.
 - Every control without visible text has an `aria-label`.
-- Visible focus: `focus:ring-2 focus:ring-purple-500`.
+- Visible focus: built into `.btn`/`.input`; elsewhere `focus-visible:ring-2 focus-visible:ring-purple-500/50` (or `focus:ring-2 focus:ring-purple-500`).
 - Minimum WCAG AA contrast (4.5:1 for normal text).
 - Keyboard navigation: Tab, Enter, Escape, arrows where applicable.
 - Modals close on Escape and trap focus.
@@ -427,8 +436,8 @@ The `freehand` diagram type uses an in-house HTML5 canvas (`components/FreehandC
 - [ ] Every visible string via `t()` and present in `es.json` + `en.json`.
 - [ ] `dark:` variants on all colors.
 - [ ] Interactive elements as `<button>`/`<a>` with `aria-label` when text is missing.
-- [ ] Visible focus `focus:ring-2 focus:ring-purple-500`.
-- [ ] Primary actions with `btn-glass bg-purple-600`; destructive with `bg-red-600`.
+- [ ] Visible focus (built into `.btn`/`.input`).
+- [ ] Buttons with `.btn` + variant (`btn-primary`, `btn-secondary`, `btn-ghost`, `btn-danger`, `btn-destructive`); fields with `.input`. No gradients, glows or `btn-glass`.
 - [ ] Modals with backdrop `fixed inset-0 bg-black bg-opacity-50 ... z-50`.
 - [ ] New pages in `pages/` + route in `App.tsx`; reusable UI in `components/`.
 - [ ] Custom CSS only in `index.css` (`@layer components`/`utilities`) with its `.dark` variant.

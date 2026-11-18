@@ -31,7 +31,7 @@ else
     WORKERS="${WORKERS:-2}"
     echo "Workers: ${WORKERS}"
     exec gunicorn app.main:app \
-        --worker-class uvicorn.workers.UvicornWorker \
+        --worker-class uvicorn_worker.UvicornWorker \
         --workers "${WORKERS}" \
         --bind "0.0.0.0:${PORT}" \
         --timeout 120 \

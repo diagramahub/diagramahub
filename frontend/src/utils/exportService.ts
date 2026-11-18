@@ -65,7 +65,7 @@ export class ExportService {
       await generator.generate(data, options);
     } catch (error) {
       console.error('PDF export failed:', error);
-      throw new Error(EXPORT_ERROR_KEYS.PDF_FAILED);
+      throw new Error(EXPORT_ERROR_KEYS.PDF_FAILED, { cause: error });
     }
   }
 
@@ -146,7 +146,7 @@ export class ExportService {
       this.triggerDownload(pngDataUrl, filename);
     } catch (error) {
       console.error('PNG export failed:', error);
-      throw new Error(EXPORT_ERROR_KEYS.PNG_FAILED);
+      throw new Error(EXPORT_ERROR_KEYS.PNG_FAILED, { cause: error });
     } finally {
       // Clean up temporary container from DOM
       if (tempContainer && tempContainer.parentElement) {
@@ -169,7 +169,7 @@ export class ExportService {
       exporter.export(data, options);
     } catch (error) {
       console.error('Markdown export failed:', error);
-      throw new Error(EXPORT_ERROR_KEYS.DOWNLOAD_FAILED);
+      throw new Error(EXPORT_ERROR_KEYS.DOWNLOAD_FAILED, { cause: error });
     }
   }
 

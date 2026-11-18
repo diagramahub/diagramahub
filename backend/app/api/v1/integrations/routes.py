@@ -6,7 +6,7 @@ All endpoints require admin role.
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.api.v1.users.repository import UserRepository
 from app.api.deps import get_current_user_email
@@ -20,6 +20,7 @@ from .schemas import (
     TestConnectionResponse,
 )
 from .services import IntegrationsService
+from app.api.v1.users import audit_log
 
 router = APIRouter(prefix="/admin/integrations", tags=["Integrations (Admin)"])
 
@@ -76,32 +77,53 @@ async def list_vendors(
 )
 async def create_vendor(
     vendor_data: VendorConfigCreate,
+    http_request: Request,
     admin_user_id: str = Depends(get_current_admin_user_id),
     service: IntegrationsService = Depends(get_integrations_service),
 ) -> VendorConfigResponse:
     """Create a new vendor configuration."""
-    return await service.save_vendor_config(vendor_data, user_id=admin_user_id)
+    result = await service.save_vendor_config(vendor_data, user_id=admin_user_id)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_INTEGRATION_CREATED,
+        admin_user_id,
+        http_request,
+        details=f"{vendor_data.category.value}/{vendor_data.vendor_type} id={result.id}",
+    )
+    return result
 
 
 @router.put("/vendors/{vendor_id}", response_model=VendorConfigResponse)
 async def update_vendor(
     vendor_id: str,
     update_data: VendorConfigUpdate,
+    http_request: Request,
     admin_user_id: str = Depends(get_current_admin_user_id),
     service: IntegrationsService = Depends(get_integrations_service),
 ) -> VendorConfigResponse:
     """Update an existing vendor configuration."""
-    return await service.update_vendor_config(vendor_id, update_data)
+    result = await service.update_vendor_config(vendor_id, update_data)
+    changed = sorted(update_data.model_dump(exclude_unset=True))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_INTEGRATION_UPDATED,
+        admin_user_id,
+        http_request,
+        details=f"id={vendor_id} fields={','.join(changed) or '-'}",
+    )
+    return result
 
 
 @router.delete("/vendors/{vendor_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_vendor(
     vendor_id: str,
+    http_request: Request,
     admin_user_id: str = Depends(get_current_admin_user_id),
     service: IntegrationsService = Depends(get_integrations_service),
 ) -> None:
     """Delete a vendor configuration."""
     await service.delete_vendor_config(vendor_id)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_INTEGRATION_DELETED, admin_user_id, http_request, details=f"id={vendor_id}"
+    )
 
 
 @router.post("/vendors/{vendor_id}/test", response_model=TestConnectionResponse)
@@ -117,11 +139,19 @@ async def test_vendor_connection(
 @router.put("/vendors/{vendor_id}/set-default", response_model=VendorConfigResponse)
 async def set_default_vendor(
     vendor_id: str,
+    http_request: Request,
     admin_user_id: str = Depends(get_current_admin_user_id),
     service: IntegrationsService = Depends(get_integrations_service),
 ) -> VendorConfigResponse:
     """Set a vendor as the default (email) or active (payment)."""
-    return await service.set_default_vendor(vendor_id)
+    result = await service.set_default_vendor(vendor_id)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_INTEGRATION_SET_DEFAULT,
+        admin_user_id,
+        http_request,
+        details=f"id={vendor_id}",
+    )
+    return result
 
 
 @router.get("/status")

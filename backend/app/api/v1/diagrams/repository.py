@@ -2,13 +2,14 @@
 Concrete implementation of diagram repository.
 """
 
+import re
+from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from beanie.operators import In
 from .interfaces import IDiagramRepository
-from .schemas import DiagramInDB, DiagramCreate, DiagramSummary, DiagramUpdate
+from .schemas import DiagramInDB, DiagramCreate, DiagramSearchHit, DiagramSummary, DiagramUpdate
 from app.core.clock import utcnow
-
 
 # Fields that only describe how a diagram is being viewed, not its content.
 PRESENTATION_FIELDS = frozenset({"viewport_zoom", "viewport_x", "viewport_y", "user_preferences"})
@@ -64,6 +65,18 @@ class DiagramRepository(IDiagramRepository):
         except Exception:
             return None
 
+    async def get_by_ids(self, diagram_ids: list[str]) -> list[DiagramInDB]:
+        """The diagrams that exist among these IDs (invalid IDs are skipped)."""
+        object_ids = []
+        for diagram_id in diagram_ids:
+            try:
+                object_ids.append(PydanticObjectId(diagram_id))
+            except Exception:
+                continue
+        if not object_ids:
+            return []
+        return await DiagramInDB.find(In(DiagramInDB.id, object_ids)).to_list()
+
     async def get_by_project_id(self, project_id: str) -> list[DiagramInDB]:
         """Get all diagrams for a project."""
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()
@@ -79,16 +92,23 @@ class DiagramRepository(IDiagramRepository):
         """``{project_id: {diagram_type: count}}`` from one aggregation (no content loaded)."""
         if not project_ids:
             return {}
-        rows = await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).aggregate(
-            [
-                {
-                    "$group": {
-                        "_id": {"p": "$project_id", "t": {"$ifNull": ["$diagram_type", "mermaid"]}},
-                        "n": {"$sum": 1},
+        rows = (
+            await DiagramInDB.find(In(DiagramInDB.project_id, project_ids))
+            .aggregate(
+                [
+                    {
+                        "$group": {
+                            "_id": {
+                                "p": "$project_id",
+                                "t": {"$ifNull": ["$diagram_type", "mermaid"]},
+                            },
+                            "n": {"$sum": 1},
+                        }
                     }
-                }
-            ]
-        ).to_list()
+                ]
+            )
+            .to_list()
+        )
         counts: dict[str, dict[str, int]] = {}
         for row in rows:
             counts.setdefault(row["_id"]["p"], {})[row["_id"]["t"] or "mermaid"] = row["n"]
@@ -112,6 +132,79 @@ class DiagramRepository(IDiagramRepository):
             .sort(-DiagramInDB.updated_at)
             .limit(limit)
             .project(DiagramSummary)
+            .to_list()
+        )
+
+    async def get_favorites_by_project_ids(
+        self, project_ids: list[str], limit: int
+    ) -> tuple[list[DiagramSummary], int]:
+        """Starred diagrams across projects, most recently updated first, and their count."""
+        if not project_ids:
+            return [], 0
+        query = {"project_id": {"$in": project_ids}, "is_favorite": True}
+        total = await DiagramInDB.find(query).count()
+        if limit <= 0 or total == 0:
+            return [], total
+        items = (
+            await DiagramInDB.find(query)
+            .sort(-DiagramInDB.updated_at)
+            .limit(limit)
+            .project(DiagramSummary)
+            .to_list()
+        )
+        return items, total
+
+    async def set_favorite(self, diagram_id: str, favorite: bool) -> None:
+        """Star or unstar a diagram; ``updated_at`` stays (a star is not an edit)."""
+        try:
+            object_id = PydanticObjectId(diagram_id)
+        except Exception:
+            return
+        await DiagramInDB.get_pymongo_collection().update_one(
+            {"_id": object_id},
+            {"$set": {"is_favorite": favorite, "favorited_at": utcnow() if favorite else None}},
+        )
+
+    async def touched_since(
+        self, project_ids: list[str], since: datetime
+    ) -> list[tuple[str, datetime, Optional[datetime]]]:
+        """``(id, created_at, updated_at)`` of the diagrams created or updated since ``since``."""
+        if not project_ids:
+            return []
+        cursor = DiagramInDB.get_pymongo_collection().find(
+            {
+                "project_id": {"$in": project_ids},
+                "$or": [{"created_at": {"$gte": since}}, {"updated_at": {"$gte": since}}],
+            },
+            {"_id": 1, "created_at": 1, "updated_at": 1},
+        )
+        return [(str(doc["_id"]), doc["created_at"], doc.get("updated_at")) async for doc in cursor]
+
+    async def search(
+        self,
+        project_ids: list[str],
+        text: str,
+        diagram_type: Optional[str],
+        limit: int,
+    ) -> list[DiagramSearchHit]:
+        """Case-insensitive substring search over title, description and content.
+
+        The text is escaped, so it is matched literally (no regex from users).
+        """
+        if not project_ids or not text or limit <= 0:
+            return []
+        pattern = {"$regex": re.escape(text), "$options": "i"}
+        query: dict = {
+            "project_id": {"$in": project_ids},
+            "$or": [{"title": pattern}, {"description": pattern}, {"content": pattern}],
+        }
+        if diagram_type:
+            query["diagram_type"] = diagram_type
+        return (
+            await DiagramInDB.find(query)
+            .sort(-DiagramInDB.updated_at)
+            .limit(limit)
+            .project(DiagramSearchHit)
             .to_list()
         )
 
@@ -201,7 +294,5 @@ class DiagramRepository(IDiagramRepository):
         """Move the diagrams of a folder to the project root, scoped to the folder's project."""
         result = await DiagramInDB.find(
             DiagramInDB.folder_id == folder_id, DiagramInDB.project_id == project_id
-        ).update(
-            {"$set": {"folder_id": None, "updated_at": utcnow()}}
-        )
+        ).update({"$set": {"folder_id": None, "updated_at": utcnow()}})
         return result.modified_count if result else 0

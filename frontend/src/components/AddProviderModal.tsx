@@ -141,9 +141,9 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{t('ai.addProvider')}</h2>
             <button
@@ -178,8 +178,8 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                       formData.provider === provider
                         ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                         : isAvailable
-                        ? 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                        : 'border-gray-200 dark:border-gray-700 opacity-50 cursor-not-allowed'
+                        ? 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
+                        : 'border-gray-200 dark:border-gray-800 opacity-50 cursor-not-allowed'
                     }`}
                   >
                     {isAvailable && formData.provider === provider && (
@@ -252,8 +252,8 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
                 setTestResult(null);
               }}
               placeholder={t('ai.form.apiKeyPlaceholder')}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                errors.api_key ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.api_key ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
               }`}
               disabled={!isProviderAvailable}
             />
@@ -271,14 +271,14 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             <select
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                errors.model ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+                errors.model ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
               }`}
               disabled={!isProviderAvailable}
             >
               {AI_PROVIDER_MODELS[formData.provider].map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}
+                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}{m.images ? ` · ${t('ai.form.readsImages')}` : ''}
                 </option>
               ))}
             </select>
@@ -297,7 +297,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               value={formData.display_name}
               onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
               placeholder={t('ai.form.displayNamePlaceholder')}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="input"
               disabled={!isProviderAvailable}
             />
           </div>
@@ -309,7 +309,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
               id="is_default"
               checked={formData.is_default}
               onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 rounded"
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-700 rounded"
               disabled={!isProviderAvailable}
             />
             <label htmlFor="is_default" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
@@ -363,7 +363,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-between">
           <button
             type="button"
             onClick={handleTestConnection}
@@ -384,7 +384,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             <button
               onClick={handleSubmit}
               disabled={loading || !isProviderAvailable}
-              className="bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary"
             >
               {loading ? t('common.loading') : t('common.save')}
             </button>

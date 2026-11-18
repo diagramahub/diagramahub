@@ -105,7 +105,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-8">
           {/* Header */}
           <div className="text-center mb-8">
@@ -147,7 +147,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                     onClick={() => setSelectedEmoji(emoji)}
                     className={`text-xl p-1.5 rounded-lg transition-all ${selectedEmoji === emoji
                       ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-500 scale-110'
-                      : 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                   >
                     {emoji}
@@ -166,7 +166,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 type="text"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="input h-10"
                 placeholder={t('project.namePlaceholderExample')}
                 required
                 maxLength={100}
@@ -184,7 +184,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                 value={projectDescription}
                 onChange={(e) => setProjectDescription(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="input h-auto py-2 resize-none"
                 placeholder={t('project.descriptionPlaceholderExample')}
                 maxLength={500}
               />
@@ -223,7 +223,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
                   type="button"
                   onClick={onClose}
                   disabled={loading}
-                  className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-secondary flex-1"
                 >
                   {t('common.cancel')}
                 </button>
@@ -231,7 +231,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
               <button
                 type="submit"
                 disabled={loading || !projectName.trim()}
-                className={`${isFirstProject ? 'w-full' : 'flex-1'} bg-purple-600 text-white btn-glass py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors`}
+                className={`${isFirstProject ? 'w-full' : 'flex-1'} btn btn-primary`}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">

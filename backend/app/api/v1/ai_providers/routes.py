@@ -2,10 +2,12 @@
 FastAPI routes for AI providers.
 """
 
-from fastapi import APIRouter, Depends, status, Body
+from typing import Optional
+
+from fastapi import APIRouter, Body, Depends, File, Form, Request, UploadFile, status
 from app.api.deps import get_current_user_id
 from .repository import AIProviderRepository
-from .services import AIProviderService
+from .services import MAX_IMAGE_BYTES, AIProviderService
 from .model_catalog import recommended_model
 from .schemas import (
     CreateProviderRequest,
@@ -24,6 +26,7 @@ from .schemas import (
     RefineDescriptionRequest,
     RefineDescriptionResponse,
 )
+from app.api.v1.users import audit_log
 
 router = APIRouter()
 
@@ -58,6 +61,7 @@ async def get_ai_settings(
 )
 async def add_provider(
     request: CreateProviderRequest,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -75,7 +79,14 @@ async def add_provider(
         display_name=request.display_name,
     )
 
-    return await service.add_provider(user_id, provider_config)
+    result = await service.add_provider(user_id, provider_config)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_AI_PROVIDER_ADDED,
+        user_id,
+        http_request,
+        details=f"provider={request.provider.value}",
+    )
+    return result
 
 
 @router.put(
@@ -86,6 +97,7 @@ async def add_provider(
 async def update_provider(
     provider_index: int,
     request: UpdateProviderRequest,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -95,7 +107,16 @@ async def update_provider(
     Specify the index of the provider to update (0-based). Only the
     provided fields are changed.
     """
-    return await service.update_provider(user_id, provider_index, request)
+    result = await service.update_provider(user_id, provider_index, request)
+    # Field names only: never the values (the API key among them).
+    changed = sorted(request.model_dump(exclude_unset=True))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_AI_PROVIDER_UPDATED,
+        user_id,
+        http_request,
+        details=f"index={provider_index} fields={','.join(changed) or '-'}",
+    )
+    return result
 
 
 @router.delete(
@@ -105,6 +126,7 @@ async def update_provider(
 )
 async def remove_provider(
     provider_index: int,
+    http_request: Request,
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -113,7 +135,14 @@ async def remove_provider(
 
     Specify the index of the provider to remove (0-based).
     """
-    return await service.remove_provider(user_id, provider_index)
+    result = await service.remove_provider(user_id, provider_index)
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_AI_PROVIDER_REMOVED,
+        user_id,
+        http_request,
+        details=f"index={provider_index}",
+    )
+    return result
 
 
 @router.put(
@@ -190,6 +219,33 @@ async def refine_description(
     and returns an updated description.
     """
     return await service.refine_description(user_id, request)
+
+
+@router.post(
+    "/diagram-from-image",
+    response_model=GenerateDiagramResponse,
+    summary="Generate diagram code from an image",
+)
+async def diagram_from_image(
+    image: UploadFile = File(..., description="PNG, JPEG or WebP, up to 4 MB"),
+    diagram_type: str = Form("mermaid", pattern="^(mermaid|plantuml|d2|dbml)$"),
+    language: str = Form("es", pattern="^(es|en)$"),
+    instructions: Optional[str] = Form(None, max_length=500),
+    provider: Optional[AIProviderType] = Form(None),
+    model: Optional[str] = Form(None, max_length=100, description="e.g. the chat's model"),
+    user_id: str = Depends(get_current_user_id),
+    service: AIProviderService = Depends(get_ai_provider_service),
+):
+    """
+    Recreate the diagram in an image (whiteboard photo, screenshot, sketch) as code.
+
+    Needs a model that accepts images (Gemini, OpenAI and Claude models, per the
+    model catalog's ``images``); others answer 422 ``images_not_supported``.
+    """
+    data = await image.read(MAX_IMAGE_BYTES + 1)
+    return await service.generate_diagram_from_image(
+        user_id, data, diagram_type, language, instructions, provider, model
+    )
 
 
 @router.post(

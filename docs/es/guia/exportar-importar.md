@@ -57,6 +57,12 @@ Usa **Exportar proyecto** o **Exportar carpeta** y elige:
 
         Los pizarrones no tienen código fuente de texto. En el Markdown aparecen como una nota con los textos que contienen.
 
+    === "PDF — una página por diagrama"
+
+        Un documento listo para imprimir o enviar: una portada con el nombre del proyecto (y de la carpeta), la fecha de exportación y un índice, y después una página A4 horizontal por diagrama, renderizado como en el editor. Con **Incluir descripciones**, cada página muestra la descripción debajo del diagrama.
+
+        El PDF se genera **en tu navegador** (hasta 100 diagramas), por eso el diálogo muestra su avance. **Los pizarrones no se incluyen**: la portada indica cuántos quedaron fuera; expórtalos uno por uno como PNG.
+
 Antes de descargar, el diálogo muestra un resumen de lo que vas a recibir: número de diagramas, carpetas y tamaño. En la variante para IA también muestra una estimación de **tokens**.
 
 ```mermaid

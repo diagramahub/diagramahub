@@ -72,14 +72,14 @@ export default function BottomSheet({
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className={`relative bg-white dark:bg-gray-800 rounded-t-2xl ${height} flex flex-col overflow-hidden animate-slide-up shadow-2xl`}
+        className={`relative bg-white dark:bg-gray-900 rounded-t-2xl ${height} flex flex-col overflow-hidden animate-slide-up shadow-2xl`}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         {/* Drag handle */}
         <div className="flex-shrink-0 flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
         </div>
 
         {/* Header */}

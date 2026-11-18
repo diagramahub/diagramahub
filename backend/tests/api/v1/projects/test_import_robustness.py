@@ -52,7 +52,9 @@ def test_unique_name_respects_max_length() -> None:
 async def test_importing_a_100_char_title_twice_suffixes_within_the_limit(
     authenticated_client: AsyncClient,
 ) -> None:
-    pid = (await authenticated_client.post("/api/v1/projects", json={"name": "P", "emoji": "📥"})).json()["id"]
+    pid = (
+        await authenticated_client.post("/api/v1/projects", json={"name": "P", "emoji": "📥"})
+    ).json()["id"]
     name = "T" * 100 + ".mmd"
     files = [("files", (name, b"graph TD\n A-->B", "text/plain"))]
 
@@ -60,7 +62,10 @@ async def test_importing_a_100_char_title_twice_suffixes_within_the_limit(
     second = await authenticated_client.post(f"/api/v1/projects/{pid}/import", files=files)
 
     assert first.status_code == 200 and second.status_code == 200
-    titles = {d["title"] for d in (await authenticated_client.get(f"/api/v1/projects/{pid}")).json()["diagrams"]}
+    titles = {
+        d["title"]
+        for d in (await authenticated_client.get(f"/api/v1/projects/{pid}")).json()["diagrams"]
+    }
     assert titles == {"T" * 100, "T" * 96 + " (2)"}
 
 
@@ -75,7 +80,16 @@ async def test_importing_a_100_char_title_twice_suffixes_within_the_limit(
         _excalidraw([{"id": ["list"], "type": "rectangle", "x": 0, "y": 0}]),
         _excalidraw([{"id": "t", "type": "text", "containerId": {"a": 1}, "text": "hola"}]),
         _excalidraw([{"id": "r", "type": "rectangle"}], appState=["not", "a", "dict"]),
-        _excalidraw([{"id": "a", "type": "arrow", "points": [[0, 0], [5, 5]], "endBinding": {"elementId": [1]}}]),
+        _excalidraw(
+            [
+                {
+                    "id": "a",
+                    "type": "arrow",
+                    "points": [[0, 0], [5, 5]],
+                    "endBinding": {"elementId": [1]},
+                }
+            ]
+        ),
     ],
 )
 def test_malformed_excalidraw_never_raises(document: str) -> None:
@@ -141,7 +155,9 @@ def test_nan_and_infinity_become_zero_in_sketches() -> None:
 
 @pytest.mark.integration
 async def test_rollback_reports_incomplete_cleanup(authenticated_client: AsyncClient) -> None:
-    pid = (await authenticated_client.post("/api/v1/projects", json={"name": "R", "emoji": "📥"})).json()["id"]
+    pid = (
+        await authenticated_client.post("/api/v1/projects", json={"name": "R", "emoji": "📥"})
+    ).json()["id"]
     from app.api.v1.diagrams.repository import DiagramRepository
 
     real_create = DiagramRepository.create
@@ -157,7 +173,10 @@ async def test_rollback_reports_incomplete_cleanup(authenticated_client: AsyncCl
         raise RuntimeError("delete failed too")
 
     files = [("files", (f"d{i}.mmd", b"graph TD", "text/plain")) for i in range(3)]
-    with patch.object(DiagramRepository, "create", flaky_create), patch.object(DiagramRepository, "delete", failing_delete):
+    with (
+        patch.object(DiagramRepository, "create", flaky_create),
+        patch.object(DiagramRepository, "delete", failing_delete),
+    ):
         response = await authenticated_client.post(f"/api/v1/projects/{pid}/import", files=files)
 
     assert response.status_code == 500
@@ -195,7 +214,10 @@ async def test_cancellation_rolls_back_the_partial_import() -> None:
 
     repo = Repo()
     service = import_module.ProjectImportService(repo, repo, repo, Limiter())
-    uploads = [import_module.UploadedFile("a.mmd", b"graph TD"), import_module.UploadedFile("b.mmd", b"graph TD")]
+    uploads = [
+        import_module.UploadedFile("a.mmd", b"graph TD"),
+        import_module.UploadedFile("b.mmd", b"graph TD"),
+    ]
 
     with pytest.raises(asyncio.CancelledError):
         await service.execute("p1", "u1", uploads, None)
@@ -207,14 +229,17 @@ async def test_cancellation_rolls_back_the_partial_import() -> None:
 
 @pytest.mark.integration
 async def test_folders_differing_only_in_case_become_one(authenticated_client: AsyncClient) -> None:
-    pid = (await authenticated_client.post("/api/v1/projects", json={"name": "C", "emoji": "📥"})).json()["id"]
+    pid = (
+        await authenticated_client.post("/api/v1/projects", json={"name": "C", "emoji": "📥"})
+    ).json()["id"]
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr("Docs/a.mmd", "graph TD")
         archive.writestr("docs/b.mmd", "graph TD")
 
     response = await authenticated_client.post(
-        f"/api/v1/projects/{pid}/import", files=[("files", ("c.zip", buffer.getvalue(), "application/zip"))]
+        f"/api/v1/projects/{pid}/import",
+        files=[("files", ("c.zip", buffer.getvalue(), "application/zip"))],
     )
 
     assert response.status_code == 200

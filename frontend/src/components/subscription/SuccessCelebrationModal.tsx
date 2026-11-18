@@ -79,7 +79,7 @@ export default function SuccessCelebrationModal({
         />
 
         {/* Modal */}
-        <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+        <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-lg ring-1 ring-black/5 dark:ring-white/10 max-w-md w-full p-8 transform transition-all">
           {/* Icono de éxito con animación */}
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -162,7 +162,7 @@ export default function SuccessCelebrationModal({
           {/* Botón de cerrar */}
           <button
             onClick={onClose}
-            className="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-lg hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-105 shadow-lg"
+            className="btn btn-primary w-full"
           >
             {t('subscription.celebration.startUsing')}
           </button>

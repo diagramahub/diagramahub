@@ -14,7 +14,7 @@ The backend exposes a JSON REST API. FastAPI generates the full interactive refe
 | Topic | Convention |
 |---|---|
 | Prefix | Every route lives under `/api/v1` (`settings.API_V1_PREFIX`). AI providers under `/api/v1/ai`. |
-| Authentication | `Authorization: Bearer <JWT>` obtained from `POST /users/login` (or after MFA / OAuth). |
+| Authentication | `Authorization: Bearer <JWT>` obtained from `POST /users/login` (or after MFA / OAuth), or an API key (`Bearer dh_pat_…`, see [API Keys](#api-keys-api_tokens)) on the paths its permissions cover. |
 | Language | `Accept-Language: es` or `en`: error messages and AI content answer in that language. |
 | Errors | FastAPI `HTTPException`: body `{"detail": ...}`, where `detail` is a string or an object with a code (e.g. `{"error": "response_truncated"}`). |
 | Validation | `422` with Pydantic's detail when the body doesn't match the schema. |
@@ -73,11 +73,58 @@ Routes are relative to `/api/v1`. **Public** = no token; **User** = JWT; **Admin
 | GET · PUT · DELETE | `/folders/{folder_id}` | User |
 | POST | `/projects/{project_id}/diagrams` | User |
 | GET | `/diagrams/recent` | User |
+| GET | `/diagrams/search?q=&project_id=&type=&limit=` | User |
 | GET · PUT · DELETE | `/diagrams/{diagram_id}` | User |
 | POST | `/diagrams/{diagram_id}/move`, `/diagrams/{diagram_id}/duplicate` | User |
 | POST | `/diagrams/{diagram_id}/fix` | User |
 | POST | `/diagrams/convert` | User |
 | POST | `/diagrams/render` | Public (per-IP limit) |
+
+### API Keys (`api_tokens/`)
+
+| Method | Path | Access |
+|---|---|---|
+| GET · POST | `/api-tokens` | User (session only) |
+| DELETE | `/api-tokens/{token_id}` | User (session only) |
+
+`POST` takes `name`, `expires_in_days` (30, 90, 365 or `null`) and `permissions`, a level per area (`none`, `read` or `write`; `ai`: `none` or `write`; areas left out get `none`, and at least one needs access). It returns the key (`dh_pat_…`) once; only its SHA-256 hash is stored.
+
+Which area and level each path needs is decided by `api_tokens/permissions.py` (`RULES`, first match wins; `GET`/`HEAD`/`OPTIONS` need read, other methods write):
+
+| Paths | Area · level |
+|---|---|
+| `/projects…`, `/folders…` | `projects` |
+| `/projects/{id}/diagrams`, `/diagrams…` | `diagrams` (`POST /diagrams/render`: read) |
+| `/projects/{id}/import` | `projects` and `diagrams` · write |
+| `/diagrams/{id}/fix` | `ai` · write and `diagrams` · read (returns the code) |
+| `/diagrams/convert` | `ai` · write |
+| `/shared-links…` | `sharing` (`POST /shared-links`: also `diagrams` · read) |
+| `/community…` | `community` (`POST /community/diagrams`, publishing: also `diagrams` · read) |
+| `/community/diagrams/{id}/fork` | `community` and `diagrams` · write |
+| `/community/admin…` and any other path | never with a key |
+
+Without the permission the answer is `403` with `{"error": "api_key_permission", "message": …, "needs": {"<area>": "<level>", …}}` (only what is missing); an expired or revoked key gets `401`. Keys created before per-area permissions (global `read`/`write` `scope`) keep working with that level on every area except `ai`.
+
+```bash
+curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
+```
+
+### Community (`community/`)
+
+| Method | Route | Access |
+|---|---|---|
+| GET · POST | `/community/diagrams` (list: `tab`, `q`, `category`, `type`, `sort`, `page`) | User (session) |
+| GET · PUT · DELETE | `/community/diagrams/{id}` | User · owner (PUT) · owner or admin (DELETE) |
+| GET | `/community/by-diagram/{diagram_id}` | User (owner) |
+| GET | `/community/my-published` | User: their published diagrams (`diagram_id`, `publication_id`, `hidden`) |
+| PUT · DELETE | `/community/diagrams/{id}/star` | User |
+| POST | `/community/diagrams/{id}/fork` | User (plan limit applies) |
+| GET · POST | `/community/diagrams/{id}/comments` | User |
+| DELETE | `/community/diagrams/{id}/comments/{comment_id}` | Author, publication owner or admin |
+| POST | `/community/reports` | User |
+| GET | `/community/admin/reports` | Admin |
+| PUT | `/community/admin/diagrams/{id}`, `/community/admin/comments/{id}` | Admin |
+| POST | `/community/admin/reports/dismiss` | Admin |
 
 ### AI (`ai_providers/`, mounted at `/ai`)
 
@@ -89,6 +136,7 @@ Routes are relative to `/api/v1`. **Public** = no token; **User** = JWT; **Admin
 | PUT · DELETE | `/ai/providers/{provider_index}` | User |
 | POST | `/ai/test-provider` | User (tests a key without saving it) |
 | POST | `/ai/generate-diagram`, `/ai/improve-diagram` | User |
+| POST | `/ai/diagram-from-image` (multipart: `image`, `diagram_type`, `language`, `instructions`, `provider`) | User |
 | POST | `/ai/generate-description`, `/ai/refine-description` | User |
 
 ### AI chat (`chat_sessions/`)

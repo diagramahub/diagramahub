@@ -43,7 +43,8 @@ Para cambiar estos datos, usa **Editar proyecto**.
 
 Dentro del editor, el explorador lateral muestra el árbol del proyecto: primero las carpetas y luego los diagramas de la raíz. Desde ahí puedes:
 
-- **Buscar** diagramas por nombre. El contador indica cuántos coinciden («3 de 12 diagramas»).
+- **Buscar** diagramas por nombre. El contador indica cuántos coinciden («3 de 12 diagramas»). A partir de dos caracteres, una sección **En el contenido** lista también los diagramas cuya descripción o código contiene el texto, con el fragmento resaltado (en los pizarrones, los textos del lienzo).
+- **Filtrar por tipo** con los botones bajo la búsqueda (MMD, PUML, D2, DBML, DRAW; aparecen cuando el proyecto tiene más de un tipo). El filtro aplica al árbol y a los resultados del contenido.
 - Crear un diagrama con **Nuevo diagrama aquí**, directamente en la raíz o en una carpeta.
 - **Crear carpeta**, renombrarla y elegir su **Color**.
 - Arrastrar archivos desde tu computadora para [importarlos](exportar-importar.md#importar-diagramas) en la raíz o en una carpeta.
@@ -56,6 +57,7 @@ El menú de acciones de cada diagrama ofrece:
 | Acción | Qué hace |
 |---|---|
 | **Renombrar** | Cambia el título del diagrama. |
+| **Añadir a favoritos** / **Quitar de favoritos** | Lo marca con una estrella para tenerlo a mano en **Inicio**. |
 | **Duplicar** | Abre **Clonar diagrama**: crea una copia en el mismo proyecto. El nombre sugerido termina en `-copia` y puedes cambiarlo. |
 | **Mover a carpeta** | Lo pasa a otra carpeta del mismo proyecto, o a la raíz. |
 | **Mover a otro proyecto** | Lo lleva a otro de tus proyectos. Queda en la **raíz** del proyecto de destino. |
@@ -65,6 +67,12 @@ También puedes **arrastrar** un diagrama del explorador y soltarlo sobre una ca
 
 !!! note "Una copia cuenta como un diagrama nuevo"
     Clonar crea un diagrama más, así que cuenta para el límite de tu plan, igual que crear uno desde cero.
+
+## Favoritos
+
+Marca tus diagramas más importantes con la **estrella** que está junto al título en el editor, o con **Añadir a favoritos** en su menú del explorador. En el explorador los favoritos llevan una estrella junto al nombre.
+
+**Inicio** los reúne en la tabla **Favoritos**, del más recién editado al más antiguo, con su proyecto y la fecha de su última edición: un clic abre el diagrama. Desde la tabla también puedes quitar la estrella (con **Deshacer** por si fue un error). Marcar o desmarcar un favorito no cuenta como una edición.
 
 ## Eliminar una carpeta
 

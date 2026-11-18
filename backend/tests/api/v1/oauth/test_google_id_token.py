@@ -21,7 +21,7 @@ from app.core.security import (
     decode_access_token,
     decode_mfa_temp_token,
 )
-from tests.utils import generate_test_secret
+from tests.utils import generate_test_api_key, generate_test_secret
 
 pytestmark = pytest.mark.unit
 
@@ -138,7 +138,7 @@ async def test_hs256_token_is_rejected(provider: GoogleOAuthProvider) -> None:
     """Algorithm confusion: an HMAC token must never pass as RS256."""
     forged = jwt.encode(
         {"iss": "https://accounts.google.com", "aud": CLIENT_ID, "sub": "1", "email": "x@y.z"},
-        generate_test_secret("hmac"),
+        generate_test_api_key("hmac"),
         algorithm="HS256",
         headers={"kid": KID},
     )
@@ -166,7 +166,7 @@ def test_expired_access_token_is_rejected() -> None:
 def test_access_token_with_another_secret_is_rejected() -> None:
     forged = jwt.encode(
         {"sub": "user@example.com", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
-        generate_test_secret("jwt"),
+        generate_test_api_key("jwt"),
         algorithm=settings.JWT_ALGORITHM,
     )
 

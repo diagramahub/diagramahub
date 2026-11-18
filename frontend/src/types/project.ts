@@ -37,7 +37,23 @@ export type Diagram = {
   viewport_zoom: number;
   viewport_x: number;
   viewport_y: number;
+  /** Starred by its owner: listed on the dashboard. */
+  is_favorite?: boolean;
   created_at: string;
+  updated_at: string;
+}
+
+/** A diagram found by GET /diagrams/search. */
+export type DiagramSearchResult = {
+  id: string;
+  title: string;
+  diagram_type: string;
+  project_id: string;
+  project_name: string;
+  project_emoji: string;
+  folder_id?: string | null;
+  matched_in: 'title' | 'description' | 'content';
+  snippet: string;
   updated_at: string;
 }
 

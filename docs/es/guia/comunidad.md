@@ -1,0 +1,53 @@
+# Comunidad
+
+La **Comunidad** es el portal donde los usuarios publican sus diagramas para que otros los encuentren, les den estrella, los comenten y hagan **fork** (una copia editable en su propia cuenta). Se abre desde **Comunidad** en el menú lateral. Es **pública**: cualquiera, sin cuenta, puede explorarla en `/community`, abrir los diagramas y leer los comentarios. Al dar estrella, hacer fork, comentar, reportar o publicar, a quien no ha iniciado sesión se le invita a crear una cuenta o a entrar, y al terminar vuelve a la misma página. (Quien administra la instalación puede cerrarla con [`COMMUNITY_PUBLIC`](../self-host/configuracion.md#comunidad).)
+
+## Explorar
+
+| Pestaña | Qué muestra |
+|---|---|
+| **Explorar** | Todos los diagramas publicados |
+| **Destacados** | Los que eligen los administradores |
+| **Mis estrellas** | Los que marcaste con estrella |
+| **Mis publicaciones** | Los tuyos (también los ocultos por moderación) |
+
+Puedes **buscar** por título, autor, etiqueta o descripción, filtrar por **tipo** (MMD, PUML, D2, DBML) y por **categoría** (Arquitectura, Bases de datos, Procesos de negocio, DevOps, UML, Seguridad, IA y datos, Educación), y **ordenar** por tendencia, estrellas, forks o fecha. *Tendencia* favorece los diagramas recientes con más estrellas y forks.
+
+## Publicar un diagrama
+
+1. Abre el diagrama en el editor y usa **Publicar en la Comunidad** (icono de globo en la barra). La ventana tiene dos paneles.
+2. A la izquierda, la **descripción pública**: es la descripción del diagrama, con el mismo editor Markdown. Lo que cambies ahí se guarda en el diagrama.
+3. A la derecha, la configuración:
+    - la **categoría**;
+    - hasta 5 **etiquetas**, en minúsculas: cada una se agrega con **Enter** o una **coma**, y se quita con su ✕ o con Retroceso;
+    - si permites **comentarios**.
+4. **Publicar**.
+
+Lo publicado **siempre está sincronizado** con el diagrama: cuando cambias el título, el código o la descripción, la Comunidad muestra la versión nueva sin que tengas que volver a publicar. Si borras el diagrama, queda publicada su última versión hasta que la retires.
+
+Tus diagramas publicados llevan la marca **Público** (un globo verde) en el explorador de carpetas, junto al título en el editor y en los últimos diagramas del inicio. Si la moderación oculta uno, la marca cambia a **Oculto**, en ámbar. Al hacer clic en la marca del editor se abre la configuración de la publicación.
+
+Para cambiar la categoría, las etiquetas o los comentarios de algo ya publicado, abre la misma ventana y usa **Guardar cambios**. Cada diagrama se publica una sola vez. Los pizarrones todavía no se pueden publicar.
+
+### Licencia
+
+Todo lo publicado es **público** bajo la licencia [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/deed.es), la misma para todas las publicaciones, así que no tienes que elegir una. Cualquiera puede verlo, hacer **fork** y adaptarlo, siempre dando crédito al autor. Es el equivalente de la licencia MIT para contenido que no es software.
+
+Cada fork queda **registrado**: suma al contador de forks de la publicación original y conserva de dónde salió. Si alguien publica su fork, su página muestra **Fork de «título» de autor** con el enlace al original (o solo el título y el autor, si el original ya se retiró).
+
+!!! warning "Revisa los datos antes de publicar"
+    Un diagrama publicado lo puede ver cualquiera, incluso sin cuenta. Quita credenciales, nombres de clientes o IPs internas antes de publicarlo.
+
+Para **retirarlo**, usa **Retirar de la Comunidad** en el editor o en su página: deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan.
+
+## Estrellas, forks y comentarios
+
+- **Estrella**: marca los diagramas que te gustan; los encuentras en **Mis estrellas**.
+- **Fork a mi cuenta**: copia el diagrama a uno de tus proyectos para editarlo. Cuenta para el límite de diagramas de tu plan, y la descripción del fork incluye la atribución al autor, la licencia y el enlace. Todas las publicaciones admiten fork.
+- **Comentarios**: públicos, en Markdown, con un nivel de respuestas. El autor del diagrama aparece con la marca **Autor**. Puedes borrar tus comentarios; el autor del diagrama puede borrar cualquiera en su publicación.
+
+## Reportes y moderación
+
+Usa **Reportar** en un diagrama o comentario que incumpla las normas (spam, datos sensibles, contenido ofensivo). Con **3 reportes** el contenido se oculta hasta que un administrador lo revise.
+
+Los administradores ven la pestaña **Reportes**, y en cada publicación pueden **destacarla**, **ocultarla**, **restaurarla** (lo que cierra sus reportes) o eliminarla.

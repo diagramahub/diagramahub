@@ -57,17 +57,20 @@ RUN pnpm run build
 # configuration, then drop privileges again. Nginx listens on 5173 (a high
 # port, allowed for non-root) so host port mappings and managed platforms
 # configured for the previous image keep working unchanged.
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS production
+FROM nginxinc/nginx-unprivileged:1.30-alpine AS production
 
 USER root
 RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY headers.conf /etc/nginx/conf.d/headers.conf
+COPY headers-embed.conf /etc/nginx/conf.d/headers-embed.conf
 # Runtime configuration generator. The base image entrypoint sources
 # /docker-entrypoint.d/*.sh before starting Nginx; it runs as the nginx
 # user, so the config.js file it rewrites is chown'd below.
 COPY entrypoint-config.sh /docker-entrypoint.d/40-config.sh
 RUN chmod +x /docker-entrypoint.d/40-config.sh
+# Written at start by 40-config.sh (as the nginx user): the CSP header.
+RUN mkdir -p /etc/nginx/csp && touch /etc/nginx/csp/csp.conf /etc/nginx/csp/csp-embed.conf && chown -R nginx:nginx /etc/nginx/csp
 COPY --from=build /app/dist /usr/share/nginx/html
 RUN chown nginx:nginx /usr/share/nginx/html/config.js
 USER nginx

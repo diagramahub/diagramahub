@@ -1,3 +1,4 @@
+import { takeReturnTo } from '../utils/returnTo';
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +29,7 @@ const OAuthCallbackPage: React.FC = () => {
       try {
         const response = await apiService.oauthCallback({ code, state, provider });
         await loginWithOAuth(response.access_token);
-        navigate('/dashboard', { replace: true });
+        navigate(takeReturnTo('/dashboard'), { replace: true });
       } catch {
         navigate('/login?oauth_error=true', { replace: true });
       }
@@ -38,7 +39,7 @@ const OAuthCallbackPage: React.FC = () => {
   }, [searchParams, loginWithOAuth, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="text-center">
         <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mb-4" />
         <p className="text-gray-600 text-lg">{t('oauth.authenticating')}</p>

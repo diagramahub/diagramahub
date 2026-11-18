@@ -93,6 +93,7 @@
     "required": "This field is required",
     "emailInvalid": "Invalid email",
     "passwordMin": "Password must be at least 12 characters",
+    "passwordMaxBytes": "Password can't be longer than 72 bytes (accented letters and emoji take more than one)",
     "passwordUppercase": "Password must contain at least one uppercase letter",
     "passwordLowercase": "Password must contain at least one lowercase letter",
     "passwordNumber": "Password must contain at least one number",
@@ -104,6 +105,7 @@
   "password": {
     "strength": {
       "minLength": "At least 12 characters",
+      "maxBytes": "At most 72 bytes (accents and emoji count as two or more)",
       "uppercase": "At least one uppercase letter",
       "lowercase": "At least one lowercase letter",
       "digit": "At least one number",
@@ -151,13 +153,12 @@
       "noAiModels": "No connected models"
     },
     "plans": {
-      "notSynced": "Plan not synced with payment gateway",
+      "notSynced": "This paid plan has no product in the payment gateway yet, so nobody can pay for it.",
       "delete": "Delete plan",
-      "deactivate": "Deactivate plan",
-      "deactivateAction": "Deactivate",
-      "noGateway": "No gateway",
-      "deactivateConfirm": "Deactivate the \"{{name}}\" plan? Existing subscriptions stay active, but new users won't be able to subscribe. The product will be archived in Stripe.",
-      "deleteConfirm": "Are you sure you want to delete the \"{{name}}\" plan? This removes the plan from the database and from Stripe. This cannot be undone.",
+      "deactivate": "Stop offering the plan",
+      "deactivateAction": "Stop offering",
+      "deactivateConfirm": "Stop offering the \"{{name}}\" plan? Current subscriptions stay as they are; new users won't be able to pick it.",
+      "deleteConfirm": "Delete the \"{{name}}\" plan? It's removed from DiagramaHub and archived in the payment gateway. This can't be undone.",
       "deletePrice": "Delete price",
       "deletePriceConfirm": "Are you sure you want to delete the {{currency}} price? The price will be deactivated in Stripe.",
       "namePlaceholder": "e.g. Pro, Enterprise",
@@ -165,7 +166,104 @@
       "descriptionPlaceholder": "Brief description of the plan features",
       "projectsPlaceholder": "e.g. 10",
       "diagramsPlaceholder": "e.g. 100",
-      "selectCurrency": "Select currency..."
+      "selectCurrency": "Select currency...",
+      "create": "New plan",
+      "summary": {
+        "activePlans": "Active plans",
+        "activeOf": "{{active}} of {{total}}",
+        "subscribers": "Active subscribers",
+        "paidPlans": "Active paid plans"
+      },
+      "gatewayWarning_one": "The {{names}} plan is paid but isn't connected to a payment gateway, so nobody can pay for it yet.",
+      "gatewayWarning_other": "{{count}} paid plans ({{names}}) aren't connected to a payment gateway, so nobody can pay for them yet.",
+      "gatewayWarningAction": "Set it up in Integrations",
+      "free": "Free",
+      "perMonth": "/month",
+      "defaultPlan": "Plan for new accounts",
+      "inactive": "Not offered",
+      "projects_one": "{{count}} project",
+      "projects_other": "{{count}} projects",
+      "unlimitedProjects": "Unlimited projects",
+      "diagrams_one": "{{count}} diagram",
+      "diagrams_other": "{{count}} diagrams",
+      "unlimitedDiagrams": "Unlimited diagrams",
+      "subscribers_one": "{{count}} active subscriber",
+      "subscribers_other": "{{count}} active subscribers",
+      "gatewaySynced": "Connected to {{provider}}",
+      "noGateway": "No payment gateway",
+      "available": "Available",
+      "unavailable": "Not available",
+      "toggleLabel": "\"{{name}}\" available to subscribe",
+      "edit": "Edit",
+      "currencies": "Currencies",
+      "hideCurrencies": "Hide currencies",
+      "otherCurrencies": "Also in {{list}}",
+      "deleteDisabled": "Only a plan without active subscribers can be deleted",
+      "messages": {
+        "created": "\"{{name}}\" plan created.",
+        "updated": "\"{{name}}\" plan saved.",
+        "activated": "The \"{{name}}\" plan can be picked now.",
+        "deactivated": "The \"{{name}}\" plan is no longer offered to new users.",
+        "deleted": "\"{{name}}\" plan deleted.",
+        "loadError": "Couldn't load the plans.",
+        "actionError": "Couldn't complete the action.",
+        "dismiss": "Dismiss"
+      },
+      "empty": {
+        "title": "No plans yet",
+        "description": "Create the first one: set its limits and monthly price."
+      },
+      "form": {
+        "createTitle": "New plan",
+        "editTitle": "Edit \"{{name}}\"",
+        "close": "Close",
+        "name": "Name",
+        "code": "Code",
+        "codeHelp": "Unique identifier: uppercase letters, numbers, hyphens and underscores.",
+        "codeFreeLocked": "The free plan's code can't be changed.",
+        "description": "Description",
+        "priceUsd": "Monthly price (USD)",
+        "priceHelp": "0 for a free plan.",
+        "priceLocked": "The price can't change while the plan has active subscribers.",
+        "otherCurrencies": "Prices in other currencies",
+        "otherCurrenciesHelp": "The gateway charges each customer in their own currency.",
+        "addCurrency": "Add currency",
+        "removeCurrency": "Remove {{currency}}",
+        "limits": "Limits",
+        "maxProjects": "Projects",
+        "maxDiagrams": "Diagrams",
+        "unlimited": "Unlimited",
+        "status": "Available to subscribe",
+        "statusOn": "Users can pick this plan.",
+        "statusOff": "New users can't pick it; current subscriptions continue.",
+        "save": "Save changes",
+        "create": "Create plan",
+        "saving": "Saving…",
+        "errors": {
+          "name": "Enter the plan's name.",
+          "code": "Enter the plan's code.",
+          "price": "The price must be a number of 0 or more.",
+          "projects": "The project limit must be a number of 0 or more.",
+          "diagrams": "The diagram limit must be a number of 0 or more.",
+          "save": "Couldn't save the plan."
+        }
+      },
+      "prices": {
+        "title": "Price in another currency",
+        "currency": "Currency",
+        "amount": "Monthly amount",
+        "amountPerMonth": "Amount/month",
+        "add": "Add price",
+        "adding": "Saving…",
+        "none": "USD only",
+        "remove": "Remove the {{currency}} price",
+        "errors": {
+          "currency": "Pick a currency.",
+          "amount": "The amount must be more than 0.",
+          "add": "Couldn't add the price.",
+          "remove": "Couldn't remove the price."
+        }
+      }
     }
   },
   "chat": {
@@ -232,7 +330,8 @@
       "deleteMessage": "Couldn't delete the message",
       "noStreamBody": "The server sent no reply. Try again.",
       "network": "The connection was interrupted. Try again."
-    }
+    },
+    "readsImages": "Reads images"
   },
   "installation": {
     "title": "Welcome to DiagramaHub",
@@ -295,7 +394,77 @@
     "aiUsage": "AI Engine Usage",
     "totalAiMessages": "total AI messages",
     "noAiUsage": "No AI usage recorded",
-    "recentDiagrams": "Recently updated diagrams"
+    "recentDiagrams": "Recently updated diagrams",
+    "openProjects": "See all projects",
+    "openLastDiagram": "Open \"{{title}}\"",
+    "openSubscription": "See your subscription",
+    "projectsOfLimit": "of {{limit}} projects",
+    "diagramsOfLimit": "of {{limit}} diagrams",
+    "activity": {
+      "title": "Activity",
+      "subtitle": "Diagrams you worked on each day · last 12 weeks",
+      "diagramsWorked_one": "{{count}} diagram worked on",
+      "diagramsWorked_other": "{{count}} diagrams worked on",
+      "activeDays_one": "{{count}} active day",
+      "activeDays_other": "{{count}} active days",
+      "currentStreak": "Current streak",
+      "longestStreak": "Longest streak",
+      "streakDays_one": "{{count}} day",
+      "streakDays_other": "{{count}} days",
+      "less": "Less",
+      "more": "More",
+      "cell_one": "{{date}}: {{count}} diagram",
+      "cell_other": "{{date}}: {{count}} diagrams",
+      "cellNone": "{{date}}: no activity",
+      "hint": "Hover over a day to see its details",
+      "chartLabel": "Activity map: {{worked}} over {{active}} in the last 12 weeks",
+      "tableCaption": "Days with activity",
+      "tableDate": "Day",
+      "tableCount": "Diagrams",
+      "empty": "No activity yet. Create or edit a diagram and it will show up here.",
+      "loadError": "Couldn't load your activity.",
+      "diagramsLabel": "Diagrams worked on",
+      "activeDaysLabel": "Active days"
+    },
+    "impact": {
+      "title": "Community impact",
+      "stars": "Stars",
+      "forks": "Forks",
+      "views": "Views",
+      "comments": "Comments",
+      "publications_one": "{{count}} publication",
+      "publications_other": "{{count}} publications",
+      "starsLast30": "+{{count}} stars in 30 days",
+      "top": "Your top publication",
+      "openTop": "Open “{{title}}” in the Community",
+      "seeMine": "See my publications",
+      "emptyTitle": "Nothing published yet",
+      "emptyDescription": "Publish a diagram to the Community to get stars, forks and comments.",
+      "explore": "Explore the Community"
+    },
+    "favorites": {
+      "title": "Favorites",
+      "subtitle": "Your starred diagrams",
+      "diagram": "Diagram",
+      "project": "Project",
+      "type": "Type",
+      "updated": "Last edited",
+      "actions": "Actions",
+      "open": "Open “{{title}}”",
+      "remove": "Remove “{{title}}” from favorites",
+      "removed": "“{{title}}” is no longer a favorite",
+      "undo": "Undo",
+      "removeError": "Couldn't remove it from favorites. Please try again.",
+      "emptyTitle": "No favorites yet",
+      "emptyDescription": "Star a diagram next to its title in the editor, or from its menu in the file browser, to get a shortcut here.",
+      "showing": "Showing {{shown}} of {{total}}"
+    }
+  },
+  "favorite": {
+    "add": "Add to favorites",
+    "remove": "Remove from favorites",
+    "marked": "Favorite",
+    "error": "Couldn't update favorites. Please try again."
   },
   "project": {
     "createTitle": "Create new project",
@@ -436,7 +605,7 @@
     "selectLanguage": "Select your preferred language",
     "cancelEdit": "Cancel",
     "saveChanges": "Save Changes",
-    "invalidImageType": "Please select a valid image file",
+    "invalidImageType": "Choose a PNG, JPEG, GIF, WebP, AVIF or BMP image",
     "imageTooLarge": "Image must be smaller than 2MB",
     "allFieldsRequired": "All fields are required",
     "passwordsDoNotMatch": "Passwords do not match",
@@ -456,7 +625,7 @@
   "settings": {
     "title": "Settings",
     "comingSoon": "Coming soon",
-    "comingSoonDescription": "We're working on new configuration options to improve your experience. Soon you'll be able to customize themes, notifications and much more.",
+    "pageDescription": "AI integrations, API tokens and your account.",
     "futureFeatures": "Upcoming features",
     "appearance": "Appearance",
     "appearanceDescription": "Customize the theme and appearance of the application",
@@ -560,6 +729,8 @@
     "noErrors": "No errors",
     "fixing": "Fixing...",
     "fixWithAI": "Fix with AI",
+    "fixStillInvalid": "The AI couldn't produce a fix that renders (after a retry): {{error}}",
+    "fixFailed": "Couldn't fix the diagram",
     "fix": "Fix",
     "copied": "Copied!",
     "copyCode": "Copy code",
@@ -720,7 +891,17 @@
     "exporting": "Exporting…",
     "error": "Unable to export. Please try again.",
     "tooMany": "Too many exports in a row. Wait a moment and try again.",
-    "tooManyRetry": "Too many exports in a row. Try again in {{seconds}} s."
+    "tooManyRetry": "Too many exports in a row. Try again in {{seconds}} s.",
+    "formatPdf": "PDF",
+    "formatPdfHint": "One page per diagram, with a cover and contents. Built in your browser; sketches aren't included.",
+    "pdfSummary": "{{diagrams}} in the PDF (sketches not counted)",
+    "pdfProgress": "Building PDF {{done}}/{{total}}…",
+    "pdfExportedOn": "Exported on {{date}}",
+    "pdfContents": "Contents",
+    "pdfSketchesSkipped_one": "{{count}} sketch isn't included: open it and export it as PNG.",
+    "pdfSketchesSkipped_other": "{{count}} sketches aren't included: open them and export them as PNG.",
+    "pdfRenderError": "This diagram couldn't be rendered.",
+    "pdfPage": "p. {{page}}"
   },
   "fileBrowser": {
     "actionsFor": "Actions for {{name}}",
@@ -743,7 +924,12 @@
     "deleteDiagramError": "Unable to delete the diagram. Please try again.",
     "createFolderError": "Unable to create the folder. Please try again.",
     "renameFolderError": "Unable to rename the folder. Please try again.",
-    "deleteFolderError": "Unable to delete the folder. Please try again."
+    "deleteFolderError": "Unable to delete the folder. Please try again.",
+    "inContent": "In the content",
+    "searchingContent": "Searching the content…",
+    "contentSearchError": "Couldn't search the content.",
+    "filterByType": "Filter by type",
+    "allTypes": "All"
   },
   "errors": {
     "genericError": "An error occurred",
@@ -973,13 +1159,13 @@
   },
   "ai": {
     "title": "AI Integrations",
-    "subtitle": "Connect AI providers to automatically generate descriptions for your diagrams",
+    "subtitle": "Connect your own AI providers to generate, improve, fix and chat about your diagrams. Your keys are stored encrypted.",
     "noProviders": "No providers configured",
-    "noProvidersDescription": "Add an API key to start generating descriptions with AI",
-    "addProvider": "Add Provider",
-    "editProvider": "Edit Provider",
-    "removeProvider": "Remove Provider",
-    "testProvider": "Test Connection",
+    "noProvidersDescription": "Add an API key from a provider (Gemini, OpenAI, Claude, DeepSeek or MiniMax) to use AI in the editor.",
+    "addProvider": "Add provider",
+    "editProvider": "Edit provider",
+    "removeProvider": "Remove provider",
+    "testProvider": "Test connection",
     "providers": {
       "gemini": "Google Gemini",
       "openai": "OpenAI GPT",
@@ -1012,7 +1198,8 @@
       "advancedSettings": "Advanced settings",
       "recommended": "Recommended",
       "retired": "retired",
-      "retiredHint": "This model is no longer listed; it keeps working while the provider offers it. You can change it when editing."
+      "retiredHint": "This model is no longer listed; it keeps working while the provider offers it. You can change it when editing.",
+      "readsImages": "reads images"
     },
     "settings": {
       "autoGenerate": "Auto-generate descriptions",
@@ -1095,7 +1282,8 @@
       "invalid_key": "The API key is invalid or has no permissions.",
       "model_unavailable": "The chosen model isn't available for this key. Choose another model.",
       "provider_error": "The provider returned an error. Check the key and model and try again."
-    }
+    },
+    "makeDefault": "Make “{{name}}” the default"
   },
   "oauth": {
     "divider": "or",
@@ -1145,7 +1333,19 @@
     "generateError": "Error generating link",
     "revokeError": "Error revoking link",
     "enterCodePlaceholder": "Enter the code",
-    "sharedViewLabel": "Shared view"
+    "sharedViewLabel": "Shared view",
+    "allowEmbed": "Allow embedding",
+    "allowEmbedDesc": "Other sites can show the diagram in an iframe",
+    "updateError": "Couldn't update the link",
+    "embedCode": "Embed code",
+    "copyEmbedCode": "Copy code",
+    "qrTitle": "QR code",
+    "qrDesc": "Open the link from a phone or in a presentation",
+    "qrShow": "Show QR",
+    "qrHide": "Hide QR",
+    "qrAlt": "QR code of the shared link",
+    "qrDownload": "Download PNG",
+    "qrError": "Couldn't generate the QR code"
   },
   "export": {
     "error": {
@@ -1186,18 +1386,12 @@
     "community": "Community",
     "about": "About",
     "comingSoon": "Coming soon",
-    "communityModalTitle": "DiagramaHub Community",
-    "communityModalDescription": "We're building a space where you can share your diagrams, discover others' work, and collaborate with the community. Stay tuned!",
-    "communityModalClose": "Got it"
+    "apiKeys": "API Keys"
   },
   "about": {
     "title": "About DiagramaHub",
     "intro": "An open-source, self-hostable platform for creating, organizing, and sharing diagrams from text.",
-    "whatIsTitle": "Diagrams as code",
     "whatIsDescription": "Create diagrams with Mermaid, PlantUML, D2, and DBML, keep code as the source of truth, and export it whenever you need it.",
-    "openSourceTitle": "Open and self-hostable",
-    "openSourceDescription": "DiagramaHub is built for teams and developers looking for a modern, private experience without vendor lock-in.",
-    "exploreRepository": "Explore the repository",
     "currentVersion": "Version {{version}}",
     "viewReleases": "View releases",
     "highlightsTitle": "Built for your workflow",
@@ -1219,7 +1413,36 @@
     "connectDescription": "Open source, community, and support.",
     "repository": "GitHub repository",
     "xAccount": "X account",
-    "contact": "Contact email"
+    "contact": "Contact email",
+    "star": {
+      "kicker": "Support the project",
+      "count_one": "{{count}} star on GitHub",
+      "count_other": "{{count}} stars on GitHub",
+      "titleFirst": "Be one of the first to star it",
+      "titleNoCount": "Support it with a star on GitHub",
+      "soFar_one": "{{count}} star so far",
+      "soFar_other": "{{count}} stars so far",
+      "cta": "Star it on GitHub",
+      "why": "It's free, takes two seconds and helps more teams find DiagramaHub.",
+      "reasonsTitle": "Your star makes a difference",
+      "reasons": {
+        "discover": {
+          "title": "More teams find it",
+          "description": "GitHub and search engines show projects with more stars first."
+        },
+        "trust": {
+          "title": "Confidence to adopt it",
+          "description": "Stars are the first thing people check when they evaluate an open-source tool."
+        },
+        "momentum": {
+          "title": "Momentum to keep going",
+          "description": "Every star tells the team it's worth improving further."
+        }
+      },
+      "howTitle": "How?",
+      "howSteps": "Open the repository, sign in to GitHub and press \"Star\" at the top right.",
+      "openRepository": "Open the repository"
+    }
   },
   "conversion": {
     "sketchToMermaid": "Sketch → Mermaid",
@@ -1461,5 +1684,558 @@
     "wrongCode": "Incorrect access code",
     "tooManyAttempts": "Too many attempts",
     "verifyError": "Error verifying the code"
+  },
+  "promptHistory": {
+    "button": "History",
+    "title": "Prompt history",
+    "searchPlaceholder": "Search your prompts",
+    "empty": "No prompts yet. The ones that produce a diagram in the chat show up here.",
+    "noResults": "No prompt matches the search.",
+    "error": "Couldn't load the history.",
+    "delete": "Remove from history",
+    "operation": {
+      "creation": "Creation",
+      "improvement": "Improvement"
+    }
+  },
+  "embed": {
+    "notAllowed": "The owner doesn't allow embedding this diagram.",
+    "openInDiagramaHub": "Open in DiagramaHub"
+  },
+  "presentation": {
+    "presentProject": "Present project",
+    "presentFolder": "Present folder",
+    "counter": "{{current}} of {{total}}",
+    "previous": "Previous diagram",
+    "next": "Next diagram",
+    "notes": "Notes",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "exit": "Exit presentation",
+    "empty": "There are no diagrams to present.",
+    "loadError": "Couldn't load the project.",
+    "back": "Back to the editor"
+  },
+  "imageToDiagram": {
+    "button": "From image",
+    "title": "Diagram from an image",
+    "subtitle": "Upload a whiteboard photo, a screenshot or a sketch and the AI turns it into code of the current diagram.",
+    "drop": "Click, drop an image here or paste it with Ctrl/Cmd+V",
+    "formats": "PNG, JPEG or WebP, up to 4 MB",
+    "previewAlt": "Chosen image",
+    "instructions": "Instructions (optional)",
+    "instructionsPlaceholder": "For example: left to right, group by team",
+    "generate": "Generate",
+    "generating": "Converting…",
+    "result": "Result",
+    "apply": "Apply to diagram",
+    "replaceWarning": "Applying it replaces the diagram's current code.",
+    "errors": {
+      "tooLarge": "The image is over 4 MB.",
+      "notImage": "The file isn't a PNG, JPEG or WebP image.",
+      "notSupported": "This provider can't read images. Use Gemini, OpenAI or Claude.",
+      "truncated": "The reply was cut off before the diagram was complete. Try a simpler image.",
+      "empty": "The AI returned no diagram. Try another image or add instructions.",
+      "noProvider": "You have no active AI provider. Add an API key in Settings.",
+      "generic": "Couldn't generate the diagram."
+    },
+    "buttonHint": "Turn a photo, screenshot or sketch into a diagram",
+    "needsImageModel": "Pick a model that reads images (Gemini, OpenAI or Claude) to use this",
+    "modelWithoutImages": "{{model}} can't read images. Pick a model marked with the image icon in the chat (Gemini, OpenAI or Claude).",
+    "progress": {
+      "title": "Turning the image into a diagram",
+      "elapsed": "{{seconds}} s",
+      "theModel": "The model",
+      "steps": {
+        "upload": "Upload the image",
+        "analyze": "The AI reads the image and writes the code",
+        "render": "Draw the preview"
+      },
+      "uploading": "Uploading…",
+      "uploadingPercent": "Uploading… {{percent}}%",
+      "rendering": "Preparing the preview…",
+      "hints": {
+        "reading": "{{model}} is reading the image…",
+        "elements": "Finding the elements, texts and connections…",
+        "writing": "Writing the {{type}} code…",
+        "reviewing": "Checking the diagram is complete…",
+        "slow": "This is taking longer than usual. Reasoning models can take up to 2 minutes."
+      },
+      "cancel": "Cancel conversion",
+      "cancelled": "Conversion cancelled. You can generate again whenever you like.",
+      "doneIn": "Done in {{seconds}} s"
+    }
+  },
+  "mermaidOptions": {
+    "themes": {
+      "redux-color": "Redux color (default)",
+      "redux": "Redux",
+      "redux-dark-color": "Redux dark color",
+      "redux-dark": "Redux dark",
+      "neo": "Neo",
+      "neo-dark": "Neo dark",
+      "default": "Classic",
+      "base": "Base (customizable)",
+      "dark": "Dark",
+      "forest": "Forest",
+      "neutral": "Neutral"
+    },
+    "layouts": {
+      "elk": "ELK (default)",
+      "dagre": "Dagre"
+    },
+    "looks": {
+      "neo": "Neo (default)",
+      "classic": "Classic",
+      "handDrawn": "Hand-drawn"
+    },
+    "curve": "Line type",
+    "curves": {
+      "default": "Default",
+      "basis": "Smooth (basis)",
+      "linear": "Straight (linear)",
+      "step": "Steps (step)",
+      "stepBefore": "Steps before",
+      "stepAfter": "Steps after"
+    },
+    "globalStyles": "Global styles",
+    "font": "Font",
+    "fontDefault": "Default",
+    "fontSize": "Font size (px)",
+    "fontSizes": {
+      "12": "12 px (small)",
+      "14": "14 px (normal)",
+      "16": "16 px (medium)",
+      "18": "18 px (large)",
+      "20": "20 px (extra large)"
+    }
+  },
+  "community": {
+    "title": "Community",
+    "subtitle": "Public diagrams from the community: explore them, star them and fork them into your projects.",
+    "publishCta": "Publish a diagram",
+    "publishHint": "Open a diagram and use “Publish to the Community” in the editor's toolbar.",
+    "tabs": {
+      "explore": "Explore",
+      "featured": "Featured",
+      "starred": "My stars",
+      "mine": "My publications",
+      "reports": "Reports"
+    },
+    "searchPlaceholder": "Search by title, author or tag…",
+    "filterByType": "Filter by type",
+    "allTypes": "All",
+    "sortLabel": "Sort",
+    "sort": {
+      "trending": "Trending",
+      "stars": "Most stars",
+      "forks": "Most forks",
+      "recent": "Newest"
+    },
+    "categoriesLabel": "Categories",
+    "allCategories": "All",
+    "categories": {
+      "architecture": "Architecture",
+      "databases": "Databases",
+      "business-processes": "Business processes",
+      "devops": "DevOps",
+      "uml": "UML",
+      "security": "Security",
+      "ai-data": "AI and data",
+      "education": "Education"
+    },
+    "resultCount_one": "{{count}} diagram",
+    "resultCount_other": "{{count}} diagrams",
+    "loadError": "Couldn't load the Community.",
+    "emptyTitle": "Nothing here",
+    "empty": "No diagram matches the filters.",
+    "emptyMineTitle": "Nothing published yet",
+    "emptyMine": "Open a diagram and use “Publish to the Community” in the editor's toolbar.",
+    "loadMore": "Load more",
+    "previewError": "Preview unavailable",
+    "featured": "Featured",
+    "hiddenBadge": "Hidden",
+    "star": "Star",
+    "unstar": "Unstar",
+    "starred": "Starred",
+    "forks": "Forks",
+    "comments": "Comments",
+    "views": "Views",
+    "updated": "Updated",
+    "notFound": "This diagram doesn't exist or is no longer published.",
+    "backToCommunity": "Back to the Community",
+    "hiddenNotice": "This publication is hidden after community reports. Only its author and administrators can see it.",
+    "publishedOn": "published {{date}}",
+    "commentsTitle": "Comments ({{count}})",
+    "commentPlaceholder": "Write a public comment (Markdown)…",
+    "commentHint": "Be kind: comments can be reported.",
+    "comment": "Comment",
+    "commentsOff": "The author turned comments off.",
+    "noComments": "No comments yet. Be the first.",
+    "replyingTo": "Replying to {{name}}.",
+    "reply": "Reply",
+    "delete": "Delete",
+    "report": "Report",
+    "authorBadge": "Author",
+    "fork": "Fork to my account",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied.",
+    "moreFromAuthor": "More from this author",
+    "reportDiagram": "Report this diagram",
+    "forkDescription": "An editable copy is created in your project. It counts for your plan's limit.",
+    "forkProject": "Target project",
+    "forkName": "Title",
+    "forkTitleDefault": "{{title}} (fork)",
+    "forkNoProjects": "Create a project first.",
+    "forkAttribution": "The fork's description credits the author and the license.",
+    "forkedFrom": "Fork of <original>“{{title}}”</original> by {{owner}}",
+    "forkConfirm": "Fork",
+    "forking": "Creating…",
+    "forkLimit": "Couldn't fork: check your plan's limit or the chosen project.",
+    "reportTitle": "Report",
+    "reportDescription": "Tell us what's wrong (spam, sensitive data, offensive content…). Administrators review it.",
+    "reportReason": "Reason",
+    "reportSend": "Send report",
+    "reportSent": "Thanks, your report was sent.",
+    "actionError": "Couldn't complete the action.",
+    "tooFast": "Too many actions in a row. Wait a moment.",
+    "owner": {
+      "title": "Your publication",
+      "unpublish": "Remove from the Community",
+      "unpublishTitle": "Remove publication",
+      "unpublishMessage": "The diagram stops being public and its stars and comments are deleted. Forks others already made are kept.",
+      "synced": "It stays in sync with your diagram: changes are published on their own."
+    },
+    "admin": {
+      "title": "Moderation",
+      "feature": "Feature",
+      "unfeature": "Unfeature",
+      "hide": "Hide",
+      "restore": "Restore (closes the reports)",
+      "remove": "Delete publication"
+    },
+    "reports": {
+      "empty": "No open reports.",
+      "review": "Review",
+      "target": {
+        "diagram": "Diagram",
+        "comment": "Comment"
+      }
+    },
+    "publish": {
+      "button": "Publish to the Community",
+      "title": "Publish to the Community",
+      "subtitle": "Anyone can see what you publish, even without an account, and it stays in sync with your diagram.",
+      "category": "Category",
+      "tags": "Tags",
+      "tagsPlaceholder": "Type a tag…",
+      "tagsMore": "Another tag…",
+      "tagsHint": "Enter or comma to add · {{count}}/{{max}}",
+      "tagsFull": "You reached the limit of {{max}} tags.",
+      "removeTag": "Remove the tag {{tag}}",
+      "description": "Public description",
+      "allowComments": "Allow comments",
+      "sensitiveWarning": "Check that the diagram has no sensitive data (credentials, customer names, internal IPs). By publishing you accept the Community rules.",
+      "confirm": "Publish",
+      "publishing": "Publishing…",
+      "published": "Published!",
+      "unpublished": "Publication removed.",
+      "error": "Couldn't publish the diagram.",
+      "notPublishable": "Whiteboard sketches can't be published yet.",
+      "alreadyPublished": "This diagram is published: {{stars}} stars, {{forks}} forks.",
+      "viewInCommunity": "View in the Community",
+      "licenseNotice": "Everything published to the Community is public under the <licenseLink>{{license}}</licenseLink> license: anyone can view it, fork it and adapt it, always crediting you. Every fork is recorded and counts toward your publication.",
+      "manageTitle": "Your Community publication",
+      "descriptionHint": "It's the diagram's description: what you change here is saved to it and published.",
+      "descriptionPlaceholder": "Tell what the diagram shows, who it is for and how to use it…",
+      "commentsHint": "Other users can comment and reply on your publication.",
+      "syncNotice": "Always in sync: the title, code and description update on their own when you change the diagram.",
+      "statusPublished": "Published",
+      "save": "Save changes",
+      "saving": "Saving…",
+      "saved": "Changes saved."
+    },
+    "viewer": {
+      "label": "Diagram viewer",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fit": "Fit to view",
+      "fullscreen": "Full screen",
+      "exitFullscreen": "Exit full screen",
+      "hint": "Drag to move · Ctrl/⌘ + wheel or pinch to zoom · double-click to fit",
+      "hintFullscreen": "Drag to move · wheel to zoom · Esc to exit"
+    },
+    "detail": {
+      "description": "Description",
+      "code": "Code",
+      "lines_one": "{{count}} line",
+      "lines_other": "{{count}} lines",
+      "copyCode": "Copy code",
+      "codeCopied": "Code copied.",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "noDescription": "The author didn't add a description.",
+      "details": "Details",
+      "stars": "Stars",
+      "license": "License"
+    },
+    "public": {
+      "label": "Public",
+      "hidden": "Hidden",
+      "tooltip": "Published to the Community: every user can see it.",
+      "hiddenTooltip": "Published, but hidden by moderation: others can't see it.",
+      "manage": "Manage the publication"
+    },
+    "signIn": {
+      "title": "Join to continue",
+      "register": "Create a free account",
+      "registerShort": "Sign up",
+      "login": "Sign in",
+      "notNow": "Not now",
+      "comeBack": "You'll come back to this page when you're done.",
+      "commentCta": "Sign in or create an account to comment.",
+      "commentButton": "Comment",
+      "reasons": {
+        "star": "Create an account to star the diagrams you like and find them later in “My stars”.",
+        "fork": "Create an account to copy this diagram into one of your projects and edit it.",
+        "comment": "Create an account to comment and reply in the Community.",
+        "report": "Create an account to report content that breaks the rules.",
+        "publish": "Create an account to publish your own diagrams to the Community.",
+        "tabs": "Create an account to see your stars and your publications."
+      }
+    }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "message": "This screen hit an error. Reload the page; if it happens again, let us know.",
+    "chunkTitle": "A new version is available",
+    "chunkMessage": "This screen couldn't load, probably because a new version was released. Reload the page.",
+    "reload": "Reload"
+  },
+  "markdownEditor": {
+    "placeholder": "Write your description in Markdown…",
+    "editing": "Editing description · Markdown",
+    "done": "Done",
+    "edit": "Edit",
+    "empty": "No description",
+    "add": "Add a description",
+    "toolbar": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "strikethrough": "Strikethrough",
+      "heading-1": "Heading 1",
+      "heading-2": "Heading 2",
+      "heading-3": "Heading 3",
+      "unordered-list": "List",
+      "ordered-list": "Numbered list",
+      "code": "Code",
+      "quote": "Quote",
+      "link": "Link",
+      "table": "Table",
+      "horizontal-rule": "Horizontal line",
+      "preview": "Preview",
+      "side-by-side": "Side by side"
+    }
+  },
+  "apiKeys": {
+    "title": "API Keys",
+    "subtitle": "Connect DiagramaHub with your scripts, CI or tools: read your projects and diagrams, change their code and description, publish them to the Community or share them. Each key can only do what you allow.",
+    "settingsLink": "Create keys to use the API from your scripts and integrations.",
+    "newKey": "New API key",
+    "yourKeys": "Your keys",
+    "count_one": "{{count}} key",
+    "count_other": "{{count}} keys",
+    "empty": "You don't have API keys yet.",
+    "emptyHint": "Create one to start using the API.",
+    "createTitle": "New API key",
+    "createSubtitle": "Choose what it can do. You can revoke it at any time.",
+    "createdTitle": "API key created",
+    "name": "Name",
+    "namePlaceholder": "For example: Docs CI",
+    "expiration": "Expires in",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "never": "Never",
+    "permissions": "Permissions",
+    "permissionsHint": "Write includes read. Your account, security, the keys themselves and administration always need you to sign in.",
+    "noAccess": "Give the key access to at least one area.",
+    "needsDiagrams": "To share, publish or fix with AI, the key also needs to read Diagrams.",
+    "grantDiagramsRead": "Give read access to Diagrams",
+    "presets": {
+      "read": "Read only",
+      "write": "Read and write",
+      "custom": "Custom"
+    },
+    "levels": {
+      "none": "None",
+      "read": "Read",
+      "write": "Write",
+      "use": "Use"
+    },
+    "areas": {
+      "projects": {
+        "name": "Projects",
+        "description": "Projects and folders: list, create, rename, export and delete them."
+      },
+      "diagrams": {
+        "name": "Diagrams",
+        "description": "Code, title and description; create, move, duplicate, search and delete."
+      },
+      "sharing": {
+        "name": "Sharing",
+        "description": "Shared links: create, change and revoke them."
+      },
+      "community": {
+        "name": "Community",
+        "description": "Publish your diagrams, change their settings and remove them; browse and fork."
+      },
+      "ai": {
+        "name": "AI",
+        "description": "Fix and convert diagrams with your AI providers (uses your quota)."
+      }
+    },
+    "create": "Create key",
+    "creating": "Creating…",
+    "copyNow": "Copy the key now: it won't be shown again. If you lose it, revoke it and create another.",
+    "keyLabel": "API key",
+    "copy": "Copy",
+    "copied": "Copied",
+    "done": "Done",
+    "tryIt": "Try it",
+    "tryItHint": "Keep it in an environment variable and make your first call:",
+    "createdOn": "created {{date}}",
+    "expiresOn": "expires {{date}}",
+    "neverExpires": "never expires",
+    "lastUsed": "last used {{date}}",
+    "neverUsed": "never used",
+    "expired": "Expired",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke API key",
+    "revokeMessage": "The key “{{name}}” will stop working right away. This can't be undone.",
+    "loadError": "Couldn't load the keys.",
+    "createError": "Couldn't create the key.",
+    "revokeError": "Couldn't revoke the key.",
+    "usage": {
+      "title": "How to use it",
+      "subtitle": "Copy-paste examples of the most common tasks.",
+      "baseUrl": "Base URL",
+      "copyBaseUrl": "Copy the base URL",
+      "auth": "Authentication",
+      "errors": "Errors",
+      "errorsText": "401: invalid, expired or revoked key. 403: the key lacks a permission; the response says which (needs).",
+      "recipes": "Examples",
+      "language": "Language",
+      "copyCode": "Copy the example",
+      "envHint": "The examples read the key from the DIAGRAMAHUB_API_KEY environment variable. Replace PROJECT_ID, DIAGRAM_ID, etc. with real IDs."
+    },
+    "recipes": {
+      "listProjects": {
+        "title": "List projects",
+        "description": "Your projects with how many diagrams each has."
+      },
+      "getProject": {
+        "title": "Get a project",
+        "description": "A project with its folders and diagrams (including their IDs)."
+      },
+      "updateDiagram": {
+        "title": "Change code and description",
+        "description": "Update a diagram's code and description. Send only the fields that change. If it's published, the Community follows on its own."
+      },
+      "publish": {
+        "title": "Make public",
+        "description": "Publish the diagram to the Community under CC BY 4.0. Categories: architecture, databases, business-processes, devops, uml, security, ai-data, education."
+      },
+      "unpublish": {
+        "title": "Make private",
+        "description": "Remove the publication. GET /community/by-diagram/DIAGRAM_ID gives its ID."
+      },
+      "share": {
+        "title": "Share with a link",
+        "description": "Create a public link (or protected with access_code) that expires in 5, 10 or 30 days, or never (null)."
+      },
+      "unshare": {
+        "title": "Stop sharing",
+        "description": "Revoke the link. GET /shared-links/diagram/DIAGRAM_ID gives its ID."
+      }
+    },
+    "reference": {
+      "title": "Reference",
+      "subtitle": "What a key can call, by area, and the permission it needs. Paths are relative to the base URL.",
+      "outside": "Any other path (account, security, keys, AI chat, AI settings and administration) answers 403 to an API key."
+    },
+    "endpoints": {
+      "listProjects": "Your projects",
+      "getProject": "A project with its folders and diagrams",
+      "exportProject": "Export the project (zip or markdown)",
+      "createProject": "Create a project",
+      "updateProject": "Rename it or change its emoji",
+      "deleteProject": "Delete a project and its content",
+      "createFolder": "Create a folder",
+      "getFolder": "A folder with its diagrams",
+      "updateFolder": "Rename a folder",
+      "deleteFolder": "Delete a folder",
+      "recentDiagrams": "Your most recent diagrams",
+      "searchDiagrams": "Search titles, descriptions and code",
+      "getDiagram": "A diagram: code, description and settings",
+      "createDiagram": "Create a diagram",
+      "updateDiagram": "Change title, code, description or folder",
+      "moveDiagram": "Move it to another project",
+      "duplicateDiagram": "Duplicate it",
+      "deleteDiagram": "Delete it",
+      "getSharedLink": "A diagram's active link",
+      "createSharedLink": "Share: create a link",
+      "updateSharedLink": "Change the link's expiry, code or options",
+      "deleteSharedLink": "Stop sharing: revoke the link",
+      "myPublished": "Your published diagrams",
+      "publicationOfDiagram": "A diagram's publication (or null)",
+      "browseCommunity": "Browse the Community",
+      "publish": "Make public: publish to the Community",
+      "updatePublication": "Change category, tags or comments",
+      "unpublish": "Make private: remove the publication",
+      "fork": "Fork into one of your projects",
+      "fixDiagram": "Fix a diagram with AI",
+      "convertDiagram": "Convert to another language with AI"
+    },
+    "tabs": {
+      "keys": "Your keys",
+      "docs": "Documentation"
+    },
+    "docsTeaser": "How do you use it? Examples, reference and context ready for your AI agent in Documentation",
+    "agent": {
+      "title": "Context for AI agents",
+      "description": "Copy the whole documentation as Markdown to give it to an agent like Claude or Codex: base URL, authentication, permissions, errors, examples and every endpoint. It includes no key.",
+      "copy": "Copy for AI",
+      "download": "Download .md"
+    },
+    "agentDoc": {
+      "title": "DiagramaHub API: context for an AI agent",
+      "intro": "Use this REST API to read and change a DiagramaHub user's projects and diagrams (Mermaid, PlantUML, D2 and DBML): read them, change their code and description, make them public or private in the Community and share them with a link. Requests and responses are JSON.",
+      "baseUrl": "Base URL",
+      "auth": "Authentication",
+      "authKey": "Read the API key from the DIAGRAMAHUB_API_KEY environment variable. Don't write it in code, commits or the conversation.",
+      "permissions": "Permissions",
+      "permissionsIntro": "Each API key has a level per area. `write` includes `read`; `none` gives no access. GET needs `read`; POST, PUT and DELETE need `write`.",
+      "area": "Area",
+      "levels": "Levels",
+      "covers": "What it covers",
+      "permissionsOutside": "No API key reaches the account, security, the keys themselves, AI settings or chat, or administration (they answer 403).",
+      "errors": "Errors",
+      "error401": "the key doesn't exist, expired or was revoked.",
+      "error403": "the key lacks a permission; `needs` says which. Ask the user for a key with that permission instead of retrying:",
+      "error404": "it doesn't exist or isn't the user's.",
+      "error422": "the body doesn't match the schema; `detail` says which field.",
+      "error429": "too many requests; wait as long as the Retry-After header says.",
+      "tasks": "Common tasks",
+      "needs": "permission",
+      "endpoints": "Endpoints",
+      "endpointsIntro": "Paths relative to the base URL, with the permission each one needs.",
+      "notes": "Notes",
+      "noteIds": "IDs are 24-character hex strings. To find them: GET /projects, then GET /projects/{project_id} (folders and diagrams) or GET /diagrams/search?q=text.",
+      "noteTypes": "diagram_type: mermaid, plantuml, d2 or dbml (whiteboards, freehand, can't be published). The code goes in content and the Markdown description in description. The server only checks Mermaid structurally: validate the code an AI fix returns with mermaid.parse (or by rendering it) before saving it.",
+      "noteUpdate": "PUT /diagrams/{diagram_id} takes only the fields that change (title, content, description, folder_id). If the diagram is published, the Community shows the changes on its own.",
+      "noteCommunity": "Publishing (POST /community/diagrams) takes diagram_id, category ({{categories}}), tags (up to 5) and allow_comments. What's published is public under CC BY 4.0. To make it private, delete the publication; GET /community/by-diagram/{diagram_id} gives its ID.",
+      "noteSharing": "Sharing (POST /shared-links): diagram_id, access_type public or protected (with an access_code of 4 to 20 characters), expiration_days 5, 10, 30 or null, allow_copy_code and allow_embed. To stop sharing, DELETE /shared-links/{link_id}; GET /shared-links/diagram/{diagram_id} gives its ID.",
+      "noteSafety": "Before deleting anything or making a diagram public, confirm it with the user."
+    }
   }
 }

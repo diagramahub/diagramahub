@@ -45,28 +45,13 @@ export function useDiagramErrorDetection(
 
   const validateMermaidWithParser = async (code: string) => {
     try {
-      // First do basic syntax checks
-      const lines = code.trim().split('\n');
-      
-      // Check for valid diagram type
-      const validTypes = [
-        'graph', 'flowchart', 'sequenceDiagram', 'classDiagram',
-        'stateDiagram', 'stateDiagram-v2', 'erDiagram', 'gantt',
-        'pie', 'journey', 'gitGraph', 'mindmap', 'timeline',
-        'quadrantChart', 'requirementDiagram', 'C4Context'
-      ];
-      
-      // Find first non-comment line
-      let firstLine = '';
-      for (const line of lines) {
-        const cleanLine = line.replace(/%%.*$/, '').trim();
-        if (cleanLine) {
-          firstLine = cleanLine;
-          break;
-        }
-      }
-      
-      if (!firstLine) {
+      // Only the empty case is checked here: Mermaid's own parser knows every
+      // diagram type of the bundled version (venn-beta, usecase-beta, …), the
+      // YAML front matter and the %%{init}%% directives.
+      const hasContent = code
+        .split('\n')
+        .some((line) => line.replace(/%%.*$/, '').trim() && line.trim() !== '---');
+      if (!hasContent) {
         setError({
           hasError: true,
           errorMessage: 'El diagrama está vacío o solo contiene comentarios',
@@ -75,20 +60,7 @@ export function useDiagramErrorDetection(
         });
         return;
       }
-      
-      // Check if starts with valid type
-      const hasValidType = validTypes.some(type => firstLine.startsWith(type));
-      
-      if (!hasValidType) {
-        setError({
-          hasError: true,
-          errorMessage: `Tipo de diagrama no reconocido: "${firstLine}"`,
-          errorContext: `Tipo de diagrama no reconocido: "${firstLine}". Debe comenzar con uno de: ${validTypes.join(', ')}`,
-          errorLine: 1
-        });
-        return;
-      }
-      
+
       // Try to parse with Mermaid to catch syntax errors
       try {
         await mermaid.parse(code, { suppressErrors: false });

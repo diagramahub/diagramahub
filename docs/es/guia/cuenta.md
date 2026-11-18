@@ -109,6 +109,10 @@ Los planes, sus límites y sus precios los define el operador de la instancia. T
 | **Al final del período** (recomendado) | Conservas tu plan hasta la fecha de corte y luego pasas al plan gratuito. |
 | **Inmediatamente** | Pasas al plan gratuito en ese momento, sin reembolso por el tiempo restante. |
 
+## API Keys
+
+Las llaves para usar la API desde scripts, CI o tus propias herramientas tienen su propia sección: **API Keys** en el menú lateral. Ver [API Keys](api-keys.md).
+
 ## Eliminar tu cuenta
 
 En **Ajustes → Zona de peligro**, usa **Eliminar mi cuenta** y escribe `elimíname` para confirmar.

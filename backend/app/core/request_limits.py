@@ -41,7 +41,9 @@ class BodySizeLimitMiddleware:
         """
         self.app = app
         self.max_bytes = max_bytes
-        self.path_overrides = [(re.compile(pattern), limit) for pattern, limit in path_overrides or []]
+        self.path_overrides = [
+            (re.compile(pattern), limit) for pattern, limit in path_overrides or []
+        ]
 
     def limit_for(self, path: str) -> int:
         """Body limit that applies to ``path``."""
@@ -64,9 +66,7 @@ class BodySizeLimitMiddleware:
             )
             return
         if declared is not None and declared > max_bytes:
-            await JSONResponse({"detail": _TOO_LARGE_DETAIL}, status_code=413)(
-                scope, receive, send
-            )
+            await JSONResponse({"detail": _TOO_LARGE_DETAIL}, status_code=413)(scope, receive, send)
             return
 
         received = 0

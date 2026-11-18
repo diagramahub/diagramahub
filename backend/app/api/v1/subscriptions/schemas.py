@@ -1,6 +1,7 @@
 """
 Pydantic models for subscription and plan management.
 """
+
 from datetime import datetime
 from typing import Optional, Union, Literal
 from pydantic import ConfigDict, BaseModel, Field
@@ -8,13 +9,14 @@ from beanie import Document
 from pymongo import IndexModel, ASCENDING
 from app.core.clock import utcnow
 
-
 # ============================================================================
 # Enums and Constants
 # ============================================================================
 
+
 class SubscriptionStatus:
     """Estados posibles de una suscripción."""
+
     ACTIVE = "active"
     PENDING = "pending"
     PAYMENT_FAILED = "payment_failed"
@@ -26,8 +28,10 @@ class SubscriptionStatus:
 # Gateway Config Schemas (provider-agnostic)
 # ============================================================================
 
+
 class StripeGatewayConfig(BaseModel):
     """Stripe-specific gateway configuration for a plan."""
+
     provider: Literal["stripe"] = "stripe"
     external_product_id: str
     external_price_id: str
@@ -35,6 +39,7 @@ class StripeGatewayConfig(BaseModel):
 
 class ConektaGatewayConfig(BaseModel):
     """Conekta-specific gateway configuration for a plan (placeholder)."""
+
     provider: Literal["conekta"] = "conekta"
     external_product_id: str
     external_price_id: str
@@ -58,32 +63,31 @@ def parse_gateway_config(
 # Plan Schemas
 # ============================================================================
 
+
 class PlanBase(BaseModel):
     """Base plan model."""
+
     name: str = Field(..., min_length=1, max_length=50)
     code: str = Field(
         ...,
         min_length=1,
         max_length=30,
-        pattern=r'^[A-Z0-9_-]+$',
-        description="Código único del plan (mayúsculas, sin espacios)"
+        pattern=r"^[A-Z0-9_-]+$",
+        description="Código único del plan (mayúsculas, sin espacios)",
     )
     description: Optional[str] = Field(None, max_length=500)
     price_usd: float = Field(..., ge=0, description="Precio mensual en USD")
     max_projects: Optional[int] = Field(
-        None,
-        ge=-1,
-        description="Máximo de proyectos (-1 o None = ilimitado)"
+        None, ge=-1, description="Máximo de proyectos (-1 o None = ilimitado)"
     )
     max_diagrams: Optional[int] = Field(
-        None,
-        ge=-1,
-        description="Máximo de diagramas (-1 o None = ilimitado)"
+        None, ge=-1, description="Máximo de diagramas (-1 o None = ilimitado)"
     )
 
 
 class PlanCreate(PlanBase):
     """Model for creating a new plan."""
+
     prices: Optional[dict] = Field(
         None, description="Optional multi-currency prices dict, e.g. {'mxn': 40, 'eur': 2}"
     )
@@ -91,15 +95,13 @@ class PlanCreate(PlanBase):
 
 class PlanUpdate(BaseModel):
     """Model for updating a plan."""
+
     name: Optional[str] = Field(None, min_length=1, max_length=50)
-    code: Optional[str] = Field(
-        None,
-        min_length=1,
-        max_length=30,
-        pattern=r'^[A-Z0-9_-]+$'
-    )
+    code: Optional[str] = Field(None, min_length=1, max_length=30, pattern=r"^[A-Z0-9_-]+$")
     description: Optional[str] = None
-    price_usd: Optional[float] = Field(None, ge=0, description="Precio mensual en USD (se sincroniza con Stripe)")
+    price_usd: Optional[float] = Field(
+        None, ge=0, description="Precio mensual en USD (se sincroniza con Stripe)"
+    )
     max_projects: Optional[int] = Field(None, ge=-1)
     max_diagrams: Optional[int] = Field(None, ge=-1)
     is_active: Optional[bool] = None
@@ -110,6 +112,7 @@ class PlanUpdate(BaseModel):
 
 class PlanInDB(Document):
     """Plan document stored in MongoDB."""
+
     name: str
     code: str = ""
     description: Optional[str] = None
@@ -140,15 +143,12 @@ class PlanInDB(Document):
 
     class Settings:
         name = "plans"
-        indexes = [
-            "name",
-            "code",
-            "is_active"
-        ]
+        indexes = ["name", "code", "is_active"]
 
 
 class PlanResponse(BaseModel):
     """Model for plan API responses."""
+
     id: str
     name: str
     code: str = ""
@@ -171,19 +171,23 @@ class PlanResponse(BaseModel):
 # Subscription Schemas
 # ============================================================================
 
+
 class SubscriptionBase(BaseModel):
     """Base subscription model."""
+
     user_id: str
     plan_id: str
 
 
 class SubscriptionCreate(SubscriptionBase):
     """Model for creating a new subscription."""
+
     pass
 
 
 class SubscriptionInDB(Document):
     """Subscription document stored in MongoDB."""
+
     user_id: str
     plan_id: str
     status: str = SubscriptionStatus.ACTIVE
@@ -204,16 +208,12 @@ class SubscriptionInDB(Document):
 
     class Settings:
         name = "subscriptions"
-        indexes = [
-            "user_id",
-            "plan_id",
-            "status",
-            "stripe_subscription_id"
-        ]
+        indexes = ["user_id", "plan_id", "status", "stripe_subscription_id"]
 
 
 class SubscriptionResponse(BaseModel):
     """Model for subscription API responses."""
+
     id: str
     user_id: str
     plan: PlanResponse
@@ -233,6 +233,7 @@ class SubscriptionResponse(BaseModel):
 
 class SubscriptionWithUsage(SubscriptionResponse):
     """Subscription response with usage information."""
+
     usage: dict
 
 
@@ -240,8 +241,10 @@ class SubscriptionWithUsage(SubscriptionResponse):
 # Stripe Configuration Schemas
 # ============================================================================
 
+
 class StripeConfigBase(BaseModel):
     """Base Stripe configuration model."""
+
     secret_key: str = Field(..., min_length=1)
     publishable_key: str = Field(..., min_length=1)
     webhook_secret: str = Field(..., min_length=1)
@@ -249,11 +252,13 @@ class StripeConfigBase(BaseModel):
 
 class StripeConfigCreate(StripeConfigBase):
     """Model for creating Stripe configuration."""
+
     pass
 
 
 class StripeConfigInDB(Document):
     """Stripe configuration stored in MongoDB."""
+
     secret_key: str
     publishable_key: str
     webhook_secret: str
@@ -269,6 +274,7 @@ class StripeConfigInDB(Document):
 
 class StripeConfigResponse(BaseModel):
     """Model for Stripe config API responses."""
+
     id: str
     publishable_key: str
     is_test_mode: bool
@@ -282,8 +288,10 @@ class StripeConfigResponse(BaseModel):
 # Webhook Event Schemas
 # ============================================================================
 
+
 class WebhookEventStatus:
     """Estados de un evento de webhook registrado."""
+
     PROCESSING = "processing"
     PROCESSED = "processed"
 
@@ -297,6 +305,7 @@ class WebhookEventInDB(Document):
     identifies the delivery that holds the claim. Records created
     before the status field existed default to ``processed``.
     """
+
     event_id: str
     event_type: str
     status: str = WebhookEventStatus.PROCESSED
@@ -306,11 +315,7 @@ class WebhookEventInDB(Document):
     class Settings:
         name = "webhook_events"
         indexes = [
-            IndexModel(
-                [("event_id", ASCENDING)],
-                unique=True,
-                name="event_id_unique_idx"
-            ),
+            IndexModel([("event_id", ASCENDING)], unique=True, name="event_id_unique_idx"),
         ]
 
 
@@ -318,31 +323,37 @@ class WebhookEventInDB(Document):
 # Request/Response Schemas
 # ============================================================================
 
+
 class CurrencyPriceRequest(BaseModel):
     """Request body for adding a currency price to a plan."""
+
     currency: str = Field(..., min_length=3, max_length=3)
     amount: float = Field(..., gt=0)
 
 
 class CheckoutSessionRequest(BaseModel):
     """Request to create a checkout session."""
+
     plan_id: str
 
 
 class CheckoutSessionResponse(BaseModel):
     """Response with checkout session URL."""
+
     session_id: str
     session_url: str
 
 
 class PlanChangeResponse(BaseModel):
     """Response for plan change request."""
+
     type: str
     data: dict
 
 
 class UsageSummaryResponse(BaseModel):
     """Response with usage summary."""
+
     plan_name: str
     projects: dict
     diagrams: dict
@@ -351,6 +362,7 @@ class UsageSummaryResponse(BaseModel):
 
 class ResourceLimitCheckResponse(BaseModel):
     """Response for resource limit check."""
+
     allowed: bool
     current_usage: int
     limit: Optional[int]
@@ -361,8 +373,10 @@ class ResourceLimitCheckResponse(BaseModel):
 # Billing History Schemas
 # ============================================================================
 
+
 class InvoiceResponse(BaseModel):
     """Model for invoice/payment API responses."""
+
     id: str
     amount: float
     currency: str
@@ -378,5 +392,6 @@ class InvoiceResponse(BaseModel):
 
 class BillingHistoryResponse(BaseModel):
     """Response with list of invoices."""
+
     invoices: list[InvoiceResponse]
     total_count: int

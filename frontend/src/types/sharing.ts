@@ -12,6 +12,7 @@ export interface SharedLink {
   access_type: 'public' | 'protected';
   access_code?: string | null;
   allow_copy_code: boolean;
+  allow_embed: boolean;
   expires_at: string | null;
   is_active: boolean;
   created_at: string;
@@ -23,6 +24,7 @@ export interface SharedLinkInfo {
   requires_code: boolean;
   is_expired: boolean;
   diagram_title: string;
+  allow_embed: boolean;
 }
 
 /** Response model for a shared diagram (visitor view) - matches SharedDiagramResponse */
@@ -34,6 +36,7 @@ export interface SharedDiagram {
   rendered_content: string;
   config: Record<string, unknown>;
   allow_copy_code: boolean;
+  allow_embed?: boolean;
   owner_name: string | null;
 }
 
@@ -44,6 +47,7 @@ export interface CreateSharedLinkRequest {
   access_type: 'public' | 'protected';
   access_code?: string;
   allow_copy_code: boolean;
+  allow_embed?: boolean;
 }
 
 /** Request model for updating a shared link - matches UpdateSharedLinkRequest */
@@ -52,6 +56,7 @@ export interface UpdateSharedLinkRequest {
   access_type?: 'public' | 'protected';
   access_code?: string;
   allow_copy_code?: boolean;
+  allow_embed?: boolean;
 }
 
 /** Request model for verifying an access code - matches VerifyAccessCodeRequest */

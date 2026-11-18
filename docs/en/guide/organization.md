@@ -43,7 +43,8 @@ To change these details, use **Edit project**.
 
 Inside the editor, the side browser shows the project tree: folders first, then the diagrams in the root. From there you can:
 
-- **Search** diagrams by name. The counter shows how many match ("3 of 12 diagrams").
+- **Search** diagrams by name. The counter shows how many match ("3 of 12 diagrams"). From two characters on, an **In the content** section also lists diagrams whose description or code contains the text, with the matching fragment highlighted (in sketches, the texts on the canvas).
+- **Filter by type** with the chips under the search box (MMD, PUML, D2, DBML, DRAW; shown when the project has more than one type). The filter applies to the tree and to the content results.
 - Create a diagram with **New diagram here**, right in the root or in a folder.
 - **Create folder**, rename it and pick its **Color**.
 - Drag files from your computer to [import them](export-import.md#import-diagrams) into the root or a folder.
@@ -56,6 +57,7 @@ Each diagram's actions menu offers:
 | Action | What it does |
 |---|---|
 | **Rename** | Changes the diagram title. |
+| **Add to favorites** / **Remove from favorites** | Stars it so it's one click away on **Home**. |
 | **Duplicate** | Opens **Duplicate diagram**: creates a copy in the same project. The suggested name ends in `-copy` and you can change it. |
 | **Move to folder** | Moves it to another folder in the same project, or to the root. |
 | **Move to another project** | Moves it to another of your projects. It lands in the destination project's **root**. |
@@ -65,6 +67,12 @@ You can also **drag** a diagram in the browser and drop it on a folder. If you d
 
 !!! note "A copy counts as a new diagram"
     Duplicating creates one more diagram, so it counts against your plan's limit, just like creating one from scratch.
+
+## Favorites
+
+Star your most important diagrams with the **star** next to the title in the editor, or with **Add to favorites** in their file browser menu. In the file browser, favorites show a star next to their name.
+
+**Home** gathers them in the **Favorites** table, most recently edited first, with their project and when they were last edited: one click opens the diagram. You can also unstar them there (with **Undo** in case it was a mistake). Starring or unstarring doesn't count as an edit.
 
 ## Delete a folder
 

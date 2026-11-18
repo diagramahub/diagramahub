@@ -15,25 +15,25 @@ DiagramaHub usa un modelo **BYOL** (*Bring Your Own LLM*): tú conectas **tu pro
 ## Configurar un proveedor
 
 1. Ve a **Ajustes → Integraciones de IA**.
-2. Pulsa **Agregar Proveedor** y elige el proveedor.
+2. Pulsa **Agregar proveedor** y elige el proveedor.
 3. Pega tu **Clave API** y elige el **Modelo**. El modelo sugerido aparece marcado como **Recomendado**.
 4. Opcionalmente, ponle un **Nombre personalizado** (por ejemplo, «Mi cuenta de Gemini»).
-5. Usa **Probar Conexión** para comprobar la clave antes de guardarla.
+5. Usa **Probar conexión** para comprobar la clave antes de guardarla.
 
 Si la prueba falla, el mensaje te dice la causa: clave inválida o sin permisos, cuenta sin créditos, límite de peticiones del proveedor o modelo no disponible para esa clave.
 
-Puedes conectar varios proveedores. Marca uno con **Usar como predeterminado** y desactiva temporalmente los que no quieras usar con **Activo**. El proveedor de una conexión no se puede cambiar: si quieres otro, crea una conexión nueva.
+Puedes conectar varios proveedores; cada uno aparece como una tarjeta con su modelo (un icono de imagen si lee imágenes) y su clave enmascarada (por ejemplo `AIza...xyz`). Marca uno como predeterminado con la estrella de su tarjeta y desactiva temporalmente los que no quieras usar con **Activo**. El proveedor de una conexión no se puede cambiar: si quieres otro, crea una conexión nueva.
 
-??? note "Modelos disponibles (0.8.x)"
+??? note "Modelos disponibles (0.9.x)"
     La lista sale del catálogo de modelos del servidor. Puede cambiar entre versiones.
 
-    | Proveedor | Modelos | Recomendado |
-    |---|---|---|
-    | Google Gemini | `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview` | `gemini-3.8-flash` |
-    | OpenAI GPT | `gpt-6-luna`, `gpt-6.1-sol`, `gpt-6-astra`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-4.1-mini` | `gpt-6-luna` |
-    | Anthropic Claude | `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5-20251001` | `claude-sonnet-5-5` |
-    | DeepSeek | `deepseek-flash`, `deepseek-v4-pro` | `deepseek-flash` |
-    | Minimax | `MiniMax-M2.7`, `MiniMax-M3`, `MiniMax-M2.7-highspeed` | `MiniMax-M2.7` |
+    | Proveedor | Modelos | Recomendado | Leen imágenes |
+    |---|---|---|---|
+    | Google Gemini | `gemini-3.8-flash`, `gemini-4-carbon`, `gemini-4-hydrogen`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` | `gemini-3.8-flash` | Sí |
+    | OpenAI GPT | `gpt-6-luna`, `gpt-6.2-sol`, `gpt-6.2-astra`, `gpt-6.1-terra` | `gpt-6-luna` | Sí |
+    | Anthropic Claude | `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-2`, `claude-haiku-5-5` | `claude-sonnet-5-5` | Sí |
+    | DeepSeek | `deepseek-flash`, `deepseek-v4-pro` | `deepseek-flash` | No |
+    | Minimax | `MiniMax-M2.7`, `MiniMax-M3`, `MiniMax-M2.7-highspeed` | `MiniMax-M2.7` | No |
 
     Si un modelo que ya tenías configurado sale de la lista, se muestra como **retirado**. Sigue funcionando mientras el proveedor lo ofrezca, y puedes cambiarlo al editar la conexión.
 
@@ -88,6 +88,22 @@ Cuando una conversación se acerca al límite de contexto del modelo, DiagramaHu
 ### Idioma
 
 El asistente responde en el idioma de la interfaz (español o inglés), incluidas las etiquetas de los diagramas que genera.
+
+### Historial de prompts
+
+**Historial**, en el pie del chat, lista los prompts que generaron un diagrama (no las acciones rápidas), del más reciente al más antiguo. Puedes buscarlos, hacer clic en uno para volver a ponerlo en el cuadro de texto o quitarlo.
+
+### Diagrama desde una imagen
+
+**Desde imagen**, en el pie del chat, convierte una foto de un pizarrón, una captura o un boceto a mano en código del tipo del diagrama actual:
+
+1. Elige, arrastra o pega (++ctrl+v++ / ++cmd+v++) una imagen PNG, JPEG o WebP de hasta 4 MB.
+2. Si quieres, agrega indicaciones («de izquierda a derecha», «agrupa por equipo»).
+3. **Generar**, revisa la vista previa y **Aplicar al diagrama** (reemplaza el código actual).
+
+Mientras convierte, el diálogo muestra cada paso (subir la imagen, la IA leyéndola y escribiendo el código, la vista previa) y los segundos transcurridos; suele tardar entre 5 y 30 segundos, y hasta 2 minutos con modelos que razonan. **Cancelar conversión** la detiene.
+
+Usa el modelo elegido en el chat, que debe leer imágenes: los de **Gemini, OpenAI y Claude**, marcados con un ícono de imagen en el selector de modelos del chat (y con «lee imágenes» al configurar el proveedor). Con un modelo que no lee imágenes, como los de DeepSeek y MiniMax, el botón aparece desactivado y explica por qué. La imagen se envía a ese proveedor con tu API key y DiagramaHub no la guarda.
 
 ## Corrección automática
 

@@ -46,7 +46,12 @@ async def test_cannot_create_a_diagram_in_another_users_folder(
 
     response = await authenticated_client.post(
         f"/api/v1/projects/{my_project}/diagrams",
-        json={"title": "injected", "diagram_type": "mermaid", "content": "graph TD", "folder_id": victim_folder},
+        json={
+            "title": "injected",
+            "diagram_type": "mermaid",
+            "content": "graph TD",
+            "folder_id": victim_folder,
+        },
     )
 
     assert response.status_code == 404
@@ -89,14 +94,21 @@ async def test_folder_of_another_project_of_the_same_user_is_rejected(
 
     response = await authenticated_client.post(
         f"/api/v1/projects/{project_a}/diagrams",
-        json={"title": "x", "diagram_type": "mermaid", "content": "graph TD", "folder_id": folder_b},
+        json={
+            "title": "x",
+            "diagram_type": "mermaid",
+            "content": "graph TD",
+            "folder_id": folder_b,
+        },
     )
 
     assert response.status_code == 404
 
 
 @pytest.mark.integration
-async def test_own_folder_still_works_and_root_is_allowed(authenticated_client: AsyncClient) -> None:
+async def test_own_folder_still_works_and_root_is_allowed(
+    authenticated_client: AsyncClient,
+) -> None:
     project, folder = await _project_with_folder(authenticated_client)
 
     in_folder = await authenticated_client.post(
@@ -121,8 +133,11 @@ async def test_folder_queries_ignore_diagrams_of_other_projects(
     project, folder = await _project_with_folder(authenticated_client)
     other_project, _ = await _project_with_folder(authenticated_client)
     await DiagramInDB(
-        title="stray", content="graph TD", diagram_type="mermaid",
-        project_id=other_project, folder_id=folder,
+        title="stray",
+        content="graph TD",
+        diagram_type="mermaid",
+        project_id=other_project,
+        folder_id=folder,
     ).insert()
 
     tree = (await authenticated_client.get(f"/api/v1/projects/{project}")).json()
@@ -160,7 +175,9 @@ async def test_duplicate_respects_the_plan_diagram_limit(authenticated_client: A
 
 
 @pytest.mark.integration
-async def test_repair_script_moves_misfiled_diagrams_to_their_project_root(test_db) -> None:  # noqa: ANN001
+async def test_repair_script_moves_misfiled_diagrams_to_their_project_root(
+    test_db,
+) -> None:  # noqa: ANN001
     """scripts/fix_misfiled_diagrams.py: dry run reports, --apply fixes, rerun is a no-op."""
     from bson import ObjectId
 
@@ -168,20 +185,33 @@ async def test_repair_script_moves_misfiled_diagrams_to_their_project_root(test_
 
     folder_a, folder_b = ObjectId(), ObjectId()
     await test_db["folders"].insert_many(
-        [{"_id": folder_a, "project_id": "pa", "name": "A"}, {"_id": folder_b, "project_id": "pb", "name": "B"}]
+        [
+            {"_id": folder_a, "project_id": "pa", "name": "A"},
+            {"_id": folder_b, "project_id": "pb", "name": "B"},
+        ]
     )
     ok, foreign, dangling, root = ObjectId(), ObjectId(), ObjectId(), ObjectId()
     await test_db["diagrams"].insert_many(
         [
             {"_id": ok, "project_id": "pa", "folder_id": str(folder_a), "title": "ok"},
             {"_id": foreign, "project_id": "pa", "folder_id": str(folder_b), "title": "foreign"},
-            {"_id": dangling, "project_id": "pa", "folder_id": str(ObjectId()), "title": "dangling"},
+            {
+                "_id": dangling,
+                "project_id": "pa",
+                "folder_id": str(ObjectId()),
+                "title": "dangling",
+            },
             {"_id": root, "project_id": "pa", "folder_id": None, "title": "root"},
         ]
     )
 
     dry = await repair_misfiled_diagrams(test_db, apply=False)
-    assert (dry["checked"], dry["foreign_folder"], dry["missing_folder"], dry["fixed"]) == (3, 1, 1, 0)
+    assert (dry["checked"], dry["foreign_folder"], dry["missing_folder"], dry["fixed"]) == (
+        3,
+        1,
+        1,
+        0,
+    )
     assert (await test_db["diagrams"].find_one({"_id": foreign}))["folder_id"] == str(folder_b)
 
     applied = await repair_misfiled_diagrams(test_db, apply=True)

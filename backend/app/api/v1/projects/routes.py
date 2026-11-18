@@ -99,9 +99,7 @@ async def get_project_export_summary(
     service: ProjectExportService = Depends(get_export_service),
 ):
     """What an export would contain (counts, size, token estimate) before downloading."""
-    return await service.summarize(
-        project_id, user_id, format, variant, descriptions, folder_id
-    )
+    return await service.summarize(project_id, user_id, format, variant, descriptions, folder_id)
 
 
 @router.get("/projects/{project_id}/export")
@@ -118,9 +116,7 @@ async def export_project(
     Download the whole project (or one folder, with ``folder_id``) as a ZIP of
     source files or as a single Markdown document (``variant=ai|standard``).
     """
-    result = await service.export(
-        project_id, user_id, format, variant, descriptions, folder_id
-    )
+    result = await service.export(project_id, user_id, format, variant, descriptions, folder_id)
     ascii_name = result.filename.encode("ascii", "ignore").decode() or "export"
     return Response(
         content=result.content,
@@ -139,7 +135,9 @@ async def export_project(
 @router.post("/projects/{project_id}/import", response_model=ImportResult | ImportPreview)
 async def import_into_project(
     project_id: str,
-    files: list[UploadFile] = File(..., description="Diagram files, Markdown, .excalidraw or ZIP archives"),
+    files: list[UploadFile] = File(
+        ..., description="Diagram files, Markdown, .excalidraw or ZIP archives"
+    ),
     folder_id: Optional[str] = Form(None),
     dry_run: bool = Query(False, description="Preview only: nothing is created"),
     user_id: str = Depends(get_current_user_id),

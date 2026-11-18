@@ -139,6 +139,8 @@ export const AI_PROVIDER_NAMES: Record<AIProviderType, string> = {
 export interface ModelOption {
   id: string;
   recommended?: boolean;
+  /** Accepts image input ("diagram from image"); mirrors the catalog's `images`. */
+  images?: boolean;
 }
 
 /**
@@ -147,26 +149,23 @@ export interface ModelOption {
  */
 export const AI_PROVIDER_MODELS: Record<AIProviderType, ModelOption[]> = {
   [AIProviderType.GEMINI]: [
-    { id: 'gemini-3.8-flash', recommended: true },
-    { id: 'gemini-3.7-flash' },
-    { id: 'gemini-3.5-flash' },
-    { id: 'gemini-3.5-flash-lite' },
-    { id: 'gemini-3.1-pro-preview' },
+    { id: 'gemini-3.8-flash', recommended: true, images: true },
+    { id: 'gemini-4-carbon', images: true },
+    { id: 'gemini-4-hydrogen', images: true },
+    { id: 'gemini-3.6-flash', images: true },
+    { id: 'gemini-3.5-flash-lite', images: true },
   ],
   [AIProviderType.OPENAI]: [
-    { id: 'gpt-6-luna', recommended: true },
-    { id: 'gpt-6.1-sol' },
-    { id: 'gpt-6-astra' },
-    { id: 'gpt-5.5' },
-    { id: 'gpt-5.4-mini' },
-    { id: 'gpt-5.4-nano' },
-    { id: 'gpt-4.1-mini' },
+    { id: 'gpt-6-luna', recommended: true, images: true },
+    { id: 'gpt-6.2-sol', images: true },
+    { id: 'gpt-6.2-astra', images: true },
+    { id: 'gpt-6.1-terra', images: true },
   ],
   [AIProviderType.CLAUDE]: [
-    { id: 'claude-sonnet-5-5', recommended: true },
-    { id: 'claude-opus-5-5' },
-    { id: 'claude-fable-5-1' },
-    { id: 'claude-haiku-4-5-20251001' },
+    { id: 'claude-sonnet-5-5', recommended: true, images: true },
+    { id: 'claude-opus-5-5', images: true },
+    { id: 'claude-fable-5-2', images: true },
+    { id: 'claude-haiku-5-5', images: true },
   ],
   [AIProviderType.DEEPSEEK]: [
     { id: 'deepseek-flash', recommended: true },

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { exceedsPasswordMaxBytes } from '../utils/passwordPolicy';
 
 interface PasswordStrengthIndicatorProps {
   password: string;
@@ -21,6 +22,11 @@ const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({ p
         key: 'minLength',
         label: t('password.strength.minLength'),
         met: password.length >= 12,
+      },
+      {
+        key: 'maxBytes',
+        label: t('password.strength.maxBytes'),
+        met: !exceedsPasswordMaxBytes(password),
       },
       {
         key: 'uppercase',

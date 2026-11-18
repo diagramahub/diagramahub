@@ -1,7 +1,6 @@
 """
 Tests para fix_prompts.py — funciones de generación de prompts para corrección con IA.
 """
-import pytest
 
 from app.api.v1.diagrams.fix_prompts import (
     build_d2_fix_prompt,

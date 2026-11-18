@@ -16,16 +16,16 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.8.6
+- **Current version**: 0.9.0
 - **Repo**: https://github.com/diagramahub/diagramahub
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React 19 + TypeScript 5.9+ + Vite 7 + TailwindCSS v3 |
+| **Frontend** | React 19 + TypeScript 6 + Vite 8 + TailwindCSS v3 |
 | **Backend** | Python 3.12+ (image: 3.13) + FastAPI + Beanie ODM (MongoDB) + Poetry |
-| **Database** | MongoDB 8 via Motor async driver |
+| **Database** | MongoDB 8 via PyMongo's async API (Beanie 2) |
 | **Diagram rendering** | Mermaid (client-side), PlantUML/DBML/D2 (server-side via Kroki) |
 | **Payments** | Stripe SDK |
 | **AI Clients** | google-genai, httpx (OpenAI/Claude/DeepSeek/MiniMax) |
@@ -123,7 +123,7 @@ diagramahub/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic Settings (env vars)
 │   │   │   └── security.py      # JWT + BCrypt utilities
-│   │   └── api/v1/              # All feature modules (12 modules, see below)
+│   │   └── api/v1/              # All feature modules (14 modules, see below)
 │   ├── tests/
 │   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
 │   │   └── api/v1/              # Tests mirror module structure
@@ -156,7 +156,7 @@ diagramahub/
 ├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-### Backend Module Registry (All 12 Modules)
+### Backend Module Registry (All 14 Modules)
 
 Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
@@ -164,7 +164,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 |--------|------|---------|----------------------------------|
 | **users** | `users/` | Auth, registration, password mgmt, account deletion | `audit_log.py` |
 | **projects** | `projects/` | Project CRUD | — |
-| **diagrams** | `diagrams/` | Diagram CRUD, AI fix, syntax validation, Kroki proxy | `fix_service.py`, `syntax_validator.py`, `config_utils.py`, `fix_prompts.py`, `kroki_client.py` |
+| **diagrams** | `diagrams/` | Diagram CRUD, AI fix, syntax validation, Kroki proxy | `fix_service.py`, `syntax_validator.py`, `mermaid_types.py` (Mermaid headers the server accepts: keep in sync with the bundled `mermaid` version), `config_utils.py`, `fix_prompts.py`, `kroki_client.py` |
 | **folders** | `folders/` | Folder CRUD | — |
 | **ai_providers** | `ai_providers/` | AI provider config + LLM clients (5 providers) | `clients/` subfolder (with `factory.py`), `prompts.py`, `model_catalog.json` + `model_catalog.py` |
 | **chat_sessions** | `chat_sessions/` | AI chat session management | — |
@@ -174,6 +174,10 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **integrations** | `integrations/` | Admin email/payment/OAuth vendor config | `email_service.py`, `email_vendors/`, `vendor_factory.py` |
 | **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
 | **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
+| **community** | `community/` | Community portal: published diagram snapshots, stars, forks (via DiagramService + UsageLimiter), comments (one reply level), reports (3 hide until an admin reviews), featuring | — |
+| **activity** | `activity/` | Dashboard heatmap: one document per (user, diagram, hour) the diagram was created, edited or duplicated (`diagram_activity`, TTL 120 days; written by `DiagramService` through `record_activity`, never failing the save), summed per day in the user's time zone (`GET /activity/heatmap?days=&tz=`) | — |
+| **about** | `about/` | About page facts: the repository's GitHub stars and forks (`GET /about/repository`, public), asked by the server and cached for an hour (`GITHUB_STATS_ENABLED`, `GITHUB_REPOSITORY`) | `client.py` |
+| **api_tokens** | `api_tokens/` | API keys (`dh_pat_…`, SHA-256 hash stored; per-area permissions projects/diagrams/sharing/community/ai; `permissions.RULES` maps each path to the level it needs per area — a new route reachable with keys must be added there; one that exposes a stored diagram's code also needs `diagrams` read) | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
 
@@ -217,18 +221,17 @@ When creating a new module, you MUST:
 
 > Full reference: **[DESIGN.md](./DESIGN.md)**. The summary below is a quick reference — DESIGN.md is authoritative for all UI/UX decisions.
 
-**Brand**: Purple gradient primary identity. Glassmorphism buttons (`.btn-glass` in `index.css`).
+**Brand**: flat purple (`bg-purple-600`, hover `700`), no gradients or glows; compact controls (36px), Inter font (bundled), `rounded-md` controls / `rounded-xl` surfaces. Dark mode: page `gray-950`, surfaces `gray-900`, borders `gray-800`.
 
-| Purpose | Tailwind Class |
-|---------|----------------|
-| Primary gradient | `bg-gradient-to-r from-purple-600 via-purple-400 to-purple-700` |
-| Primary solid | `bg-purple-600`, `text-purple-600` |
-| Primary hover | `bg-purple-700` |
-| Danger | `bg-red-600`, `text-red-600` |
-| Success | `bg-green-600`, `text-green-600` |
-| Neutral text | `text-gray-700`, `text-gray-500` |
-| Borders | `border-gray-200` |
-| Background | `bg-white` |
+| Purpose | Class |
+|---------|-------|
+| Buttons | `btn` + `btn-primary` / `btn-secondary` / `btn-ghost` / `btn-danger` / `btn-destructive` (+ `btn-sm`) |
+| Fields | `input` |
+| Surfaces / tags / page h1 | `card` / `badge` / `page-title` |
+| Logo | `<BrandLogo />` component |
+| Danger / success | `red-600` / `green-600` |
+| Neutral text | `text-gray-900`, `text-gray-700`, `text-gray-500` |
+| Borders | `border-gray-200` (dark: `border-gray-800`) |
 
 **Rules**:
 - All UI text uses i18n keys via `t('key')` — never hardcode strings
@@ -239,7 +242,7 @@ When creating a new module, you MUST:
 - Dark mode via `darkMode: 'class'` with `dark:` variants on all components
 
 **Key custom classes** (`index.css`):
-- `.btn-glass` — glassmorphism button effect
+- `.btn` + variants, `.input`, `.card`, `.badge`, `.page-title` — design system 0.9 components (see DESIGN.md §3)
 - `.chat-markdown` — compact markdown for AI chat bubbles
 - `.animate-slide-in-right` — slide-in animation for chat panel
 - `.markdown-wysiwyg` — EasyMDE WYSIWYG overrides
@@ -250,7 +253,7 @@ When creating a new module, you MUST:
 
 | Entity | Key Fields | Relationships |
 |--------|-----------|---------------|
-| **Diagram** | `content`, `diagram_type`, `config`, `user_preferences` | belongs to Project, optionally to Folder |
+| **Diagram** | `content`, `diagram_type`, `config`, `user_preferences`, `is_favorite` (star; listed on the dashboard, not an edit) | belongs to Project, optionally to Folder |
 | **Project** | name, owner | has many Diagrams, has many Folders |
 | **Folder** | name, project_id | belongs to Project, has many Diagrams |
 | **Shared Link** | token, access_type, expiration, `allow_copy_code` | references one Diagram |
@@ -279,7 +282,9 @@ When creating a new module, you MUST:
 - API keys stored Fernet-encrypted, returned masked in responses
 - `max_tokens`: 4096 for descriptions; **8192 for generate/improve and every chat reply** (reasoning models spend part of the budget thinking). A reply cut at the limit is never returned as code: the API answers 422 `response_truncated` (empty reply: 502 `empty_response`)
 - Generate/improve live once in `BaseAIClient` (same prompt for every provider): English instructions, labels in the user's language, syntax reference + rules verified against the renderers in the system prompt, output as one Markdown code block, temperature 0.2. Measure prompt changes with `scripts/ai-benchmark/`
-- Model catalog: `ai_providers/model_catalog.json` is the single source of truth (offered models, context windows used for chat compaction, default model per provider, whether `temperature` is accepted — Claude 5.x rejects it). Verify new models against the provider's docs and a live call
+- Newer Mermaid types (mindmap, timeline, Venn, Wardley, Kanban, Ishikawa, …): `ai_providers/mermaid_reference.json` (use, rules, example per type, plus flowchart `features`: animated edges, step animation, BPMN shapes) feeds generate/improve and the chat (everything) and the fix prompt (the diagram's own type, or the features for a flowchart), via `mermaid_reference.py`. `frontend/src/utils/__tests__/mermaidReference.test.ts` parses every example and checks every `invalid` sample fails with the bundled mermaid: update the JSON when upgrading mermaid, and measure with `scripts/ai-benchmark/mermaid_types.py`
+- The editor's **Fix with AI** checks a Mermaid fix with the real parser (the server can't) and asks once more with the new error before showing it
+- Model catalog: `ai_providers/model_catalog.json` is the single source of truth (offered models, context windows used for chat compaction, default model per provider, whether `temperature` is accepted — Claude 5.x rejects it — and `images`: accepts image input, which enables **From image** and the image icon in the pickers). Verify new models against the provider's docs and a live call
 - Auto-fix retry disabled for PlantUML and DBML (false positives). The chat retries Mermaid/D2 when the code doesn't validate (D2 with Kroki on the server; Mermaid with the real parser in the browser, which asks the model once to fix it). Both obey the per-user `auto_fix_generated` setting (default on)
 - The AI chat is the only UI entry point for generating/modifying diagrams; streaming and non-streaming use the same unified system prompt, every reply gets the 8192-token budget, and a reply cut at the limit is never applied (the user gets a notice). The keyword-based `response_mode` is only a first guess: a reply with `<<<DIAGRAM>>>` markers is always handled as code, even for Explain (a block tagged with the diagram type holding a whole diagram also counts, except for Explain, whose answers quote the current diagram), so the diagram never ends up as raw text in the chat
 - AI content respects `language` parameter (`es`/`en`)
@@ -289,7 +294,7 @@ When creating a new module, you MUST:
 ### Auth & Security
 - JWT + BCrypt. Tokens in `localStorage`.
 - Two roles: `admin`, `user` (default)
-- Password policy: **min 12 chars**, uppercase + lowercase + digit + special character
+- Password policy: **min 12 chars, max 128 chars and 72 bytes** (bcrypt only uses 72 bytes; `verify` still cuts longer input so pre-0.9 passwords keep working), uppercase + lowercase + digit + special character
 - Rate limiting: 10 login attempts/IP/minute. Lockout: 15 min after 5 failures.
 - Session invalidation on password change (`pca` claim in JWT)
 - MFA: email codes + TOTP (both active simultaneously, configurable default). 8 recovery codes.
@@ -319,7 +324,7 @@ When creating a new module, you MUST:
 
 ### Security Audit Log
 - MongoDB collection with 90-day TTL auto-cleanup
-- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked
+- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked; AI provider added/updated/removed, shared link created/updated/revoked, integration created/updated/deleted/set default, plan created/updated/deleted/price added, API token created/revoked, community published/unpublished/moderated (`audit_log.log_event_for_user_id` from the route)
 
 ## Key Invariants (Must Preserve)
 
@@ -385,7 +390,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.8.6
+VITE_APP_VERSION=0.9.0
 ```
 
 ---
@@ -412,7 +417,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 - **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
 - **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
 - **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
-- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 65.68% on 2026-11-15). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 69.20% on 2026-11-16). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
 - Tests mirror module structure under `tests/api/v1/`
 
 ### Frontend Tests
@@ -450,7 +455,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 2. Register in `clients/factory.py` → `_clients_map`
 3. Add frontend UI in provider configuration
 4. Add provider type to `AIProviderType` enum (backend + frontend)
-5. Add its models to `backend/app/api/v1/ai_providers/model_catalog.json` (context window, `listed`, one `recommended`, `supports_temperature`) and the same `listed` models to `AI_PROVIDER_MODELS` in `frontend/src/types/ai.ts` — a Vitest test fails if they differ
+5. Add its models to `backend/app/api/v1/ai_providers/model_catalog.json` (context window, `listed`, one `recommended`, `supports_temperature`, `images`) and the same `listed` models (with `images`) to `AI_PROVIDER_MODELS` in `frontend/src/types/ai.ts` — a Vitest test fails if they differ
 6. Add translations in `es.json` + `en.json`
 
 ### Adding a Frontend Page
@@ -465,7 +470,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.8.6**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.9.0**.
 
 | Bump | When |
 |------|------|

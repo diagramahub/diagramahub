@@ -22,9 +22,11 @@ from .schemas import (
     ChatSessionWithMessagesResponse,
 )
 from ..ai_providers.services import AIProviderService
+from ..prompt_history.interfaces import IPromptHistoryRepository
 from ..ai_providers.schemas import AIProviderType
 from ..ai_providers.clients.factory import AIClientFactory
 
+from ..diagrams.mermaid_types import MERMAID_KEYWORD_PATTERN, mermaid_diagram_keyword
 from ..diagrams.syntax_validator import SyntaxValidator
 from app.api.v1.ai_providers.model_catalog import context_window as model_context_window
 
@@ -99,7 +101,21 @@ _LEADING_CODE_VERBS = {
 }
 
 # Pronouns Spanish glues to an imperative: "agrégale", "hazlo", "corrígelo"
-_ENCLITICS = ("selos", "selas", "selo", "sela", "les", "los", "las", "nos", "le", "lo", "la", "me", "te")
+_ENCLITICS = (
+    "selos",
+    "selas",
+    "selo",
+    "sela",
+    "les",
+    "los",
+    "las",
+    "nos",
+    "le",
+    "lo",
+    "la",
+    "me",
+    "te",
+)
 
 # Words that open a request naming the diagram to draw ("Diagrama de flujo de…")
 _LEADING_DIAGRAM_NOUNS = {"diagrama", "diagram", "flujo", "flowchart", "esquema", "modelo"}
@@ -109,9 +125,7 @@ def _strip_accents(text: str) -> str:
     """Lowercase ASCII-ish form: "agrégale" → "agregale"."""
     import unicodedata
 
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
-    )
+    return "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
 
 
 def _is_code_verb(word: str) -> bool:
@@ -168,10 +182,37 @@ class ChatSessionService:
         session_repo: IChatSessionRepository,
         message_repo: IChatMessageRepository,
         ai_service: AIProviderService,
+        prompt_history_repo: Optional[IPromptHistoryRepository] = None,
     ):
         self.session_repo = session_repo
         self.message_repo = message_repo
         self.ai_service = ai_service
+        self.prompt_history_repo = prompt_history_repo
+
+    async def _record_prompt(
+        self,
+        user_id: str,
+        content: str,
+        diagram_code: str,
+        diagram_id: Optional[str],
+        preset_action: Optional[ChatPresetAction],
+    ) -> None:
+        """Save a prompt that produced a diagram to the user's prompt history.
+
+        Preset actions (fix, explain, ...) are skipped: their text is ours, not
+        the user's. An empty current diagram makes it a ``creation``, otherwise
+        an ``improvement``. Never raises: history must not break the chat.
+        """
+        if self.prompt_history_repo is None or preset_action is not None:
+            return
+        text = content.strip()[:5000]
+        if not text:
+            return
+        operation = "improvement" if diagram_code.strip() else "creation"
+        try:
+            await self.prompt_history_repo.upsert(user_id, text, operation, diagram_id)
+        except Exception as exc:
+            logger.warning("Failed to save prompt history: %s", exc)
 
     # ------------------------------------------------------------------ #
     #  Task 5.1 – Core CRUD operations
@@ -542,6 +583,10 @@ class ChatSessionService:
                 model_used=actual_model,
                 generation_time=generation_time,
             )
+            if improved_code:
+                await self._record_prompt(
+                    user_id, content, diagram_code, session.diagram_id, preset_action
+                )
 
             # Update rolling summary in DB after each interaction
             # This persists context for future messages
@@ -906,7 +951,9 @@ class ChatSessionService:
                     if not improved_code:
                         break
 
-                if response_mode == "code" and not (improved_code is None and client.last_truncated):
+                if response_mode == "code" and not (
+                    improved_code is None and client.last_truncated
+                ):
                     # Text the model wrote around the code (the code itself is shown apart)
                     display_text = code_display
                     if not display_text:
@@ -937,6 +984,10 @@ class ChatSessionService:
                 model_used=actual_model,
                 generation_time=generation_time,
             )
+            if improved_code:
+                await self._record_prompt(
+                    user_id, content, diagram_code, session.diagram_id, preset_action
+                )
 
             # Update rolling summary
             try:
@@ -1176,30 +1227,48 @@ class ChatSessionService:
             parts = [p.strip() for p in (before, after) if p and len(p.strip()) > 3]
             return "\n\n".join(parts)
 
+        def cut_at_closing_fence(text: str) -> tuple[str, str]:
+            """Text up to a lone ``` line (a block closed without opening it) and what follows."""
+            closing = re.search(r"^[ \t]*```[ \t]*$", text, re.MULTILINE)
+            return (text[: closing.start()], text[closing.end() :]) if closing else (text, "")
+
         start = re.search(r"<{2,3}\s*DIAGRAMA?\s*>{1,3}", ai_text, re.IGNORECASE)
         if start:
             rest = ai_text[start.end() :]
             end = re.search(r"<{2,3}\s*/?\s*(?:END|FIN)_DIAGRAMA?\s*>{1,3}", rest, re.IGNORECASE)
-            code_part, after = (rest[: end.start()], rest[end.end() :]) if end else (rest, "")
+            if end:
+                code_part, after = rest[: end.start()], rest[end.end() :]
+            else:
+                # No end marker: the code ends with its block (or a lone closing fence).
+                block = re.match(r"\s*```[^\n`]*\n(.*?)\n[ \t]*```(.*)$", rest, re.DOTALL)
+                code_part, after = (
+                    (block.group(1), block.group(2)) if block else cut_at_closing_fence(rest)
+                )
             code = extract_diagram_code(code_part)
             return (code or None), around(ai_text[: start.start()], after)
-
-        fence = re.search(r"```[^\n`]*\n(.*?)(?:```|$)", ai_text, re.DOTALL)
-        if fence and len(fence.group(1).strip()) > 20:
-            code = extract_diagram_code(fence.group(1))
-            return (code or None), around(ai_text[: fence.start()], ai_text[fence.end() :])
 
         raw_patterns = {
             "plantuml": r"@startuml\b.*?@enduml\b",
             "uml": r"@startuml\b.*?@enduml\b",
-            "mermaid": r"^(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline)\b.+",
+            "mermaid": rf"^{MERMAID_KEYWORD_PATTERN}.+",
             "dbml": r"^(?:Table|Enum|Project)\s+\S+\s*\{.+",
         }
         pattern = raw_patterns.get(diagram_type)
-        if pattern:
-            match = re.search(pattern, ai_text, re.MULTILINE | re.DOTALL)
-            if match and len(match.group(0).strip()) > 20:
-                return match.group(0).strip(), around(ai_text[: match.start()], "")
+        raw = re.search(pattern, ai_text, re.MULTILINE | re.DOTALL) if pattern else None
+
+        fence = re.search(r"```([^\n`]*)\n(.*?)(?:```|$)", ai_text, re.DOTALL)
+        if raw and fence and raw.start() < fence.start() and not fence.group(1).strip():
+            # Bare code closed by a lone ```: that fence ends the code, it doesn't open a block.
+            code, after = cut_at_closing_fence(ai_text[raw.start() :])
+            if len(code.strip()) > 20:
+                return code.strip(), around(ai_text[: raw.start()], after)
+        if fence and len(fence.group(2).strip()) > 20:
+            code = extract_diagram_code(fence.group(2))
+            return (code or None), around(ai_text[: fence.start()], ai_text[fence.end() :])
+
+        if raw and len(raw.group(0).strip()) > 20:
+            code, after = cut_at_closing_fence(raw.group(0))
+            return code.strip(), around(ai_text[: raw.start()], after)
         return None, ai_text.strip()
 
     # Fence language tags that name each diagram type
@@ -1240,19 +1309,7 @@ class ChatSessionService:
             if diagram_type in ("plantuml", "uml"):
                 whole = "@startuml" in code
             elif diagram_type == "mermaid":
-                first = next(
-                    (ln.strip() for ln in code.splitlines() if ln.strip() and not ln.strip().startswith("%%")),
-                    "",
-                )
-                whole = bool(
-                    re.match(
-                        r"(?:graph|flowchart|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram"
-                        r"|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram"
-                        r"|C4\w+|sankey(?:-beta)?|xychart(?:-beta)?|block(?:-beta)?|architecture(?:-beta)?"
-                        r"|kanban|packet(?:-beta)?|radar(?:-beta)?)\b",
-                        first,
-                    )
-                )
+                whole = mermaid_diagram_keyword(code) is not None
             elif diagram_type == "dbml":
                 whole = bool(re.search(r"^\s*Table\s+\S+.*\{", code, re.MULTILINE))
             else:

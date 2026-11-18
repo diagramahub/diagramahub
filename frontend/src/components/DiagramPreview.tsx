@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg } from '../utils/sanitize';
+import { useNonPassiveWheel } from '../hooks/useNonPassiveWheel';
 
 interface DiagramPreviewProps {
   code: string;
@@ -71,7 +72,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
   }, []);
 
   // Wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
     setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, +(z + delta).toFixed(1))));
@@ -99,14 +100,14 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
 
   const zoomPercent = Math.round(zoom * 100);
   const hasContent = code.trim() && !renderError;
+  useNonPassiveWheel(viewportRef, hasContent ? handleWheel : null);
 
   return (
-    <div className="w-full h-full flex flex-col bg-white rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-white rounded-lg border border-gray-300 dark:border-gray-700 overflow-hidden">
       {/* Viewport */}
       <div
         ref={viewportRef}
         className={`flex-1 overflow-hidden relative ${hasContent ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
-        onWheel={hasContent ? handleWheel : undefined}
         onMouseDown={hasContent ? handleMouseDown : undefined}
         onMouseMove={hasContent ? handleMouseMove : undefined}
         onMouseUp={handleMouseUp}
@@ -139,11 +140,11 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
 
       {/* Zoom controls bar */}
       {hasContent && (
-        <div className="flex items-center justify-center gap-1 px-3 py-1.5 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
+        <div className="flex items-center justify-center gap-1 px-3 py-1.5 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/50 flex-shrink-0">
           <button
             onClick={handleZoomOut}
             disabled={zoom <= MIN_ZOOM}
-            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title={t('diagramPreview.zoomOut')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +153,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
           </button>
           <button
             onClick={handleReset}
-            className="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors min-w-[3rem] text-center"
+            className="px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors min-w-[3rem] text-center"
             title={t('diagramPreview.zoomReset')}
           >
             {zoomPercent}%
@@ -160,7 +161,7 @@ export default function DiagramPreview({ code, diagramType }: DiagramPreviewProp
           <button
             onClick={handleZoomIn}
             disabled={zoom >= MAX_ZOOM}
-            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title={t('diagramPreview.zoomIn')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -18,7 +18,7 @@ flowchart LR
 |---|---|---|
 | Frontend | React 19 + TypeScript + Vite 7 + TailwindCSS v3 | Interfaz, editor Monaco, render de Mermaid en el cliente, pizarrón |
 | Backend | FastAPI (imagen `python:3.13-alpine`) | API, lógica de negocio, proxy hacia Kroki, llamadas a la IA |
-| Kroki | imagen `yuzutech/kroki` | Render en el servidor de PlantUML, D2 y DBML |
+| Kroki | imagen `yuzutech/kroki` (versión fija en los compose) | Render en el servidor de PlantUML, D2 y DBML |
 | MongoDB | MongoDB 8 (o externo en el modo `external-mongodb`) | Persistencia |
 
 Los servicios de terceros (IA, Stripe, Resend, Google, Sentry) son opcionales: se activan con la configuración del operador o con la API key de cada usuario (BYOL).

@@ -69,7 +69,7 @@ Desde la barra lateral navegas por la aplicación:
 
 | Elemento | Qué encontrarás |
 |---|---|
-| **Inicio** | Resumen de tu espacio: proyectos, diagramas, última actividad, plan actual, últimos diagramas actualizados y uso de motores de IA |
+| **Inicio** | Resumen de tu espacio: proyectos, diagramas, última actividad y plan actual; tu **actividad** de las últimas 12 semanas (diagramas trabajados por día, días activos y rachas), el **impacto en la Comunidad** de lo que publicaste (estrellas, forks, vistas, comentarios y tu publicación más destacada), tus diagramas **favoritos**, el uso de motores de IA y los últimos diagramas actualizados |
 | **Proyectos** | La lista de todos tus proyectos |
 | **Perfil** | Tus datos, contraseña y verificación en dos pasos (MFA) |
 | **Ajustes** | Tus proveedores de IA (BYOL) y la eliminación de tu cuenta |

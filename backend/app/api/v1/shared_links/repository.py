@@ -30,6 +30,7 @@ class SharedLinkRepository(ISharedLinkRepository):
             access_type=link_data.access_type,
             access_code_hash=link_data.access_code_hash,
             allow_copy_code=link_data.allow_copy_code,
+            allow_embed=link_data.allow_embed,
             expires_at=link_data.expires_at,
             is_active=True,
             created_at=utcnow(),

@@ -2,7 +2,7 @@
 FastAPI routes for subscriptions and plans.
 """
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.api.deps import get_current_user_id, get_current_user
 from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserRole
@@ -26,6 +26,7 @@ from .schemas import (
 )
 from ..projects.repository import ProjectRepository
 from ..diagrams.repository import DiagramRepository
+from app.api.v1.users import audit_log
 
 router = APIRouter()
 
@@ -104,6 +105,7 @@ async def get_billing_service() -> BillingService:
 )
 async def create_plan(
     plan_data: PlanCreate,
+    http_request: Request,
     admin_user=Depends(require_admin),
     service: PlanService = Depends(get_plan_service),
 ):
@@ -112,7 +114,14 @@ async def create_plan(
 
     Requires admin role.
     """
-    return await service.create_plan(plan_data, str(admin_user.id))
+    result = await service.create_plan(plan_data, str(admin_user.id))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_PLAN_CREATED,
+        str(admin_user.id),
+        http_request,
+        details=f"code={plan_data.code}",
+    )
+    return result
 
 
 @router.get("/admin/plans", response_model=list[PlanResponse], tags=["admin", "plans"])
@@ -131,6 +140,7 @@ async def get_all_plans_admin(
 async def update_plan(
     plan_id: str,
     plan_data: PlanUpdate,
+    http_request: Request,
     admin_user=Depends(require_admin),
     service: PlanService = Depends(get_plan_service),
 ):
@@ -140,12 +150,21 @@ async def update_plan(
     Requires admin role.
     Cannot modify FREE plan.
     """
-    return await service.update_plan(plan_id, plan_data, str(admin_user.id))
+    result = await service.update_plan(plan_id, plan_data, str(admin_user.id))
+    changed = sorted(plan_data.model_dump(exclude_unset=True))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_PLAN_UPDATED,
+        str(admin_user.id),
+        http_request,
+        details=f"plan={plan_id} fields={','.join(changed) or '-'}",
+    )
+    return result
 
 
 @router.delete("/admin/plans/{plan_id}", tags=["admin", "plans"])
 async def delete_plan(
     plan_id: str,
+    http_request: Request,
     admin_user=Depends(require_admin),
     service: PlanService = Depends(get_plan_service),
 ):
@@ -156,7 +175,11 @@ async def delete_plan(
     - Has active subscribers: soft delete (deactivate) + archive in Stripe
     - Cannot delete FREE plan.
     """
-    return await service.delete_plan(plan_id, str(admin_user.id))
+    result = await service.delete_plan(plan_id, str(admin_user.id))
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_PLAN_DELETED, str(admin_user.id), http_request, details=f"plan={plan_id}"
+    )
+    return result
 
 
 @router.post(
@@ -168,6 +191,7 @@ async def delete_plan(
 async def add_plan_price(
     plan_id: str,
     price_data: CurrencyPriceRequest,
+    http_request: Request,
     admin_user=Depends(require_admin),
     service: PlanService = Depends(get_plan_service),
 ):
@@ -177,9 +201,16 @@ async def add_plan_price(
     Creates a Stripe Price for the specified currency and links it to the plan.
     USD is managed through the plan edit flow and cannot be added here.
     """
-    return await service.add_currency_price(
+    result = await service.add_currency_price(
         plan_id, price_data.currency, price_data.amount, str(admin_user.id)
     )
+    await audit_log.log_event_for_user_id(
+        audit_log.EVENT_PLAN_PRICE_ADDED,
+        str(admin_user.id),
+        http_request,
+        details=f"plan={plan_id} currency={price_data.currency}",
+    )
+    return result
 
 
 @router.delete(

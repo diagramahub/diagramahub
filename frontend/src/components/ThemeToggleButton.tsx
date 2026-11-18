@@ -12,7 +12,7 @@ export default function ThemeToggleButton() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50 transition-colors duration-200"
+      className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/50 transition-colors duration-200"
       aria-label={theme === 'light' ? t('sidebar.darkMode') : t('sidebar.lightMode')}
     >
       {theme === 'light' ? (

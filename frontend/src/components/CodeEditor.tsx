@@ -1,7 +1,7 @@
 import { Editor } from '@monaco-editor/react';
 import { useTranslation } from 'react-i18next';
 import type { Monaco } from '@monaco-editor/react';
-import { registerD2Language } from '../utils/d2Language';
+import { monacoLanguageFor, setupMonaco } from '../utils/monacoSetup';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface CodeEditorProps {
@@ -33,17 +33,14 @@ export default function CodeEditor({
     onChange(value || '');
   };
 
-  // Determine the Monaco language mode
-  // Monaco doesn't have native mermaid/plantuml support, so we use closest alternatives
-  // D2 uses a custom registered language with its own tokenizer
-  const monacoLanguage = language === 'd2' ? 'd2' : language === 'plantuml' ? 'java' : 'markdown';
+  const monacoLanguage = monacoLanguageFor(language);
 
   const handleEditorWillMount = (monaco: Monaco) => {
-    registerD2Language(monaco);
+    setupMonaco(monaco);
   };
 
   return (
-    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 dark:border-gray-700 rounded overflow-hidden'}>
+    <div className={borderless ? 'overflow-hidden' : 'border border-gray-200 dark:border-gray-800 rounded overflow-hidden'}>
       <Editor
         beforeMount={handleEditorWillMount}
         height={height}
@@ -90,7 +87,7 @@ export default function CodeEditor({
           },
         }}
         loading={
-          <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-800">
+          <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
             <div className="text-sm text-gray-500 dark:text-gray-400">{t('editor.loadingEditor')}</div>
           </div>
         }

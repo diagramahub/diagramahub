@@ -23,6 +23,21 @@ You can also zoom with the mouse wheel and drag the diagram to move it.
 !!! tip "Set up the view before presenting"
     Close the panels you don't need (code, description, chat) before entering. Zoom and position are saved with each diagram: frame the diagram the way you want to show it and it will open that way next time. For a clean on-screen background, choose the color and pattern under **Appearance** (see [The editor](editor.md#appearance)).
 
+## Presenting a folder or the whole project
+
+To go through several diagrams like slides, open the explorer and use **Present folder** in a folder's menu, or the **Present project** button in the explorer's header (root diagrams first, then each folder's). The presentation opens full width, one diagram per slide, in the explorer's order.
+
+| Key | Action |
+|---|---|
+| ++right++ / ++space++ / ++page-down++ | Next diagram |
+| ++left++ / ++page-up++ | Previous diagram |
+| ++home++ / ++end++ | First / last diagram |
+| ++n++ | Show or hide the notes (the diagram's description) |
+| ++f++ | Browser full screen |
+| ++esc++ | Leave the presentation (in full screen, leave full screen first) |
+
+Leaving takes you back to the editor, on the last diagram shown.
+
 ## Presenting without the editor
 
 To show a diagram to people without an account, create a link with **Share diagram**: the shared view is read-only. See [Sharing diagrams](sharing.md).
