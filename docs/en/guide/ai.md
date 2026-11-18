@@ -15,14 +15,14 @@ DiagramaHub follows a **BYOL** model (*Bring Your Own LLM*): you connect **your 
 ## Configure a provider
 
 1. Go to **Settings → AI Integrations**.
-2. Click **Add Provider** and choose the provider.
+2. Click **Add provider** and choose the provider.
 3. Paste your **API Key** and choose the **Model**. The suggested model is marked **Recommended**.
 4. Optionally give it a **Custom name** (for example "My Gemini account").
-5. Use **Test Connection** to check the key before saving it.
+5. Use **Test connection** to check the key before saving it.
 
 If the test fails, the message tells you why: invalid key or missing permissions, an account with no credits, the provider's rate limit, or a model that is not available for that key.
 
-You can connect several providers. Mark one with **Use as default** and temporarily turn off the ones you don't want to use with **Active**. A connection's provider cannot be changed: if you want another one, create a new connection.
+You can connect several providers; each one shows as a card with its model (an image icon if it reads images) and its masked key (for example `AIza...xyz`). Make one the default with the star on its card and temporarily turn off the ones you don't want to use with **Active**. A connection's provider cannot be changed: if you want another one, create a new connection.
 
 ??? note "Available models (0.9.x)"
     The list comes from the server's model catalog. It may change between versions.

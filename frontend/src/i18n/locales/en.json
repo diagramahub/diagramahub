@@ -1159,13 +1159,13 @@
   },
   "ai": {
     "title": "AI Integrations",
-    "subtitle": "Connect AI providers to automatically generate descriptions for your diagrams",
+    "subtitle": "Connect your own AI providers to generate, improve, fix and chat about your diagrams. Your keys are stored encrypted.",
     "noProviders": "No providers configured",
-    "noProvidersDescription": "Add an API key to start generating descriptions with AI",
-    "addProvider": "Add Provider",
-    "editProvider": "Edit Provider",
-    "removeProvider": "Remove Provider",
-    "testProvider": "Test Connection",
+    "noProvidersDescription": "Add an API key from a provider (Gemini, OpenAI, Claude, DeepSeek or MiniMax) to use AI in the editor.",
+    "addProvider": "Add provider",
+    "editProvider": "Edit provider",
+    "removeProvider": "Remove provider",
+    "testProvider": "Test connection",
     "providers": {
       "gemini": "Google Gemini",
       "openai": "OpenAI GPT",
@@ -1282,7 +1282,8 @@
       "invalid_key": "The API key is invalid or has no permissions.",
       "model_unavailable": "The chosen model isn't available for this key. Choose another model.",
       "provider_error": "The provider returned an error. Check the key and model and try again."
-    }
+    },
+    "makeDefault": "Make “{{name}}” the default"
   },
   "oauth": {
     "divider": "or",

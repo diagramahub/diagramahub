@@ -15,14 +15,14 @@ DiagramaHub usa un modelo **BYOL** (*Bring Your Own LLM*): tú conectas **tu pro
 ## Configurar un proveedor
 
 1. Ve a **Ajustes → Integraciones de IA**.
-2. Pulsa **Agregar Proveedor** y elige el proveedor.
+2. Pulsa **Agregar proveedor** y elige el proveedor.
 3. Pega tu **Clave API** y elige el **Modelo**. El modelo sugerido aparece marcado como **Recomendado**.
 4. Opcionalmente, ponle un **Nombre personalizado** (por ejemplo, «Mi cuenta de Gemini»).
-5. Usa **Probar Conexión** para comprobar la clave antes de guardarla.
+5. Usa **Probar conexión** para comprobar la clave antes de guardarla.
 
 Si la prueba falla, el mensaje te dice la causa: clave inválida o sin permisos, cuenta sin créditos, límite de peticiones del proveedor o modelo no disponible para esa clave.
 
-Puedes conectar varios proveedores. Marca uno con **Usar como predeterminado** y desactiva temporalmente los que no quieras usar con **Activo**. El proveedor de una conexión no se puede cambiar: si quieres otro, crea una conexión nueva.
+Puedes conectar varios proveedores; cada uno aparece como una tarjeta con su modelo (un icono de imagen si lee imágenes) y su clave enmascarada (por ejemplo `AIza...xyz`). Marca uno como predeterminado con la estrella de su tarjeta y desactiva temporalmente los que no quieras usar con **Activo**. El proveedor de una conexión no se puede cambiar: si quieres otro, crea una conexión nueva.
 
 ??? note "Modelos disponibles (0.9.x)"
     La lista sale del catálogo de modelos del servidor. Puede cambiar entre versiones.

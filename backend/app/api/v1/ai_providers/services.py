@@ -30,7 +30,7 @@ from .clients.base import (
 from .clients.factory import AIClientFactory
 from .model_catalog import supports_images
 from .clients.base import BaseAIClient
-from app.core.security import mask_api_key
+from app.core.security import mask_stored_api_key
 
 
 import re
@@ -90,7 +90,7 @@ class AIProviderService:
         masked_providers = []
         for provider in settings.providers:
             provider_dict = provider.model_dump()
-            provider_dict["api_key"] = mask_api_key(provider.api_key)
+            provider_dict["api_key"] = mask_stored_api_key(provider.api_key)
             masked_providers.append(AIProviderResponse(**provider_dict))
 
         return UserAISettingsResponse(

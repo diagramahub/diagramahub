@@ -1262,13 +1262,13 @@
   },
   "ai": {
     "title": "Integraciones de IA",
-    "subtitle": "Conecta proveedores de IA para generar descripciones automáticas de tus diagramas",
+    "subtitle": "Conecta tus propios proveedores de IA para generar, mejorar, corregir y conversar sobre tus diagramas. Tus claves se guardan cifradas.",
     "noProviders": "No tienes proveedores configurados",
-    "noProvidersDescription": "Agrega una clave API para comenzar a generar descripciones con IA",
-    "addProvider": "Agregar Proveedor",
-    "editProvider": "Editar Proveedor",
-    "removeProvider": "Eliminar Proveedor",
-    "testProvider": "Probar Conexión",
+    "noProvidersDescription": "Agrega la clave API de un proveedor (Gemini, OpenAI, Claude, DeepSeek o MiniMax) para usar la IA en el editor.",
+    "addProvider": "Agregar proveedor",
+    "editProvider": "Editar proveedor",
+    "removeProvider": "Eliminar proveedor",
+    "testProvider": "Probar conexión",
     "providers": {
       "gemini": "Google Gemini",
       "openai": "OpenAI GPT",
@@ -1385,7 +1385,8 @@
       "invalid_key": "La llave de API no es válida o no tiene permisos.",
       "model_unavailable": "El modelo elegido no está disponible para esta llave. Elige otro modelo.",
       "provider_error": "El proveedor respondió con un error. Revisa la llave y el modelo e inténtalo de nuevo."
-    }
+    },
+    "makeDefault": "Usar «{{name}}» como predeterminado"
   },
   "oauth": {
     "divider": "o",

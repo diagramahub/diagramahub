@@ -117,6 +117,20 @@ def mask_api_key(api_key: str) -> str:
     return f"{api_key[:4]}...{api_key[-3:]}"
 
 
+def mask_stored_api_key(stored_key: str) -> str:
+    """
+    Mask a key as stored in the database (encrypted) for display.
+
+    The mask is taken from the key itself, so the user can tell their keys
+    apart (``AIza...xyz``); masking the ciphertext would always show ``gAAA...``.
+    A key that can't be decrypted is shown as ``***``.
+    """
+    try:
+        return mask_api_key(decrypt_api_key(stored_key))
+    except Exception:  # noqa: BLE001 - wrong encryption key, corrupted value
+        return "***"
+
+
 def create_access_token(
     subject: str | Any,
     expires_delta: timedelta | None = None,
