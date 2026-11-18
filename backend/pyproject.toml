@@ -22,7 +22,7 @@ email-validator = "^2.4.0"
 google-genai = "^3.3.0"
 cryptography = "^50.0.0"
 httpx = "^0.28.1"
-stripe = "^11.0.0"
+stripe = ">=11,<18"
 gunicorn = "^27.0.1"
 resend = {version = "^2.53.2", extras = ["async"]}
 pyotp = "^2.11.2"
