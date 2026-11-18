@@ -1534,7 +1534,7 @@
     "instructions": "Indicaciones (opcional)",
     "instructionsPlaceholder": "Por ejemplo: de izquierda a derecha, agrupa por equipo",
     "generate": "Generar",
-    "generating": "Generando…",
+    "generating": "Convirtiendo…",
     "result": "Resultado",
     "apply": "Aplicar al diagrama",
     "replaceWarning": "Aplicarlo reemplaza el código actual del diagrama.",
@@ -1549,7 +1549,30 @@
     },
     "buttonHint": "Convierte una foto, captura o boceto en un diagrama",
     "needsImageModel": "Elige un modelo que lea imágenes (Gemini, OpenAI o Claude) para usar esta función",
-    "modelWithoutImages": "{{model}} no lee imágenes. Elige en el chat un modelo marcado con el ícono de imagen (Gemini, OpenAI o Claude)."
+    "modelWithoutImages": "{{model}} no lee imágenes. Elige en el chat un modelo marcado con el ícono de imagen (Gemini, OpenAI o Claude).",
+    "progress": {
+      "title": "Convirtiendo la imagen en diagrama",
+      "elapsed": "{{seconds}} s",
+      "theModel": "el modelo",
+      "steps": {
+        "upload": "Subir la imagen",
+        "analyze": "La IA lee la imagen y escribe el código",
+        "render": "Dibujar la vista previa"
+      },
+      "uploading": "Subiendo…",
+      "uploadingPercent": "Subiendo… {{percent}} %",
+      "rendering": "Preparando la vista previa…",
+      "hints": {
+        "reading": "{{model}} está leyendo la imagen…",
+        "elements": "Identificando elementos, textos y conexiones…",
+        "writing": "Escribiendo el código {{type}}…",
+        "reviewing": "Revisando que el diagrama esté completo…",
+        "slow": "Está tardando más de lo normal. Los modelos que razonan pueden tardar hasta 2 minutos."
+      },
+      "cancel": "Cancelar conversión",
+      "cancelled": "Conversión cancelada. Puedes volver a generar cuando quieras.",
+      "doneIn": "Listo en {{seconds}} s"
+    }
   },
   "mermaidOptions": {
     "themes": {

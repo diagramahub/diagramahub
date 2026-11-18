@@ -436,3 +436,46 @@ code {
   background: #111827;
   color: #e5e7eb;
 }
+
+/* "Diagram from image": a line sweeps the picture while the AI reads it, and an
+   indeterminate bar while it writes the code. Static when motion is reduced. */
+@keyframes image-scan {
+  from {
+    top: -12%;
+  }
+  to {
+    top: 100%;
+  }
+}
+
+@keyframes indeterminate-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-safe\:animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  .animate-image-scan {
+    animation: image-scan 2.2s ease-in-out infinite alternate;
+  }
+  .animate-indeterminate-bar {
+    animation: indeterminate-bar 1.4s ease-in-out infinite;
+  }
+}

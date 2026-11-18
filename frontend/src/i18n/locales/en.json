@@ -1534,7 +1534,7 @@
     "instructions": "Instructions (optional)",
     "instructionsPlaceholder": "For example: left to right, group by team",
     "generate": "Generate",
-    "generating": "Generating…",
+    "generating": "Converting…",
     "result": "Result",
     "apply": "Apply to diagram",
     "replaceWarning": "Applying it replaces the diagram's current code.",
@@ -1549,7 +1549,30 @@
     },
     "buttonHint": "Turn a photo, screenshot or sketch into a diagram",
     "needsImageModel": "Pick a model that reads images (Gemini, OpenAI or Claude) to use this",
-    "modelWithoutImages": "{{model}} can't read images. Pick a model marked with the image icon in the chat (Gemini, OpenAI or Claude)."
+    "modelWithoutImages": "{{model}} can't read images. Pick a model marked with the image icon in the chat (Gemini, OpenAI or Claude).",
+    "progress": {
+      "title": "Turning the image into a diagram",
+      "elapsed": "{{seconds}} s",
+      "theModel": "The model",
+      "steps": {
+        "upload": "Upload the image",
+        "analyze": "The AI reads the image and writes the code",
+        "render": "Draw the preview"
+      },
+      "uploading": "Uploading…",
+      "uploadingPercent": "Uploading… {{percent}}%",
+      "rendering": "Preparing the preview…",
+      "hints": {
+        "reading": "{{model}} is reading the image…",
+        "elements": "Finding the elements, texts and connections…",
+        "writing": "Writing the {{type}} code…",
+        "reviewing": "Checking the diagram is complete…",
+        "slow": "This is taking longer than usual. Reasoning models can take up to 2 minutes."
+      },
+      "cancel": "Cancel conversion",
+      "cancelled": "Conversion cancelled. You can generate again whenever you like.",
+      "doneIn": "Done in {{seconds}} s"
+    }
   },
   "mermaidOptions": {
     "themes": {

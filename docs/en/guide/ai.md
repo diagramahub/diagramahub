@@ -101,6 +101,8 @@ The assistant replies in the UI language (Spanish or English), including the lab
 2. Optionally add instructions ("left to right", "group by team").
 3. **Generate**, check the preview and **Apply to diagram** (it replaces the current code).
 
+While it converts, the dialog shows each step (uploading the image, the AI reading it and writing the code, the preview) and the elapsed seconds; it usually takes 5 to 30 seconds, and up to 2 minutes with reasoning models. **Cancel conversion** stops it.
+
 It uses the model selected in the chat, which must read images: the **Gemini, OpenAI and Claude** ones, marked with an image icon in the chat's model picker (and with "reads images" when you set up the provider). With a model that can't read images, such as DeepSeek's and MiniMax's, the button is disabled and says why. The image is sent to that provider with your API key and is not stored by DiagramaHub.
 
 ## Automatic fixing

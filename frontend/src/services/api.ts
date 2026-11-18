@@ -502,6 +502,9 @@ class ApiService {
     instructions?: string;
     provider?: string;
     model?: string;
+    /** Upload progress, 0-1. */
+    onUploadProgress?: (fraction: number) => void;
+    signal?: AbortSignal;
   }): Promise<GenerateDiagramResponse> {
     const form = new FormData();
     form.append('image', data.image);
@@ -515,6 +518,10 @@ class ApiService {
     const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/diagram-from-image', form, {
       timeout: 120_000,
       headers: { 'Content-Type': 'multipart/form-data' },
+      signal: data.signal,
+      onUploadProgress: data.onUploadProgress
+        ? (event) => data.onUploadProgress?.(event.total ? Math.min(event.loaded / event.total, 1) : 0)
+        : undefined,
     });
     return response.data;
   }

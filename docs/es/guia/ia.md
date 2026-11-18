@@ -101,6 +101,8 @@ El asistente responde en el idioma de la interfaz (español o inglés), incluida
 2. Si quieres, agrega indicaciones («de izquierda a derecha», «agrupa por equipo»).
 3. **Generar**, revisa la vista previa y **Aplicar al diagrama** (reemplaza el código actual).
 
+Mientras convierte, el diálogo muestra cada paso (subir la imagen, la IA leyéndola y escribiendo el código, la vista previa) y los segundos transcurridos; suele tardar entre 5 y 30 segundos, y hasta 2 minutos con modelos que razonan. **Cancelar conversión** la detiene.
+
 Usa el modelo elegido en el chat, que debe leer imágenes: los de **Gemini, OpenAI y Claude**, marcados con un ícono de imagen en el selector de modelos del chat (y con «lee imágenes» al configurar el proveedor). Con un modelo que no lee imágenes, como los de DeepSeek y MiniMax, el botón aparece desactivado y explica por qué. La imagen se envía a ese proveedor con tu API key y DiagramaHub no la guarda.
 
 ## Corrección automática

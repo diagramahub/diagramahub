@@ -5,6 +5,8 @@ import { useDialogA11y } from '../hooks/useDialogA11y';
 import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
 import { IMAGE_ACCEPT, imageProblem, modelReadsImages } from '../utils/imageInput';
+import type { ConversionPhase } from '../utils/imageConversion';
+import { ImageConversionProgress } from './ImageConversionProgress';
 import type { AIProviderType } from '../types/ai';
 
 interface ImageToDiagramModalProps {
@@ -43,6 +45,12 @@ export function ImageToDiagramModal({
   const [error, setError] = useState<ErrorKey | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // Progress while converting: real upload progress, then the AI's wait (elapsed seconds).
+  const [phase, setPhase] = useState<ConversionPhase | null>(null);
+  const [uploadFraction, setUploadFraction] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [cancelled, setCancelled] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const renderRef = useRef<HTMLDivElement>(null);
   const panelRef = useDialogA11y(isOpen, onClose, !generating);
@@ -55,7 +63,26 @@ export function ImageToDiagramModal({
     setInstructions('');
     setError(null);
     setCode(null);
+    setPhase(null);
+    setCancelled(false);
   }, [isOpen]);
+
+  // Abort a running conversion when the dialog goes away.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Seconds counter while converting.
+  useEffect(() => {
+    if (!generating) return;
+    const started = Date.now();
+    setElapsed(0);
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [generating]);
+
+  // Some browsers report no upload progress for small files: after a moment the wait is the AI's.
+  useEffect(() => {
+    if (phase === 'upload' && uploadFraction === null && elapsed >= 2) setPhase('analyze');
+  }, [phase, uploadFraction, elapsed]);
 
   useEffect(() => {
     if (!file) {
@@ -72,6 +99,8 @@ export function ImageToDiagramModal({
     const problem = imageProblem(candidate);
     setError(problem);
     setCode(null);
+    setPhase(null);
+    setCancelled(false);
     setFile(problem ? null : candidate);
   }, []);
 
@@ -93,6 +122,7 @@ export function ImageToDiagramModal({
       if (cancelled || !renderRef.current) return;
       renderRef.current.innerHTML =
         'svg' in result ? sanitizeSvg(result.svg) : `<p class="p-3 text-xs text-amber-600">⚠️ ${escapeHtml(result.error)}</p>`;
+      setPhase('done');
     });
     return () => {
       cancelled = true;
@@ -101,9 +131,14 @@ export function ImageToDiagramModal({
 
   const generate = async () => {
     if (!file) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
     setGenerating(true);
     setError(null);
     setCode(null);
+    setCancelled(false);
+    setPhase('upload');
+    setUploadFraction(null);
     try {
       const result = await apiService.diagramFromImage({
         image: file,
@@ -112,9 +147,22 @@ export function ImageToDiagramModal({
         instructions: instructions.trim() || undefined,
         provider: provider ?? undefined,
         model: model ?? undefined,
+        signal: controller.signal,
+        onUploadProgress: (fraction) => {
+          setUploadFraction(fraction);
+          // Once the image is up, the wait is the AI's.
+          if (fraction >= 1) setPhase('analyze');
+        },
       });
+      setPhase('render');
       setCode(result.diagram_code);
     } catch (err: unknown) {
+      if (controller.signal.aborted) {
+        setPhase(null);
+        setCancelled(true);
+        return;
+      }
+      setPhase(null);
       const response = (err as { response?: { status?: number; data?: { detail?: unknown } } })?.response;
       const detail = response?.data?.detail as { error?: string } | undefined;
       const map: Record<string, ErrorKey> = {
@@ -127,8 +175,11 @@ export function ImageToDiagramModal({
       setError((detail?.error && map[detail.error]) || (response?.status === 404 ? 'noProvider' : 'generic'));
     } finally {
       setGenerating(false);
+      abortRef.current = null;
     }
   };
+
+  const cancelConversion = () => abortRef.current?.abort();
 
   if (!isOpen) return null;
 
@@ -158,6 +209,7 @@ export function ImageToDiagramModal({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
+            disabled={generating}
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -175,7 +227,17 @@ export function ImageToDiagramModal({
             }`}
           >
             {previewUrl ? (
-              <img src={previewUrl} alt={t('imageToDiagram.previewAlt')} className="max-h-48 max-w-full rounded object-contain" />
+              <span className="relative inline-block max-w-full overflow-hidden rounded">
+                <img src={previewUrl} alt={t('imageToDiagram.previewAlt')} className="max-h-48 max-w-full rounded object-contain block" />
+                {generating && (
+                  // The AI "reading" the picture: a tint and a sweeping line.
+                  <span className="absolute inset-0 bg-purple-600/10 dark:bg-purple-400/10" aria-hidden="true">
+                    <span className="animate-image-scan absolute inset-x-0 top-[44%] h-[12%] bg-gradient-to-b from-transparent via-purple-500/40 to-transparent">
+                      <span className="absolute inset-x-0 top-1/2 h-0.5 bg-purple-500 dark:bg-purple-300 shadow-[0_0_8px_2px_rgba(168,85,247,0.6)]" />
+                    </span>
+                  </span>
+                )}
+              </span>
             ) : (
               <>
                 <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -207,10 +269,17 @@ export function ImageToDiagramModal({
               maxLength={500}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
+              disabled={generating}
               placeholder={t('imageToDiagram.instructionsPlaceholder')}
               className="input h-auto py-2 resize-none"
             />
           </div>
+
+          {phase && phase !== 'done' && (
+            <ImageConversionProgress phase={phase} uploadFraction={uploadFraction} elapsed={elapsed} model={model} diagramType={diagramType} />
+          )}
+
+          {cancelled && <p className="text-sm text-gray-500 dark:text-gray-400">{t('imageToDiagram.progress.cancelled')}</p>}
 
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400" role="alert">
@@ -219,8 +288,11 @@ export function ImageToDiagramModal({
           )}
 
           {code && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('imageToDiagram.result')}</p>
+            <div className={`space-y-2 ${phase === 'done' ? 'motion-safe:animate-fade-in' : 'invisible h-0 overflow-hidden'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('imageToDiagram.result')}</p>
+                <span className="text-xs text-green-700 dark:text-green-400">{t('imageToDiagram.progress.doneIn', { seconds: elapsed })}</span>
+              </div>
               {/* Diagram canvases stay light, as in the editor. */}
               <div
                 ref={renderRef}
@@ -234,8 +306,8 @@ export function ImageToDiagramModal({
         </div>
 
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-3 justify-end">
-          <button type="button" onClick={onClose} disabled={generating} className={secondaryButtonClass}>
-            {t('common.cancel')}
+          <button type="button" onClick={generating ? cancelConversion : onClose} className={secondaryButtonClass}>
+            {generating ? t('imageToDiagram.progress.cancel') : t('common.cancel')}
           </button>
           {code ? (
             <button
@@ -250,7 +322,17 @@ export function ImageToDiagramModal({
             </button>
           ) : (
             <button type="button" onClick={generate} disabled={!file || generating || !readsImages} className={primaryButtonClass}>
-              {generating ? t('imageToDiagram.generating') : t('imageToDiagram.generate')}
+              {generating ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="w-4 h-4 motion-safe:animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {t('imageToDiagram.generating')}
+                </span>
+              ) : (
+                t('imageToDiagram.generate')
+              )}
             </button>
           )}
         </div>
