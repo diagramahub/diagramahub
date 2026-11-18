@@ -14,7 +14,7 @@ export default function IntegrationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-6 md:pt-12 sm:pb-12">
         <div className="mb-6 sm:mb-8">
           <h1 className="page-title">
             {t('integrations.title')}

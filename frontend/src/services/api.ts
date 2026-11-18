@@ -577,7 +577,12 @@ class ApiService {
     return response.data;
   }
 
-  async deactivatePlan(planId: string): Promise<void> {
+  /**
+   * Delete a plan: removed (and archived in the gateway) when it has no active
+   * subscribers, otherwise only deactivated by the server. To stop offering a plan,
+   * use updatePlan(id, { is_active: false }).
+   */
+  async deletePlan(planId: string): Promise<void> {
     await this.api.delete(`/api/v1/admin/plans/${planId}`);
   }
 

@@ -1,288 +1,207 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import apiService from '../../services/api';
 import { Plan } from '../../types/subscription';
 import PlanForm from './PlanForm';
-import CurrencyPriceTable from './CurrencyPriceTable';
+import { PlanCard } from './PlanCard';
 import ConfirmModal from '../ConfirmModal';
+import EmptyState from '../EmptyState';
+import Skeleton from '../Skeleton';
 import { apiErrorMessage } from '../../utils/apiError';
+import { plansSummary, sortPlans } from '../../utils/plans';
 
+type Notice = { kind: 'success' | 'error'; text: string };
+
+/** Admin plans: summary, one card per plan, create/edit/offer/delete. */
 export default function PlanList() {
-  const [plans, setPlans] = useState<Plan[]>([]);
   const { t } = useTranslation();
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
-  // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  const [formPlan, setFormPlan] = useState<Plan | null | undefined>(undefined); // undefined = closed, null = new
   const [deactivatingPlan, setDeactivatingPlan] = useState<Plan | null>(null);
   const [deletingPlan, setDeletingPlan] = useState<Plan | null>(null);
-  const [togglingPlanId, setTogglingPlanId] = useState<string | null>(null);
+  const [busyPlanId, setBusyPlanId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPlans();
-  }, []);
-
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     try {
-      setLoading(true);
-      const data = await apiService.getAllPlans();
-      setPlans(data);
-      setError('');
+      setPlans(await apiService.getAllPlans());
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error loading plans');
+      setNotice({ kind: 'error', text: apiErrorMessage(err) || t('admin.plans.messages.loadError') });
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const handleCreatePlan = () => {
-    setEditingPlan(null);
-    setShowCreateModal(true);
-  };
-
-  const handleEditPlan = (plan: Plan) => {
-    setEditingPlan(plan);
-    setShowCreateModal(true);
-  };
-
-  const handleDeactivatePlan = async () => {
-    if (!deactivatingPlan) return;
-
-    try {
-      await apiService.deactivatePlan(deactivatingPlan.id);
-      setSuccess(`Plan "${deactivatingPlan.name}" deactivated successfully`);
-      setDeactivatingPlan(null);
-      loadPlans();
-    } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error deactivating plan');
-    }
-  };
-
-
-  const handleDeletePlan = async () => {
-    if (!deletingPlan) return;
-
-    try {
-      await apiService.deactivatePlan(deletingPlan.id);
-      setSuccess(`Plan "${deletingPlan.name}" eliminado exitosamente`);
-      setDeletingPlan(null);
-      loadPlans();
-    } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error eliminando plan');
-      setDeletingPlan(null);
-    }
-  };
-
-  const handleToggleActive = async (plan: Plan) => {
-    const newActive = !plan.is_active;
-    // Si va a desactivar, pedir confirmación
-    if (!newActive) {
-      setDeactivatingPlan(plan);
-      return;
-    }
-    try {
-      setTogglingPlanId(plan.id);
-      await apiService.updatePlan(plan.id, { is_active: true });
-      setSuccess(`Plan "${plan.name}" activado`);
-      loadPlans();
-    } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error activando plan');
-    } finally {
-      setTogglingPlanId(null);
-    }
-  };
-
-  const handleFormSuccess = () => {
-    setShowCreateModal(false);
-    setEditingPlan(null);
-    setSuccess(editingPlan ? 'Plan updated successfully' : 'Plan created successfully');
+  useEffect(() => {
     loadPlans();
-  };
+  }, [loadPlans]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
+  // Confirmations fade out; errors stay until dismissed.
+  useEffect(() => {
+    if (notice?.kind !== 'success') return;
+    const timer = window.setTimeout(() => setNotice(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
-  const formatLimit = (limit: number | null) => {
-    if (limit === null || limit === -1) {
-      return 'Unlimited';
+  const run = async (plan: Plan, action: () => Promise<unknown>, successKey: string) => {
+    setBusyPlanId(plan.id);
+    try {
+      await action();
+      setNotice({ kind: 'success', text: t(`admin.plans.messages.${successKey}`, { name: plan.name }) });
+      await loadPlans();
+    } catch (err: unknown) {
+      setNotice({ kind: 'error', text: apiErrorMessage(err) || t('admin.plans.messages.actionError') });
+    } finally {
+      setBusyPlanId(null);
     }
-    return limit.toString();
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
+  const handleToggleOffered = (plan: Plan) => {
+    if (plan.is_active) {
+      setDeactivatingPlan(plan); // asks first
+    } else {
+      run(plan, () => apiService.updatePlan(plan.id, { is_active: true }), 'activated');
+    }
+  };
+
+  const summary = plansSummary(plans);
+  const sorted = sortPlans(plans);
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+      {/* Page header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Subscription Plans</h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Manage subscription plans and pricing
-          </p>
+          <h1 className="page-title">{t('sidebar.plans')}</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t('sidebar.plansDescription')}</p>
         </div>
-        <button
-          onClick={handleCreatePlan}
-          className="btn btn-primary flex items-center gap-2 self-start sm:self-auto flex-shrink-0"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button type="button" onClick={() => setFormPlan(null)} className="btn btn-primary self-start sm:self-auto">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Create Plan
+          {t('admin.plans.create')}
         </button>
       </div>
 
-      {/* Messages */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-        </div>
-      )}
-      {success && (
-        <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
-          <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
-        </div>
-      )}
-
-
-      {/* Plans Cards */}
-      <div className="grid gap-4">
-        {plans.map((plan) => (
-          <div key={plan.id} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-4 sm:p-5">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
-              {/* Plan info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
-                  {plan.code && !plan.is_free && (
-                    <code className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded font-mono">{plan.code}</code>
-                  )}
-                  {plan.is_free && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded">FREE</span>
-                  )}
-                  {plan.is_active ? (
-                    <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full">Activo</span>
-                  ) : (
-                    <span className="px-2 py-0.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full">Inactivo</span>
-                  )}
-                  {!plan.is_free && plan.price_usd > 0 && (
-                    plan.gateway_config?.external_product_id && plan.gateway_config?.external_price_id ? (
-                      <span 
-                        className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded flex items-center gap-1 cursor-help"
-                        title={`${plan.gateway_config.provider}: ${plan.gateway_config.external_product_id}`}
-                      >
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        {plan.gateway_config.provider === 'stripe' ? 'Stripe' : plan.gateway_config.provider}
-                      </span>
-                    ) : (
-                      <span 
-                        className="px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded flex items-center gap-1 cursor-help"
-                        title={t('admin.plans.notSynced')}
-                      >
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        Sin Gateway
-                      </span>
-                    )
-                  )}
-                </div>
-                {plan.description && (
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{plan.description}</p>
-                )}
-                <div className="mt-3 flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
-                  {(plan.is_free || plan.price_usd === 0) && (
-                    <span>Precio: <span className="font-medium text-gray-900 dark:text-gray-100">{formatPrice(plan.price_usd)}/mes</span></span>
-                  )}
-                  <span>Proyectos: <span className="font-medium text-gray-900 dark:text-gray-100">{formatLimit(plan.max_projects)}</span></span>
-                  <span>Diagramas: <span className="font-medium text-gray-900 dark:text-gray-100">{formatLimit(plan.max_diagrams)}</span></span>
-                  <span>Suscriptores: <span className="font-medium text-gray-900 dark:text-gray-100">{plan.active_subscriptions}</span></span>
-                </div>
-                {!plan.is_free && plan.price_usd > 0 && (
-                  <div className="mt-3">
-                    <CurrencyPriceTable plan={plan} onPriceChanged={loadPlans} />
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-800">
-                {!plan.is_free && (
-                  <button
-                    type="button"
-                    disabled={togglingPlanId === plan.id}
-                    onClick={() => handleToggleActive(plan)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${plan.is_active ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700'} ${togglingPlanId === plan.id ? 'opacity-50 cursor-wait' : 'cursor-pointer'}`}
-                    title={plan.is_active ? 'Desactivar plan' : 'Activar plan'}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${plan.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                )}
-                <button
-                  onClick={() => handleEditPlan(plan)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Editar
-                </button>
-                {!plan.is_free && plan.active_subscriptions === 0 && (
-                  <button
-                    onClick={() => setDeletingPlan(plan)}
-                    className="btn btn-danger btn-sm"
-                    title={t('admin.plans.delete')}
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {plans.length === 0 && (
-          <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-            <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No hay planes</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Comienza creando un nuevo plan.</p>
+      {/* Notices */}
+      <div aria-live="polite">
+        {notice && (
+          <div
+            role={notice.kind === 'error' ? 'alert' : 'status'}
+            className={`mb-6 flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+              notice.kind === 'success'
+                ? 'border-green-200 dark:border-green-900/60 bg-green-50 dark:bg-green-500/10 text-green-800 dark:text-green-300'
+                : 'border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300'
+            }`}
+          >
+            <span>{notice.text}</span>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="flex-shrink-0 opacity-70 hover:opacity-100"
+              aria-label={t('admin.plans.messages.dismiss')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Create/Edit Modal */}
-      {showCreateModal && (
+      {loading ? (
+        <div className="space-y-6" aria-busy="true">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} variant="card" height="h-20" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} variant="card" height="h-72" />
+            ))}
+          </div>
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="card">
+          <EmptyState
+            title={t('admin.plans.empty.title')}
+            description={t('admin.plans.empty.description')}
+            actionLabel={t('admin.plans.create')}
+            onAction={() => setFormPlan(null)}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Summary */}
+          <dl className="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
+            {[
+              { label: t('admin.plans.summary.activePlans'), value: t('admin.plans.summary.activeOf', { active: summary.active, total: summary.total }) },
+              { label: t('admin.plans.summary.subscribers'), value: String(summary.subscribers) },
+              { label: t('admin.plans.summary.paidPlans'), value: String(summary.paidActive) },
+            ].map((stat) => (
+              <div key={stat.label} className="card px-3 py-2.5 sm:px-4 sm:py-3">
+                <dt className="text-[11px] sm:text-xs font-medium leading-tight text-gray-500 dark:text-gray-400">{stat.label}</dt>
+                <dd className="mt-1 text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {summary.withoutGateway.length > 0 && (
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-lg border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-500/10 px-4 py-3">
+              <p className="flex-1 text-sm text-amber-800 dark:text-amber-300">
+                {t('admin.plans.gatewayWarning', {
+                  count: summary.withoutGateway.length,
+                  names: summary.withoutGateway.map((p) => `«${p.name}»`).join(', '),
+                })}
+              </p>
+              <Link to="/integrations" className="btn btn-secondary btn-sm self-start sm:self-auto">
+                {t('admin.plans.gatewayWarningAction')}
+              </Link>
+            </div>
+          )}
+
+          {/* Plans */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {sorted.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                busy={busyPlanId === plan.id}
+                onEdit={() => setFormPlan(plan)}
+                onToggleOffered={() => handleToggleOffered(plan)}
+                onDelete={() => setDeletingPlan(plan)}
+                onPricesChanged={loadPlans}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {formPlan !== undefined && (
         <PlanForm
-          plan={editingPlan}
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditingPlan(null);
+          plan={formPlan}
+          onClose={() => setFormPlan(undefined)}
+          onSuccess={(saved) => {
+            setFormPlan(undefined);
+            setNotice({ kind: 'success', text: t(`admin.plans.messages.${formPlan ? 'updated' : 'created'}`, { name: saved }) });
+            loadPlans();
           }}
-          onSuccess={handleFormSuccess}
         />
       )}
 
-      {/* Deactivate Confirmation Modal */}
       <ConfirmModal
         isOpen={!!deactivatingPlan}
         onClose={() => setDeactivatingPlan(null)}
-        onConfirm={handleDeactivatePlan}
+        onConfirm={() => {
+          const plan = deactivatingPlan;
+          setDeactivatingPlan(null);
+          // Only stops offering it: the plan and its subscriptions stay.
+          if (plan) run(plan, () => apiService.updatePlan(plan.id, { is_active: false }), 'deactivated');
+        }}
         title={t('admin.plans.deactivate')}
         message={t('admin.plans.deactivateConfirm', { name: deactivatingPlan?.name })}
         confirmText={t('admin.plans.deactivateAction')}
@@ -290,11 +209,14 @@ export default function PlanList() {
         isDangerous={true}
       />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={!!deletingPlan}
         onClose={() => setDeletingPlan(null)}
-        onConfirm={handleDeletePlan}
+        onConfirm={() => {
+          const plan = deletingPlan;
+          setDeletingPlan(null);
+          if (plan) run(plan, () => apiService.deletePlan(plan.id), 'deleted');
+        }}
         title={t('admin.plans.delete')}
         message={t('admin.plans.deleteConfirm', { name: deletingPlan?.name })}
         confirmText={t('common.delete')}
