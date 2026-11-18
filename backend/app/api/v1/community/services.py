@@ -12,6 +12,7 @@ Business rules of the community portal.
   admin reviews it.
 """
 
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -33,10 +34,12 @@ from .schemas import (
     CommentResponse,
     CommunityCommentInDB,
     CommunityForkInDB,
+    CommunityImpact,
     CommunityReportInDB,
     ForkOrigin,
     ForkRequest,
     ForkResponse,
+    ImpactHighlight,
     ModerationRequest,
     PublicationCard,
     PublicationDetail,
@@ -262,6 +265,32 @@ class CommunityService:
             return None
         await self._sync([publication])
         return _card(publication, set())
+
+    async def impact(self, user_id: str) -> CommunityImpact:
+        """Stars, forks, views and comments the user's publications have received."""
+        totals = await self.repository.owner_totals(user_id)
+        publication_ids = [pid for _, pid, _ in await self.repository.published_sources(user_id)]
+        recent_stars = await self.repository.count_stars_since(
+            publication_ids, utcnow() - timedelta(days=30)
+        )
+        top_list = await self.repository.list_by_owner(user_id, 1)
+        top = top_list[0] if top_list else None
+        return CommunityImpact(
+            **totals,
+            stars_last_30_days=recent_stars,
+            top=(
+                ImpactHighlight(
+                    id=str(top.id),
+                    title=top.title,
+                    diagram_type=top.diagram_type,
+                    stars_count=top.stars_count,
+                    forks_count=top.forks_count,
+                    views_count=top.views_count,
+                )
+                if top
+                else None
+            ),
+        )
 
     async def published_sources(self, user_id: str) -> list[PublishedSource]:
         """Which of the user's diagrams are published (no content, for list markers)."""

@@ -3,6 +3,7 @@ Concrete implementation of diagram repository.
 """
 
 import re
+from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
 from beanie.operators import In
@@ -133,6 +134,51 @@ class DiagramRepository(IDiagramRepository):
             .project(DiagramSummary)
             .to_list()
         )
+
+    async def get_favorites_by_project_ids(
+        self, project_ids: list[str], limit: int
+    ) -> tuple[list[DiagramSummary], int]:
+        """Starred diagrams across projects, most recently updated first, and their count."""
+        if not project_ids:
+            return [], 0
+        query = {"project_id": {"$in": project_ids}, "is_favorite": True}
+        total = await DiagramInDB.find(query).count()
+        if limit <= 0 or total == 0:
+            return [], total
+        items = (
+            await DiagramInDB.find(query)
+            .sort(-DiagramInDB.updated_at)
+            .limit(limit)
+            .project(DiagramSummary)
+            .to_list()
+        )
+        return items, total
+
+    async def set_favorite(self, diagram_id: str, favorite: bool) -> None:
+        """Star or unstar a diagram; ``updated_at`` stays (a star is not an edit)."""
+        try:
+            object_id = PydanticObjectId(diagram_id)
+        except Exception:
+            return
+        await DiagramInDB.get_pymongo_collection().update_one(
+            {"_id": object_id},
+            {"$set": {"is_favorite": favorite, "favorited_at": utcnow() if favorite else None}},
+        )
+
+    async def touched_since(
+        self, project_ids: list[str], since: datetime
+    ) -> list[tuple[str, datetime, Optional[datetime]]]:
+        """``(id, created_at, updated_at)`` of the diagrams created or updated since ``since``."""
+        if not project_ids:
+            return []
+        cursor = DiagramInDB.get_pymongo_collection().find(
+            {
+                "project_id": {"$in": project_ids},
+                "$or": [{"created_at": {"$gte": since}}, {"updated_at": {"$gte": since}}],
+            },
+            {"_id": 1, "created_at": 1, "updated_at": 1},
+        )
+        return [(str(doc["_id"]), doc["created_at"], doc.get("updated_at")) async for doc in cursor]
 
     async def search(
         self,

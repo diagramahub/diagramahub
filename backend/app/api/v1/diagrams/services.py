@@ -16,11 +16,17 @@ from .schemas import (
     DiagramDuplicate,
     DiagramSearchHit,
     DiagramSearchResult,
+    DiagramListEntry,
+    FavoriteDiagrams,
+    FavoriteState,
     RenderDiagramRequest,
+    diagram_to_response,
 )
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
 from .kroki_client import KrokiClient
 from .rate_limiter import render_rate_limiter
+from ..activity.interfaces import IActivityRepository
+from ..activity.services import record_activity
 from ..folders.interfaces import IFolderRepository
 from ..projects.interfaces import IProjectRepository
 from ..shared_links.interfaces import ISharedLinkRepository
@@ -76,6 +82,7 @@ class DiagramService:
         config_parser: MermaidConfigParser = None,
         shared_link_repository: Optional[ISharedLinkRepository] = None,
         folder_repository: Optional[IFolderRepository] = None,
+        activity_repository: Optional[IActivityRepository] = None,
     ):
         """
         Initialize the diagram service.
@@ -87,6 +94,7 @@ class DiagramService:
             config_parser: Mermaid config parser
             shared_link_repository: Shared link repository
             folder_repository: Folder repository (validates ``folder_id``)
+            activity_repository: Where the diagrams worked on are noted (dashboard heatmap)
         """
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
@@ -94,6 +102,7 @@ class DiagramService:
         self.config_parser = config_parser or MermaidConfigParser()
         self.shared_link_repository = shared_link_repository
         self.folder_repository = folder_repository
+        self.activity_repository = activity_repository
 
     async def _ensure_folder_in_project(self, folder_id: Optional[str], project_id: str) -> None:
         """Reject a ``folder_id`` that is not a folder of ``project_id``.
@@ -144,6 +153,58 @@ class DiagramService:
             }
             for d in recent
         ]
+
+    async def get_favorite_diagrams(self, user_id: str, limit: int = 10) -> FavoriteDiagrams:
+        """
+        The user's starred diagrams, most recently edited first.
+
+        Args:
+            user_id: ID of the requesting user
+            limit: Maximum number of diagrams to return
+
+        Returns:
+            Up to ``limit`` favorites with their project, and how many there are
+        """
+        projects = await self.project_repository.get_by_user_id(user_id)
+        project_map = {str(p.id): p for p in projects}
+        favorites, total = await self.diagram_repository.get_favorites_by_project_ids(
+            list(project_map), limit
+        )
+        items = []
+        for d in favorites:
+            project = project_map.get(d.project_id)
+            items.append(
+                DiagramListEntry(
+                    id=str(d.id),
+                    title=d.title,
+                    diagram_type=d.diagram_type,
+                    project_id=d.project_id,
+                    project_name=project.name if project else "",
+                    project_emoji=(project.emoji if project else None) or "📁",
+                    updated_at=d.updated_at or d.created_at,
+                )
+            )
+        return FavoriteDiagrams(items=items, total=total)
+
+    async def set_favorite(self, diagram_id: str, user_id: str, favorite: bool) -> FavoriteState:
+        """
+        Star or unstar one of the user's diagrams (doesn't change when it was edited).
+
+        Raises:
+            HTTPException: If diagram not found or user doesn't have access
+        """
+        diagram = await self.diagram_repository.get_by_id(diagram_id)
+        if not diagram:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diagram not found")
+        project = await self.project_repository.get_by_id(diagram.project_id)
+        if not project or project.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have access to this diagram",
+            )
+        if diagram.is_favorite != favorite:
+            await self.diagram_repository.set_favorite(diagram_id, favorite)
+        return FavoriteState(id=diagram_id, is_favorite=favorite)
 
     async def search_diagrams(
         self,
@@ -275,22 +336,8 @@ class DiagramService:
         # No need to parse or manipulate the content here
 
         diagram = await self.diagram_repository.create(diagram_data, project_id)
-        return DiagramResponse(
-            id=str(diagram.id),
-            title=diagram.title,
-            content=diagram.content,
-            description=diagram.description,
-            diagram_type=diagram.diagram_type,
-            config=diagram.config,
-            user_preferences=diagram.user_preferences,
-            project_id=diagram.project_id,
-            folder_id=diagram.folder_id,
-            viewport_zoom=diagram.viewport_zoom,
-            viewport_x=diagram.viewport_x,
-            viewport_y=diagram.viewport_y,
-            created_at=diagram.created_at,
-            updated_at=diagram.updated_at,
-        )
+        await record_activity(self.activity_repository, user_id, [str(diagram.id)])
+        return DiagramResponse(**diagram_to_response(diagram))
 
     async def get_diagram(self, diagram_id: str, user_id: str) -> DiagramResponse:
         """
@@ -321,22 +368,7 @@ class DiagramService:
         # For Mermaid diagrams, config is in content (init block), not in config object
         # Just return the diagram as-is, frontend will parse the init block
 
-        return DiagramResponse(
-            id=str(diagram.id),
-            title=diagram.title,
-            content=diagram.content,
-            description=diagram.description,
-            diagram_type=diagram.diagram_type,
-            config=diagram.config,
-            user_preferences=diagram.user_preferences,
-            project_id=diagram.project_id,
-            folder_id=diagram.folder_id,
-            viewport_zoom=diagram.viewport_zoom,
-            viewport_x=diagram.viewport_x,
-            viewport_y=diagram.viewport_y,
-            created_at=diagram.created_at,
-            updated_at=diagram.updated_at,
-        )
+        return DiagramResponse(**diagram_to_response(diagram))
 
     async def update_diagram(
         self, diagram_id: str, diagram_data: DiagramUpdate, user_id: str
@@ -374,22 +406,10 @@ class DiagramService:
         # No need to parse or manipulate the content here
 
         updated_diagram = await self.diagram_repository.update(diagram_id, diagram_data)
-        return DiagramResponse(
-            id=str(updated_diagram.id),
-            title=updated_diagram.title,
-            content=updated_diagram.content,
-            description=updated_diagram.description,
-            diagram_type=updated_diagram.diagram_type,
-            config=updated_diagram.config,
-            user_preferences=updated_diagram.user_preferences,
-            project_id=updated_diagram.project_id,
-            folder_id=updated_diagram.folder_id,
-            viewport_zoom=updated_diagram.viewport_zoom,
-            viewport_x=updated_diagram.viewport_x,
-            viewport_y=updated_diagram.viewport_y,
-            created_at=updated_diagram.created_at,
-            updated_at=updated_diagram.updated_at,
-        )
+        # Only real edits count as activity (the editor also saves the viewport).
+        if updated_diagram.updated_at != diagram.updated_at:
+            await record_activity(self.activity_repository, user_id, [diagram_id])
+        return DiagramResponse(**diagram_to_response(updated_diagram))
 
     async def move_diagram(
         self, diagram_id: str, move_data: DiagramMove, user_id: str
@@ -425,22 +445,7 @@ class DiagramService:
         updated_diagram = await self.diagram_repository.move(
             diagram_id, move_data.target_project_id
         )
-        return DiagramResponse(
-            id=str(updated_diagram.id),
-            title=updated_diagram.title,
-            content=updated_diagram.content,
-            description=updated_diagram.description,
-            diagram_type=updated_diagram.diagram_type,
-            config=updated_diagram.config,
-            user_preferences=updated_diagram.user_preferences,
-            project_id=updated_diagram.project_id,
-            folder_id=updated_diagram.folder_id,
-            viewport_zoom=updated_diagram.viewport_zoom,
-            viewport_x=updated_diagram.viewport_x,
-            viewport_y=updated_diagram.viewport_y,
-            created_at=updated_diagram.created_at,
-            updated_at=updated_diagram.updated_at,
-        )
+        return DiagramResponse(**diagram_to_response(updated_diagram))
 
     async def duplicate_diagram(
         self, diagram_id: str, duplicate_data: DiagramDuplicate, user_id: str
@@ -473,22 +478,8 @@ class DiagramService:
             )
 
         duplicated = await self.diagram_repository.duplicate(diagram, duplicate_data.title)
-        return DiagramResponse(
-            id=str(duplicated.id),
-            title=duplicated.title,
-            content=duplicated.content,
-            description=duplicated.description,
-            diagram_type=duplicated.diagram_type,
-            config=duplicated.config,
-            user_preferences=duplicated.user_preferences,
-            project_id=duplicated.project_id,
-            folder_id=duplicated.folder_id,
-            viewport_zoom=duplicated.viewport_zoom,
-            viewport_x=duplicated.viewport_x,
-            viewport_y=duplicated.viewport_y,
-            created_at=duplicated.created_at,
-            updated_at=duplicated.updated_at,
-        )
+        await record_activity(self.activity_repository, user_id, [str(duplicated.id)])
+        return DiagramResponse(**diagram_to_response(duplicated))
 
     async def delete_diagram(self, diagram_id: str, user_id: str) -> dict:
         """

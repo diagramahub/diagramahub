@@ -57,6 +57,7 @@ El menú de acciones de cada diagrama ofrece:
 | Acción | Qué hace |
 |---|---|
 | **Renombrar** | Cambia el título del diagrama. |
+| **Añadir a favoritos** / **Quitar de favoritos** | Lo marca con una estrella para tenerlo a mano en **Inicio**. |
 | **Duplicar** | Abre **Clonar diagrama**: crea una copia en el mismo proyecto. El nombre sugerido termina en `-copia` y puedes cambiarlo. |
 | **Mover a carpeta** | Lo pasa a otra carpeta del mismo proyecto, o a la raíz. |
 | **Mover a otro proyecto** | Lo lleva a otro de tus proyectos. Queda en la **raíz** del proyecto de destino. |
@@ -66,6 +67,12 @@ También puedes **arrastrar** un diagrama del explorador y soltarlo sobre una ca
 
 !!! note "Una copia cuenta como un diagrama nuevo"
     Clonar crea un diagrama más, así que cuenta para el límite de tu plan, igual que crear uno desde cero.
+
+## Favoritos
+
+Marca tus diagramas más importantes con la **estrella** que está junto al título en el editor, o con **Añadir a favoritos** en su menú del explorador. En el explorador los favoritos llevan una estrella junto al nombre.
+
+**Inicio** los reúne en la tabla **Favoritos**, del más recién editado al más antiguo, con su proyecto y la fecha de su última edición: un clic abre el diagrama. Desde la tabla también puedes quitar la estrella (con **Deshacer** por si fue un error). Marcar o desmarcar un favorito no cuenta como una edición.
 
 ## Eliminar una carpeta
 

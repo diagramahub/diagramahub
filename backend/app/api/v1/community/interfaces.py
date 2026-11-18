@@ -3,6 +3,7 @@ Abstract repository for the community portal (Dependency Inversion).
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 
 from .schemas import (
@@ -65,6 +66,15 @@ class ICommunityRepository(ABC):
     async def published_sources(self, owner_id: str) -> list[tuple[str, str, bool]]:
         """(source diagram id, publication id, hidden) of every publication of the owner."""
         pass
+
+    @abstractmethod
+    async def owner_totals(self, owner_id: str) -> dict[str, int]:
+        """Sum of the owner's publications and their counters:
+        ``publications``, ``stars``, ``forks``, ``views``, ``comments``."""
+
+    @abstractmethod
+    async def count_stars_since(self, publication_ids: list[str], since: datetime) -> int:
+        """Stars given to these publications from ``since`` on."""
 
     @abstractmethod
     async def increment(self, publication_id: str, field: str, amount: int = 1) -> None:

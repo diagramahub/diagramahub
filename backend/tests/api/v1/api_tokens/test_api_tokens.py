@@ -86,6 +86,10 @@ R, W = AccessLevel.READ, AccessLevel.WRITE
         ("POST", "/projects/p1/import", {P: W, D: W}),
         ("PUT", "/diagrams/d1", {D: W}),
         ("POST", "/diagrams/render", {D: R}),
+        ("GET", "/diagrams/favorites", {D: R}),
+        ("PUT", "/diagrams/d1/favorite", {D: W}),
+        ("GET", "/activity/heatmap", {D: R}),
+        ("GET", "/community/me/impact", {C: R}),
         # Fixing returns the diagram's code: it also needs to read diagrams.
         ("POST", "/diagrams/d1/fix", {AI: W, D: R}),
         ("POST", "/diagrams/convert", {AI: W}),

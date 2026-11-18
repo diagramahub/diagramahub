@@ -74,6 +74,7 @@ import {
 } from "../utils/mermaidOptions";
 import { PublishToCommunityModal } from "../components/community/PublishToCommunityModal";
 import { PublicBadge } from "../components/community/PublicBadge";
+import { FavoriteStarButton } from "../components/FavoriteStarButton";
 import { usePublishedDiagrams } from "../hooks/usePublishedDiagrams";
 import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
 
@@ -2903,6 +2904,36 @@ export default function DiagramEditorPage() {
     }
   };
 
+  // Starring isn't an edit: it is saved on its own and doesn't touch updated_at.
+  const [favoriteBusyId, setFavoriteBusyId] = useState<string | null>(null);
+  const handleToggleFavorite = async (diagramId: string, favorite: boolean) => {
+    setFavoriteBusyId(diagramId);
+    try {
+      await api.setDiagramFavorite(diagramId, favorite);
+      const mark = (diagram: Diagram) =>
+        diagram.id === diagramId ? { ...diagram, is_favorite: favorite } : diagram;
+      setCurrentDiagram((prev) => (prev ? mark(prev) : prev));
+      setProject((prev) =>
+        prev
+          ? {
+              ...prev,
+              diagrams: prev.diagrams.map(mark),
+              folders: prev.folders.map((folder) => ({
+                ...folder,
+                diagrams: folder.diagrams.map(mark),
+              })),
+            }
+          : prev,
+      );
+    } catch (err) {
+      console.error("Error updating favorite:", err);
+      setFixError(t("favorite.error"));
+      setTimeout(() => setFixError(null), 5000);
+    } finally {
+      setFavoriteBusyId(null);
+    }
+  };
+
   const handleCloneDiagram = (diagramId: string, diagramName: string) => {
     setCloneDiagramModal({ isOpen: true, diagramId, diagramName });
   };
@@ -3138,6 +3169,16 @@ export default function DiagramEditorPage() {
                   />
                 </svg>
               </button>
+            )}
+            {/* Favorite: listed on the dashboard */}
+            {!isEditingDiagramTitle && currentDiagram && (
+              <FavoriteStarButton
+                favorite={!!currentDiagram.is_favorite}
+                busy={favoriteBusyId === currentDiagram.id}
+                onToggle={() =>
+                  handleToggleFavorite(currentDiagram.id, !currentDiagram.is_favorite)
+                }
+              />
             )}
             {/* Published to the community: opens the publication settings */}
             {!isEditingDiagramTitle && currentPublication && (
@@ -3665,6 +3706,7 @@ export default function DiagramEditorPage() {
                   onDeleteDiagram={handleDeleteDiagram}
                   onRenameDiagram={renameDiagram}
                   onDuplicateDiagram={handleCloneDiagram}
+                  onToggleFavorite={handleToggleFavorite}
                   onMoveDiagramToFolder={moveDiagramToFolder}
                   onMoveDiagramToProject={handleMoveDiagram}
                   onDeleteFolder={handleDeleteFolder}
@@ -5754,6 +5796,7 @@ export default function DiagramEditorPage() {
                 })
               }
               onRenameDiagram={renameDiagram}
+              onToggleFavorite={handleToggleFavorite}
               onDuplicateDiagram={(id, name) => {
                 setShowFloatingSidebar(false);
                 handleCloneDiagram(id, name);

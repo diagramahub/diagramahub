@@ -288,6 +288,29 @@ class PublishedSource(BaseModel):
     hidden: bool
 
 
+class ImpactHighlight(BaseModel):
+    """The user's most starred publication."""
+
+    id: str
+    title: str
+    diagram_type: str
+    stars_count: int
+    forks_count: int
+    views_count: int
+
+
+class CommunityImpact(BaseModel):
+    """What the user's publications have received from the community."""
+
+    publications: int
+    stars: int
+    forks: int
+    views: int
+    comments: int
+    stars_last_30_days: int
+    top: Optional[ImpactHighlight] = None
+
+
 class PublicationPage(BaseModel):
     """A page of publications."""
 

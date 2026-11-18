@@ -26,6 +26,7 @@ from .schemas import (
     CommentRequest,
     CommentResponse,
     CommunityCategory,
+    CommunityImpact,
     ForkRequest,
     ForkResponse,
     ModerationRequest,
@@ -154,6 +155,15 @@ async def my_published_diagrams(
 ) -> list[PublishedSource]:
     """The user's published diagrams (ids only), to mark them as public in their lists."""
     return await service.published_sources(member.user_id)
+
+
+@router.get("/me/impact", response_model=CommunityImpact)
+async def my_impact(
+    member: Member = Depends(get_member),
+    service: CommunityService = Depends(get_community_service),
+) -> CommunityImpact:
+    """What the user's publications have received: stars, forks, views, comments."""
+    return await service.impact(member.user_id)
 
 
 @router.get("/by-diagram/{diagram_id}", response_model=Optional[PublicationCard])

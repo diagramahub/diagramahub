@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { PinIcon } from './PinIcon';
 import { ContentSearchResults } from './ContentSearchResults';
 import { PublicBadge } from './community/PublicBadge';
+import { STAR_PATH, StarIcon } from './FavoriteStarButton';
 
 interface DiagramItem {
   id: string;
   title: string;
   diagram_type: string;
   folder_id?: string | null;
+  is_favorite?: boolean;
 }
 
 interface FolderItem {
@@ -62,6 +64,8 @@ interface DiagramFileBrowserProps {
   /** Desktop only: when provided, renders a pin toggle in the header. */
   isPinned?: boolean;
   onTogglePin?: () => void;
+  /** Star or unstar a diagram (favorites are listed on the dashboard). */
+  onToggleFavorite?: (id: string, favorite: boolean) => void;
   /** Diagrams published to the Community (marked with a globe). */
   publishedDiagrams?: Map<string, { hidden: boolean }>;
 }
@@ -141,6 +145,7 @@ export default function DiagramFileBrowser({
   onDeleteDiagram,
   onRenameDiagram,
   onDuplicateDiagram,
+  onToggleFavorite,
   onMoveDiagramToFolder,
   onMoveDiagramToProject,
   onDeleteFolder,
@@ -459,6 +464,12 @@ export default function DiagramFileBrowser({
             {badge.label}
           </span>
           <span className="truncate">{diagram.title}</span>
+          {diagram.is_favorite && (
+            <svg className="w-3 h-3 flex-shrink-0 text-amber-500 dark:text-amber-400" viewBox="0 0 24 24" fill="currentColor" role="img" aria-label={t('favorite.marked')}>
+              <title>{t('favorite.marked')}</title>
+              <path d={STAR_PATH} />
+            </svg>
+          )}
           {publishedDiagrams?.has(diagram.id) && (
             <PublicBadge compact hidden={publishedDiagrams.get(diagram.id)?.hidden} className="ml-auto" />
           )}
@@ -540,6 +551,12 @@ export default function DiagramFileBrowser({
               {t('fileBrowser.rename')}
               <span className="text-[10px] ml-auto text-gray-400">F2</span>
             </button>
+            {onToggleFavorite && (
+              <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onToggleFavorite(diagram.id, !diagram.is_favorite); }}>
+                <StarIcon filled={!!diagram.is_favorite} className="w-3.5 h-3.5 flex-shrink-0 text-amber-500 dark:text-amber-400" />
+                {diagram.is_favorite ? t('favorite.remove') : t('favorite.add')}
+              </button>
+            )}
             <button role="menuitem" className={menuItemClass} onClick={() => { setMenu(null); onDuplicateDiagram(diagram.id, diagram.title); }}>
               <Icon d={ICONS.duplicate} />
               {t('fileBrowser.duplicate')}

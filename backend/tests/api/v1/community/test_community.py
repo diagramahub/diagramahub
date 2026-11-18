@@ -563,3 +563,32 @@ async def test_a_private_community_needs_sign_in(
     assert anonymous.status_code == 401
     assert signed_in.status_code == 200
     assert bad_token.status_code == 401
+
+
+async def test_impact_sums_what_my_publications_received(client: AsyncClient, people: dict) -> None:
+    author, visitor = people["author"], people["visitor"]
+    _, first_id = await _diagram(client, author, title="Checkout")
+    _, second_id = await _diagram(client, author, title="Login")
+    first = await _publish(client, author, first_id)
+    second = await _publish(client, author, second_id)
+    await client.put(f"{BASE}/diagrams/{second['id']}/star", headers=visitor["headers"])
+    await client.put(f"{BASE}/diagrams/{second['id']}/star", headers=people["admin"]["headers"])
+    await client.put(f"{BASE}/diagrams/{first['id']}/star", headers=visitor["headers"])
+    await client.get(f"{BASE}/diagrams/{second['id']}", headers=visitor["headers"])
+
+    impact = (await client.get(f"{BASE}/me/impact", headers=author["headers"])).json()
+    nothing = (await client.get(f"{BASE}/me/impact", headers=visitor["headers"])).json()
+
+    assert impact["publications"] == 2 and impact["stars"] == 3
+    assert impact["stars_last_30_days"] == 3 and impact["views"] == 1
+    assert impact["top"]["id"] == second["id"] and impact["top"]["stars_count"] == 2
+    assert nothing == {
+        "publications": 0,
+        "stars": 0,
+        "forks": 0,
+        "views": 0,
+        "comments": 0,
+        "stars_last_30_days": 0,
+        "top": None,
+    }
+    assert (await client.get(f"{BASE}/me/impact")).status_code == 401

@@ -163,6 +163,9 @@ class DiagramInDB(Document):
     viewport_zoom: Optional[float] = 1.0
     viewport_x: Optional[float] = 0.0
     viewport_y: Optional[float] = 0.0
+    # Marked with a star by its owner: listed on the dashboard.
+    is_favorite: bool = False
+    favorited_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -173,6 +176,12 @@ class DiagramInDB(Document):
             "folder_id",
             # Serves the dashboard "recent" query: filter by project, newest first.
             IndexModel([("project_id", ASCENDING), ("updated_at", DESCENDING)]),
+            # Serves the dashboard favorites: only starred diagrams are indexed.
+            IndexModel(
+                [("project_id", ASCENDING), ("updated_at", DESCENDING)],
+                name="favorites_by_project",
+                partialFilterExpression={"is_favorite": True},
+            ),
         ]
 
 
@@ -224,6 +233,32 @@ class DiagramSearchHit(BaseModel):
         }
 
 
+class DiagramListEntry(BaseModel):
+    """A diagram in a dashboard list, with its project."""
+
+    id: str
+    title: str
+    diagram_type: str
+    project_id: str
+    project_name: str
+    project_emoji: str
+    updated_at: datetime
+
+
+class FavoriteDiagrams(BaseModel):
+    """The user's starred diagrams (most recently edited first) and how many there are."""
+
+    items: list[DiagramListEntry]
+    total: int
+
+
+class FavoriteState(BaseModel):
+    """A diagram's star after marking or unmarking it."""
+
+    id: str
+    is_favorite: bool
+
+
 SEARCHABLE_DIAGRAM_TYPES = ("mermaid", "plantuml", "d2", "dbml", "freehand")
 
 
@@ -257,6 +292,7 @@ class DiagramResponse(BaseModel):
     viewport_zoom: Optional[float] = None
     viewport_x: Optional[float] = None
     viewport_y: Optional[float] = None
+    is_favorite: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -282,6 +318,7 @@ def diagram_to_response(diagram: DiagramInDB) -> dict:
         "viewport_zoom": diagram.viewport_zoom,
         "viewport_x": diagram.viewport_x,
         "viewport_y": diagram.viewport_y,
+        "is_favorite": diagram.is_favorite,
         "created_at": diagram.created_at,
         "updated_at": diagram.updated_at,
     }

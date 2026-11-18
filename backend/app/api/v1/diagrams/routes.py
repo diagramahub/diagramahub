@@ -18,6 +18,7 @@ from app.api.v1.subscriptions.plan_repository import PlanRepository
 from app.api.v1.shared_links.repository import SharedLinkRepository
 from app.core.config import settings
 from app.core.client_ip import get_client_ip
+from app.api.v1.activity.repository import ActivityRepository
 from .repository import DiagramRepository
 from .services import DiagramService
 from .fix_service import (
@@ -40,6 +41,8 @@ from .schemas import (
     ConvertDiagramRequest,
     ConvertDiagramResponse,
     DiagramSearchResult,
+    FavoriteDiagrams,
+    FavoriteState,
     SEARCHABLE_DIAGRAM_TYPES,
 )
 from .conversion_service import DiagramConversionService
@@ -55,6 +58,7 @@ def get_diagram_service() -> DiagramService:
         project_repository=ProjectRepository(),
         shared_link_repository=SharedLinkRepository(),
         folder_repository=FolderRepository(),
+        activity_repository=ActivityRepository(),
     )
 
 
@@ -164,6 +168,16 @@ async def get_recent_diagrams(
     return await service.get_recent_diagrams(user_id, limit=4)
 
 
+@router.get("/diagrams/favorites", response_model=FavoriteDiagrams)
+async def get_favorite_diagrams(
+    limit: int = Query(10, ge=1, le=50),
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+) -> FavoriteDiagrams:
+    """The user's starred diagrams, most recently edited first, and how many there are."""
+    return await service.get_favorite_diagrams(user_id, limit)
+
+
 @router.get("/diagrams/search", response_model=list[DiagramSearchResult])
 async def search_diagrams(
     q: str = Query(..., min_length=2, max_length=100, description="Text to find"),
@@ -262,6 +276,26 @@ async def update_diagram(
 ):
     """Update a diagram."""
     return await service.update_diagram(diagram_id, diagram_data, user_id)
+
+
+@router.put("/diagrams/{diagram_id}/favorite", response_model=FavoriteState)
+async def star_diagram(
+    diagram_id: str,
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+) -> FavoriteState:
+    """Mark a diagram as favorite (it shows up on the dashboard)."""
+    return await service.set_favorite(diagram_id, user_id, True)
+
+
+@router.delete("/diagrams/{diagram_id}/favorite", response_model=FavoriteState)
+async def unstar_diagram(
+    diagram_id: str,
+    user_id: str = Depends(get_current_user_id),
+    service: DiagramService = Depends(get_diagram_service),
+) -> FavoriteState:
+    """Remove a diagram from the favorites."""
+    return await service.set_favorite(diagram_id, user_id, False)
 
 
 @router.post("/diagrams/{diagram_id}/move", response_model=DiagramResponse)

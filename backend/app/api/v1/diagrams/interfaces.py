@@ -4,6 +4,7 @@ Follows the Dependency Inversion Principle (SOLID).
 """
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 from .schemas import DiagramInDB, DiagramCreate, DiagramSearchHit, DiagramSummary, DiagramUpdate
 
@@ -51,6 +52,25 @@ class IDiagramRepository(ABC):
         self, project_ids: list[str], limit: int
     ) -> list[DiagramSummary]:
         """Most recently updated diagrams across projects, newest first (summary fields only)."""
+        pass
+
+    @abstractmethod
+    async def get_favorites_by_project_ids(
+        self, project_ids: list[str], limit: int
+    ) -> tuple[list[DiagramSummary], int]:
+        """Starred diagrams across projects, most recently updated first, and their count."""
+        pass
+
+    @abstractmethod
+    async def set_favorite(self, diagram_id: str, favorite: bool) -> None:
+        """Star or unstar a diagram without touching ``updated_at``."""
+        pass
+
+    @abstractmethod
+    async def touched_since(
+        self, project_ids: list[str], since: datetime
+    ) -> list[tuple[str, datetime, Optional[datetime]]]:
+        """``(id, created_at, updated_at)`` of the diagrams created or updated since ``since``."""
         pass
 
     @abstractmethod

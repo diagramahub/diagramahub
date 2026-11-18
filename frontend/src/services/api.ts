@@ -112,6 +112,7 @@ import type {
   PublishRequest,
   UpdatePublicationRequest,
 } from '../types/community';
+import type { ActivityHeatmap, CommunityImpact, FavoriteDiagrams } from '../types/dashboard';
 
 export type ProjectExportFormat = 'zip' | 'markdown';
 export type ProjectExportVariant = 'ai' | 'standard';
@@ -843,6 +844,33 @@ class ApiService {
 
   async getProviderUsageStats(): Promise<{ provider_counts: Record<string, number>; total_messages: number }> {
     const response = await this.api.get<{ provider_counts: Record<string, number>; total_messages: number }>('/api/v1/chat-sessions/stats/provider-usage');
+    return response.data;
+  }
+
+  /** Starred diagrams, most recently edited first, and how many there are. */
+  async getFavoriteDiagrams(limit = 10): Promise<FavoriteDiagrams> {
+    const response = await this.api.get<FavoriteDiagrams>('/api/v1/diagrams/favorites', { params: { limit } });
+    return response.data;
+  }
+
+  /** Star or unstar a diagram (it doesn't count as an edit). */
+  async setDiagramFavorite(diagramId: string, favorite: boolean): Promise<{ id: string; is_favorite: boolean }> {
+    const url = `/api/v1/diagrams/${diagramId}/favorite`;
+    const response = favorite ? await this.api.put(url) : await this.api.delete(url);
+    return response.data;
+  }
+
+  /** Different diagrams worked on per day, ending today in `timeZone`. */
+  async getActivityHeatmap(days = 84, timeZone?: string): Promise<ActivityHeatmap> {
+    const response = await this.api.get<ActivityHeatmap>('/api/v1/activity/heatmap', {
+      params: { days, ...(timeZone ? { tz: timeZone } : {}) },
+    });
+    return response.data;
+  }
+
+  /** What the user's publications have received from the community. */
+  async getCommunityImpact(): Promise<CommunityImpact> {
+    const response = await this.api.get<CommunityImpact>('/api/v1/community/me/impact');
     return response.data;
   }
 

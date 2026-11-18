@@ -3,6 +3,7 @@ MongoDB implementation of the community repository (Beanie / PyMongo).
 """
 
 import re
+from datetime import datetime
 from typing import Any, Optional
 
 from beanie import PydanticObjectId
@@ -159,6 +160,35 @@ class CommunityRepository(ICommunityRepository):
             (doc["source_diagram_id"], str(doc["_id"]), bool(doc.get("hidden", False)))
             async for doc in cursor
         ]
+
+    async def owner_totals(self, owner_id: str) -> dict[str, int]:
+        rows = await (
+            await PublishedDiagramInDB.get_pymongo_collection().aggregate(
+                [
+                    {"$match": {"owner_id": owner_id}},
+                    {
+                        "$group": {
+                            "_id": None,
+                            "publications": {"$sum": 1},
+                            "stars": {"$sum": "$stars_count"},
+                            "forks": {"$sum": "$forks_count"},
+                            "views": {"$sum": "$views_count"},
+                            "comments": {"$sum": "$comments_count"},
+                        }
+                    },
+                ]
+            )
+        ).to_list(None)
+        keys = ("publications", "stars", "forks", "views", "comments")
+        row = rows[0] if rows else {}
+        return {key: int(row.get(key) or 0) for key in keys}
+
+    async def count_stars_since(self, publication_ids: list[str], since: datetime) -> int:
+        if not publication_ids:
+            return 0
+        return await CommunityStarInDB.get_pymongo_collection().count_documents(
+            {"publication_id": {"$in": publication_ids}, "created_at": {"$gte": since}}
+        )
 
     async def increment(self, publication_id: str, field: str, amount: int = 1) -> None:
         if field not in COUNTERS:

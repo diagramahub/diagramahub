@@ -175,6 +175,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **mfa** | `mfa/` | Multi-factor auth (TOTP + email codes) | `totp_service.py` |
 | **oauth** | `oauth/` | OAuth 2.0 / OpenID Connect (Google + extensible) | `providers/` subfolder |
 | **community** | `community/` | Community portal: published diagram snapshots, stars, forks (via DiagramService + UsageLimiter), comments (one reply level), reports (3 hide until an admin reviews), featuring | — |
+| **activity** | `activity/` | Dashboard heatmap: one document per (user, diagram, hour) the diagram was created, edited or duplicated (`diagram_activity`, TTL 120 days; written by `DiagramService` through `record_activity`, never failing the save), summed per day in the user's time zone (`GET /activity/heatmap?days=&tz=`) | — |
 | **about** | `about/` | About page facts: the repository's GitHub stars and forks (`GET /about/repository`, public), asked by the server and cached for an hour (`GITHUB_STATS_ENABLED`, `GITHUB_REPOSITORY`) | `client.py` |
 | **api_tokens** | `api_tokens/` | API keys (`dh_pat_…`, SHA-256 hash stored; per-area permissions projects/diagrams/sharing/community/ai; `permissions.RULES` maps each path to the level it needs per area — a new route reachable with keys must be added there; one that exposes a stored diagram's code also needs `diagrams` read) | — |
 
@@ -252,7 +253,7 @@ When creating a new module, you MUST:
 
 | Entity | Key Fields | Relationships |
 |--------|-----------|---------------|
-| **Diagram** | `content`, `diagram_type`, `config`, `user_preferences` | belongs to Project, optionally to Folder |
+| **Diagram** | `content`, `diagram_type`, `config`, `user_preferences`, `is_favorite` (star; listed on the dashboard, not an edit) | belongs to Project, optionally to Folder |
 | **Project** | name, owner | has many Diagrams, has many Folders |
 | **Folder** | name, project_id | belongs to Project, has many Diagrams |
 | **Shared Link** | token, access_type, expiration, `allow_copy_code` | references one Diagram |

@@ -96,6 +96,8 @@ RULES: tuple[Rule, ...] = (
     # Importing creates folders and diagrams.
     _rule(r"^/projects/[^/]+/import$", A.PROJECTS, A.DIAGRAMS, level=AccessLevel.WRITE),
     _rule(r"^/diagrams(/|$)", A.DIAGRAMS),
+    # The dashboard heatmap: which diagrams were worked on, per day.
+    _rule(r"^/activity(/|$)", A.DIAGRAMS),
     _rule(r"^/(projects|folders)(/|$)", A.PROJECTS),
 )
 

@@ -37,6 +37,8 @@ export type Diagram = {
   viewport_zoom: number;
   viewport_x: number;
   viewport_y: number;
+  /** Starred by its owner: listed on the dashboard. */
+  is_favorite?: boolean;
   created_at: string;
   updated_at: string;
 }

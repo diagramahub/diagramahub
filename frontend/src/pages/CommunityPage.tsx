@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { apiErrorStatus } from '../utils/apiError';
@@ -30,7 +30,14 @@ export default function CommunityPage() {
   const isAdmin = user?.role === 'admin';
   const { isAuthenticated, requireAccount, accountPrompt } = useAccountGate();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('explore');
+  const [searchParams] = useSearchParams();
+  // `?tab=mine` (dashboard link) opens a personal tab when signed in.
+  const [tab, setTab] = useState<Tab>(() => {
+    const asked = searchParams.get('tab');
+    if (asked === 'featured') return 'featured';
+    if ((asked === 'mine' || asked === 'starred') && isAuthenticated) return asked;
+    return 'explore';
+  });
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [category, setCategory] = useState<CommunityCategory | null>(null);

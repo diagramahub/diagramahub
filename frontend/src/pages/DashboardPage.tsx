@@ -11,6 +11,13 @@ import { DashboardStatsSkeleton, DashboardWidgetsSkeleton } from '../components/
 import EmptyState from '../components/EmptyState';
 import type { UsageSummary } from '../types/subscription';
 import { dateLocale } from '../utils/locale';
+import { browserTimeZone } from '../utils/activityHeatmap';
+import type { ActivityHeatmap as Heatmap, CommunityImpact, DiagramListEntry, FavoriteDiagrams } from '../types/dashboard';
+import { ActivityHeatmap } from '../components/dashboard/ActivityHeatmap';
+import { CommunityImpactCard } from '../components/dashboard/CommunityImpactCard';
+import { FavoriteDiagramsTable } from '../components/dashboard/FavoriteDiagramsTable';
+
+const FAVORITES_SHOWN = 10;
 
 /** SVG Donut Chart for diagram type distribution */
 function DonutChart({ typeCounts }: { typeCounts: Record<string, number> }) {
@@ -164,12 +171,47 @@ const DashboardPage: React.FC = () => {
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [recentDiagrams, setRecentDiagrams] = useState<Array<{ id: string; title: string; diagram_type: string; project_id: string; project_name: string; project_emoji: string; updated_at: string }>>([]);
 
+  const [activity, setActivity] = useState<Heatmap | null>(null);
+  const [activityError, setActivityError] = useState(false);
+  const [impact, setImpact] = useState<CommunityImpact | null>(null);
+  const [favorites, setFavorites] = useState<FavoriteDiagrams | null>(null);
+
+  const loadFavorites = () =>
+    api.getFavoriteDiagrams(FAVORITES_SHOWN).then(setFavorites).catch(() => setFavorites({ items: [], total: 0 }));
+
   useEffect(() => {
     loadProjects();
     loadProviderStats();
     loadRecentDiagrams();
     api.getUsageSummary().then(setUsage).catch(() => setUsage(null));
+    api.getActivityHeatmap(84, browserTimeZone()).then(setActivity).catch(() => setActivityError(true));
+    api.getCommunityImpact().then(setImpact).catch(() => setImpact(null));
+    loadFavorites();
   }, []);
+
+  const unstar = async (diagram: DiagramListEntry) => {
+    try {
+      await api.setDiagramFavorite(diagram.id, false);
+      setFavorites((prev) =>
+        prev ? { items: prev.items.filter((d) => d.id !== diagram.id), total: Math.max(0, prev.total - 1) } : prev,
+      );
+      // A favorite beyond the first page may now fit in.
+      if (favorites && favorites.total > favorites.items.length) loadFavorites();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const restar = async (diagram: DiagramListEntry) => {
+    try {
+      await api.setDiagramFavorite(diagram.id, true);
+      await loadFavorites();
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const loadProjects = async () => {
     try {
@@ -281,6 +323,19 @@ const DashboardPage: React.FC = () => {
             actionLabel={t('dashboard.createProject')}
             onAction={() => navigate('/projects-list?create=true')}
           />
+        )}
+
+        {/* Activity + Community impact, then the favorites */}
+        {!loading && projects.length > 0 && (
+          <div className="space-y-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 min-w-0">
+                <ActivityHeatmap data={activity} error={activityError} />
+              </div>
+              <CommunityImpactCard data={impact} />
+            </div>
+            <FavoriteDiagramsTable data={favorites} published={published} onUnstar={unstar} onRestar={restar} />
+          </div>
         )}
 
         {/* Widgets grid: AI Usage (left) + Donut Chart (right) */}
