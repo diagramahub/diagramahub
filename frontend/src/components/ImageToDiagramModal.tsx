@@ -4,7 +4,7 @@ import apiService from '../services/api';
 import { useDialogA11y } from '../hooks/useDialogA11y';
 import { renderDiagram } from '../utils/diagramRenderer';
 import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
-import { IMAGE_ACCEPT, imageProblem, providerReadsImages } from '../utils/imageInput';
+import { IMAGE_ACCEPT, imageProblem, modelReadsImages } from '../utils/imageInput';
 import type { AIProviderType } from '../types/ai';
 
 interface ImageToDiagramModalProps {
@@ -12,8 +12,9 @@ interface ImageToDiagramModalProps {
   onClose: () => void;
   /** Target type: the current diagram's type. */
   diagramType: string;
-  /** Provider selected in the chat (the request uses it). */
+  /** Provider and model selected in the chat (the request uses them). */
   provider: AIProviderType | null;
+  model?: string | null;
   /** Whether applying replaces existing code (shown as a warning). */
   replacesCode: boolean;
   onApply: (code: string) => void;
@@ -30,6 +31,7 @@ export function ImageToDiagramModal({
   onClose,
   diagramType,
   provider,
+  model = null,
   replacesCode,
   onApply,
 }: ImageToDiagramModalProps) {
@@ -44,7 +46,7 @@ export function ImageToDiagramModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const renderRef = useRef<HTMLDivElement>(null);
   const panelRef = useDialogA11y(isOpen, onClose, !generating);
-  const readsImages = providerReadsImages(provider);
+  const readsImages = modelReadsImages(provider, model);
 
   // Reset when opened; release the preview URL when it changes or closes.
   useEffect(() => {
@@ -109,6 +111,7 @@ export function ImageToDiagramModal({
         language: i18n.language?.startsWith('en') ? 'en' : 'es',
         instructions: instructions.trim() || undefined,
         provider: provider ?? undefined,
+        model: model ?? undefined,
       });
       setCode(result.diagram_code);
     } catch (err: unknown) {
@@ -148,7 +151,7 @@ export function ImageToDiagramModal({
         <div className="px-6 py-4 space-y-4 overflow-y-auto">
           {!readsImages && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-4 py-3 rounded-lg text-sm">
-              {t('imageToDiagram.providerWithoutImages')}
+              {t('imageToDiagram.modelWithoutImages', { model: model || provider || '' })}
             </div>
           )}
 

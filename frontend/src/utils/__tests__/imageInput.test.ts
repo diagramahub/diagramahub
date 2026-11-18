@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_IMAGE_BYTES, imageProblem, providerReadsImages } from '../imageInput';
+import { MAX_IMAGE_BYTES, imageProblem, modelReadsImages, providerReadsImages } from '../imageInput';
 
 describe('imageInput', () => {
   it('accepts PNG, JPEG and WebP up to the limit', () => {
@@ -21,5 +21,16 @@ describe('imageInput', () => {
     expect(providerReadsImages('deepseek')).toBe(false);
     expect(providerReadsImages('minimax')).toBe(false);
     expect(providerReadsImages(null)).toBe(false);
+  });
+});
+
+describe('modelReadsImages', () => {
+  it('follows the catalog for listed models and the provider for others', () => {
+    expect(modelReadsImages('gemini', 'gemini-3.8-flash')).toBe(true);
+    expect(modelReadsImages('claude', 'claude-sonnet-5-5')).toBe(true);
+    expect(modelReadsImages('deepseek', 'deepseek-flash')).toBe(false);
+    expect(modelReadsImages('openai', 'gpt-typed-by-hand')).toBe(true);
+    expect(modelReadsImages('minimax', 'MiniMax-M3')).toBe(false);
+    expect(modelReadsImages(null, null)).toBe(false);
   });
 });

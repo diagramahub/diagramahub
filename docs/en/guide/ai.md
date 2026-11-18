@@ -24,16 +24,16 @@ If the test fails, the message tells you why: invalid key or missing permissions
 
 You can connect several providers. Mark one with **Use as default** and temporarily turn off the ones you don't want to use with **Active**. A connection's provider cannot be changed: if you want another one, create a new connection.
 
-??? note "Available models (0.8.x)"
+??? note "Available models (0.9.x)"
     The list comes from the server's model catalog. It may change between versions.
 
-    | Provider | Models | Recommended |
-    |---|---|---|
-    | Google Gemini | `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview` | `gemini-3.8-flash` |
-    | OpenAI GPT | `gpt-6-luna`, `gpt-6.1-sol`, `gpt-6-astra`, `gpt-5.5`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-4.1-mini` | `gpt-6-luna` |
-    | Anthropic Claude | `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-4-5-20251001` | `claude-sonnet-5-5` |
-    | DeepSeek | `deepseek-flash`, `deepseek-v4-pro` | `deepseek-flash` |
-    | Minimax | `MiniMax-M2.7`, `MiniMax-M3`, `MiniMax-M2.7-highspeed` | `MiniMax-M2.7` |
+    | Provider | Models | Recommended | Read images |
+    |---|---|---|---|
+    | Google Gemini | `gemini-3.8-flash`, `gemini-4-carbon`, `gemini-4-hydrogen`, `gemini-3.6-flash`, `gemini-3.5-flash-lite` | `gemini-3.8-flash` | Yes |
+    | OpenAI GPT | `gpt-6-luna`, `gpt-6.2-sol`, `gpt-6.2-astra`, `gpt-6.1-terra` | `gpt-6-luna` | Yes |
+    | Anthropic Claude | `claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5-2`, `claude-haiku-5-5` | `claude-sonnet-5-5` | Yes |
+    | DeepSeek | `deepseek-flash`, `deepseek-v4-pro` | `deepseek-flash` | No |
+    | Minimax | `MiniMax-M2.7`, `MiniMax-M3`, `MiniMax-M2.7-highspeed` | `MiniMax-M2.7` | No |
 
     If a model you already had configured leaves the list, it is shown as **retired**. It keeps working as long as the provider offers it, and you can change it when editing the connection.
 
@@ -101,7 +101,7 @@ The assistant replies in the UI language (Spanish or English), including the lab
 2. Optionally add instructions ("left to right", "group by team").
 3. **Generate**, check the preview and **Apply to diagram** (it replaces the current code).
 
-It uses the model selected in the chat, which must read images: **Gemini, OpenAI or Claude**. DeepSeek and MiniMax can't, and the dialog says so. The image is sent to that provider with your API key and is not stored by DiagramaHub.
+It uses the model selected in the chat, which must read images: the **Gemini, OpenAI and Claude** ones, marked with an image icon in the chat's model picker (and with "reads images" when you set up the provider). With a model that can't read images, such as DeepSeek's and MiniMax's, the button is disabled and says why. The image is sent to that provider with your API key and is not stored by DiagramaHub.
 
 ## Automatic fixing
 

@@ -296,7 +296,7 @@ export default function EditProviderModal({
               )}
               {AI_PROVIDER_MODELS[provider.provider].map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}
+                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}{m.images ? ` · ${t('ai.form.readsImages')}` : ''}
                 </option>
               ))}
             </select>

@@ -28,6 +28,7 @@ from .clients.base import (
     TruncatedResponseError,
 )
 from .clients.factory import AIClientFactory
+from .model_catalog import supports_images
 from .clients.base import BaseAIClient
 from app.core.security import mask_api_key
 
@@ -584,6 +585,7 @@ class AIProviderService:
         language: str = "es",
         instructions: Optional[str] = None,
         provider: Optional[AIProviderType] = None,
+        model: Optional[str] = None,
     ) -> GenerateDiagramResponse:
         """
         Recreate the diagram in an image (whiteboard photo, screenshot, sketch) as code.
@@ -595,6 +597,7 @@ class AIProviderService:
             language: User's language (es, en)
             instructions: Optional extra instructions from the user
             provider: Provider to use (the default one when omitted)
+            model: Model to use, e.g. the one picked in the chat (the provider's when omitted)
 
         Returns:
             Generated diagram code
@@ -602,7 +605,7 @@ class AIProviderService:
         Raises:
             HTTPException 400: Not a supported image (``invalid_image``) or too big (``image_too_large``)
             HTTPException 404: No active AI provider
-            HTTPException 422: The provider can't read images (``images_not_supported``)
+            HTTPException 422: The provider or model can't read images (``images_not_supported``)
                 or the reply was cut off (``response_truncated``)
             HTTPException 502: The reply had no code (``empty_response``)
         """
@@ -624,16 +627,26 @@ class AIProviderService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No active AI provider configured. Please add an API key in settings.",
             )
+        model_id = model or provider_config.model
         try:
             client = AIClientFactory.create_client(
                 provider=provider_config.provider,
                 api_key=provider_config.api_key,
-                model=provider_config.model,
+                model=model_id,
                 parameters=provider_config.parameters,
             )
         except ValueError as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+        if not supports_images(model_id, client.supports_images):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "error": "images_not_supported",
+                    "provider": provider_config.provider.value,
+                    "model": model_id,
+                },
+            )
         try:
             start_time = time.time()
             diagram_code = await client.generate_diagram_from_image(
@@ -645,6 +658,7 @@ class AIProviderService:
                 detail={
                     "error": "images_not_supported",
                     "provider": provider_config.provider.value,
+                    "model": model_id,
                 },
             )
         except TruncatedResponseError:
@@ -666,7 +680,7 @@ class AIProviderService:
         return GenerateDiagramResponse(
             diagram_code=diagram_code,
             provider_used=provider_config.provider,
-            model_used=provider_config.model,
+            model_used=model_id,
             generation_time=time.time() - start_time,
         )
 

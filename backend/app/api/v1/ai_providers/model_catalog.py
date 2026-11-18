@@ -32,6 +32,8 @@ class ModelInfo:
     recommended: bool = False
     # Some models reject `temperature` (e.g. Claude 5.x answers 400 "deprecated")
     supports_temperature: bool = True
+    # Accepts image input ("diagram from image")
+    supports_images: bool = False
 
 
 @lru_cache(maxsize=1)
@@ -45,6 +47,7 @@ def _models() -> dict[str, ModelInfo]:
             listed=bool(entry.get("listed", False)),
             recommended=bool(entry.get("recommended", False)),
             supports_temperature=bool(entry.get("supports_temperature", True)),
+            supports_images=bool(entry.get("images", False)),
         )
         for entry in raw["models"]
     }
@@ -70,6 +73,16 @@ def supports_temperature(model_id: Optional[str]) -> bool:
     """Whether the model accepts ``temperature`` (unknown models: assume yes)."""
     info = get_model(model_id)
     return info.supports_temperature if info else True
+
+
+def supports_images(model_id: Optional[str], provider_reads_images: bool) -> bool:
+    """Whether the model accepts images.
+
+    A model the catalog doesn't know (e.g. a newer one typed by hand) follows its
+    provider: whether this app sends images to that provider's API at all.
+    """
+    info = get_model(model_id)
+    return info.supports_images if info else provider_reads_images
 
 
 def recommended_model(provider: str) -> str:

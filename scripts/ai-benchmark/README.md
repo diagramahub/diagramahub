@@ -20,7 +20,7 @@ before and after changing prompts, the chat flow or the model catalog.
 docker exec -i -u 0 diagramahub-backend sh -c 'cat > /tmp/generate.py' < scripts/ai-benchmark/generate.py
 docker exec -w /app diagramahub-backend sh -c \
   'PYTHONPATH=/app poetry run python /tmp/generate.py you@example.com "label" \
-   openai:gpt-5.4-mini claude:claude-haiku-4-5-20251001 deepseek:deepseek-flash gemini:gemini-3.5-flash-lite 2>/dev/null' \
+   openai:gpt-6-luna claude:claude-haiku-5-5 deepseek:deepseek-flash gemini:gemini-3.5-flash-lite 2>/dev/null' \
   > results.json
 docker exec -u 0 diagramahub-backend rm -f /tmp/generate.py
 

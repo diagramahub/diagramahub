@@ -234,7 +234,8 @@
       "deleteMessage": "Error al eliminar el mensaje",
       "noStreamBody": "El servidor no devolvió una respuesta. Inténtalo de nuevo.",
       "network": "Se interrumpió la conexión. Inténtalo de nuevo."
-    }
+    },
+    "readsImages": "Lee imágenes"
   },
   "installation": {
     "title": "Bienvenido a DiagramaHub",
@@ -1134,7 +1135,8 @@
       "advancedSettings": "Configuración avanzada",
       "recommended": "Recomendado",
       "retired": "retirado",
-      "retiredHint": "Este modelo ya no está en la lista; sigue funcionando mientras el proveedor lo ofrezca. Puedes cambiarlo al editar."
+      "retiredHint": "Este modelo ya no está en la lista; sigue funcionando mientras el proveedor lo ofrezca. Puedes cambiarlo al editar.",
+      "readsImages": "lee imágenes"
     },
     "settings": {
       "autoGenerate": "Generar descripciones automáticamente",
@@ -1536,7 +1538,6 @@
     "result": "Resultado",
     "apply": "Aplicar al diagrama",
     "replaceWarning": "Aplicarlo reemplaza el código actual del diagrama.",
-    "providerWithoutImages": "El proveedor elegido en el chat no lee imágenes. Elige un modelo de Gemini, OpenAI o Claude en el selector del chat.",
     "errors": {
       "tooLarge": "La imagen pasa de 4 MB.",
       "notImage": "El archivo no es una imagen PNG, JPEG o WebP.",
@@ -1545,7 +1546,10 @@
       "empty": "La IA no devolvió un diagrama. Intenta con otra imagen o agrega indicaciones.",
       "noProvider": "No tienes un proveedor de IA activo. Agrega una API key en Configuración.",
       "generic": "No se pudo generar el diagrama."
-    }
+    },
+    "buttonHint": "Convierte una foto, captura o boceto en un diagrama",
+    "needsImageModel": "Elige un modelo que lea imágenes (Gemini, OpenAI o Claude) para usar esta función",
+    "modelWithoutImages": "{{model}} no lee imágenes. Elige en el chat un modelo marcado con el ícono de imagen (Gemini, OpenAI o Claude)."
   },
   "mermaidOptions": {
     "themes": {

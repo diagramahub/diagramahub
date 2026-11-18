@@ -278,7 +278,7 @@ export default function AddProviderModal({ isOpen, onClose, onSuccess }: AddProv
             >
               {AI_PROVIDER_MODELS[formData.provider].map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}
+                  {m.id}{m.recommended ? ` ★ ${t('ai.form.recommended')}` : ''}{m.images ? ` · ${t('ai.form.readsImages')}` : ''}
                 </option>
               ))}
             </select>

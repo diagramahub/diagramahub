@@ -232,18 +232,19 @@ async def diagram_from_image(
     language: str = Form("es", pattern="^(es|en)$"),
     instructions: Optional[str] = Form(None, max_length=500),
     provider: Optional[AIProviderType] = Form(None),
+    model: Optional[str] = Form(None, max_length=100, description="e.g. the chat's model"),
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
     """
     Recreate the diagram in an image (whiteboard photo, screenshot, sketch) as code.
 
-    Uses a provider that accepts images (Gemini, OpenAI, Claude); others answer
-    422 ``images_not_supported``.
+    Needs a model that accepts images (Gemini, OpenAI and Claude models, per the
+    model catalog's ``images``); others answer 422 ``images_not_supported``.
     """
     data = await image.read(MAX_IMAGE_BYTES + 1)
     return await service.generate_diagram_from_image(
-        user_id, data, diagram_type, language, instructions, provider
+        user_id, data, diagram_type, language, instructions, provider, model
     )
 
 

@@ -138,7 +138,11 @@ async def test_providers_without_image_input_answer_422(
     response = await _upload(authenticated_client, client, AIProviderType.DEEPSEEK)
 
     assert response.status_code == 422
-    assert response.json()["detail"] == {"error": "images_not_supported", "provider": "deepseek"}
+    assert response.json()["detail"] == {
+        "error": "images_not_supported",
+        "provider": "deepseek",
+        "model": "m",
+    }
 
 
 @pytest.mark.integration
@@ -171,3 +175,62 @@ async def test_unsupported_diagram_type_is_rejected(authenticated_client: AsyncC
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.integration
+async def test_the_model_picked_in_the_chat_is_the_one_used(
+    authenticated_client: AsyncClient,
+) -> None:
+    fake = MagicMock(supports_images=True)
+    fake.generate_diagram_from_image = AsyncMock(return_value="graph TD\n  A-->B")
+
+    with (
+        patch(
+            "app.api.v1.ai_providers.services.AIClientFactory.create_client", return_value=fake
+        ) as create,
+        patch.object(
+            AIProviderRepository,
+            "get_active_provider",
+            AsyncMock(return_value=_provider(AIProviderType.OPENAI)),
+        ),
+    ):
+        response = await authenticated_client.post(
+            "/api/v1/ai/diagram-from-image",
+            files={"image": ("board.png", PNG, "image/png")},
+            data={"diagram_type": "mermaid", "language": "es", "model": "gpt-5.4-mini"},
+        )
+
+    assert response.status_code == 200, response.text
+    assert create.call_args.kwargs["model"] == "gpt-5.4-mini"
+    assert response.json()["model_used"] == "gpt-5.4-mini"
+
+
+@pytest.mark.integration
+async def test_a_model_without_image_input_is_refused_before_calling_it(
+    authenticated_client: AsyncClient,
+) -> None:
+    fake = MagicMock(supports_images=True)
+    fake.generate_diagram_from_image = AsyncMock()
+
+    # The catalog knows deepseek-flash and marks it without image input.
+    response = await _upload(authenticated_client, fake, model="deepseek-flash")
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == {
+        "error": "images_not_supported",
+        "provider": "openai",
+        "model": "deepseek-flash",
+    }
+    fake.generate_diagram_from_image.assert_not_called()
+
+
+@pytest.mark.unit
+def test_image_support_comes_from_the_catalog_or_the_provider() -> None:
+    from app.api.v1.ai_providers.model_catalog import all_models, supports_images
+
+    readers = {m.provider for m in all_models() if m.supports_images}
+
+    assert readers == {"gemini", "openai", "claude"}
+    assert supports_images("deepseek-flash", provider_reads_images=True) is False
+    assert supports_images("some-new-model", provider_reads_images=True) is True
+    assert supports_images("some-new-model", provider_reads_images=False) is False

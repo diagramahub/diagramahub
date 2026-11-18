@@ -501,6 +501,7 @@ class ApiService {
     language: 'es' | 'en';
     instructions?: string;
     provider?: string;
+    model?: string;
   }): Promise<GenerateDiagramResponse> {
     const form = new FormData();
     form.append('image', data.image);
@@ -508,8 +509,12 @@ class ApiService {
     form.append('language', data.language);
     if (data.instructions) form.append('instructions', data.instructions);
     if (data.provider) form.append('provider', data.provider);
+    if (data.model) form.append('model', data.model);
+    // multipart explicitly: with the instance's JSON default, axios would turn the
+    // FormData into JSON and drop the file.
     const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/diagram-from-image', form, {
       timeout: 120_000,
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   }

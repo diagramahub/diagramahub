@@ -234,7 +234,8 @@
       "deleteMessage": "Couldn't delete the message",
       "noStreamBody": "The server sent no reply. Try again.",
       "network": "The connection was interrupted. Try again."
-    }
+    },
+    "readsImages": "Reads images"
   },
   "installation": {
     "title": "Welcome to DiagramaHub",
@@ -1031,7 +1032,8 @@
       "advancedSettings": "Advanced settings",
       "recommended": "Recommended",
       "retired": "retired",
-      "retiredHint": "This model is no longer listed; it keeps working while the provider offers it. You can change it when editing."
+      "retiredHint": "This model is no longer listed; it keeps working while the provider offers it. You can change it when editing.",
+      "readsImages": "reads images"
     },
     "settings": {
       "autoGenerate": "Auto-generate descriptions",
@@ -1536,7 +1538,6 @@
     "result": "Result",
     "apply": "Apply to diagram",
     "replaceWarning": "Applying it replaces the diagram's current code.",
-    "providerWithoutImages": "The provider chosen in the chat can't read images. Pick a Gemini, OpenAI or Claude model in the chat's selector.",
     "errors": {
       "tooLarge": "The image is over 4 MB.",
       "notImage": "The file isn't a PNG, JPEG or WebP image.",
@@ -1545,7 +1546,10 @@
       "empty": "The AI returned no diagram. Try another image or add instructions.",
       "noProvider": "You have no active AI provider. Add an API key in Settings.",
       "generic": "Couldn't generate the diagram."
-    }
+    },
+    "buttonHint": "Turn a photo, screenshot or sketch into a diagram",
+    "needsImageModel": "Pick a model that reads images (Gemini, OpenAI or Claude) to use this",
+    "modelWithoutImages": "{{model}} can't read images. Pick a model marked with the image icon in the chat (Gemini, OpenAI or Claude)."
   },
   "mermaidOptions": {
     "themes": {

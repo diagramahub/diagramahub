@@ -569,6 +569,7 @@ export default function AIChatPanel({
         onClose={() => setShowImageModal(false)}
         diagramType={diagramType}
         provider={activeProvider}
+        model={activeModel}
         replacesCode={diagramCode.trim().length > 0}
         onApply={onAcceptImprovement}
       />
