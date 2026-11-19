@@ -1,3 +1,4 @@
+import type { Invoice } from './subscription';
 export type UserRole = 'admin' | 'user';
 
 export type OAuthProviderEntry = {
@@ -147,6 +148,12 @@ export interface AdminUserMfaInfo {
   recovery_codes_remaining: number;
   created_at: string | null;
   plan_name: string | null;
+  plan_code: string | null;
+  /** Active subscription on a paid plan billed by the payment provider. */
+  is_paying: boolean;
+  blocked_at: string | null;
+  blocked_by: string | null;
+  blocked_reason: string | null;
   project_count: number;
   diagram_count: number;
   diagram_type_counts: Record<string, number>;
@@ -158,6 +165,48 @@ export interface AdminUserMfaInfo {
     display_name?: string | null;
   }[];
   last_login_at: string | null;
+}
+
+/** Account status filter of the admin user list. */
+export type AdminUserStatusFilter = '' | 'active' | 'blocked';
+
+export interface AdminUserStatusResult {
+  id: string;
+  is_active: boolean;
+  blocked_at: string | null;
+  blocked_by: string | null;
+  blocked_reason: string | null;
+}
+
+export interface AdminSubscriptionEntry {
+  id: string;
+  plan_id: string;
+  plan_name: string | null;
+  plan_code: string | null;
+  prices: Record<string, number>;
+  is_paid_plan: boolean;
+  status: string;
+  payment_provider: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  started_at: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+}
+
+export interface AdminUserBilling {
+  user_id: string;
+  /** False when no payment provider is configured (invoices cannot be read). */
+  provider_configured: boolean;
+  is_paying: boolean;
+  current: AdminSubscriptionEntry | null;
+  subscriptions: AdminSubscriptionEntry[];
+  invoices: Invoice[];
+  /** Paid invoices summed per currency, e.g. `{ USD: 15 }`. */
+  total_paid: Record<string, number>;
+  invoices_error: string | null;
 }
 
 export interface PaginatedAdminUsers {

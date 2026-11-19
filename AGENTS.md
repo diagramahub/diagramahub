@@ -324,7 +324,7 @@ When creating a new module, you MUST:
 
 ### Security Audit Log
 - MongoDB collection with 90-day TTL auto-cleanup
-- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, account deleted, OAuth login success/failure, OAuth account linked; AI provider added/updated/removed, shared link created/updated/revoked, integration created/updated/deleted/set default, plan created/updated/deleted/price added, API token created/revoked, community published/unpublished/moderated (`audit_log.log_event_for_user_id` from the route)
+- Events: login success/failure, lockout, MFA verified, password changed/reset, MFA enabled/disabled, recovery code used, admin MFA reset, admin user blocked/unblocked/deleted, account deleted, OAuth login success/failure, OAuth account linked; AI provider added/updated/removed, shared link created/updated/revoked, integration created/updated/deleted/set default, plan created/updated/deleted/price added, API token created/revoked, community published/unpublished/moderated (`audit_log.log_event_for_user_id` from the route)
 
 ## Key Invariants (Must Preserve)
 
@@ -361,7 +361,7 @@ All prefixed with `/api/v1`. See Swagger UI at `/docs` for full interactive docs
 - `GET /subscriptions/me`, `POST /subscriptions/checkout`, `GET /subscriptions/billing-history`
 - `GET /prompt-history`
 - `CRUD /mfa` (TOTP setup, verify, recovery codes)
-- Admin: `GET /mfa/admin/users`, `CRUD /admin/integrations/vendors`
+- Admin: `GET /mfa/admin/users` (`status=active|blocked`), `PUT /users/admin/{id}/status`, `DELETE /users/admin/{id}`, `GET /users/admin/{id}/billing`, `CRUD /admin/integrations/vendors`
 - Webhooks: `POST /webhooks/stripe`
 
 **Health**:

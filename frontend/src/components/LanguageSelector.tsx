@@ -13,6 +13,9 @@ const languages: Language[] = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
 ];
 
+/** Width of the compact (portaled) menu, `w-44` in px. */
+const COMPACT_MENU_WIDTH = 176;
+
 interface LanguageSelectorProps {
   /**
    * Flag-only trigger for the collapsed sidebar. The menu is portaled to <body>
@@ -24,7 +27,9 @@ interface LanguageSelectorProps {
 export default function LanguageSelector({ compact = false }: LanguageSelectorProps) {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState({ left: 0, bottom: 0 });
+  // Where the menu opens: above the trigger (sidebar footer) or below it (top headers).
+  const [openUp, setOpenUp] = useState(true);
+  const [menuPos, setMenuPos] = useState<{ left: number; top?: number; bottom?: number }>({ left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -38,11 +43,17 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
   };
 
   const toggle = () => {
-    if (!isOpen && compact && triggerRef.current) {
+    if (!isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      // Opens above the trigger (like the expanded selector), so the tooltip that
-      // appears to the right of the trigger never covers it.
-      setMenuPos({ left: rect.left, bottom: window.innerHeight - rect.top + 8 });
+      // Open towards the side with more room: up from the sidebar footer, down from
+      // a header at the top of the page (otherwise the menu leaves the viewport).
+      const up = rect.top > window.innerHeight - rect.bottom;
+      setOpenUp(up);
+      if (compact) {
+        // Keep the portaled menu inside the viewport when the trigger is near the right edge.
+        const left = Math.max(8, Math.min(rect.left, window.innerWidth - COMPACT_MENU_WIDTH - 8));
+        setMenuPos(up ? { left, bottom: window.innerHeight - rect.top + 8 } : { left, top: rect.bottom + 8 });
+      }
     }
     setIsOpen(!isOpen);
   };
@@ -123,7 +134,7 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
       </button>
 
       {isOpen && !compact && (
-        <div role="menu" className="absolute left-0 bottom-full mb-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+        <div role="menu" className={`absolute left-0 w-full ${openUp ? 'bottom-full mb-2' : 'top-full mt-2'} bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50`}>
           {options}
         </div>
       )}
@@ -133,7 +144,7 @@ export default function LanguageSelector({ compact = false }: LanguageSelectorPr
           ref={menuRef}
           role="menu"
           className="fixed w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-[9999]"
-          style={{ left: menuPos.left, bottom: menuPos.bottom }}
+          style={menuPos}
         >
           {options}
         </div>,

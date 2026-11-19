@@ -44,7 +44,9 @@ class MfaAdminService:
             ai_provider_repository if ai_provider_repository is not None else AIProviderRepository()
         )
 
-    async def list_users(self, page: int, page_size: int, search: str) -> dict:
+    async def list_users(
+        self, page: int, page_size: int, search: str, status_filter: str = ""
+    ) -> dict:
         """List users with MFA status and usage aggregations.
 
         Supports pagination and case-insensitive search on email and
@@ -55,16 +57,23 @@ class MfaAdminService:
             page: 1-based page number.
             page_size: Number of users per page.
             search: Optional substring filter for email or full name.
+            status_filter: ``"active"`` or ``"blocked"`` to keep only those
+                accounts; anything else lists everyone.
 
         Returns:
             Dict with ``items``, ``total``, ``page``, ``page_size``,
             and ``total_pages``.
         """
         # Build query
-        query = UserInDB.find()
+        filters: dict[str, Any] = {}
         if search:
             pattern = re.compile(re.escape(search), re.IGNORECASE)
-            query = UserInDB.find({"$or": [{"email": pattern}, {"full_name": pattern}]})
+            filters["$or"] = [{"email": pattern}, {"full_name": pattern}]
+        if status_filter == "active":
+            filters["is_active"] = True
+        elif status_filter == "blocked":
+            filters["is_active"] = False
+        query = UserInDB.find(filters)
 
         total = await query.count()
 
@@ -122,7 +131,11 @@ class MfaAdminService:
 
             # Fetch subscription & plan name
             plan_name = None
+            plan_code = None
+            is_paying = False
             try:
+                from app.api.v1.users.admin_service import is_paid_plan
+
                 from app.api.v1.subscriptions.schemas import SubscriptionInDB, PlanInDB
 
                 sub = await SubscriptionInDB.find_one(
@@ -133,6 +146,8 @@ class MfaAdminService:
                     plan = await PlanInDB.get(sub.plan_id)
                     if plan:
                         plan_name = plan.name
+                        plan_code = plan.code
+                        is_paying = is_paid_plan(plan) and bool(sub.stripe_subscription_id)
             except Exception:
                 pass
 
@@ -178,6 +193,11 @@ class MfaAdminService:
                     "recovery_codes_remaining": unused_codes,
                     "created_at": u.created_at.isoformat() if u.created_at else None,
                     "plan_name": plan_name,
+                    "plan_code": plan_code,
+                    "is_paying": is_paying,
+                    "blocked_at": u.blocked_at.isoformat() if u.blocked_at else None,
+                    "blocked_by": u.blocked_by,
+                    "blocked_reason": u.blocked_reason,
                     "project_count": project_count,
                     "diagram_count": diagram_count,
                     "diagram_type_counts": diagram_type_counts,

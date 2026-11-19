@@ -36,6 +36,9 @@ Si una escritura del registro falla, el error se anota en los logs del servidor 
 | `mfa_enabled` | El usuario activó TOTP o email como factor |
 | `mfa_disabled` | El usuario desactivó un método MFA |
 | `admin_mfa_reset` | Un administrador restableció el MFA de un usuario |
+| `admin_user_blocked` | Un administrador bloqueó una cuenta (con el motivo, si lo dio) |
+| `admin_user_unblocked` | Un administrador desbloqueó una cuenta |
+| `admin_user_deleted` | Un administrador eliminó una cuenta (y la suscripción que canceló, si había) |
 | `password_changed` | El usuario cambió su contraseña desde el perfil |
 | `password_reset_requested` | Se solicitó un correo de restablecimiento |
 | `password_reset_confirmed` | Se restableció la contraseña con el enlace del correo |

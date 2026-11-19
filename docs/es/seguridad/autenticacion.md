@@ -81,6 +81,7 @@ Cada usuario puede activar uno o ambos métodos desde su perfil (ver [Tu cuenta 
 - Al activar MFA se generan **8 códigos de recuperación** de un solo uso (10 caracteres). Se muestran una sola vez y se guardan hasheados. Al usar el último, la app avisa para generar nuevos.
 - Desactivar un método requiere confirmar la contraseña.
 - Un administrador puede **restablecer el MFA** de un usuario que perdió acceso a sus factores; la acción queda auditada como `admin_mfa_reset`.
+- Un administrador puede **bloquear** una cuenta: no puede iniciar sesión (tampoco con Google) y sus sesiones abiertas y API keys dejan de funcionar en la siguiente petición. Ver [Usuarios](../self-host/usuarios.md).
 
 ## Inicio de sesión con Google (OAuth 2.0 / OpenID Connect)
 

@@ -10,6 +10,45 @@ from .schemas import InvoiceResponse, BillingHistoryResponse
 from .exceptions import NotFoundError, PaymentProviderError
 
 
+def invoice_description(invoice) -> str:
+    """
+    Genera descripción legible de la factura.
+
+    Args:
+        invoice: Objeto Invoice de Stripe
+
+    Returns:
+        Descripción de la factura
+    """
+    if invoice.lines and invoice.lines.data:
+        line = invoice.lines.data[0]
+        if line.description:
+            return line.description
+        if line.plan and line.plan.nickname:
+            return f"Subscription: {line.plan.nickname}"
+
+    return "Subscription payment"
+
+
+def invoice_to_response(invoice) -> InvoiceResponse:
+    """Map a Stripe invoice to the API model (amounts converted from cents)."""
+    return InvoiceResponse(
+        id=invoice.id,
+        amount=invoice.amount_paid / 100,  # Convertir de centavos a dólares
+        currency=invoice.currency.upper(),
+        status=invoice.status,
+        description=invoice_description(invoice),
+        invoice_pdf=invoice.invoice_pdf,
+        hosted_invoice_url=invoice.hosted_invoice_url,
+        created_at=datetime.fromtimestamp(invoice.created),
+        paid_at=(
+            datetime.fromtimestamp(invoice.status_transitions.paid_at)
+            if invoice.status_transitions.paid_at
+            else None
+        ),
+    )
+
+
 class BillingService:
     """Servicio para gestión de historial de pagos."""
 
@@ -44,48 +83,11 @@ class BillingService:
             customer_id=subscription.stripe_customer_id, limit=limit
         )
 
-        invoice_responses = []
-        for invoice in invoices:
-            invoice_responses.append(
-                InvoiceResponse(
-                    id=invoice.id,
-                    amount=invoice.amount_paid / 100,  # Convertir de centavos a dólares
-                    currency=invoice.currency.upper(),
-                    status=invoice.status,
-                    description=self._get_invoice_description(invoice),
-                    invoice_pdf=invoice.invoice_pdf,
-                    hosted_invoice_url=invoice.hosted_invoice_url,
-                    created_at=datetime.fromtimestamp(invoice.created),
-                    paid_at=(
-                        datetime.fromtimestamp(invoice.status_transitions.paid_at)
-                        if invoice.status_transitions.paid_at
-                        else None
-                    ),
-                )
-            )
+        invoice_responses = [invoice_to_response(invoice) for invoice in invoices]
 
         return BillingHistoryResponse(
             invoices=invoice_responses, total_count=len(invoice_responses)
         )
-
-    def _get_invoice_description(self, invoice) -> str:
-        """
-        Genera descripción legible de la factura.
-
-        Args:
-            invoice: Objeto Invoice de Stripe
-
-        Returns:
-            Descripción de la factura
-        """
-        if invoice.lines and invoice.lines.data:
-            line = invoice.lines.data[0]
-            if line.description:
-                return line.description
-            if line.plan and line.plan.nickname:
-                return f"Subscription: {line.plan.nickname}"
-
-        return "Subscription payment"
 
     async def get_invoice_pdf_url(self, user_id: str, invoice_id: str) -> str:
         """

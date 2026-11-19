@@ -20,6 +20,9 @@ from app.api.v1.users.services import UserService
 from app.core.config import settings
 from app.core.security import decode_access_token
 
+#: ``detail`` of the 401 sent to a blocked user's open session (the web app shows it at sign-in).
+ACCOUNT_DISABLED_DETAIL = "Account disabled"
+
 security = HTTPBearer()
 # For routes that also serve anonymous visitors: no credentials -> None.
 optional_security = HTTPBearer(auto_error=False)
@@ -52,7 +55,8 @@ async def _email_for_api_token(token: str, request: Request) -> str:
     if principal is None:
         raise unauthorized
     user = await UserRepository().get_by_id(principal.user_id)
-    if user is None:
+    if user is None or not user.is_active:
+        # A blocked owner's tokens stop working too (and work again on unblock).
         raise unauthorized
     return user.email
 
@@ -101,6 +105,13 @@ async def get_current_user_email(
     # route layer only deals with the HTTP concern.
     token_pca = payload.get("pca")
     user = await get_user_service().get_current_user(email)
+    if user is not None and not user.is_active:
+        # Blocked by an admin: end the open session on its next request.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=ACCOUNT_DISABLED_DETAIL,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if user and user.password_changed_at is not None:
         if token_pca is None or token_pca < user.password_changed_at:
             raise HTTPException(

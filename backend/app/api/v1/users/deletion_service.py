@@ -173,3 +173,31 @@ class AccountDeletionService:
         except Exception as e:
             logger.error("Failed to delete data for user_id=%s, collection=users: %s", user_id, e)
             raise
+
+
+def build_account_deletion_service() -> AccountDeletionService:
+    """The deletion service wired to the MongoDB repositories (self-delete and admin delete)."""
+    # Imported here: the concrete repositories pull in every module's schemas.
+    from app.api.v1.activity.repository import ActivityRepository
+    from app.api.v1.ai_providers.repository import AIProviderRepository
+    from app.api.v1.api_tokens.repository import ApiTokenRepository
+    from app.api.v1.community.repository import CommunityRepository
+    from app.api.v1.diagrams.repository import DiagramRepository
+    from app.api.v1.folders.repository import FolderRepository
+    from app.api.v1.projects.repository import ProjectRepository
+    from app.api.v1.prompt_history.repository import PromptHistoryRepository
+    from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+    from app.api.v1.users.repository import UserRepository
+
+    return AccountDeletionService(
+        user_repository=UserRepository(),
+        project_repository=ProjectRepository(),
+        diagram_repository=DiagramRepository(),
+        folder_repository=FolderRepository(),
+        subscription_repository=SubscriptionRepository(),
+        ai_provider_repository=AIProviderRepository(),
+        prompt_history_repository=PromptHistoryRepository(),
+        api_token_repository=ApiTokenRepository(),
+        community_repository=CommunityRepository(),
+        activity_repository=ActivityRepository(),
+    )

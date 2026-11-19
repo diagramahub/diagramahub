@@ -395,3 +395,40 @@ class BillingHistoryResponse(BaseModel):
 
     invoices: list[InvoiceResponse]
     total_count: int
+
+
+class AdminSubscriptionEntry(BaseModel):
+    """One subscription of a user (current or past), as the admin sees it."""
+
+    id: str
+    plan_id: str
+    plan_name: Optional[str] = None
+    plan_code: Optional[str] = None
+    prices: dict = {}
+    is_paid_plan: bool = False
+    status: str
+    payment_provider: str
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    started_at: Optional[datetime] = None
+    current_period_start: Optional[datetime] = None
+    current_period_end: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class AdminUserBillingResponse(BaseModel):
+    """Billing of one user for the admin panel: subscriptions and Stripe invoices."""
+
+    user_id: str
+    #: False when no payment provider is configured: invoices cannot be read.
+    provider_configured: bool
+    #: True when the active subscription is on a paid plan billed by the provider.
+    is_paying: bool
+    current: Optional[AdminSubscriptionEntry] = None
+    subscriptions: list[AdminSubscriptionEntry]
+    invoices: list[InvoiceResponse]
+    #: Sum of paid invoices per currency, e.g. {"USD": 15.0}.
+    total_paid: dict[str, float]
+    #: Set when the provider failed while reading invoices (the rest is still valid).
+    invoices_error: Optional[str] = None

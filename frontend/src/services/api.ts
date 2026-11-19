@@ -14,7 +14,10 @@ import {
   MfaVerifyResponse,
   MfaResendResponse,
   MfaStatusResponse,
-  PaginatedAdminUsers
+  PaginatedAdminUsers,
+  AdminUserBilling,
+  AdminUserStatusFilter,
+  AdminUserStatusResult,
 } from '../types/auth';
 import {
   Project,
@@ -206,6 +209,11 @@ function importForm(files: File[], folderId: string | null): FormData {
 /** Keepalive body budget: below the ~64 KiB browser quota, leaving room for headers. */
 const KEEPALIVE_MAX_BODY_BYTES = 60_000;
 
+/** `detail` of the 401 the API sends to a session whose account an admin blocked. */
+export const ACCOUNT_DISABLED_DETAIL = 'Account disabled';
+/** `detail` of a sign-in rejected because the account is blocked. */
+export const INACTIVE_USER_DETAIL = 'Inactive user';
+
 /**
  * UI language for the Accept-Language header: i18n stores it under the
  * `language` key (see i18n/config.ts). Only `es` / `en` are supported.
@@ -277,10 +285,12 @@ class ApiService {
         // failed sign-in (wrong password, wrong MFA code), and reloading /login
         // would wipe the error message before the user sees it.
         if (error.response?.status === 401 && localStorage.getItem('token')) {
-          // Token expired or invalid
+          // Token expired or invalid, or the account was blocked by an admin
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          window.location.href = '/login';
+          window.location.href = error.response?.data?.detail === ACCOUNT_DISABLED_DETAIL
+            ? '/login?account_blocked=1'
+            : '/login';
         }
         return Promise.reject(error);
       }
@@ -1071,8 +1081,35 @@ class ApiService {
   // Admin MFA Management API
   // ============================================================================
 
-  async adminGetUsersWithMfa(params: { page?: number; page_size?: number; search?: string } = {}): Promise<PaginatedAdminUsers> {
-    const response = await this.api.get<PaginatedAdminUsers>('/api/v1/mfa/admin/users', { params });
+  async adminGetUsersWithMfa(
+    params: { page?: number; page_size?: number; search?: string; status?: AdminUserStatusFilter } = {},
+  ): Promise<PaginatedAdminUsers> {
+    const response = await this.api.get<PaginatedAdminUsers>('/api/v1/mfa/admin/users', {
+      params: { ...params, status: params.status || undefined },
+    });
+    return response.data;
+  }
+
+  /** Block (`isActive=false`) or unblock a user. */
+  async adminSetUserStatus(userId: string, isActive: boolean, reason?: string): Promise<AdminUserStatusResult> {
+    const response = await this.api.put<AdminUserStatusResult>(`/api/v1/users/admin/${userId}/status`, {
+      is_active: isActive,
+      reason: reason || null,
+    });
+    return response.data;
+  }
+
+  /** Delete a user and all their data; `confirmEmail` must match the user's email. */
+  async adminDeleteUser(userId: string, confirmEmail: string): Promise<{ message: string; subscription_cancelled: boolean }> {
+    const response = await this.api.delete<{ message: string; subscription_cancelled: boolean }>(
+      `/api/v1/users/admin/${userId}`,
+      { data: { confirm_email: confirmEmail } },
+    );
+    return response.data;
+  }
+
+  async adminGetUserBilling(userId: string): Promise<AdminUserBilling> {
+    const response = await this.api.get<AdminUserBilling>(`/api/v1/users/admin/${userId}/billing`);
     return response.data;
   }
 

@@ -104,6 +104,11 @@ class ISubscriptionRepository(ABC):
         """Delete all subscriptions belonging to a user. Returns the number deleted."""
         pass
 
+    @abstractmethod
+    async def list_by_user(self, user_id: str) -> list[SubscriptionInDB]:
+        """Every subscription of a user (active and past), newest first."""
+        pass
+
 
 class IWebhookEventRepository(ABC):
     """Interface for the webhook event log used to process each event once."""

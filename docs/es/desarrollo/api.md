@@ -53,6 +53,16 @@ Las rutas están relativas a `/api/v1`. **Público** = sin token; **Usuario** = 
 | GET | `/mfa/admin/users`, `/mfa/admin/users/export` | Admin |
 | POST | `/mfa/admin/users/{user_id}/reset-mfa` | Admin |
 
+`GET /mfa/admin/users` acepta `status=active|blocked`.
+
+### Administración de usuarios (`users/admin_routes.py`)
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| PUT | `/users/admin/{user_id}/status` (`is_active`, `reason`) | Admin |
+| DELETE | `/users/admin/{user_id}` (`confirm_email`) | Admin |
+| GET | `/users/admin/{user_id}/billing` | Admin |
+
 ### OAuth (`oauth/`)
 
 | Método | Ruta | Acceso |

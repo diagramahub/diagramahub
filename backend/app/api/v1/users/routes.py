@@ -422,29 +422,9 @@ async def delete_account(
 
     # Perform account deletion
     try:
-        from app.api.v1.users.deletion_service import AccountDeletionService
-        from app.api.v1.projects.repository import ProjectRepository
-        from app.api.v1.diagrams.repository import DiagramRepository
-        from app.api.v1.folders.repository import FolderRepository
-        from app.api.v1.ai_providers.repository import AIProviderRepository
-        from app.api.v1.prompt_history.repository import PromptHistoryRepository
-        from app.api.v1.api_tokens.repository import ApiTokenRepository
-        from app.api.v1.community.repository import CommunityRepository
-        from app.api.v1.activity.repository import ActivityRepository
-        from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
+        from app.api.v1.users.deletion_service import build_account_deletion_service
 
-        deletion_service = AccountDeletionService(
-            user_repository=UserRepository(),
-            project_repository=ProjectRepository(),
-            diagram_repository=DiagramRepository(),
-            folder_repository=FolderRepository(),
-            subscription_repository=SubscriptionRepository(),
-            ai_provider_repository=AIProviderRepository(),
-            prompt_history_repository=PromptHistoryRepository(),
-            api_token_repository=ApiTokenRepository(),
-            community_repository=CommunityRepository(),
-            activity_repository=ActivityRepository(),
-        )
+        deletion_service = build_account_deletion_service()
         await deletion_service.delete_user_account(user_id)
     except Exception:
         logger.exception("Failed to delete account for user %s", user_id)

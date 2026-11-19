@@ -76,3 +76,11 @@ class SubscriptionRepository(ISubscriptionRepository):
         """Delete all subscriptions belonging to a user."""
         result = await SubscriptionInDB.find(SubscriptionInDB.user_id == user_id).delete()
         return result.deleted_count
+
+    async def list_by_user(self, user_id: str) -> list[SubscriptionInDB]:
+        """Every subscription of a user (active and past), newest first."""
+        return (
+            await SubscriptionInDB.find(SubscriptionInDB.user_id == user_id)
+            .sort("-created_at")
+            .to_list()
+        )

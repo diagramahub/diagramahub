@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import OAuthButtons from '../components/OAuthButtons';
 import LanguageSelector from '../components/LanguageSelector';
 import AnimatedBackground from '../components/AnimatedBackground';
+import { INACTIVE_USER_DETAIL } from '../services/api';
 import ThemeToggleButton from '../components/ThemeToggleButton';
 import { BrandLogo } from '../components/BrandLogo';
 import { rememberReturnTo, takeReturnTo } from '../utils/returnTo';
@@ -20,6 +21,8 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const oauthError = searchParams.get('oauth_error');
+  // Sent here because an admin blocked the account (open session or OAuth sign-in).
+  const accountBlocked = searchParams.get('account_blocked') === '1' || oauthError === 'blocked';
   // Came from a public page (e.g. the community): go back there after signing in.
   const next = searchParams.get('next');
   React.useEffect(() => {
@@ -47,7 +50,8 @@ const LoginPage: React.FC = () => {
         navigate(takeReturnTo('/dashboard'));
       }
     } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : '') || 'Login failed. Please try again.');
+      const message = err instanceof Error ? err.message : '';
+      setError(message === INACTIVE_USER_DETAIL ? t('auth.accountBlocked') : message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -75,9 +79,9 @@ const LoginPage: React.FC = () => {
               <span className="block sm:inline">{error}</span>
             </div>
           )}
-          {oauthError && !error && (
+          {(oauthError || accountBlocked) && !error && (
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{t('oauth.callbackError')}</span>
+              <span className="block sm:inline">{accountBlocked ? t('auth.accountBlocked') : t('oauth.callbackError')}</span>
             </div>
           )}
           <div className="rounded-md shadow-sm space-y-4">

@@ -3,7 +3,8 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import apiService from '../services/api';
+import apiService, { INACTIVE_USER_DETAIL } from '../services/api';
+import { apiErrorMessage } from '../utils/apiError';
 
 const OAuthCallbackPage: React.FC = () => {
   const { t } = useTranslation();
@@ -30,8 +31,9 @@ const OAuthCallbackPage: React.FC = () => {
         const response = await apiService.oauthCallback({ code, state, provider });
         await loginWithOAuth(response.access_token);
         navigate(takeReturnTo('/dashboard'), { replace: true });
-      } catch {
-        navigate('/login?oauth_error=true', { replace: true });
+      } catch (err: unknown) {
+        const blocked = apiErrorMessage(err) === INACTIVE_USER_DETAIL;
+        navigate(`/login?oauth_error=${blocked ? 'blocked' : 'true'}`, { replace: true });
       }
     };
 
