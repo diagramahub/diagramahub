@@ -28,6 +28,8 @@ export interface ResourceLimitDetail {
   resource_type: string;
   current_usage: number;
   limit: number;
+  /** Diagram limit only: false when published Community diagrams don't count. */
+  public_counts?: boolean;
 }
 
 /** The plan limit payload when the request failed because of a plan limit. */

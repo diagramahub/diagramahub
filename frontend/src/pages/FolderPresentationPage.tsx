@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import apiService from '../services/api';
 import type { Diagram, ProjectWithDiagrams } from '../types/project';
 import { renderDiagram } from '../utils/diagramRenderer';
@@ -10,6 +8,7 @@ import { sanitizeSvg, escapeHtml } from '../utils/sanitize';
 import FreehandCanvas from '../components/FreehandCanvas';
 import { presentationSlides } from '../utils/presentation';
 import { fitSvgToContainer } from '../utils/fitSvg';
+import { MarkdownPreview } from '../components/MarkdownPreview';
 
 /**
  * Full-screen presentation of a folder (or the whole project): one diagram per
@@ -251,9 +250,9 @@ export default function FolderPresentationPage() {
         {showNotes && current.description && (
           <aside
             aria-label={t('presentation.notes')}
-            className="w-80 flex-shrink-0 border-l border-white/10 overflow-y-auto p-4 prose prose-sm prose-invert max-w-none"
+            className="w-80 flex-shrink-0 border-l border-white/10 overflow-y-auto p-4"
           >
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{current.description}</ReactMarkdown>
+            <MarkdownPreview tone="invert">{current.description}</MarkdownPreview>
           </aside>
         )}
       </div>

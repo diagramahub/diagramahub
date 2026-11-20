@@ -7,12 +7,10 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 from app.api.deps import get_current_user_id
-from app.api.v1.users.repository import UserRepository
 from app.api.v1.diagrams.repository import DiagramRepository
 from app.api.v1.folders.repository import FolderRepository
 from app.api.v1.subscriptions.usage_limiter import UsageLimiter
-from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
-from app.api.v1.subscriptions.plan_repository import PlanRepository
+from app.api.v1.subscriptions.limiter_factory import build_usage_limiter
 from .repository import ProjectRepository
 from .services import ProjectService
 from .export_service import ExportSummary, ProjectExportService
@@ -53,13 +51,7 @@ def get_import_service() -> ProjectImportService:
 
 def get_usage_limiter() -> UsageLimiter:
     """Get usage limiter instance."""
-    return UsageLimiter(
-        subscription_repository=SubscriptionRepository(),
-        plan_repository=PlanRepository(),
-        project_repository=ProjectRepository(),
-        diagram_repository=DiagramRepository(),
-        user_repository=UserRepository(),
-    )
+    return build_usage_limiter()
 
 
 # ============ Project Endpoints ============

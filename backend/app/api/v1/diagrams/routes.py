@@ -8,13 +8,11 @@ from typing import NoReturn, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from app.api.deps import get_current_user_id
-from app.api.v1.users.repository import UserRepository
 from app.api.v1.projects.repository import ProjectRepository
 from app.api.v1.ai_providers.repository import AIProviderRepository
 from app.api.v1.folders.repository import FolderRepository
 from app.api.v1.subscriptions.usage_limiter import UsageLimiter
-from app.api.v1.subscriptions.subscription_repository import SubscriptionRepository
-from app.api.v1.subscriptions.plan_repository import PlanRepository
+from app.api.v1.subscriptions.limiter_factory import build_usage_limiter
 from app.api.v1.shared_links.repository import SharedLinkRepository
 from app.core.config import settings
 from app.core.client_ip import get_client_ip
@@ -78,13 +76,7 @@ def get_diagram_conversion_service() -> DiagramConversionService:
 
 def get_usage_limiter() -> UsageLimiter:
     """Get usage limiter instance."""
-    return UsageLimiter(
-        subscription_repository=SubscriptionRepository(),
-        plan_repository=PlanRepository(),
-        project_repository=ProjectRepository(),
-        diagram_repository=DiagramRepository(),
-        user_repository=UserRepository(),
-    )
+    return build_usage_limiter()
 
 
 def get_kroki_client() -> KrokiClient:

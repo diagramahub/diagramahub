@@ -63,6 +63,11 @@ class ICommunityRepository(ABC):
         pass
 
     @abstractmethod
+    async def count_published_since(self, owner_id: str, since: datetime) -> int:
+        """Publications of the owner made at or after ``since``."""
+        pass
+
+    @abstractmethod
     async def published_sources(self, owner_id: str) -> list[tuple[str, str, bool]]:
         """(source diagram id, publication id, hidden) of every publication of the owner."""
         pass

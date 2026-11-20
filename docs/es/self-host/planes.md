@@ -15,7 +15,9 @@ Los planes viven en la colección `plans` de MongoDB.
 | `code` | texto (1–30) | Código único en mayúsculas, dígitos, `_` o `-` (p. ej. `TEAM`). `FREE` está reservado. |
 | `description` | texto (≤500) | Descripción opcional. |
 | `max_projects` | entero | Máximo de proyectos. `-1` o vacío = ilimitado. |
-| `max_diagrams` | entero | Máximo de diagramas. `-1` o vacío = ilimitado. |
+| `max_diagrams` | entero | Máximo de diagramas. `-1` o vacío = ilimitado. Solo cuenta los **privados**, salvo con `public_diagrams_count` (ver [Diagramas públicos](#diagramas-publicos)). |
+| `public_diagrams_count` | booleano | `true`: los diagramas publicados en la Comunidad también cuentan para `max_diagrams`. Por defecto `false`. |
+| `max_public_diagrams` | entero | Máximo de diagramas publicados. `-1` o vacío = ilimitado (por defecto). |
 | `prices` | diccionario | Precio mensual por moneda, p. ej. `{"usd": 4, "mxn": 70}`. Vacío = gratis. |
 | `is_active` | booleano | Un plan inactivo deja de ofrecerse, pero sus suscriptores lo conservan. |
 | `gateway_config` | objeto | IDs de producto y precio en Stripe; se llena solo al sincronizar. |
@@ -94,6 +96,23 @@ sequenceDiagram
 ```
 
 Cada usuario consulta su uso en `GET /api/v1/subscriptions/usage`.
+
+## Diagramas públicos
+
+Por defecto, un diagrama **publicado en la [Comunidad](../guia/comunidad.md)** no ocupa lugar en el límite de diagramas: el límite cuenta solo los privados. Es la forma de crecer sin pagar a cambio de compartir: quien publica todo puede usar la plataforma sin llegar al tope, y quien quiere privacidad necesita un plan con más lugar. Cada plan lo decide con dos campos (en **Administración → Planes**):
+
+- **Los diagramas publicados también cuentan para el límite** (`public_diagrams_count`): apagado por defecto. Encendido, cuentan todos.
+- **Diagramas públicos** (`max_public_diagrams`): un tope opcional de publicaciones; ilimitado por defecto.
+
+Reglas que aplica el servidor:
+
+- Todo diagrama nace privado: crear, duplicar, hacer fork o importar ocupa un lugar.
+- **Publicar libera un lugar**, y **retirar una publicación** requiere lugar para un privado más. Si no lo hay, la API responde `403` con `resource_type: "private_diagrams"` y la interfaz desactiva **Retirar de la Comunidad** explicando por qué.
+- Una publicación **oculta por moderación** cuenta como privada: solo queda exento lo que otros pueden ver. Si un diagrama publicado se borra, su publicación ya no ocupa lugar.
+- **Sobre el límite.** Un usuario puede quedar por encima del límite sin haber hecho nada: si baja de plan, si vence su suscripción, si un administrador retira o la moderación oculta una de sus publicaciones, o si bajas el límite del plan. Nunca se borra ni se bloquea nada: puede editar, borrar y publicar, pero no crear diagramas privados ni retirar publicaciones hasta volver dentro del límite.
+- Para que la Comunidad no se use como almacenamiento gratis, publicar requiere un diagrama que dibuje algo (no vacío y que se pueda renderizar), con como máximo 100 000 caracteres de código, y hay un tope de publicaciones por usuario cada 24 horas ([`COMMUNITY_MAX_PUBLICATIONS_PER_DAY`](configuracion.md#comunidad), 20 por defecto). Los administradores no tienen ese tope.
+
+`GET /api/v1/subscriptions/usage` devuelve en `diagrams` el uso que cuenta (`current`), el límite, los publicados visibles (`public`), si cuentan (`public_counts`) y el tope de públicos (`public_limit`).
 
 ## Instancia sin cobros
 

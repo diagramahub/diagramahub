@@ -43,6 +43,11 @@ class IDiagramRepository(ABC):
         pass
 
     @abstractmethod
+    async def count_in_projects(self, project_ids: list[str], diagram_ids: list[str]) -> int:
+        """How many of ``diagram_ids`` exist in those projects (no documents loaded)."""
+        pass
+
+    @abstractmethod
     async def type_counts_by_project(self, project_ids: list[str]) -> dict[str, dict[str, int]]:
         """``{project_id: {diagram_type: count}}`` computed in the database."""
         pass

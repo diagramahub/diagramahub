@@ -19,7 +19,9 @@ from .schemas import (
     DiagramListEntry,
     FavoriteDiagrams,
     FavoriteState,
+    MAX_DIAGRAM_CODE_LENGTH,
     RenderDiagramRequest,
+    code_too_long,
     diagram_to_response,
 )
 from .config_utils import MermaidConfigEmbedder, MermaidConfigParser
@@ -69,6 +71,15 @@ def _locate_match(hit: DiagramSearchHit, needle: str) -> tuple[str, str]:
     if hit.diagram_type == "freehand":
         content = " · ".join(t for t in map(_json_string, _FREEHAND_TEXT.findall(content)) if t)
     return "content", _snippet(content, needle)
+
+
+def _reject_long_code(content: Optional[str], diagram_type: Optional[str]) -> None:
+    """422 when a text diagram's code is over the size cap (``diagram_too_large``)."""
+    if code_too_long(content, diagram_type):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail={"error": "diagram_too_large", "limit": MAX_DIAGRAM_CODE_LENGTH},
+        )
 
 
 class DiagramService:
@@ -318,6 +329,7 @@ class DiagramService:
         Raises:
             HTTPException: If project not found or user doesn't have access
         """
+        _reject_long_code(diagram_data.content, diagram_data.diagram_type)
         # Verify project exists and user has access
         project = await self.project_repository.get_by_id(project_id)
         if not project:
@@ -397,6 +409,10 @@ class DiagramService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have access to this diagram",
+            )
+        if diagram_data.content is not None:
+            _reject_long_code(
+                diagram_data.content, diagram_data.diagram_type or diagram.diagram_type
             )
 
         await self._ensure_folder_in_project(diagram_data.folder_id, diagram.project_id)

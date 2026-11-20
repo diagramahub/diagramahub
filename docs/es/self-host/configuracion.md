@@ -93,6 +93,7 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 
 | Variable | Por defecto | Para qué |
 |---|---|---|
+| `COMMUNITY_MAX_PUBLICATIONS_PER_DAY` | `20` | Máximo de diagramas que un usuario puede publicar en 24 horas (`0` = sin límite; los administradores no lo tienen). Los publicados no cuentan para el límite del plan, así que este tope evita usar la Comunidad como almacenamiento gratis. Ver [Diagramas públicos](planes.md#diagramas-publicos). |
 | `COMMUNITY_PUBLIC` | `True` | Cualquiera, sin iniciar sesión, puede explorar la [Comunidad](../guia/comunidad.md), abrir sus diagramas y leer los comentarios. Con `False` toda la Comunidad pide iniciar sesión (por ejemplo, en una instalación interna de una empresa). Publicar, dar estrella, comentar, hacer fork y reportar siempre requieren una cuenta. |
 | `GITHUB_STATS_ENABLED` | `True` | La página **Acerca de** muestra las estrellas y forks del repositorio en GitHub. Las pide el servidor (no el navegador) y las guarda una hora. Con `False` no se hace ninguna llamada a GitHub y la página solo invita a dar una estrella. |
 | `GITHUB_REPOSITORY` | `diagramahub/diagramahub` | Repositorio (`dueño/nombre`) cuyas estrellas muestra **Acerca de**. |

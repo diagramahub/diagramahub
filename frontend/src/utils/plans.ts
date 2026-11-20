@@ -1,4 +1,5 @@
 /** Admin plans page: ordering, limits and the summary at the top. */
+import type { TFunction } from 'i18next';
 import type { Plan } from '../types/subscription';
 
 /** A limit stored as null or -1 means unlimited. */
@@ -55,4 +56,33 @@ export function formatAmount(amount: number, currency: string, locale: string): 
     minimumFractionDigits: whole ? 0 : 2,
     maximumFractionDigits: whole ? 0 : 2,
   }).format(amount);
+}
+
+type Translate = TFunction;
+
+/**
+ * What a plan allows in diagrams, one line each: private (or all) diagrams, and
+ * public ones when they don't count toward the limit or have their own cap.
+ */
+export function diagramLimitLines(
+  plan: Pick<Plan, 'max_diagrams' | 'public_diagrams_count' | 'max_public_diagrams'>,
+  t: Translate,
+): string[] {
+  const publicCounts = Boolean(plan.public_diagrams_count);
+  const lines: string[] = [];
+  if (isUnlimited(plan.max_diagrams)) {
+    lines.push(t('subscription.features.unlimitedDiagrams'));
+  } else {
+    lines.push(
+      t(publicCounts ? 'subscription.features.upToDiagrams' : 'subscription.features.upToPrivateDiagrams', {
+        count: plan.max_diagrams,
+      }),
+    );
+  }
+  if (!isUnlimited(plan.max_public_diagrams)) {
+    lines.push(t('subscription.features.upToPublicDiagrams', { count: plan.max_public_diagrams }));
+  } else if (!publicCounts && !isUnlimited(plan.max_diagrams)) {
+    lines.push(t('subscription.features.unlimitedPublicDiagrams'));
+  }
+  return lines;
 }

@@ -4,6 +4,8 @@ import { Trans, useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { useDialogA11y } from '../../hooks/useDialogA11y';
 import type { CommunityCategory, PublicationCard } from '../../types/community';
+import type { UsageSummary } from '../../types/subscription';
+import { publicationErrorMessage, publishingFreesSlot, unpublishBlocked } from '../../utils/publicationRules';
 import { COMMUNITY_CATEGORIES, COMMUNITY_LICENSE, compactCount, communityLicenseUrl } from '../../utils/community';
 import MarkdownEditor from '../MarkdownEditor';
 import { TagInput } from './TagInput';
@@ -59,6 +61,8 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // The plan usage: published diagrams don't count, so unpublishing needs room.
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const panelRef = useDialogA11y(isOpen, onClose, !busy);
   const publishable = PUBLISHABLE.has(diagramType);
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setSettings((s) => ({ ...s, [key]: value }));
@@ -79,18 +83,24 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
       })
       .catch(() => setExisting(null))
       .finally(() => setLoading(false));
+    apiService.getUsageSummary().then(setUsage).catch(() => setUsage(null));
   }, [isOpen, diagramId]);
+
+  const refreshUsage = () => {
+    apiService.getUsageSummary().then(setUsage).catch(() => undefined);
+  };
+  const cannotUnpublish = !!existing && unpublishBlocked(usage, existing.hidden);
 
   if (!isOpen) return null;
 
-  const run = async (action: () => Promise<void>, failure: (status?: number) => string) => {
+  const run = async (action: () => Promise<void>, fallback: () => string) => {
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
       await action();
     } catch (err: unknown) {
-      setError(failure((err as { response?: { status?: number } })?.response?.status));
+      setError(publicationErrorMessage(err, t, i18n.language) ?? fallback());
     } finally {
       setBusy(false);
     }
@@ -110,8 +120,9 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
         setSettings(settingsOf(created));
         setNotice(t('community.publish.published'));
         onPublicationChange?.();
+        refreshUsage();
       },
-      (status) => (status === 429 ? t('community.tooFast') : t('community.publish.error')),
+      () => t('community.publish.error'),
     );
 
   const save = () =>
@@ -140,6 +151,7 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
         setSettings(DEFAULT_SETTINGS);
         setNotice(t('community.publish.unpublished'));
         onPublicationChange?.();
+        refreshUsage();
       },
       () => t('community.actionError'),
     );
@@ -261,6 +273,14 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
                   </svg>
                   <span>{t('community.publish.syncNotice')}</span>
                 </p>
+                {publishingFreesSlot(usage) && (
+                  <p className="flex gap-2 text-gray-600 dark:text-gray-400">
+                    <svg className="w-4 h-4 flex-shrink-0 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>{t('community.publish.limitNote')}</span>
+                  </p>
+                )}
                 <p className="flex gap-2 text-gray-600 dark:text-gray-400">
                   <svg className="w-4 h-4 flex-shrink-0 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -285,9 +305,22 @@ export function PublishToCommunityModal({ isOpen, onClose, diagramId, diagramTyp
 
         <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950/50 rounded-b-xl flex gap-2 justify-end flex-wrap">
           {publishable && !loading && existing && (
-            <button type="button" onClick={unpublish} disabled={busy} className="btn btn-danger sm:mr-auto">
-              {t('community.owner.unpublish')}
-            </button>
+            <div className="w-full sm:w-auto sm:mr-auto flex flex-col sm:flex-row sm:items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={unpublish}
+                disabled={busy || cannotUnpublish}
+                aria-describedby={cannotUnpublish ? 'unpublish-blocked' : undefined}
+                className="btn btn-danger self-start"
+              >
+                {t('community.owner.unpublish')}
+              </button>
+              {cannotUnpublish && usage && (
+                <p id="unpublish-blocked" className="text-xs text-gray-600 dark:text-gray-400 sm:max-w-xs">
+                  {t('community.owner.unpublishBlocked', { current: usage.diagrams.current, limit: usage.diagrams.limit })}
+                </p>
+              )}
+            </div>
           )}
           <button type="button" onClick={onClose} disabled={busy} className="btn btn-secondary">{t('common.close')}</button>
           {publishable && !loading && existing && (

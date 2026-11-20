@@ -88,6 +88,15 @@ class DiagramRepository(IDiagramRepository):
             return 0
         return await DiagramInDB.find(In(DiagramInDB.project_id, project_ids)).count()
 
+    async def count_in_projects(self, project_ids: list[str], diagram_ids: list[str]) -> int:
+        """How many of ``diagram_ids`` exist in those projects (no documents loaded)."""
+        object_ids = [PydanticObjectId(i) for i in diagram_ids if PydanticObjectId.is_valid(i)]
+        if not project_ids or not object_ids:
+            return 0
+        return await DiagramInDB.find(
+            In(DiagramInDB.project_id, project_ids), In(DiagramInDB.id, object_ids)
+        ).count()
+
     async def type_counts_by_project(self, project_ids: list[str]) -> dict[str, dict[str, int]]:
         """``{project_id: {diagram_type: count}}`` from one aggregation (no content loaded)."""
         if not project_ids:

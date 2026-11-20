@@ -29,6 +29,7 @@ function LimitRow({ unlimited, label, icon }: { unlimited: boolean; label: strin
 
 const FOLDER_ICON = 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z';
 const DIAGRAM_ICON = 'M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zM7 10v4a2 2 0 002 2h5';
+const GLOBE_ICON = 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z';
 const USERS_ICON = 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z';
 
 /** One plan: price, limits, subscribers, gateway, and its actions. */
@@ -100,8 +101,23 @@ export function PlanCard({ plan, busy, onEdit, onToggleOffered, onDelete, onPric
           <LimitRow
             icon={DIAGRAM_ICON}
             unlimited={isUnlimited(plan.max_diagrams)}
-            label={isUnlimited(plan.max_diagrams) ? t('admin.plans.unlimitedDiagrams') : t('admin.plans.diagrams', { count: plan.max_diagrams ?? 0 })}
+            label={
+              isUnlimited(plan.max_diagrams)
+                ? t('admin.plans.unlimitedDiagrams')
+                : t(plan.public_diagrams_count ? 'admin.plans.diagrams' : 'admin.plans.privateDiagrams', { count: plan.max_diagrams ?? 0 })
+            }
           />
+          {(!isUnlimited(plan.max_public_diagrams) || (!plan.public_diagrams_count && !isUnlimited(plan.max_diagrams))) && (
+            <LimitRow
+              icon={GLOBE_ICON}
+              unlimited={isUnlimited(plan.max_public_diagrams)}
+              label={
+                isUnlimited(plan.max_public_diagrams)
+                  ? t('admin.plans.unlimitedPublicDiagrams')
+                  : t('admin.plans.publicDiagrams', { count: plan.max_public_diagrams ?? 0 })
+              }
+            />
+          )}
           <LimitRow icon={USERS_ICON} unlimited={false} label={t('admin.plans.subscribers', { count: plan.active_subscriptions })} />
         </ul>
 

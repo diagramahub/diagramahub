@@ -323,8 +323,14 @@
           "price": "The price must be a number of 0 or more.",
           "projects": "The project limit must be a number of 0 or more.",
           "diagrams": "The diagram limit must be a number of 0 or more.",
-          "save": "Couldn't save the plan."
-        }
+          "save": "Couldn't save the plan.",
+          "publicDiagrams": "The public diagram limit must be 0 or more."
+        },
+        "maxDiagramsHelpPrivate": "Only private ones count: diagrams published in the Community don't use a slot.",
+        "maxDiagramsHelpAll": "Every diagram counts, published ones too.",
+        "maxPublicDiagrams": "Public diagrams",
+        "publicCount": "Published diagrams also count toward the diagram limit",
+        "publicCountHelp": "Off (recommended): publishing in the Community frees a slot, and unpublishing needs room for one more private diagram."
       },
       "prices": {
         "title": "Price in another currency",
@@ -341,7 +347,13 @@
           "add": "Couldn't add the price.",
           "remove": "Couldn't remove the price."
         }
-      }
+      },
+      "publicPlaceholder": "e.g. 50",
+      "privateDiagrams_one": "{{count}} private diagram",
+      "privateDiagrams_other": "{{count}} private diagrams",
+      "publicDiagrams_one": "{{count}} public diagram",
+      "publicDiagrams_other": "{{count}} public diagrams",
+      "unlimitedPublicDiagrams": "Unlimited public diagrams"
     }
   },
   "chat": {
@@ -536,7 +548,10 @@
       "emptyTitle": "No favorites yet",
       "emptyDescription": "Star a diagram next to its title in the editor, or from its menu in the file browser, to get a shortcut here.",
       "showing": "Showing {{shown}} of {{total}}"
-    }
+    },
+    "privateOfLimit": "of {{limit}} private",
+    "privateOfLimitPublic_one": "of {{limit}} private · {{count}} public",
+    "privateOfLimitPublic_other": "of {{limit}} private · {{count}} public"
   },
   "favorite": {
     "add": "Add to favorites",
@@ -885,7 +900,8 @@
     "decreaseFontSize": "Decrease text size",
     "resizePanels": "Resize panels",
     "deleteDiagramConfirm": "Are you sure you want to delete the \"{{name}}\" diagram? This action cannot be undone.",
-    "loadingEditor": "Loading editor..."
+    "loadingEditor": "Loading editor...",
+    "diagramTooLarge": "The code is over the maximum of {{limit}} characters; it wasn't saved."
   },
   "projectImport": {
     "title": "Import diagrams",
@@ -1648,7 +1664,12 @@
       "upToDiagrams_one": "Up to {{count}} diagram",
       "upToDiagrams_other": "Up to {{count}} diagrams",
       "premiumBadge": "Premium badge on your profile",
-      "prioritySupport": "Priority support"
+      "prioritySupport": "Priority support",
+      "upToPrivateDiagrams_one": "Up to {{count}} private diagram",
+      "upToPrivateDiagrams_other": "Up to {{count}} private diagrams",
+      "upToPublicDiagrams_one": "Up to {{count}} public diagram",
+      "upToPublicDiagrams_other": "Up to {{count}} public diagrams",
+      "unlimitedPublicDiagrams": "Unlimited public diagrams"
     },
     "cancellation": {
       "title": "Subscription Cancelled",
@@ -1675,12 +1696,21 @@
       "unlimited": "Unlimited",
       "warning": "You're close to the limit",
       "limitReached": "Limit reached",
-      "upgradePrompt": "Upgrade your plan to create more resources"
+      "upgradePrompt": "Upgrade your plan to create more resources",
+      "privateDiagrams": "Private diagrams",
+      "private_diagrams": "private diagrams",
+      "public_diagrams": "public diagrams",
+      "publicDiagrams": "Public diagrams",
+      "publicFree_one": "{{count}} published in the Community, not counted toward the limit",
+      "publicFree_other": "{{count}} published in the Community, not counted toward the limit",
+      "publicHint": "Diagrams you publish in the Community don't count toward your limit.",
+      "overLimit": "You have more private diagrams than your plan allows: you can't create new ones or unpublish until you delete or publish some."
     },
     "upgradePlan": {
       "title": "Plan limit reached",
       "message": "You've reached your current plan's {{resource}} limit. Upgrade your plan to keep creating.",
-      "action": "See available plans"
+      "action": "See available plans",
+      "publishHint": "Diagrams published in the Community don't count: publishing one frees a slot."
     },
     "plans": {
       "title": "Available Plans",
@@ -1720,7 +1750,22 @@
       "updatePaymentMethod": "Error updating payment method",
       "noSubscription": "No subscription found"
     },
-    "viewDetails": "View subscription details"
+    "viewDetails": "View subscription details",
+    "administrator": "Administrator",
+    "administratorDescription": "Full access with no limits",
+    "planSelector": {
+      "title": "Available plans",
+      "subtitle": "Choose the plan that fits your needs",
+      "current": "Current plan",
+      "free": "Free",
+      "perMonth": "/month",
+      "processing": "Processing…",
+      "switchToFree": "Switch to free",
+      "select": "Choose",
+      "errorLoading": "Couldn't load the plans",
+      "errorChanging": "Couldn't change the plan"
+    },
+    "errorLoading": "Couldn't load the usage"
   },
   "diagramPreview": {
     "syntaxError": "⚠️ Syntax error",
@@ -1969,7 +2014,7 @@
     "forkedFrom": "Fork of <original>“{{title}}”</original> by {{owner}}",
     "forkConfirm": "Fork",
     "forking": "Creating…",
-    "forkLimit": "Couldn't fork: check your plan's limit or the chosen project.",
+    "forkLimit": "Couldn't fork: you reached your plan's private diagram limit (publishing one frees a slot) or the chosen project isn't valid.",
     "reportTitle": "Report",
     "reportDescription": "Tell us what's wrong (spam, sensitive data, offensive content…). Administrators review it.",
     "reportReason": "Reason",
@@ -1982,7 +2027,8 @@
       "unpublish": "Remove from the Community",
       "unpublishTitle": "Remove publication",
       "unpublishMessage": "The diagram stops being public and its stars and comments are deleted. Forks others already made are kept.",
-      "synced": "It stays in sync with your diagram: changes are published on their own."
+      "synced": "It stays in sync with your diagram: changes are published on their own.",
+      "unpublishBlocked": "You can't make it private right now: you already have {{current}} of {{limit}} private diagrams. Delete one or upgrade your plan."
     },
     "admin": {
       "title": "Moderation",
@@ -2031,7 +2077,18 @@
       "statusPublished": "Published",
       "save": "Save changes",
       "saving": "Saving…",
-      "saved": "Changes saved."
+      "saved": "Changes saved.",
+      "limitNote": "While it's published, it doesn't count toward your plan's diagram limit.",
+      "errors": {
+        "empty": "The diagram is empty: add something before publishing it.",
+        "invalid": "The diagram has errors and can't be drawn; fix it before publishing it.",
+        "invalidWithReason": "The diagram has errors and can't be drawn: {{reason}}",
+        "tooLarge": "The code is over the maximum of {{limit}} characters.",
+        "dailyLimit_one": "You reached the maximum of {{count}} publication in 24 hours. Try again later.",
+        "dailyLimit_other": "You reached the maximum of {{count}} publications in 24 hours. Try again later.",
+        "publicLimit_one": "Your plan allows {{count}} public diagram. Unpublish one or upgrade your plan.",
+        "publicLimit_other": "Your plan allows {{count}} public diagrams. Unpublish one or upgrade your plan."
+      }
     },
     "viewer": {
       "label": "Diagram viewer",

@@ -168,7 +168,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **folders** | `folders/` | Folder CRUD | — |
 | **ai_providers** | `ai_providers/` | AI provider config + LLM clients (5 providers) | `clients/` subfolder (with `factory.py`), `prompts.py`, `model_catalog.json` + `model_catalog.py` |
 | **chat_sessions** | `chat_sessions/` | AI chat session management | — |
-| **subscriptions** | `subscriptions/` | Stripe billing, plans, webhooks | `billing_service.py`, `webhook_handler.py`, `webhook_routes.py`, `usage_limiter.py`, `payment_providers/`, `constants.py`, `exceptions.py`, `logger.py`, `plan_service.py`, `stripe_catalog_service.py`, `subscription_service.py`, `migration_service.py` |
+| **subscriptions** | `subscriptions/` | Stripe billing, plans, webhooks | `billing_service.py`, `webhook_handler.py`, `webhook_routes.py`, `usage_limiter.py`, `limiter_factory.py`, `payment_providers/`, `constants.py`, `exceptions.py`, `logger.py`, `plan_service.py`, `stripe_catalog_service.py`, `subscription_service.py`, `migration_service.py` |
 | **shared_links** | `shared_links/` | Public diagram sharing, rate limiting | `public_routes.py`, `rate_limiter.py` |
 | **prompt_history** | `prompt_history/` | AI prompt history tracking (API only: no UI reads or writes it yet) | — |
 | **integrations** | `integrations/` | Admin email/payment/OAuth vendor config | `email_service.py`, `email_vendors/`, `vendor_factory.py` |
@@ -307,6 +307,8 @@ When creating a new module, you MUST:
 ### Subscriptions & Billing
 - Every user gets FREE plan on registration (including OAuth)
 - Resource limits (`max_projects`, `max_diagrams`): `-1` or `None` = unlimited
+- `max_diagrams` counts only **private** diagrams: one published and visible in the Community doesn't use a slot (a hidden one does), unless the plan sets `public_diagrams_count`. `max_public_diagrams` optionally caps publications. Unpublishing needs room for one more private diagram (403 `resource_type: "private_diagrams"`); an admin removing someone else's publication may leave them over the limit (no new private diagrams until back under). `UsageLimiter` gets the publications through `publication_source` (`subscriptions/limiter_factory.build_usage_limiter`)
+- Publishing needs code that draws something (Mermaid structure, Kroki for the rest), at most `MAX_DIAGRAM_CODE_LENGTH` (100,000 characters, also enforced on every save of a text diagram and on import) and `COMMUNITY_MAX_PUBLICATIONS_PER_DAY` (20; admins exempt)
 - Stripe: checkout sessions, idempotent webhooks (keyed by `event_id`), billing portal
 - Multi-currency pricing via `prices` dict on plans
 - Provider-agnostic payment gateway (`payment_providers/interfaces.py`; Stripe is the only implementation)

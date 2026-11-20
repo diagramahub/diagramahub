@@ -34,6 +34,10 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
   const [maxDiagrams, setMaxDiagrams] = useState(isUnlimited(plan?.max_diagrams) ? '' : String(plan?.max_diagrams ?? ''));
   const [unlimitedProjects, setUnlimitedProjects] = useState(plan ? isUnlimited(plan.max_projects) : false);
   const [unlimitedDiagrams, setUnlimitedDiagrams] = useState(plan ? isUnlimited(plan.max_diagrams) : false);
+  // Published Community diagrams: by default they don't count toward max_diagrams.
+  const [publicCounts, setPublicCounts] = useState(plan?.public_diagrams_count ?? false);
+  const [maxPublic, setMaxPublic] = useState(isUnlimited(plan?.max_public_diagrams) ? '' : String(plan?.max_public_diagrams ?? ''));
+  const [unlimitedPublic, setUnlimitedPublic] = useState(plan ? isUnlimited(plan.max_public_diagrams) : true);
   const [isActive, setIsActive] = useState(plan?.is_active ?? true);
 
   // Prices in other currencies (only when creating; an existing plan manages them on its card).
@@ -64,6 +68,11 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
       diagrams = parseInt(maxDiagrams, 10);
       if (isNaN(diagrams) || diagrams < 0) return setError(t('admin.plans.form.errors.diagrams'));
     }
+    let publicDiagrams: number | null = null;
+    if (!unlimitedPublic) {
+      publicDiagrams = parseInt(maxPublic, 10);
+      if (isNaN(publicDiagrams) || publicDiagrams < 0) return setError(t('admin.plans.form.errors.publicDiagrams'));
+    }
 
     setLoading(true);
     try {
@@ -73,6 +82,8 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
           description: description.trim() || undefined,
           max_projects: projects,
           max_diagrams: diagrams,
+          public_diagrams_count: publicCounts,
+          max_public_diagrams: publicDiagrams,
           is_active: isActive,
         };
         if (!isFreePlan) updateData.code = code.trim();
@@ -91,6 +102,8 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
           price_usd: price,
           max_projects: projects,
           max_diagrams: diagrams,
+          public_diagrams_count: publicCounts,
+          max_public_diagrams: publicDiagrams,
           prices: Object.keys(additionalPrices).length > 0 ? additionalPrices : undefined,
         };
         await apiService.createPlan(createData);
@@ -309,7 +322,20 @@ export default function PlanForm({ plan, onClose, onSuccess }: PlanFormProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {limitField('plan-projects', t('admin.plans.form.maxProjects'), maxProjects, setMaxProjects, unlimitedProjects, setUnlimitedProjects, t('admin.plans.projectsPlaceholder'))}
                 {limitField('plan-diagrams', t('admin.plans.form.maxDiagrams'), maxDiagrams, setMaxDiagrams, unlimitedDiagrams, setUnlimitedDiagrams, t('admin.plans.diagramsPlaceholder'))}
+                {limitField('plan-public-diagrams', t('admin.plans.form.maxPublicDiagrams'), maxPublic, setMaxPublic, unlimitedPublic, setUnlimitedPublic, t('admin.plans.publicPlaceholder'))}
               </div>
+              <p className={helpClass}>
+                {publicCounts ? t('admin.plans.form.maxDiagramsHelpAll') : t('admin.plans.form.maxDiagramsHelpPrivate')}
+              </p>
+              <label className="mt-3 flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox" className="mt-0.5" checked={publicCounts} onChange={(e) => setPublicCounts(e.target.checked)} aria-describedby="plan-public-count-help" />
+                <span>
+                  {t('admin.plans.form.publicCount')}
+                  <span id="plan-public-count-help" className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {t('admin.plans.form.publicCountHelp')}
+                  </span>
+                </span>
+              </label>
             </fieldset>
 
             {/* Availability (existing paid plans) */}

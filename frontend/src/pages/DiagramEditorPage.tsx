@@ -63,7 +63,7 @@ import { FixDiagramResponse, ConvertDiagramResponse } from "../types/ai";
 import { configInitBlockManager, splitFrontmatter } from "../utils/configInitBlockManager";
 import { plantUMLConfigManager } from "../utils/plantUMLConfigManager";
 import { d2ConfigManager, D2_THEMES } from "../utils/d2ConfigManager";
-import { apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
+import { apiErrorDetail, apiErrorMessage, apiErrorStatus, resourceLimitDetail } from "../utils/apiError";
 import {
   MERMAID_CURVES,
   MERMAID_DEFAULTS,
@@ -77,6 +77,7 @@ import { PublicBadge } from "../components/community/PublicBadge";
 import { FavoriteStarButton } from "../components/FavoriteStarButton";
 import { usePublishedDiagrams } from "../hooks/usePublishedDiagrams";
 import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
+import { MarkdownPreview } from "../components/MarkdownPreview";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -307,6 +308,7 @@ export default function DiagramEditorPage() {
     resourceType: string;
     currentUsage: number;
     limit: number;
+    publicCounts?: boolean;
   } | null>(null);
 
   // Autosave state
@@ -1367,6 +1369,11 @@ export default function DiagramEditorPage() {
     } catch (err) {
       console.error("Error autosaving:", err);
       setSaveStatus("idle");
+      // Over the code size cap: retrying can't help until the code gets shorter.
+      const detail = apiErrorDetail(err) as { error?: string; limit?: number } | undefined;
+      if (detail?.error === "diagram_too_large") {
+        setError(i18n.t("editor.diagramTooLarge", { limit: (detail.limit ?? 0).toLocaleString(i18n.language) }));
+      }
       // Still pending (it was never cleared), so the next flush or edit retries it.
     } finally {
       if (inFlightSave.current === save) inFlightSave.current = null;
@@ -1375,7 +1382,7 @@ export default function DiagramEditorPage() {
       // after an error `next` is this same save, so it waits for the next flush).
       if (next && next !== save) void persist(next);
     }
-  }, []);
+  }, [i18n]);
 
   useEffect(() => {
     if (!currentDiagram || !projectId) return;
@@ -1877,6 +1884,7 @@ export default function DiagramEditorPage() {
           resourceType: limitDetail.resource_type,
           currentUsage: limitDetail.current_usage,
           limit: limitDetail.limit,
+          publicCounts: limitDetail.public_counts,
         });
       } else {
         setError(t("editor.createDiagramError"));
@@ -4326,9 +4334,9 @@ export default function DiagramEditorPage() {
                       )}
                     </>
                   ) : (
-                    <div className="prose prose-sm max-w-none overflow-auto h-full">
+                    <div className="overflow-auto h-full">
                       {diagramDescription ? (
-                        <ReactMarkdown>{diagramDescription}</ReactMarkdown>
+                        <MarkdownPreview>{diagramDescription}</MarkdownPreview>
                       ) : (
                         <div className="text-gray-400 text-center py-12">
                           <p className="text-sm">{t("editor.noDescription")}</p>
@@ -5320,6 +5328,7 @@ export default function DiagramEditorPage() {
         resourceType={upgradePlan?.resourceType || ""}
         currentUsage={upgradePlan?.currentUsage || 0}
         limit={upgradePlan?.limit || 0}
+        publicCounts={upgradePlan?.publicCounts}
       />
 
       {/* Share Diagram Modal */}

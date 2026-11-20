@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # and read their comments. False keeps the whole community behind sign-in
     # (e.g. a private company instance). Anything that saves still needs sign-in.
     COMMUNITY_PUBLIC: bool = True
+    # Most diagrams one user can publish in 24 hours (0 = no limit). Published
+    # diagrams don't count toward the plan's diagram limit, so this keeps the
+    # Community from being used as free storage. Admins are exempt.
+    COMMUNITY_MAX_PUBLICATIONS_PER_DAY: int = 20
 
     # About page: the open-source repository whose GitHub stars and forks it shows
     # (asked by the server, cached for an hour). False hides them (no outbound call).

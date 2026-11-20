@@ -3,8 +3,16 @@ Repository interfaces for subscription system.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Optional, Protocol, Union
 from .schemas import PlanInDB, PlanCreate, PlanUpdate, SubscriptionInDB, SubscriptionCreate
+
+
+class IPublicationSource(Protocol):
+    """Which of a user's diagrams are published in the Community (the community repository)."""
+
+    async def published_sources(self, owner_id: str) -> list[tuple[str, str, bool]]:
+        """``(source_diagram_id, publication_id, hidden)`` of the user's publications."""
+        ...
 
 
 class IPlanRepository(ABC):

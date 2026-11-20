@@ -20,6 +20,10 @@ STATUS_EXPIRED = "expired"
 # Resource types
 RESOURCE_TYPE_PROJECT = "projects"
 RESOURCE_TYPE_DIAGRAM = "diagrams"
+# Unpublishing would make one more private diagram than the plan allows.
+RESOURCE_TYPE_PRIVATE_DIAGRAM = "private_diagrams"
+# Publishing beyond the plan's max_public_diagrams.
+RESOURCE_TYPE_PUBLIC_DIAGRAM = "public_diagrams"
 
 # Payment providers
 PAYMENT_PROVIDER_STRIPE = "stripe"

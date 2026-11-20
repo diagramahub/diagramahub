@@ -261,6 +261,18 @@ class FavoriteState(BaseModel):
 
 SEARCHABLE_DIAGRAM_TYPES = ("mermaid", "plantuml", "d2", "dbml", "freehand")
 
+#: Longest code a text diagram (Mermaid, PlantUML, D2, DBML) can have, in characters.
+#: Mermaid itself refuses to draw more than 50,000; sketches (freehand JSON) are exempt.
+MAX_DIAGRAM_CODE_LENGTH = 100_000
+TEXT_DIAGRAM_TYPES = frozenset({"mermaid", "plantuml", "d2", "dbml"})
+
+
+def code_too_long(content: Optional[str], diagram_type: Optional[str]) -> bool:
+    """Whether a text diagram's code is over :data:`MAX_DIAGRAM_CODE_LENGTH`."""
+    return (diagram_type or "") in TEXT_DIAGRAM_TYPES and len(
+        content or ""
+    ) > MAX_DIAGRAM_CODE_LENGTH
+
 
 class DiagramSearchResult(BaseModel):
     """One diagram found by a search, with where the text matched."""

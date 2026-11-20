@@ -406,6 +406,8 @@ class PlanService:
             price_usd=plan.price_usd,
             max_projects=plan.max_projects,
             max_diagrams=plan.max_diagrams,
+            public_diagrams_count=plan.public_diagrams_count,
+            max_public_diagrams=plan.max_public_diagrams,
             is_active=plan.is_active,
             is_free=plan.is_free,
             active_subscriptions=active_subscriptions,

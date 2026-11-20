@@ -15,13 +15,14 @@ class ValidationError(HTTPException):
 class ResourceLimitError(HTTPException):
     """Resource limit exceeded error (HTTP 403)."""
 
-    def __init__(self, resource_type: str, current: int, limit: int):
+    def __init__(self, resource_type: str, current: int, limit: int, **extra):
         detail = {
             "error": "resource_limit_exceeded",
             "resource_type": resource_type,
             "current_usage": current,
             "limit": limit,
             "message": f"You have reached your {resource_type} limit ({current}/{limit})",
+            **extra,
         }
         super().__init__(status_code=403, detail=detail)
 
