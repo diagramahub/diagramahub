@@ -68,6 +68,17 @@ class IUserRepository(ABC):
         pass
 
     @abstractmethod
+    async def set_active(
+        self,
+        user_id: str,
+        is_active: bool,
+        blocked_by: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> Optional[UserInDB]:
+        """Block (``is_active=False``, recording who and why) or unblock a user."""
+        pass
+
+    @abstractmethod
     async def count_admins(self) -> int:
         """Count the number of admin users in the database."""
         pass

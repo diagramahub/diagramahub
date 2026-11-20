@@ -266,6 +266,24 @@ class OAuthService:
         # 6. Find or create user and link provider
         user = await self._find_or_create_user(user_info, provider)
 
+        # 6b. A blocked account cannot sign in with OAuth either
+        if not user.is_active:
+            from app.api.v1.users.audit_log import (
+                EVENT_OAUTH_LOGIN_FAILED,
+                log_event,
+            )
+
+            await log_event(
+                EVENT_OAUTH_LOGIN_FAILED,
+                user_email=user.email,
+                user_id=str(user.id),
+                details=f"Inactive user, provider: {provider}",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Inactive user",
+            )
+
         # 7. Issue JWT
         access_token = await self._issue_jwt(user, provider)
 

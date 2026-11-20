@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from pymongo import AsyncMongoClient
 
 from app.api.v1.users.routes import router as users_router
+from app.api.v1.users.admin_routes import router as users_admin_router
 from app.api.v1.about.routes import router as about_router
 from app.api.v1.activity.routes import router as activity_router
 from app.api.v1.activity.schemas import DiagramActivityInDB
@@ -285,6 +286,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(users_router, prefix=settings.API_V1_PREFIX)
+app.include_router(users_admin_router, prefix=settings.API_V1_PREFIX)
 app.include_router(projects_router, prefix=settings.API_V1_PREFIX)
 app.include_router(diagrams_router, prefix=settings.API_V1_PREFIX)
 app.include_router(folders_router, prefix=settings.API_V1_PREFIX)

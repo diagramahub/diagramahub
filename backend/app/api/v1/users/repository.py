@@ -133,6 +133,26 @@ class UserRepository(IUserRepository):
         await user.save()
         return True
 
+    async def set_active(
+        self,
+        user_id: str,
+        is_active: bool,
+        blocked_by: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> Optional[UserInDB]:
+        """Block (``is_active=False``, recording who and why) or unblock a user."""
+        user = await self.get_by_id(user_id)
+        if not user:
+            return None
+
+        user.is_active = is_active
+        user.blocked_at = None if is_active else datetime.now(timezone.utc)
+        user.blocked_by = None if is_active else blocked_by
+        user.blocked_reason = None if is_active else (reason or None)
+        user.updated_at = datetime.now(timezone.utc)
+        await user.save()
+        return user
+
     async def update_profile(self, user_id: str, user_data: UserUpdate) -> Optional[UserInDB]:
         """Update user profile (full_name, profile_picture)."""
         user = await self.get_by_id(user_id)

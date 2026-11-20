@@ -53,6 +53,16 @@ Routes are relative to `/api/v1`. **Public** = no token; **User** = JWT; **Admin
 | GET | `/mfa/admin/users`, `/mfa/admin/users/export` | Admin |
 | POST | `/mfa/admin/users/{user_id}/reset-mfa` | Admin |
 
+`GET /mfa/admin/users` accepts `status=active|blocked`.
+
+### User administration (`users/admin_routes.py`)
+
+| Method | Route | Access |
+|---|---|---|
+| PUT | `/users/admin/{user_id}/status` (`is_active`, `reason`) | Admin |
+| DELETE | `/users/admin/{user_id}` (`confirm_email`) | Admin |
+| GET | `/users/admin/{user_id}/billing` | Admin |
+
 ### OAuth (`oauth/`)
 
 | Method | Route | Access |

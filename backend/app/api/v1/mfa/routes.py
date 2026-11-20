@@ -8,7 +8,7 @@ recovery codes, method switching, and status queries.
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from jwt import PyJWTError
 
 from app.api.v1.mfa.admin_service import MfaAdminService
@@ -428,11 +428,15 @@ async def admin_list_users(
     page: int = 1,
     page_size: int = 20,
     search: str = "",
+    status_filter: Annotated[str, Query(alias="status")] = "",
 ) -> dict:
-    """List users with MFA status. Admin only. Supports pagination and search."""
+    """List users with MFA status. Admin only. Supports pagination, search and a
+    ``status`` filter (``active`` / ``blocked``)."""
     await _require_admin(current_user_email)
 
-    return await admin_service.list_users(page=page, page_size=page_size, search=search)
+    return await admin_service.list_users(
+        page=page, page_size=page_size, search=search, status_filter=status_filter
+    )
 
 
 @router.post("/admin/users/{user_id}/reset-mfa")

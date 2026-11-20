@@ -81,6 +81,7 @@ Each user can enable one or both methods from their profile (see [Your account a
 - Enabling MFA generates **8 single-use recovery codes** (10 characters). They are shown only once and stored hashed. When the last one is used, the app reminds the user to generate new ones.
 - Disabling a method requires confirming the password.
 - An administrator can **reset the MFA** of a user who lost access to their factors; the action is audited as `admin_mfa_reset`.
+- An administrator can **block** an account: it can't sign in (with Google either), and its open sessions and API keys stop working on their next request. See [Users](../self-host/users.md).
 
 ## Sign in with Google (OAuth 2.0 / OpenID Connect)
 

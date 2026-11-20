@@ -36,6 +36,9 @@ If writing to the log fails, the error goes to the server logs and the user's op
 | `mfa_enabled` | The user enabled TOTP or email as a factor |
 | `mfa_disabled` | The user disabled an MFA method |
 | `admin_mfa_reset` | An administrator reset a user's MFA |
+| `admin_user_blocked` | An administrator blocked an account (with the reason, if given) |
+| `admin_user_unblocked` | An administrator unblocked an account |
+| `admin_user_deleted` | An administrator deleted an account (and the subscription it cancelled, if any) |
 | `password_changed` | The user changed their password from the profile |
 | `password_reset_requested` | A password reset email was requested |
 | `password_reset_confirmed` | The password was reset with the emailed link |

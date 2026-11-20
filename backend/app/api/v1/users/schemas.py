@@ -127,6 +127,12 @@ class UserInDB(Document):
     updated_at: datetime = Field(default_factory=utcnow)
     last_login_at: Optional[datetime] = None
 
+    # Admin block: ``is_active=False`` rejects sign-in and every open session.
+    # Set together by the admin "block" action and cleared on unblock.
+    blocked_at: Optional[datetime] = None
+    blocked_by: Optional[str] = None  # email of the admin who blocked the account
+    blocked_reason: Optional[str] = None
+
     # Password reset fields
     reset_token: Optional[str] = None
     reset_token_expires: Optional[float] = None
@@ -312,3 +318,16 @@ class DeleteAccountRequest(BaseModel):
     """Schema for account deletion request. Requires a confirmation phrase."""
 
     confirmation_phrase: str
+
+
+class AdminUserStatusRequest(BaseModel):
+    """Block (``is_active=False``) or unblock a user from the admin panel."""
+
+    is_active: bool
+    reason: Optional[str] = Field(None, max_length=500)
+
+
+class AdminDeleteUserRequest(BaseModel):
+    """Delete a user from the admin panel; the admin retypes the user's email to confirm."""
+
+    confirm_email: str = Field(..., min_length=3, max_length=320)

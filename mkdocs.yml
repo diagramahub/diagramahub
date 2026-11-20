@@ -97,6 +97,7 @@ nav:
           - Producción: es/self-host/produccion.md
           - Integraciones: es/self-host/integraciones.md
           - Planes y límites: es/self-host/planes.md
+          - Usuarios: es/self-host/usuarios.md
           - Mantenimiento y actualización: es/self-host/mantenimiento.md
           - Solución de problemas: es/self-host/problemas.md
       - Desarrollo:
@@ -181,6 +182,7 @@ nav:
           - Production: en/self-host/production.md
           - Integrations: en/self-host/integrations.md
           - Plans and limits: en/self-host/plans.md
+          - Users: en/self-host/users.md
           - Maintenance and upgrades: en/self-host/maintenance.md
           - Troubleshooting: en/self-host/troubleshooting.md
       - Development:

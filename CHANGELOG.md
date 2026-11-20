@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- **User administration**: Administration → Users is a compact table (user, plan with a **Paid** mark, usage, MFA, last sign-in, status) with search, an **All / Active / Blocked** filter and a detail side panel: summary (account, usage by type, connected AI models, MFA with disable), payments (current plan, next charge, total paid per currency, the payment provider's invoices, subscription history) and a danger zone. **Block** (optional reason, seen only by admins) stops sign-in with a password or Google and ends open sessions and API keys on their next request (401 `Account disabled`; the app returns to sign-in with "Your account is blocked"); the subscription is kept. **Delete** (retype the email) removes the account and all its data, cancelling an active paid subscription with the payment provider first; if that fails, or there's no provider, nothing is deleted. An admin can't block or delete their own account. `PUT /users/admin/{id}/status`, `DELETE /users/admin/{id}`, `GET /users/admin/{id}/billing`, `GET /mfa/admin/users?status=`; audited as `admin_user_blocked`, `admin_user_unblocked`, `admin_user_deleted`. Guide: Self-host → Users.
+
+### Fixed
+- The language menu opens downwards when there's no room above it (top headers) and stays inside the screen near the right edge.
+
 ## [0.9.0] - 2026-11-18
 
 ### Added
