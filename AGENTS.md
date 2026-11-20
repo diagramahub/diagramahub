@@ -419,7 +419,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 - **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
 - **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
 - **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
-- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 69.20% on 2026-11-16). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 72.85% on 2026-11-20). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
 - Tests mirror module structure under `tests/api/v1/`
 
 ### Frontend Tests
