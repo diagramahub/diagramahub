@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Fixed
 - The language menu opens downwards when there's no room above it (top headers) and stays inside the screen near the right edge.
 - The subscription page's usage card and plan picker had hardcoded English and Spanish texts (and English prices); they are translated and localized now.
+- Diagram descriptions looked raw: inline code kept its backticks (the typography plugin adds them), Community cards showed the Markdown source, and the editor's description preview didn't render tables. One `MarkdownPreview` (GFM, inline code as a chip, a compact one-paragraph form for cards) now renders them in the shared view, folder presentations, the Community page and cards, and the editor.
 
 ## [0.9.0] - 2026-11-18
 

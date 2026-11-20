@@ -20,6 +20,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import { CommunityDiagramViewer } from '../components/community/CommunityDiagramViewer';
 import { CommunityAvatar } from '../components/community/CommunityAvatar';
 import { TYPE_BADGES } from '../components/community/typeBadges';
+import { MarkdownPreview } from '../components/MarkdownPreview';
 
 const primary = 'btn btn-primary';
 const secondary = 'btn btn-secondary';
@@ -477,12 +478,10 @@ function DetailTabs({ publication: pub, onCopied }: { publication: PublicationDe
               <div className="relative">
                 <div
                   ref={descriptionRef}
-                  className={`prose prose-sm max-w-none break-words dark:prose-invert prose-a:text-purple-600 dark:prose-a:text-purple-400 prose-pre:bg-gray-50 prose-pre:text-gray-800 dark:prose-pre:bg-gray-950 dark:prose-pre:text-gray-200 ${
-                    overflows && !expanded ? 'overflow-hidden' : ''
-                  }`}
+                  className={overflows && !expanded ? 'overflow-hidden' : ''}
                   style={overflows && !expanded ? { maxHeight: DESCRIPTION_COLLAPSED_HEIGHT } : undefined}
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{pub.description}</ReactMarkdown>
+                  <MarkdownPreview>{pub.description}</MarkdownPreview>
                 </div>
                 {overflows && !expanded && (
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white dark:from-gray-900" aria-hidden="true" />

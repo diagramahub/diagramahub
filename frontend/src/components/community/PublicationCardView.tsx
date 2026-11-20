@@ -5,6 +5,7 @@ import { compactCount } from '../../utils/community';
 import { DiagramThumbnail } from './DiagramThumbnail';
 import { CommunityAvatar } from './CommunityAvatar';
 import { TYPE_BADGES } from './typeBadges';
+import { MarkdownPreview } from '../MarkdownPreview';
 
 interface PublicationCardViewProps {
   publication: PublicationCard;
@@ -46,7 +47,11 @@ export function PublicationCardView({ publication: p, onToggleStar }: Publicatio
             {p.title}
           </Link>
         </h3>
-        {p.description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{p.description}</p>}
+        {p.description && (
+          <MarkdownPreview compact className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 break-words">
+            {p.description}
+          </MarkdownPreview>
+        )}
         <div className="mt-auto pt-3 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
           <CommunityAvatar name={p.owner_name} />
           <span className="truncate">{p.owner_name}</span>

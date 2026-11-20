@@ -77,6 +77,7 @@ import { PublicBadge } from "../components/community/PublicBadge";
 import { FavoriteStarButton } from "../components/FavoriteStarButton";
 import { usePublishedDiagrams } from "../hooks/usePublishedDiagrams";
 import { useNonPassiveWheel } from "../hooks/useNonPassiveWheel";
+import { MarkdownPreview } from "../components/MarkdownPreview";
 
 /** File explorer column width bounds (px). */
 const FILE_BROWSER_MIN_WIDTH = 200;
@@ -4333,9 +4334,9 @@ export default function DiagramEditorPage() {
                       )}
                     </>
                   ) : (
-                    <div className="prose prose-sm max-w-none overflow-auto h-full">
+                    <div className="overflow-auto h-full">
                       {diagramDescription ? (
-                        <ReactMarkdown>{diagramDescription}</ReactMarkdown>
+                        <MarkdownPreview>{diagramDescription}</MarkdownPreview>
                       ) : (
                         <div className="text-gray-400 text-center py-12">
                           <p className="text-sm">{t("editor.noDescription")}</p>
