@@ -19,7 +19,11 @@ export type Plan = {
   description: string | null;
   price_usd: number;
   max_projects: number | null;  // null = unlimited
-  max_diagrams: number | null;  // null = unlimited
+  max_diagrams: number | null;  // null = unlimited; only private diagrams unless public_diagrams_count
+  /** Published (visible) Community diagrams also count toward max_diagrams. */
+  public_diagrams_count?: boolean;
+  /** Most published diagrams (null / -1 = unlimited). */
+  max_public_diagrams?: number | null;
   is_active: boolean;
   is_free: boolean;
   active_subscriptions: number;
@@ -36,6 +40,8 @@ export type PlanCreate = {
   price_usd: number;
   max_projects: number | null;
   max_diagrams: number | null;
+  public_diagrams_count?: boolean;
+  max_public_diagrams?: number | null;
   prices?: Record<string, number>;
 }
 
@@ -46,6 +52,8 @@ export type PlanUpdate = {
   price_usd?: number;
   max_projects?: number | null;
   max_diagrams?: number | null;
+  public_diagrams_count?: boolean;
+  max_public_diagrams?: number | null;
   is_active?: boolean;
 }
 
@@ -72,8 +80,13 @@ export type UsageSummary = {
     limit: number | null;
   };
   diagrams: {
+    /** Diagrams that count toward the limit: private ones, unless public_counts. */
     current: number;
     limit: number | null;
+    /** Published and visible in the Community. */
+    public: number;
+    public_counts: boolean;
+    public_limit: number | null;
   };
   usage_percentage: {
     projects: number;

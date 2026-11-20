@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm';
 import apiService from '../services/api';
 import type { CommunityComment, PublicationDetail } from '../types/community';
 import type { Project } from '../types/project';
+import type { UsageSummary } from '../types/subscription';
+import { publicationErrorMessage, unpublishBlocked } from '../utils/publicationRules';
 import { COMMUNITY_LICENSE, communityLicenseUrl, compactCount, threadComments } from '../utils/community';
 import { dateLocale } from '../utils/locale';
 import { apiErrorStatus } from '../utils/apiError';
@@ -41,6 +43,13 @@ export default function CommunityDiagramPage() {
   const [report, setReport] = useState<{ type: 'diagram' | 'comment'; id: string } | null>(null);
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // The owner's plan usage: making the diagram private again needs room for it.
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
+  const isOwner = !!pub?.is_owner;
+  useEffect(() => {
+    if (!isOwner) return;
+    apiService.getUsageSummary().then(setUsage).catch(() => setUsage(null));
+  }, [isOwner]);
 
   const notify = (message: string) => {
     setToast(message);
@@ -146,8 +155,8 @@ export default function CommunityDiagramPage() {
     try {
       await apiService.unpublishDiagram(pub.id);
       navigate('/community');
-    } catch {
-      notify(t('community.actionError'));
+    } catch (err: unknown) {
+      notify(publicationErrorMessage(err, t, i18n.language) ?? t('community.actionError'));
     }
   };
 
@@ -335,9 +344,15 @@ export default function CommunityDiagramPage() {
               {pub.source_diagram_id && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('community.owner.synced')}</p>
               )}
-              <button type="button" onClick={() => setConfirmUnpublish(true)} className="w-full text-left text-sm text-red-600 dark:text-red-400 hover:underline">
-                {t('community.owner.unpublish')}
-              </button>
+              {unpublishBlocked(usage, pub.hidden) && usage ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('community.owner.unpublishBlocked', { current: usage.diagrams.current, limit: usage.diagrams.limit })}
+                </p>
+              ) : (
+                <button type="button" onClick={() => setConfirmUnpublish(true)} className="w-full text-left text-sm text-red-600 dark:text-red-400 hover:underline">
+                  {t('community.owner.unpublish')}
+                </button>
+              )}
             </div>
           )}
 

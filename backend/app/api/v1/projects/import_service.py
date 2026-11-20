@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.core.rate_limit import SlidingWindowRateLimiter
 from ..diagrams.interfaces import IDiagramRepository
-from ..diagrams.schemas import DiagramCreate
+from ..diagrams.schemas import DiagramCreate, code_too_long
 from ..folders.interfaces import IFolderRepository
 from ..folders.schemas import FolderCreate
 from ..subscriptions.constants import RESOURCE_TYPE_DIAGRAM
@@ -30,9 +30,11 @@ from ..subscriptions.usage_limiter import UsageLimiter
 from .export_builders import unique_name
 from .import_parsers import (
     MAX_TITLE_LENGTH,
+    ImportDiagram,
     ImportError_,
     ImportLimits,
     ImportPlan,
+    ImportSkipped,
     plan_upload,
     upload_footprint,
 )
@@ -44,6 +46,20 @@ import_rate_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=6
 # The import dialog previews on every file change, so the dry run gets its own,
 # more generous ceiling; it parses everything, so it can't be unlimited either.
 import_preview_rate_limiter = SlidingWindowRateLimiter(max_requests=60, window_seconds=60)
+
+
+def _skip_long_code(plan: ImportPlan) -> None:
+    """Diagrams over the code size cap are reported as skipped (``too_large``), not created."""
+
+    def keep(diagram: ImportDiagram) -> bool:
+        if code_too_long(diagram.content, diagram.diagram_type):
+            plan.skipped.append(ImportSkipped(diagram.source, "too_large"))
+            return False
+        return True
+
+    plan.root_diagrams = [d for d in plan.root_diagrams if keep(d)]
+    for folder in plan.folders:
+        folder.diagrams = [d for d in folder.diagrams if keep(d)]
 
 
 def _check_rate_limit(limiter: SlidingWindowRateLimiter, user_id: str) -> None:
@@ -188,6 +204,7 @@ class ProjectImportService:
         if into_folder:
             # One level of folders only: an archive imported into a folder is flattened.
             plan.flatten_into_root()
+        _skip_long_code(plan)
         return plan
 
     async def _quota(self, user_id: str, new_diagrams: int) -> tuple[int, Optional[int], bool]:

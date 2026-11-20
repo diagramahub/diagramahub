@@ -292,8 +292,16 @@ const DashboardPage: React.FC = () => {
               <StatCard
                 tone="blue"
                 iconPath="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                value={String(totalDiagrams)}
-                label={usage?.diagrams.limit ? t('dashboard.diagramsOfLimit', { limit: usage.diagrams.limit }) : t('dashboard.statsDiagrams')}
+                value={String(usage?.diagrams.limit && !usage.diagrams.public_counts ? usage.diagrams.current : totalDiagrams)}
+                label={
+                  !usage?.diagrams.limit
+                    ? t('dashboard.statsDiagrams')
+                    : usage.diagrams.public_counts
+                      ? t('dashboard.diagramsOfLimit', { limit: usage.diagrams.limit })
+                      : usage.diagrams.public > 0
+                        ? t('dashboard.privateOfLimitPublic', { limit: usage.diagrams.limit, count: usage.diagrams.public })
+                        : t('dashboard.privateOfLimit', { limit: usage.diagrams.limit })
+                }
               />
               <StatCard
                 to={lastDiagram ? `/projects/${lastDiagram.project_id}/diagrams/${lastDiagram.id}` : undefined}

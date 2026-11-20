@@ -152,6 +152,11 @@ class CommunityRepository(ICommunityRepository):
             .to_list()
         )
 
+    async def count_published_since(self, owner_id: str, since: datetime) -> int:
+        return await PublishedDiagramInDB.find(
+            PublishedDiagramInDB.owner_id == owner_id, PublishedDiagramInDB.published_at >= since
+        ).count()
+
     async def published_sources(self, owner_id: str) -> list[tuple[str, str, bool]]:
         cursor = PublishedDiagramInDB.get_pymongo_collection().find(
             {"owner_id": owner_id}, {"source_diagram_id": 1, "hidden": 1}

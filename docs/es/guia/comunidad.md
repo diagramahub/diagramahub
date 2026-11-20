@@ -29,6 +29,11 @@ Tus diagramas publicados llevan la marca **Público** (un globo verde) en el exp
 
 Para cambiar la categoría, las etiquetas o los comentarios de algo ya publicado, abre la misma ventana y usa **Guardar cambios**. Cada diagrama se publica una sola vez. Los pizarrones todavía no se pueden publicar.
 
+Para publicar, el diagrama tiene que dibujar algo: no puede estar vacío ni tener errores que impidan renderizarlo, y su código no puede pasar de 100 000 caracteres. También hay un máximo de publicaciones por día.
+
+!!! tip "Lo público no cuenta para tu límite"
+    Mientras un diagrama esté publicado, normalmente **no ocupa lugar** en el límite de diagramas de tu plan: publicar uno libera un lugar para un diagrama privado. Depende del plan; tu página de **Suscripción** muestra cuántos privados tienes y cuántos publicados. Si la moderación oculta una publicación, vuelve a contar.
+
 ### Licencia
 
 Todo lo publicado es **público** bajo la licencia [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/deed.es), la misma para todas las publicaciones, así que no tienes que elegir una. Cualquiera puede verlo, hacer **fork** y adaptarlo, siempre dando crédito al autor. Es el equivalente de la licencia MIT para contenido que no es software.
@@ -38,7 +43,7 @@ Cada fork queda **registrado**: suma al contador de forks de la publicación ori
 !!! warning "Revisa los datos antes de publicar"
     Un diagrama publicado lo puede ver cualquiera, incluso sin cuenta. Quita credenciales, nombres de clientes o IPs internas antes de publicarlo.
 
-Para **retirarlo**, usa **Retirar de la Comunidad** en el editor o en su página: deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan.
+Para **retirarlo**, usa **Retirar de la Comunidad** en el editor o en su página: deja de ser público y se borran sus estrellas y comentarios. Los forks que otros ya hicieron se conservan. Como vuelve a ser privado, necesitas lugar en tu plan para un diagrama privado más; si no lo hay, el botón se desactiva y te dice cuántos tienes: borra uno o mejora tu plan.
 
 ## Estrellas, forks y comentarios
 

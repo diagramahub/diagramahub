@@ -4,6 +4,7 @@ import apiService from '../../services/api';
 import { Subscription } from '../../types/subscription';
 import CancelSubscriptionModal from './CancelSubscriptionModal';
 import { apiErrorMessage } from '../../utils/apiError';
+import { diagramLimitLines } from '../../utils/plans';
 
 export default function SubscriptionCard() {
   const { t } = useTranslation();
@@ -141,8 +142,8 @@ export default function SubscriptionCard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Administrador</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Acceso completo sin límites</p>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('subscription.administrator')}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{t('subscription.administratorDescription')}</p>
               </div>
             </div>
             <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
@@ -213,16 +214,14 @@ export default function SubscriptionCard() {
                     : t('subscription.features.upToProjects', { count: subscription.plan.max_projects })}
                 </span>
               </div>
-              <div className="flex items-center text-sm">
-                <svg className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-gray-700 dark:text-gray-300">
-                  {subscription.plan.max_diagrams === null || subscription.plan.max_diagrams === -1
-                    ? t('subscription.features.unlimitedDiagrams')
-                    : t('subscription.features.upToDiagrams', { count: subscription.plan.max_diagrams })}
-                </span>
-              </div>
+              {diagramLimitLines(subscription.plan, t).map((line) => (
+                <div key={line} className="flex items-center text-sm">
+                  <svg className="w-5 h-5 text-green-500 dark:text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span className="text-gray-700 dark:text-gray-300">{line}</span>
+                </div>
+              ))}
             </div>
           </div>
 

@@ -15,7 +15,9 @@ Plans live in MongoDB's `plans` collection.
 | `code` | text (1–30) | Unique code in uppercase letters, digits, `_` or `-` (e.g. `TEAM`). `FREE` is reserved. |
 | `description` | text (≤500) | Optional description. |
 | `max_projects` | integer | Maximum projects. `-1` or empty = unlimited. |
-| `max_diagrams` | integer | Maximum diagrams. `-1` or empty = unlimited. |
+| `max_diagrams` | integer | Maximum diagrams. `-1` or empty = unlimited. Counts only **private** ones unless `public_diagrams_count` (see [Public diagrams](#public-diagrams)). |
+| `public_diagrams_count` | boolean | `true`: diagrams published in the Community also count toward `max_diagrams`. Defaults to `false`. |
+| `max_public_diagrams` | integer | Maximum published diagrams. `-1` or empty = unlimited (the default). |
 | `prices` | dictionary | Monthly price per currency, e.g. `{"usd": 4, "mxn": 70}`. Empty = free. |
 | `is_active` | boolean | An inactive plan is no longer offered, but its subscribers keep it. |
 | `gateway_config` | object | Stripe product and price IDs; filled in automatically on sync. |
@@ -94,6 +96,23 @@ sequenceDiagram
 ```
 
 Each user can check their usage at `GET /api/v1/subscriptions/usage`.
+
+## Public diagrams
+
+By default, a diagram **published in the [Community](../guide/community.md)** doesn't use a slot of the diagram limit: the limit counts only private ones. It's a way to grow without paying in exchange for sharing: someone who publishes everything can use the platform without reaching the cap, and someone who wants privacy needs a plan with more room. Each plan decides it with two fields (in **Administration → Plans**):
+
+- **Published diagrams also count toward the diagram limit** (`public_diagrams_count`): off by default. On, every diagram counts.
+- **Public diagrams** (`max_public_diagrams`): an optional cap on publications; unlimited by default.
+
+Rules the server applies:
+
+- Every diagram is born private: creating, duplicating, forking or importing uses a slot.
+- **Publishing frees a slot**, and **unpublishing** needs room for one more private diagram. Without it the API answers `403` with `resource_type: "private_diagrams"` and the interface disables **Remove from the Community**, saying why.
+- A publication **hidden by moderation** counts as private: only what others can see is exempt. If a published diagram is deleted, its publication no longer uses a slot.
+- **Over the limit.** A user can end up over the limit through no action of their own: a downgrade, an expired subscription, an administrator removing or moderation hiding one of their publications, or you lowering the plan's limit. Nothing is ever deleted or locked: they can edit, delete and publish, but not create private diagrams or unpublish until they're back under the limit.
+- So the Community isn't used as free storage, publishing needs a diagram that draws something (not empty and renderable), with at most 100,000 characters of code, and there's a cap on publications per user every 24 hours ([`COMMUNITY_MAX_PUBLICATIONS_PER_DAY`](configuration.md#community), 20 by default). Administrators have no such cap.
+
+`GET /api/v1/subscriptions/usage` returns in `diagrams` the usage that counts (`current`), the limit, the visible published ones (`public`), whether they count (`public_counts`) and the public cap (`public_limit`).
 
 ## An instance without billing
 

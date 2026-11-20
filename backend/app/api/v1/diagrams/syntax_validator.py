@@ -185,11 +185,12 @@ class SyntaxValidator:
             )
 
     @staticmethod
-    async def _kroki_verdict(diagram_type: str, code: str) -> ValidationResult:
+    async def kroki_verdict(diagram_type: str, code: str) -> ValidationResult:
         """Validate with the real renderer; valid when Kroki can't be reached.
 
         Used for D2, whose errors (unknown shapes, container-to-child
-        connections…) a structural check can't see.
+        connections…) a structural check can't see, and before publishing a
+        PlantUML, D2 or DBML diagram to the Community.
         """
         from app.core.config import settings
 
@@ -265,7 +266,7 @@ class SyntaxValidator:
 
             # Structure looks fine: ask the real renderer (shapes, connections,
             # keys). Unreachable Kroki keeps the structural verdict.
-            return await SyntaxValidator._kroki_verdict("d2", code)
+            return await SyntaxValidator.kroki_verdict("d2", code)
 
         except Exception as e:
             return ValidationResult(

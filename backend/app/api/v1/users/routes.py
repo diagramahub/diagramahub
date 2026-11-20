@@ -228,6 +228,8 @@ async def _get_subscription_data(user_id: str) -> Optional[dict]:
                         "price_usd": plan.price_usd,  # computed from prices dict
                         "max_projects": plan.max_projects,
                         "max_diagrams": plan.max_diagrams,
+                        "public_diagrams_count": plan.public_diagrams_count,
+                        "max_public_diagrams": plan.max_public_diagrams,
                     }
                 }
     except Exception as e:

@@ -21,6 +21,8 @@ class PlanRepository(IPlanRepository):
             description=plan_data.description,
             max_projects=plan_data.max_projects,
             max_diagrams=plan_data.max_diagrams,
+            public_diagrams_count=plan_data.public_diagrams_count,
+            max_public_diagrams=plan_data.max_public_diagrams,
             is_active=True,
             created_at=utcnow(),
             updated_at=utcnow(),

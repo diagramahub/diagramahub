@@ -7,15 +7,18 @@ interface UpgradePlanModalProps {
   resourceType: string;
   currentUsage: number;
   limit: number;
+  /** False when published Community diagrams don't count: publishing one frees a slot. */
+  publicCounts?: boolean;
 }
 
-export default function UpgradePlanModal({ isOpen, onClose, resourceType, currentUsage, limit }: UpgradePlanModalProps) {
+export default function UpgradePlanModal({ isOpen, onClose, resourceType, currentUsage, limit, publicCounts }: UpgradePlanModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   if (!isOpen) return null;
 
-  const resourceLabel = t(`subscription.usage.${resourceType}`, resourceType);
+  const publishFrees = resourceType === 'diagrams' && publicCounts === false;
+  const resourceLabel = publishFrees ? t('subscription.usage.private_diagrams') : t(`subscription.usage.${resourceType}`, resourceType);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -32,9 +35,12 @@ export default function UpgradePlanModal({ isOpen, onClose, resourceType, curren
           <p className="text-sm text-center text-gray-500 dark:text-gray-400 mb-2">
             {t('subscription.upgradePlan.message', { resource: resourceLabel })}
           </p>
-          <p className="text-center text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-lg py-2 px-3 mb-6">
+          <p className={`text-center text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 rounded-lg py-2 px-3 ${publishFrees ? 'mb-3' : 'mb-6'}`}>
             {resourceLabel}: {currentUsage}/{limit}
           </p>
+          {publishFrees && (
+            <p className="text-center text-xs text-gray-600 dark:text-gray-400 mb-6">{t('subscription.upgradePlan.publishHint')}</p>
+          )}
           <div className="flex flex-col gap-3">
             <button
               onClick={() => {

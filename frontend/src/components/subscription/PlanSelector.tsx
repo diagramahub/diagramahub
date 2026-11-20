@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan, Subscription } from '../../types/subscription';
 import { apiErrorMessage } from '../../utils/apiError';
+import { diagramLimitLines, isUnlimited } from '../../utils/plans';
+import { dateLocale } from '../../utils/locale';
 
 interface PlanSelectorProps {
   currentSubscription: Subscription | null;
@@ -9,27 +12,22 @@ interface PlanSelectorProps {
 }
 
 export default function PlanSelector({ currentSubscription, onPlanSelected }: PlanSelectorProps) {
+  const { t, i18n } = useTranslation();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [changingToPlan, setChangingToPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPlans();
-  }, []);
-
-  const loadPlans = async () => {
-    try {
-      setLoading(true);
-      const data = await apiService.getPlans();
-      setPlans(data);
-      setError('');
-    } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error loading plans');
-    } finally {
-      setLoading(false);
-    }
-  };
+    apiService
+      .getPlans()
+      .then((data) => {
+        setPlans(data);
+        setError('');
+      })
+      .catch((err: unknown) => setError(apiErrorMessage(err) || t('subscription.planSelector.errorLoading')))
+      .finally(() => setLoading(false));
+  }, [t]);
 
   const handleSelectPlan = async (planId: string) => {
     try {
@@ -46,21 +44,16 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
         }
       }
     } catch (err: unknown) {
-      setError(apiErrorMessage(err) || 'Error changing plan');
+      setError(apiErrorMessage(err) || t('subscription.planSelector.errorChanging'));
       setChangingToPlan(null);
     }
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(dateLocale(i18n.language), {
       style: 'currency',
       currency: 'USD',
     }).format(price);
-  };
-
-  const formatLimit = (limit: number | null) => {
-    if (limit === null || limit === -1) return 'Unlimited';
-    return limit.toString();
   };
 
   const isCurrentPlan = (planId: string) => {
@@ -88,120 +81,80 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
-      {/* Header */}
+    <div className="card">
       <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-800">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Available Plans</h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Choose the plan that fits your needs</p>
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">{t('subscription.planSelector.title')}</h2>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{t('subscription.planSelector.subtitle')}</p>
       </div>
 
-      {/* Plans Grid */}
       <div className="px-4 sm:px-6 py-4 sm:py-6">
-        <div className="space-y-4">
+        <ul className="space-y-4">
           {plans.map((plan) => {
             const isCurrent = isCurrentPlan(plan.id);
             const isChanging = changingToPlan === plan.id;
+            const lines = [
+              isUnlimited(plan.max_projects)
+                ? t('subscription.features.unlimitedProjects')
+                : t('subscription.features.upToProjects', { count: plan.max_projects }),
+              ...diagramLimitLines(plan, t),
+            ];
 
             return (
-              <div
+              <li
                 key={plan.id}
-                className={`relative rounded-lg border-2 p-6 transition-all flex items-center justify-between ${
+                className={`rounded-lg border-2 p-4 sm:p-6 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
                   isCurrent
                     ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                    : 'border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-md'
+                    : 'border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-600'
                 }`}
               >
-                {/* Left side - Plan info */}
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{plan.name}</h3>
-                    {isCurrent && (
-                      <span className="px-2 py-1 text-xs font-semibold bg-purple-500 text-white rounded">
-                        Plan Actual
-                      </span>
-                    )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{plan.name}</h3>
+                    {isCurrent && <span className="badge">{t('subscription.planSelector.current')}</span>}
                     {plan.is_free && !isCurrent && (
-                      <span className="px-2 py-1 text-xs font-semibold bg-gray-500 text-white rounded">
-                        GRATIS
+                      <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                        {t('subscription.planSelector.free')}
                       </span>
                     )}
                   </div>
-
-                  {/* Plan Description */}
-                  {plan.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{plan.description}</p>
-                  )}
-
-                  {/* Features */}
-                  <div className="flex gap-6 text-sm">
-                    <div className="flex items-center">
-                      <svg
-                        className="w-4 h-4 text-green-500 dark:text-green-400 mr-1.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {formatLimit(plan.max_projects)} proyecto{plan.max_projects !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <svg
-                        className="w-4 h-4 text-green-500 dark:text-green-400 mr-1.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {formatLimit(plan.max_diagrams)} diagrama{plan.max_diagrams !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </div>
+                  {plan.description && <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{plan.description}</p>}
+                  <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+                    {lines.map((line) => (
+                      <li key={line} className="flex items-center">
+                        <svg className="w-4 h-4 text-green-500 dark:text-green-400 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-gray-700 dark:text-gray-300">{line}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                {/* Right side - Price and action */}
-                <div className="flex items-center gap-6 ml-6">
-                  {/* Price */}
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {formatPrice(plan.price_usd)}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">/mes</div>
+                <div className="flex items-center justify-between sm:justify-end gap-6 sm:ml-6">
+                  <div className="sm:text-right">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{formatPrice(plan.price_usd)}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{t('subscription.planSelector.perMonth')}</div>
                   </div>
-
-                  {/* Action Button */}
                   <button
+                    type="button"
                     onClick={() => handleSelectPlan(plan.id)}
                     disabled={isCurrent || isChanging}
-                    className={`btn ${isCurrent ? 'bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-500' : 'btn-primary'}`}
+                    className={isCurrent ? 'btn btn-secondary' : 'btn btn-primary'}
                   >
                     {isCurrent
-                      ? 'Plan Actual'
+                      ? t('subscription.planSelector.current')
                       : isChanging
-                      ? 'Procesando...'
-                      : plan.is_free
-                      ? 'Cambiar a Gratis'
-                      : 'Seleccionar'}
+                        ? t('subscription.planSelector.processing')
+                        : plan.is_free
+                          ? t('subscription.planSelector.switchToFree')
+                          : t('subscription.planSelector.select')}
                   </button>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </div>
     </div>
   );

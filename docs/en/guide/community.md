@@ -29,6 +29,11 @@ Your published diagrams carry the **Public** mark (a green globe) in the folder 
 
 To change the category, tags or comments of something already published, open the same window and use **Save changes**. Each diagram can be published once. Whiteboard sketches can't be published yet.
 
+To be published, a diagram has to draw something: it can't be empty or have errors that keep it from rendering, and its code can't be over 100,000 characters. There's also a maximum of publications per day.
+
+!!! tip "Public diagrams don't count toward your limit"
+    While a diagram is published, it usually **doesn't use a slot** of your plan's diagram limit: publishing one frees a slot for a private diagram. It depends on the plan; your **Subscription** page shows how many private and published diagrams you have. If moderation hides a publication, it counts again.
+
 ### License
 
 Everything published is **public** under the [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/deed.en) license, the same for every publication, so you don't have to pick one. Anyone can view it, **fork** it and adapt it, always crediting the author. It's the MIT license's counterpart for content that isn't software.
@@ -38,7 +43,7 @@ Every fork is **recorded**: it counts toward the original publication's forks an
 !!! warning "Check the data before publishing"
     Anyone can see a published diagram, even without an account. Remove credentials, customer names or internal IPs before publishing it.
 
-To **remove** it, use **Remove from the Community** in the editor or on its page: it stops being public and its stars and comments are deleted. Forks others already made are kept.
+To **remove** it, use **Remove from the Community** in the editor or on its page: it stops being public and its stars and comments are deleted. Forks others already made are kept. Since it becomes private again, you need room in your plan for one more private diagram; without it the button is disabled and tells you how many you have: delete one or upgrade your plan.
 
 ## Stars, forks and comments
 

@@ -189,7 +189,7 @@ async def publish(
     service: CommunityService = Depends(get_community_service),
 ) -> PublicationDetail:
     """Publish one of the user's diagrams."""
-    publication = await service.publish(member.user_id, request)
+    publication = await service.publish(member.user_id, request, member.is_admin)
     await audit_log.log_event_for_user_id(
         audit_log.EVENT_COMMUNITY_PUBLISHED,
         member.user_id,

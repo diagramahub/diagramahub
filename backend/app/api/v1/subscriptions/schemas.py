@@ -81,7 +81,19 @@ class PlanBase(BaseModel):
         None, ge=-1, description="Máximo de proyectos (-1 o None = ilimitado)"
     )
     max_diagrams: Optional[int] = Field(
-        None, ge=-1, description="Máximo de diagramas (-1 o None = ilimitado)"
+        None,
+        ge=-1,
+        description=(
+            "Máximo de diagramas (-1 o None = ilimitado). Solo cuenta los privados, "
+            "salvo con public_diagrams_count"
+        ),
+    )
+    public_diagrams_count: bool = Field(
+        False,
+        description="True: los diagramas publicados en la Comunidad también cuentan para max_diagrams",
+    )
+    max_public_diagrams: Optional[int] = Field(
+        None, ge=-1, description="Máximo de diagramas publicados (-1 o None = ilimitado)"
     )
 
 
@@ -104,6 +116,8 @@ class PlanUpdate(BaseModel):
     )
     max_projects: Optional[int] = Field(None, ge=-1)
     max_diagrams: Optional[int] = Field(None, ge=-1)
+    public_diagrams_count: Optional[bool] = None
+    max_public_diagrams: Optional[int] = Field(None, ge=-1)
     is_active: Optional[bool] = None
     prices: Optional[dict] = Field(
         None, description="Optional multi-currency prices dict, e.g. {'mxn': 40, 'eur': 2}"
@@ -117,7 +131,11 @@ class PlanInDB(Document):
     code: str = ""
     description: Optional[str] = None
     max_projects: Optional[int] = None
+    # Counts only private diagrams unless public_diagrams_count: a diagram published
+    # (and visible) in the Community doesn't use a slot.
     max_diagrams: Optional[int] = None
+    public_diagrams_count: bool = False
+    max_public_diagrams: Optional[int] = None  # None / -1 = unlimited
     is_active: bool = True
     gateway_config: Optional[dict] = None
     prices: dict = {}
@@ -156,6 +174,8 @@ class PlanResponse(BaseModel):
     price_usd: float
     max_projects: Optional[int]
     max_diagrams: Optional[int]
+    public_diagrams_count: bool = False
+    max_public_diagrams: Optional[int] = None
     is_active: bool
     is_free: bool = False
     active_subscriptions: int = 0

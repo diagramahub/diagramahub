@@ -4,7 +4,6 @@ FastAPI routes for subscriptions and plans.
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.api.deps import get_current_user_id, get_current_user
-from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import UserRole
 
 from .plan_repository import PlanRepository
@@ -13,6 +12,7 @@ from .subscription_repository import SubscriptionRepository
 from .subscription_service import SubscriptionService
 from .billing_service import BillingService
 from .usage_limiter import UsageLimiter
+from .limiter_factory import build_usage_limiter
 from .payment_providers.stripe_provider import StripePaymentProvider
 from .schemas import (
     PlanCreate,
@@ -24,8 +24,6 @@ from .schemas import (
     UsageSummaryResponse,
     BillingHistoryResponse,
 )
-from ..projects.repository import ProjectRepository
-from ..diagrams.repository import DiagramRepository
 from app.api.v1.users import audit_log
 
 router = APIRouter()
@@ -66,13 +64,7 @@ async def get_subscription_service() -> SubscriptionService:
 
 def get_usage_limiter() -> UsageLimiter:
     """Get usage limiter instance."""
-    return UsageLimiter(
-        subscription_repository=SubscriptionRepository(),
-        plan_repository=PlanRepository(),
-        project_repository=ProjectRepository(),
-        diagram_repository=DiagramRepository(),
-        user_repository=UserRepository(),
-    )
+    return build_usage_limiter()
 
 
 async def get_billing_service() -> BillingService:

@@ -18,12 +18,14 @@ from typing import Optional
 from fastapi import HTTPException, status
 
 from app.api.v1.diagrams.interfaces import IDiagramRepository
-from app.api.v1.diagrams.schemas import DiagramCreate
+from app.api.v1.diagrams.schemas import DiagramCreate, MAX_DIAGRAM_CODE_LENGTH
+from app.api.v1.diagrams.syntax_validator import SyntaxValidator
 from app.api.v1.diagrams.services import DiagramService
 from app.api.v1.projects.interfaces import IProjectRepository
 from app.api.v1.subscriptions.usage_limiter import UsageLimiter
 from app.api.v1.users.interfaces import IUserRepository
 from app.core.clock import utcnow
+from app.core.config import settings
 from app.core.rate_limit import SlidingWindowRateLimiter
 
 from .interfaces import ICommunityRepository
@@ -56,6 +58,23 @@ PUBLISHABLE_TYPES = frozenset({"mermaid", "plantuml", "d2", "dbml"})
 LIST_DESCRIPTION_LENGTH = 300
 
 publish_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=3600)
+
+# Lines that are comments or PlantUML's @start/@end markers say nothing about the diagram.
+_COMMENT_PREFIXES = ("%%", "'", "//", "#")
+
+
+def has_diagram_content(code: str, diagram_type: str) -> bool:
+    """Whether the code draws something: Mermaid needs its type line plus one more."""
+    lines = [
+        line.strip()
+        for line in code.splitlines()
+        if line.strip()
+        and not line.strip().startswith(_COMMENT_PREFIXES)
+        and not line.strip().lower().startswith(("@start", "@end"))
+    ]
+    return len(lines) >= (2 if diagram_type == "mermaid" else 1)
+
+
 comment_limiter = SlidingWindowRateLimiter(max_requests=20, window_seconds=600)
 report_limiter = SlidingWindowRateLimiter(max_requests=10, window_seconds=3600)
 
@@ -336,13 +355,61 @@ class CommunityService:
     #  Publish / update / unpublish
     # ------------------------------------------------------------------ #
 
-    async def publish(self, user_id: str, request: PublishRequest) -> PublicationDetail:
+    async def _check_publishable(self, diagram_type: str, content: str) -> None:
+        """What a diagram needs to be published: it draws something, within the size cap.
+
+        Published diagrams don't count toward the plan's limit, so empty or huge
+        placeholders would turn the Community into free storage.
+        """
+        code = (content or "").strip()
+        if len(code) > MAX_DIAGRAM_CODE_LENGTH:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"error": "diagram_too_large", "limit": MAX_DIAGRAM_CODE_LENGTH},
+            )
+        if not has_diagram_content(code, diagram_type):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"error": "diagram_empty"},
+            )
+        # Mermaid is drawn in the browser, so only its structure can be checked here; the
+        # others go through the real renderer (and pass when it can't be reached).
+        result = (
+            await SyntaxValidator.validate_mermaid(code)
+            if diagram_type == "mermaid"
+            else await SyntaxValidator.kroki_verdict(diagram_type, code)
+        )
+        if not result.is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"error": "diagram_invalid", "message": result.error_message},
+            )
+
+    async def _enforce_daily_publications(self, user_id: str) -> None:
+        limit = settings.COMMUNITY_MAX_PUBLICATIONS_PER_DAY
+        if limit <= 0:
+            return
+        since = utcnow() - timedelta(days=1)
+        if await self.repository.count_published_since(user_id, since) >= limit:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={"error": "publish_daily_limit", "limit": limit},
+            )
+
+    async def publish(
+        self, user_id: str, request: PublishRequest, is_admin: bool = False
+    ) -> PublicationDetail:
         """Publish one of the user's diagrams; it stays in sync with the diagram.
+
+        A published (and visible) diagram doesn't count toward the plan's
+        diagram limit, unless the plan says so.
 
         Raises:
             HTTPException 404: The diagram doesn't exist or isn't the user's
             HTTPException 409: The diagram is already published
-            HTTPException 422: The diagram type can't be published (sketches)
+            HTTPException 422: Sketches, empty, unrenderable or too large code
+            HTTPException 429: Too many publications in the last 24 hours
+            ResourceLimitError: The plan's max_public_diagrams is reached
         """
         _enforce(publish_limiter, user_id)
         source = await self._owned_source(request.diagram_id, user_id)
@@ -357,6 +424,10 @@ class CommunityService:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail={"error": "already_published"}
             )
+        await self._check_publishable(source.diagram_type, source.content)
+        if not is_admin:
+            await self._enforce_daily_publications(user_id)
+        await self.usage_limiter.enforce_public_limit(user_id)
         publication = await self.repository.create_publication(
             PublishedDiagramInDB(
                 source_diagram_id=request.diagram_id,
@@ -388,8 +459,23 @@ class CommunityService:
     async def unpublish(
         self, publication_id: str, user_id: str, is_admin: bool
     ) -> PublishedDiagramInDB:
-        """Remove a publication (owner or admin). Existing forks are untouched."""
+        """Remove a publication (owner or admin). Existing forks are untouched.
+
+        Unpublishing makes the diagram private again, so the owner needs room for
+        it in their plan (a hidden publication already counts as private). An
+        admin removing someone else's publication may leave them over the limit:
+        they keep their diagrams, but can't add private ones until back under it.
+
+        Raises:
+            ResourceLimitError: The owner has no room for one more private diagram.
+        """
         publication = await self._owned(publication_id, user_id, is_admin)
+        if (
+            publication.owner_id == user_id
+            and not publication.hidden
+            and await self.diagram_repository.get_by_id(publication.source_diagram_id)
+        ):
+            await self.usage_limiter.enforce_can_make_private(user_id)
         await self.repository.delete_publication(publication_id)
         return publication
 
