@@ -1,6 +1,6 @@
 # Use official Python runtime as base image (Alpine for minimal CVE surface)
 # Rebuild regularly to pick up latest Alpine security patches
-FROM python:3.13-alpine3.23
+FROM python:3.15-alpine3.23
 
 # Set working directory
 WORKDIR /app
