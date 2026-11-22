@@ -2134,14 +2134,14 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "pyotp"
-version = "2.11.2"
+version = "2.12.0"
 description = "Python One Time Password Library"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "pyotp-2.11.2-py3-none-any.whl", hash = "sha256:d693ddda5c2fd2c368a034ec1ad2fbbe0d3f59d9a662ab00f41ae839a0d00474"},
-    {file = "pyotp-2.11.2.tar.gz", hash = "sha256:651926820da4adccbe9801c77bdc14558552485b1a957d3e1e842d587597cbb0"},
+    {file = "pyotp-2.12.0-py3-none-any.whl", hash = "sha256:d66830ab614e857c1e1b810b80384bcf7d437972f1e96625686e128e2e17ff83"},
+    {file = "pyotp-2.12.0.tar.gz", hash = "sha256:638ea37341567ec01277af3a16b682590d938f54f8ed3fb31963513233fd05f2"},
 ]
 
 [package.extras]
