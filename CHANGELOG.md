@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.9.1] - 2026-11-22
+
+### Security
+- Frontend base image moved to `nginxinc/nginx-unprivileged:1.31-alpine` (nginx 1.31.7): fixes CVE-2026-113425, CVE-2026-121810, CVE-2026-123007, CVE-2026-123633, CVE-2026-118899 and CVE-2026-123634, the known issue of 0.9.0 (1.30.7 is still not published). The CI Trivy scan passes again.
+
+### Changed
+- pyotp 2.12.0 (requires TOTP secrets of at least 112 bits and intervals of at most 120 s; DiagramaHub generates 160-bit secrets with 30 s intervals, so existing MFA setups keep working).
+
 ## [0.9.0] - 2026-11-20
 
 ### Added

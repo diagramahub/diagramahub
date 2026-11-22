@@ -6,6 +6,7 @@ Format: `MAJOR.MINOR.PATCH`
 
 | Version | Date | Type |
 |---------|------|------|
+| [0.9.1](0.9.1.md) | 2026-11-22 | Maintenance: frontend image on nginx 1.31 (fixes the nginx CVEs left open in 0.9.0) and pyotp 2.12.0 |
 | [0.9.0](0.9.0.md) | 2026-11-20 | Features: Community, diagram from image, search in the content, embed and QR, folder presentations, project PDF, API Keys, activity and favorites, user administration, public diagrams outside the plan limit; major upgrades, CI and security |
 | [0.8.6](0.8.6.md) | 2026-11-15 | Maintenance: dependencies with security advisories (backend and frontend) and JWT with PyJWT instead of python-jose |
 | [0.8.5](0.8.5.md) | 2026-10-21 | Maintenance: dependency advisories, sign-in error shown again, complete dark mode, shared page in English, clean lint |

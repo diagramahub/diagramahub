@@ -2,7 +2,7 @@
 
 Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
-**Estado** (revisado contra el código de la versión 0.9.0):
+**Estado** (revisado contra el código de la versión 0.9.1):
 
 - ✅ Implementado
 - 🟡 Parcial: existe algo relacionado, pero no lo que describe la idea
@@ -11,6 +11,20 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 ---
 
 ## 🗺️ Mapa de versiones
+
+### 0.10.0 (planeado)
+
+**Actualizaciones mayores** (aplazadas desde 0.9.1)
+- ⬜ Stripe SDK 17: migrar la lectura de `current_period_end`, que desde la v12 está en los *items* de la suscripción (`subscriptions/webhook_handler.py`)
+- ⬜ Tailwind CSS 4: migración de la configuración y los estilos
+- ⬜ Node 26 en la imagen del frontend (ya no trae `corepack`: instalar pnpm de otra forma), junto con `@types/node` 26
+- ⬜ Python 3.15 en la imagen del backend (hoy `pyproject.toml` acepta `<3.14`)
+- ⬜ Evaluar MongoDB 8.2 (por ahora se mantiene 8.0, la versión mayor con soporte largo)
+
+### 0.9.1 (completado)
+
+- ✅ Imagen del frontend con nginx-unprivileged 1.31: corrige los CVE de nginx que quedaron pendientes en 0.9.0
+- ✅ pyotp 2.12.0
 
 ### 0.9.0 (completado)
 
@@ -51,9 +65,8 @@ Portal donde los usuarios publican sus diagramas y que reemplaza la idea de una 
 
 - ⬜ Historial de versiones de cada diagrama (§2)
 - ⬜ Sesión en cookie httpOnly, logout en el servidor y lista de sesiones activas
-- ⬜ Stripe SDK 17
 - ⬜ Passkeys (WebAuthn) como método MFA
-- ⬜ TypeScript 7, Tailwind CSS 4, MongoDB 9
+- ⬜ TypeScript 7, MongoDB 9
 - ⬜ Adoptar el React Compiler (sus reglas de lint quedaron desactivadas en 0.9.0)
 - ⬜ Incluir los pizarrones en el PDF de proyecto o carpeta
 
