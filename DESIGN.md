@@ -416,16 +416,20 @@ The `freehand` diagram type uses an in-house HTML5 canvas (`components/FreehandC
   - Click = select one; Shift+Click = toggle; drag on empty = marquee.
   - Ctrl/Cmd+A = select all; Delete/Backspace = delete; Escape = deselect.
 - **Element creation**: on finish, switch to the select tool and keep the new element selected. **Exception**: the freehand tool stays active for continuous strokes.
-- **Floating style panel**: appears only when elements are selected (stroke, fill, width). Follows the editor's floating panel standard.
-- **Arrows/lines**: no bounding box or resize; edited by their two endpoints. They bind to shape anchor points (top/bottom/left/right) and follow when the shape moves.
+- **Floating style panel**: appears only when elements are selected and no gesture is in progress (stroke, fill, width). Choosing a drawing tool drops the selection, so the panel never covers the area being drawn. Sticky notes show only **Note color** and font; images only lock/arrange/delete.
+- **Arrows/lines**: no bounding box or resize; edited by their two endpoints. They bind to the anchor points (top/bottom/left/right) of shapes, sticky notes and images, and follow when those move.
 - **Resize**: handles on shapes; points scale proportionally from the original state (non-cumulative).
-- **Text**: double-click on an element opens a centered input; text persists in the `text` field.
-- **Copy/Paste/Cut**: Ctrl+C/X/V; paste positions at the cursor.
+- **Text**: double-click (or Enter) on an element opens a centered input; text persists in the `text` field. Labels of shapes and notes wrap inside their box (`utils/textLayout.ts`); notes also shrink the font to fit.
+- **Sticky notes** (`sticky`, tool N): flat paper colour (`STICKY_COLORS`) with a soft shadow, never hand-drawn; a click drops a 200×200 note that opens for typing.
+- **Images** (`image`): bytes live in the `diagram_files` backend module, the element keeps only `fileId`. The canvas reads them through the `imageStore` prop (owner, shared link, presentation) and decodes each file once. Resizing keeps the aspect ratio.
+- **Copy/Paste/Cut**: through the system clipboard events (`utils/freehandClipboard.ts`, JSON with a type marker; images travel as data URLs and are stored again in the target diagram); paste positions at the cursor. Plain text pastes as a text element, image files as images.
 - **Context menu** (right-click): copy, cut, duplicate, bring to front/forward, send backward/to back, delete. Icons `w-3.5 h-3.5`, width `w-44`.
-- **Infinite canvas**: scroll = pan; Cmd/Ctrl+scroll = zoom anchored at the cursor. Zoom is controlled from the editor toolbar (`zoom`/`onZoomChange` props) — do not duplicate the control.
+- **Infinite canvas**: scroll = pan; Cmd/Ctrl+scroll (or trackpad pinch) = proportional zoom anchored at the cursor. The canvas zooms locally during the gesture and reports through `onZoomChange` when it settles; the editor toolbar sets it through the `zoom` prop — do not duplicate the control. Pan is reported through `onPanChange` and saved with the diagram's viewport fields, never in the scene JSON.
+- **Pointer input**: pointer events with capture (a gesture that leaves the canvas continues). Touch: one finger uses the active tool (pans on empty space with Select), two fingers pinch/pan, double tap = double-click.
+- **Rendering**: one paint per animation frame; elements outside the view are skipped (selected ones always painted).
 - **High definition**: the canvas draws with `devicePixelRatio` (crisp on Retina displays).
 - **Read-only mode** (shared view): hides toolbar, style panel, and menu; pan/zoom only. Auto-fit centers content on load.
-- **Persistence**: canvas state is serialized as JSON (`{ version: 1, elements, viewport, background }`) and stored in the diagram's `content` field.
+- **Persistence**: canvas state is serialized as JSON (`{ version: 1, elements, viewport, background }`) and stored in the diagram's `content` field. Since 0.9.2 `viewport` is written as the default (the view lives in `viewport_zoom/x/y`); a non-zero legacy value is still read once and moved there. The code editor is not mounted for freehand diagrams.
 
 ---
 
