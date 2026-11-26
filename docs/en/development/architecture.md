@@ -1,6 +1,6 @@
 # Architecture
 
-DiagramaHub is a modular monorepo with a **React 19 + Vite 7** frontend, a **FastAPI + MongoDB** API and **[Kroki](https://kroki.io/)** to render on the server the languages that aren't drawn in the browser. Everything is orchestrated with Docker Compose.
+DiagramaHub is a modular monorepo with a **React 19 + Vite 8** frontend, a **FastAPI + MongoDB** API and **[Kroki](https://kroki.io/)** to render on the server the languages that aren't drawn in the browser. Everything is orchestrated with Docker Compose.
 
 ## Services
 
@@ -16,7 +16,7 @@ flowchart LR
 
 | Service | Technology | Purpose |
 |---|---|---|
-| Frontend | React 19 + TypeScript + Vite 7 + TailwindCSS v3 | UI, Monaco editor, client-side Mermaid rendering, whiteboard |
+| Frontend | React 19 + TypeScript + Vite 8 + TailwindCSS v3 | UI, Monaco editor, client-side Mermaid rendering, whiteboard |
 | Backend | FastAPI (`python:3.13-alpine` image) | API, business logic, Kroki proxy, AI calls |
 | Kroki | `yuzutech/kroki` image (version pinned in the compose files) | Server-side rendering of PlantUML, D2 and DBML |
 | MongoDB | MongoDB 8 (or external in `external-mongodb` mode) | Persistence |
@@ -115,7 +115,7 @@ diagramahub/
 │   │   ├── core/       # config, security, rate limit, request limits
 │   │   └── api/        # deps.py + v1/<module>/
 │   └── tests/
-├── frontend/           # React 19 + Vite 7 (pnpm)
+├── frontend/           # React 19 + Vite 8 (pnpm)
 │   └── src/
 ├── deploy/
 │   ├── local-full/         # MongoDB 8 + Kroki + Backend + Frontend

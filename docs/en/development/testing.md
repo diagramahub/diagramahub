@@ -75,6 +75,14 @@ pnpm test          # vitest run
 pnpm test:watch    # watch mode
 ```
 
+With the `deploy/local-full` stack, the frontend container mounts the whole folder (plus, read-only, the backend's model catalog and Mermaid reference), so tests and lint run there too:
+
+```bash
+docker exec diagramahub-frontend pnpm test
+docker exec diagramahub-frontend pnpm lint
+docker-compose up -d --build -V frontend   # after a dependency change: renews node_modules
+```
+
 Current tests in `src/utils/__tests__/`:
 
 | Test | What it guards |

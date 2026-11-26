@@ -1,6 +1,6 @@
 # Frontend
 
-SPA in **React 19 + TypeScript** built with **Vite 7**, styled with **TailwindCSS v3** and routed with **React Router v7**. Packages with **pnpm**.
+SPA in **React 19 + TypeScript** built with **Vite 8**, styled with **TailwindCSS v3** and routed with **React Router v7**. Packages with **pnpm**.
 
 ```bash
 cd frontend

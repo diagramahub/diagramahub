@@ -66,7 +66,7 @@ For production deployment (Nginx/SSL), upgrades, and troubleshooting, see the **
 
 ## 🏗️ Architecture
 
-Modular monorepo following **SOLID** principles: a **React 19 + Vite 7** frontend, a **FastAPI + MongoDB** backend, and **[Kroki](https://kroki.io/)** for server-side diagram rendering — all orchestrated with Docker Compose.
+Modular monorepo following **SOLID** principles: a **React 19 + Vite 8** frontend, a **FastAPI + MongoDB** backend, and **[Kroki](https://kroki.io/)** for server-side diagram rendering — all orchestrated with Docker Compose.
 
 📐 Full breakdown (modules, services, layout) in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
