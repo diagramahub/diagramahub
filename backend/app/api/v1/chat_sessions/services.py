@@ -29,6 +29,7 @@ from ..ai_providers.clients.factory import AIClientFactory
 from ..diagrams.mermaid_types import MERMAID_KEYWORD_PATTERN, mermaid_diagram_keyword
 from ..diagrams.syntax_validator import SyntaxValidator
 from app.api.v1.ai_providers.model_catalog import context_window as model_context_window
+from app.core.log_safety import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,14 @@ _CHAT_ERRORS = {
         "es": "No hay proveedor de IA configurado.",
         "en": "No AI provider is configured.",
     },
+    "timeout": {
+        "es": "El proveedor de IA tardó demasiado en responder. Inténtalo de nuevo.",
+        "en": "The AI provider took too long to answer. Please try again.",
+    },
+    "unexpected": {
+        "es": "No se pudo generar la respuesta. Inténtalo de nuevo.",
+        "en": "The reply couldn't be generated. Please try again.",
+    },
 }
 
 
@@ -158,12 +167,20 @@ def _chat_error(key: str, language: str) -> str:
 
 
 def _error_text(exc: Exception, language: str) -> str:
-    """What the user reads for a failed reply: provider errors come localized."""
+    """What the user reads for a failed reply.
+
+    Provider errors come localized and are meant for the user. Anything else is
+    an internal failure: its text can name hosts, collections or library
+    internals, so the user gets a generic message and the detail stays in the
+    server log.
+    """
     from app.api.v1.ai_providers.clients.base import ProviderError
 
     if isinstance(exc, ProviderError):
         return exc.message_for(language)
-    return str(exc)
+    if isinstance(exc, TimeoutError) or "timed out" in str(exc).lower():
+        return _chat_error("timeout", language)
+    return _chat_error("unexpected", language)
 
 
 # --- Auto-retry constants ---
@@ -618,7 +635,7 @@ class ChatSessionService:
         except HTTPException:
             raise
         except Exception as exc:
-            logger.error("Chat error: %s", exc)
+            logger.exception("Chat error")
             error_msg = await self.message_repo.create_message(
                 session_id=session_id_str,
                 role=MessageRole.ERROR,
@@ -1025,7 +1042,7 @@ class ChatSessionService:
         except HTTPException as exc:
             yield error_event(exc.detail)
         except Exception as exc:
-            logger.error("Stream chat error: %s", exc)
+            logger.exception("Stream chat error")
             error_text = _error_text(exc, language)
             # Save error message to session
             try:
@@ -1098,7 +1115,7 @@ class ChatSessionService:
             "Context compaction triggered: ~%d tokens vs threshold %d for model %s",
             estimated,
             threshold,
-            model,
+            log_safe(model),
         )
 
         # Generate summary of the current conversation

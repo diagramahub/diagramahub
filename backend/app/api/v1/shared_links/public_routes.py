@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.api.v1.diagrams.repository import DiagramRepository
 from app.core.client_ip import get_client_ip
 from app.core.rate_limit import SlidingWindowRateLimiter
+from app.core.log_safety import log_safe
 
 from .repository import SharedLinkRepository
 from .schemas import (
@@ -73,7 +74,7 @@ async def get_shared_link_info(
     service: SharedLinkService = Depends(get_shared_link_service),
 ):
     """Get public info for a shared link (access type, expiration, title)."""
-    logger.info("Shared link info requested for token=%s...", token[:8])
+    logger.info("Shared link info requested for token=%s...", log_safe(token[:8]))
     return await service.get_link_info(token)
 
 
@@ -87,7 +88,7 @@ async def get_shared_diagram(
     service: SharedLinkService = Depends(get_shared_link_service),
 ):
     """Get diagram data for a public (non-protected) shared link."""
-    logger.info("Shared diagram requested for token=%s...", token[:8])
+    logger.info("Shared diagram requested for token=%s...", log_safe(token[:8]))
     return await service.get_shared_diagram(token, client_ip)
 
 
@@ -102,5 +103,5 @@ async def verify_access_code(
     service: SharedLinkService = Depends(get_shared_link_service),
 ):
     """Verify access code for a protected shared link and return diagram data."""
-    logger.info("Access code verification for token=%s...", token[:8])
+    logger.info("Access code verification for token=%s...", log_safe(token[:8]))
     return await service.verify_access_code(token, request, client_ip)

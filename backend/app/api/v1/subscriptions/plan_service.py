@@ -17,6 +17,7 @@ from .exceptions import (
 from .constants import FREE_PLAN_CODE
 from .logger import SubscriptionLogger
 from app.core.clock import utcnow
+from app.core.log_safety import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,11 @@ class PlanService:
                 try:
                     await self.payment_provider.reactivate_plan(updated_plan)
                 except Exception as exc:
-                    logger.error("Failed to reactivate plan %s in Stripe: %s", plan_id, exc)
+                    logger.error(
+                        "Failed to reactivate plan %s in Stripe: %s",
+                        log_safe(plan_id),
+                        log_safe(exc),
+                    )
 
         changes = plan_data.model_dump(exclude_unset=True)
         SubscriptionLogger.plan_updated(
@@ -210,7 +215,9 @@ class PlanService:
             try:
                 await self.payment_provider.archive_plan(plan)
             except Exception as exc:
-                logger.error("Failed to archive plan %s in Stripe: %s", plan_id, exc)
+                logger.error(
+                    "Failed to archive plan %s in Stripe: %s", log_safe(plan_id), log_safe(exc)
+                )
 
         SubscriptionLogger.plan_deactivated(
             plan_id=plan_id, plan_name=deactivated_plan.name, deactivated_by=admin_user_id
@@ -244,7 +251,9 @@ class PlanService:
             try:
                 await self.payment_provider.archive_plan(plan)
             except Exception as exc:
-                logger.error("Failed to archive plan %s in Stripe: %s", plan_id, exc)
+                logger.error(
+                    "Failed to archive plan %s in Stripe: %s", log_safe(plan_id), log_safe(exc)
+                )
 
         deleted = await self.repository.delete(plan_id)
         if not deleted:
