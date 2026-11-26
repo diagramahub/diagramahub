@@ -1671,17 +1671,19 @@
     }
   },
   "conversion": {
-    "sketchToMermaid": "Boceto → Mermaid",
-    "sketchToMermaidHint": "Formas con texto → nodos; flechas conectadas → relaciones. Crea un diagrama nuevo.",
-    "sketchNothing": "El boceto no tiene formas con texto conectadas que convertir.",
-    "sketchError": "No fue posible crear el diagrama Mermaid. Inténtalo de nuevo.",
+    "sketchError": "No fue posible crear el diagrama. Inténtalo de nuevo.",
     "sketchGenerated": "Generado desde el boceto “{{title}}” (Diagramahub)",
     "sketchSkipped": {
-      "skipped_freehand": "{{count}} trazos a mano alzada omitidos",
-      "skipped_text": "{{count}} textos sueltos omitidos",
-      "skipped_image": "{{count}} imágenes omitidas",
-      "skipped_unbound_arrow": "{{count}} flechas sin conectar omitidas",
-      "skipped_untitled_shape": "{{count}} formas sin texto omitidas"
+      "skipped_freehand_one": "{{count}} trazo a mano alzada omitido",
+      "skipped_freehand_other": "{{count}} trazos a mano alzada omitidos",
+      "skipped_text_one": "{{count}} texto suelto omitido",
+      "skipped_text_other": "{{count}} textos sueltos omitidos",
+      "skipped_image_one": "{{count}} imagen omitida",
+      "skipped_image_other": "{{count}} imágenes omitidas",
+      "skipped_unbound_arrow_one": "{{count}} flecha sin conectar omitida",
+      "skipped_unbound_arrow_other": "{{count}} flechas sin conectar omitidas",
+      "skipped_untitled_shape_one": "{{count}} forma sin texto omitida",
+      "skipped_untitled_shape_other": "{{count}} formas sin texto omitidas"
     },
     "convertType": "Convertir tipo de diagrama",
     "convertTo": "Convertir a",
@@ -1703,7 +1705,9 @@
     },
     "error": "No fue posible convertir el diagrama. Inténtalo de nuevo.",
     "applyError": "No fue posible aplicar la conversión. Inténtalo de nuevo.",
-    "limitError": "Alcanzaste el límite de tu plan ({{current}} de {{limit}} diagramas)."
+    "limitError": "Alcanzaste el límite de tu plan ({{current}} de {{limit}} diagramas).",
+    "sketchConvert": "Convertir boceto…",
+    "sketchConvertHint": "Todo el pizarrón o solo lo seleccionado, con o sin IA. Crea un diagrama nuevo."
   },
   "freehand": {
     "lock": "Bloquear",
@@ -1776,7 +1780,9 @@
     "imageUploadFailed": "No se pudo subir la imagen. Inténtalo de nuevo.",
     "imageLimit": "Este diagrama alcanzó el máximo de imágenes. Borra alguna que ya no uses.",
     "imageMissing": "Imagen no disponible",
-    "imageAlt": "Texto alternativo"
+    "imageAlt": "Texto alternativo",
+    "convertSelection": "Convertir a diagrama",
+    "convertSelectionHint": "Convierte solo los elementos seleccionados en un diagrama nuevo"
   },
   "diagramPreview": {
     "syntaxError": "⚠️ Error de sintaxis",
@@ -2383,5 +2389,37 @@
       "noteSharing": "Compartir (POST /shared-links): diagram_id, access_type public o protected (con access_code de 4 a 20 caracteres), expiration_days 5, 10, 30 o null, allow_copy_code y allow_embed. Para dejar de compartir, DELETE /shared-links/{link_id}; el ID lo da GET /shared-links/diagram/{diagram_id}.",
       "noteSafety": "Antes de borrar algo o de hacer público un diagrama, confírmalo con el usuario."
     }
+  },
+  "sketchConversion": {
+    "title": "Convertir boceto a diagrama",
+    "subtitle": "Elige qué parte del pizarrón convertir y cómo. Se crea un diagrama nuevo; el boceto no cambia.",
+    "scope": "Qué convertir",
+    "scopeSelection_one": "Lo seleccionado ({{count}} elemento)",
+    "scopeSelection_other": "Lo seleccionado ({{count}} elementos)",
+    "scopeAll_one": "Todo el pizarrón ({{count}} elemento)",
+    "scopeAll_other": "Todo el pizarrón ({{count}} elementos)",
+    "scopeHint": "Para convertir solo una sección, ciérralo, arrastra sobre el lienzo para seleccionarla y usa Convertir a diagrama en su panel.",
+    "previewAlt": "Vista previa de lo que se va a convertir",
+    "target": "Tipo de diagrama",
+    "method": "Cómo convertir",
+    "exact": "Exacta, sin IA",
+    "exactHint": "Lee las formas con texto y las flechas conectadas. Instantánea y sin costo.",
+    "exactMermaidOnly": "Solo genera Mermaid.",
+    "ai": "Con IA, desde la imagen",
+    "aiHint": "La IA ve la imagen de la sección y recibe sus textos exactos: entiende trazos, letra a mano, flechas sueltas y notas.",
+    "aiNoProvider": "Configura un proveedor de IA en Ajustes para usar esta opción.",
+    "recommended": "Recomendada",
+    "willConvert": "Se convierten {{nodes}} nodos y {{edges}} conexiones.",
+    "leftOut": "Quedan fuera:",
+    "nothingExact": "Aquí no hay formas con texto ni flechas conectadas: la conversión exacta no tiene qué leer. Prueba con IA.",
+    "empty": "No hay nada que convertir en esta parte del pizarrón.",
+    "instructions": "Instrucciones (opcional)",
+    "instructionsPlaceholder": "Ej.: hazlo de izquierda a derecha, agrupa por equipo…",
+    "convert": "Convertir",
+    "result": "Resultado",
+    "create": "Crear diagrama",
+    "creating": "Creando…",
+    "back": "Cambiar opciones",
+    "renderError": "No se pudo preparar la imagen de la sección."
   }
 }

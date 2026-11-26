@@ -1539,17 +1539,19 @@
     }
   },
   "conversion": {
-    "sketchToMermaid": "Sketch → Mermaid",
-    "sketchToMermaidHint": "Shapes with text → nodes; connected arrows → links. Creates a new diagram.",
-    "sketchNothing": "The sketch has no connected shapes with text to convert.",
-    "sketchError": "Unable to create the Mermaid diagram. Please try again.",
+    "sketchError": "The diagram couldn't be created. Please try again.",
     "sketchGenerated": "Generated from the sketch “{{title}}” (Diagramahub)",
     "sketchSkipped": {
-      "skipped_freehand": "{{count}} freehand strokes skipped",
-      "skipped_text": "{{count}} loose texts skipped",
-      "skipped_image": "{{count}} images skipped",
-      "skipped_unbound_arrow": "{{count}} unconnected arrows skipped",
-      "skipped_untitled_shape": "{{count}} shapes without text skipped"
+      "skipped_freehand_one": "{{count}} freehand stroke skipped",
+      "skipped_freehand_other": "{{count}} freehand strokes skipped",
+      "skipped_text_one": "{{count}} loose text skipped",
+      "skipped_text_other": "{{count}} loose texts skipped",
+      "skipped_image_one": "{{count}} image skipped",
+      "skipped_image_other": "{{count}} images skipped",
+      "skipped_unbound_arrow_one": "{{count}} unconnected arrow skipped",
+      "skipped_unbound_arrow_other": "{{count}} unconnected arrows skipped",
+      "skipped_untitled_shape_one": "{{count}} shape without text skipped",
+      "skipped_untitled_shape_other": "{{count}} shapes without text skipped"
     },
     "convertType": "Convert diagram type",
     "convertTo": "Convert to",
@@ -1571,7 +1573,9 @@
     },
     "error": "Unable to convert the diagram. Please try again.",
     "applyError": "Unable to apply the conversion. Please try again.",
-    "limitError": "You've reached your plan's limit ({{current}} of {{limit}} diagrams)."
+    "limitError": "You've reached your plan's limit ({{current}} of {{limit}} diagrams).",
+    "sketchConvert": "Convert sketch…",
+    "sketchConvertHint": "The whole whiteboard or just the selection, with or without AI. Creates a new diagram."
   },
   "freehand": {
     "lock": "Lock",
@@ -1644,7 +1648,9 @@
     "imageUploadFailed": "The image couldn't be uploaded. Please try again.",
     "imageLimit": "This diagram has reached its image limit. Delete one you no longer use.",
     "imageMissing": "Image not available",
-    "imageAlt": "Alt text"
+    "imageAlt": "Alt text",
+    "convertSelection": "Convert to diagram",
+    "convertSelectionHint": "Turn only the selected elements into a new diagram"
   },
   "subscription": {
     "title": "My Subscription",
@@ -2383,5 +2389,37 @@
       "noteSharing": "Sharing (POST /shared-links): diagram_id, access_type public or protected (with an access_code of 4 to 20 characters), expiration_days 5, 10, 30 or null, allow_copy_code and allow_embed. To stop sharing, DELETE /shared-links/{link_id}; GET /shared-links/diagram/{diagram_id} gives its ID.",
       "noteSafety": "Before deleting anything or making a diagram public, confirm it with the user."
     }
+  },
+  "sketchConversion": {
+    "title": "Convert sketch to a diagram",
+    "subtitle": "Choose which part of the whiteboard to convert and how. A new diagram is created; the sketch stays as it is.",
+    "scope": "What to convert",
+    "scopeSelection_one": "The selection ({{count}} element)",
+    "scopeSelection_other": "The selection ({{count}} elements)",
+    "scopeAll_one": "The whole whiteboard ({{count}} element)",
+    "scopeAll_other": "The whole whiteboard ({{count}} elements)",
+    "scopeHint": "To convert just one section, close this, drag over the canvas to select it and use Convert to diagram in its panel.",
+    "previewAlt": "Preview of what will be converted",
+    "target": "Diagram type",
+    "method": "How to convert",
+    "exact": "Exact, no AI",
+    "exactHint": "Reads shapes with text and connected arrows. Instant and free.",
+    "exactMermaidOnly": "Mermaid only.",
+    "ai": "With AI, from the picture",
+    "aiHint": "The AI sees a picture of the section and gets its exact texts: it understands strokes, handwriting, loose arrows and notes.",
+    "aiNoProvider": "Set up an AI provider in Settings to use this option.",
+    "recommended": "Recommended",
+    "willConvert": "{{nodes}} nodes and {{edges}} links will be converted.",
+    "leftOut": "Left out:",
+    "nothingExact": "There are no shapes with text or connected arrows here: the exact conversion has nothing to read. Try AI.",
+    "empty": "There is nothing to convert in this part of the whiteboard.",
+    "instructions": "Instructions (optional)",
+    "instructionsPlaceholder": "E.g.: lay it out left to right, group by team…",
+    "convert": "Convert",
+    "result": "Result",
+    "create": "Create diagram",
+    "creating": "Creating…",
+    "back": "Change options",
+    "renderError": "The picture of the section couldn't be prepared."
   }
 }

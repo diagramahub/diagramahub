@@ -115,9 +115,18 @@ From **Export Diagram**, whiteboards export as **PNG** at **Screen (1x)**, **Sta
 
 You can also **Download source code** as a `.freehand.json` file, which can be imported again (without the images, which are stored apart from the drawing; the ZIP export of a project or folder does include them). Excalidraw files (`.excalidraw`) are imported as whiteboards. See [Export and import](export-import.md).
 
-## Sketch → Mermaid
+## Turning the sketch into a diagram
 
-On a whiteboard, the **Convert diagram type** menu offers **Sketch → Mermaid**, which creates a **new Mermaid diagram** (the whiteboard is left untouched). The conversion is deterministic and **uses no AI**:
+A sketch can be turned into a **new diagram** (the whiteboard is left untouched), whole or just one section:
+
+1. **Choose what to convert.** For a section, select it by dragging over the canvas and press **Convert to diagram** in the selection's panel (or the right-click menu). For the whole whiteboard, use **Convert sketch…** in the **Convert diagram type** menu. The dialog shows a picture of what will be converted; arrows joining two selected elements and whole groups come along by themselves.
+2. **Choose the type**: Mermaid, PlantUML or D2.
+3. **Choose how**, with the recommended option marked:
+    - **Exact, no AI**: instant and free, Mermaid only. It reads shapes with text and connected arrows, and tells you before converting how many nodes and links come out and what is left out.
+    - **With AI, from the picture**: the AI sees a picture of the section and gets its exact texts and links read from the canvas, so it understands strokes, handwriting, loose arrows and notes without getting the texts wrong. It uses your AI provider with a model that reads images, and you can give it instructions.
+4. **Check the result** and press **Create diagram**.
+
+The exact conversion works like this:
 
 ```mermaid
 flowchart LR
@@ -138,4 +147,4 @@ flowchart LR
 | Arrow leaving and entering the same shape | Self-loop |
 
 !!! note "What is left out"
-    Freehand strokes, loose text, images, unconnected arrows and shapes without text have no structural equivalent: they are skipped, and DiagramaHub tells you how many of each were left out.
+    In the exact conversion, freehand strokes, loose text, images, unconnected arrows and shapes without text have no structural equivalent: they are skipped, and DiagramaHub tells you how many of each would be left out, so you can choose the AI conversion when you need them.

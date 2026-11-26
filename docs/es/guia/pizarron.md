@@ -115,9 +115,18 @@ Desde **Exportar Diagrama**, los pizarrones se exportan como **PNG** con resoluc
 
 También puedes **Descargar código fuente** como archivo `.freehand.json`, que se puede volver a importar (sin las imágenes, que se guardan aparte del dibujo; la exportación ZIP de un proyecto o carpeta sí las incluye). Los archivos de Excalidraw (`.excalidraw`) se importan como pizarrones. Consulta [Exportar e importar](exportar-importar.md).
 
-## Boceto → Mermaid
+## Convertir el boceto en un diagrama
 
-En un pizarrón, el menú **Convertir tipo de diagrama** ofrece **Boceto → Mermaid**, que crea un **diagrama Mermaid nuevo** (el pizarrón no se modifica). La conversión es determinista y **no usa IA**:
+Un boceto se puede convertir en un **diagrama nuevo** (el pizarrón no se modifica), completo o solo una sección:
+
+1. **Elige qué convertir.** Para una sección, selecciónala arrastrando sobre el lienzo y pulsa **Convertir a diagrama** en el panel de la selección (o en el menú del clic derecho). Para todo el pizarrón, usa **Convertir boceto…** en el menú **Convertir tipo de diagrama**. La ventana muestra una imagen de lo que se va a convertir; las flechas que unen dos elementos de la selección y los grupos completos se incluyen solos.
+2. **Elige el tipo**: Mermaid, PlantUML o D2.
+3. **Elige cómo**, con la opción recomendada marcada:
+    - **Exacta, sin IA**: instantánea y sin costo, solo para Mermaid. Lee las formas con texto y las flechas conectadas, y antes de convertir te dice cuántos nodos y conexiones salen y qué queda fuera.
+    - **Con IA, desde la imagen**: la IA ve una imagen de la sección y recibe sus textos y conexiones exactos leídos del lienzo, así que entiende trazos, letra a mano, flechas sueltas y notas sin equivocar los textos. Usa tu proveedor de IA con un modelo que lea imágenes, y puedes darle instrucciones.
+4. **Revisa el resultado** y pulsa **Crear diagrama**.
+
+La conversión exacta funciona así:
 
 ```mermaid
 flowchart LR
@@ -138,4 +147,4 @@ flowchart LR
 | Flecha que sale y llega a la misma forma | Relación consigo misma |
 
 !!! note "Lo que se omite"
-    Los trazos a mano alzada, los textos sueltos, las imágenes, las flechas sin conectar y las formas sin texto no tienen equivalente estructural: se omiten y DiagramaHub te dice cuántos de cada tipo quedaron fuera.
+    En la conversión exacta, los trazos a mano alzada, los textos sueltos, las imágenes, las flechas sin conectar y las formas sin texto no tienen equivalente estructural: se omiten y DiagramaHub te dice cuántos de cada tipo quedarían fuera, para que elijas la conversión con IA si los necesitas.

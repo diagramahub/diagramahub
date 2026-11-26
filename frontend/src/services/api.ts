@@ -534,23 +534,26 @@ class ApiService {
   }
 
   async diagramFromImage(data: {
-    image: File;
+    image: Blob;
     diagramType: string;
     language: 'es' | 'en';
     instructions?: string;
     provider?: string;
     model?: string;
+    /** Converting a freehand selection: its texts and links read from the canvas. */
+    sketchContext?: string;
     /** Upload progress, 0-1. */
     onUploadProgress?: (fraction: number) => void;
     signal?: AbortSignal;
   }): Promise<GenerateDiagramResponse> {
     const form = new FormData();
-    form.append('image', data.image);
+    form.append('image', data.image, data.image instanceof File ? data.image.name : 'sketch.png');
     form.append('diagram_type', data.diagramType);
     form.append('language', data.language);
     if (data.instructions) form.append('instructions', data.instructions);
     if (data.provider) form.append('provider', data.provider);
     if (data.model) form.append('model', data.model);
+    if (data.sketchContext) form.append('sketch_context', data.sketchContext);
     // multipart explicitly: with the instance's JSON default, axios would turn the
     // FormData into JSON and drop the file.
     const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/diagram-from-image', form, {

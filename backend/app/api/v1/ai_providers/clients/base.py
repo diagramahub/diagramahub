@@ -202,8 +202,12 @@ class BaseAIClient(ABC):
         diagram_type: str,
         language: str = "es",
         instructions: Optional[str] = None,
+        sketch_context: Optional[str] = None,
     ) -> str:
         """Recreate the diagram in an image as code (same rules as ``generate_diagram``).
+
+        ``sketch_context``: elements read from a whiteboard selection (see
+        ``build_image_user_prompt``).
 
         Raises:
             ImagesNotSupportedError: The provider can't take images
@@ -214,7 +218,7 @@ class BaseAIClient(ABC):
         self.last_truncated = False
         reply = await self.complete_with_image(
             build_code_system_prompt(diagram_type, language),
-            build_image_user_prompt(instructions),
+            build_image_user_prompt(instructions, sketch_context),
             image,
             mime_type,
             max_tokens=CODE_MAX_TOKENS,

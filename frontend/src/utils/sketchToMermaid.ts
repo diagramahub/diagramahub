@@ -98,7 +98,11 @@ function direction(edges: { from: FreehandElement; to: FreehandElement }[]): "TD
 }
 
 export function sketchToMermaid(content: string): SketchConversion {
-  const elements = parseSketch(content);
+  return elementsToMermaid(parseSketch(content));
+}
+
+/** Same as `sketchToMermaid`, for elements already at hand (e.g. a selection). */
+export function elementsToMermaid(elements: FreehandElement[]): SketchConversion {
   const skipped: Record<string, number> = {};
   const skip = (reason: string) => {
     skipped[reason] = (skipped[reason] ?? 0) + 1;

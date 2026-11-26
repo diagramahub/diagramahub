@@ -93,7 +93,7 @@ El detalle de temas y estilos por lenguaje está en [Tipos de diagrama](tipos-de
 !!! warning "La conversión puede no ser exacta"
     Cada lenguaje tiene elementos y estilos propios; revisa la vista previa antes de aplicar. Requiere un proveedor de IA configurado.
 
-Para los pizarrones a mano alzada, el menú ofrece **Boceto → Mermaid**, una conversión sin IA descrita en [Pizarrón a mano alzada](pizarron.md#boceto-mermaid).
+Para los pizarrones a mano alzada, el menú ofrece **Convertir boceto…**, que convierte todo el pizarrón o una sección, con o sin IA, en un diagrama nuevo; se describe en [Pizarrón a mano alzada](pizarron.md#convertir-el-boceto-en-un-diagrama).
 
 ## Atajos del editor
 

@@ -400,6 +400,8 @@ interface FreehandCanvasProps {
   onPanChange?: (pan: FreehandPoint) => void;
   /** Where the scene's images are read from (and stored, when editing). */
   imageStore?: FreehandImageStore;
+  /** "Convert to diagram" from the selection's panel or menu (the selected ids). */
+  onConvertSelection?: (ids: string[]) => void;
   /** Read-only mode: hides toolbar and disables editing (pan/zoom still work). */
   readOnly?: boolean;
 }
@@ -427,7 +429,7 @@ function sameElements(a: FreehandElement[], b: FreehandElement[]): boolean {
   return true;
 }
 
-export default function FreehandCanvas({ initialState, onChange, handleRef, zoom: zoomProp = 1, onZoomChange, initialPan, onPanChange, imageStore, readOnly = false }: FreehandCanvasProps) {
+export default function FreehandCanvas({ initialState, onChange, handleRef, zoom: zoomProp = 1, onZoomChange, initialPan, onPanChange, imageStore, onConvertSelection, readOnly = false }: FreehandCanvasProps) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -460,6 +462,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const [background] = useState("#ffffff");
   const [activeTool, setActiveTool] = useState<FreehandTool>("select");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
   // Drawing defaults (also used for style editing)
@@ -1005,21 +1009,25 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const fitRef = useRef<() => void>(() => {});
 
   // ─── PNG export (used by the editor's export dialog) ───
-  const exportPng = useCallback(async ({ scale, transparent }: { scale: 1 | 2 | 3; transparent: boolean }): Promise<Blob | null> => {
+  const exportPng = useCallback(async ({ scale, transparent, ids, maxSide }: Parameters<FreehandCanvasHandle["exportPng"]>[0]): Promise<Blob | null> => {
+    // A selection is exported alone, framed on itself
+    const only = ids && ids.length > 0 ? new Set(ids) : null;
+    const scene = only ? elements.filter((el) => only.has(el.id)) : elements;
     // Bounds include rotated corners, strokes and labels; the scale is reduced
     // when the content is too large for a canvas the browser can allocate.
-    const bounds = exportBounds(elements);
+    const bounds = exportBounds(scene);
     if (!bounds) return null;
-    await Promise.all(elements.filter((el) => el.type === "image" && el.fileId).map((el) => ensureImage(el.fileId!)));
+    await Promise.all(scene.filter((el) => el.type === "image" && el.fileId).map((el) => ensureImage(el.fileId!)));
     const { minX, minY, width, height } = bounds;
-    const pixelScale = fitExportScale(width, height, scale);
+    let pixelScale = fitExportScale(width, height, scale);
+    if (maxSide) pixelScale = Math.min(pixelScale, maxSide / Math.max(width, height));
     const off = document.createElement("canvas");
     off.width = Math.max(1, Math.floor(width * pixelScale)); off.height = Math.max(1, Math.floor(height * pixelScale));
     const ctx = off.getContext("2d");
     if (!ctx) return null;
     if (!transparent) { ctx.fillStyle = background; ctx.fillRect(0, 0, off.width, off.height); }
     ctx.scale(pixelScale, pixelScale); ctx.translate(-minX, -minY);
-    for (const el of elements) {
+    for (const el of scene) {
       ctx.save();
       ctx.globalAlpha = el.opacity ?? 1;
       ctx.strokeStyle = el.strokeColor || "#1e1e1e"; ctx.fillStyle = el.fillColor || "transparent";
@@ -1033,7 +1041,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   }, [elements, background, ensureImage]);
   useEffect(() => {
     if (!handleRef) return;
-    handleRef.current = { exportPng, fitToContent: () => fitRef.current() };
+    handleRef.current = {
+      exportPng,
+      fitToContent: () => fitRef.current(),
+      getElements: () => elementsRef.current,
+      getSelectedIds: () => [...selectedIdsRef.current],
+    };
     return () => { handleRef.current = null; };
   }, [handleRef, exportPng]);
 
@@ -2554,6 +2567,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             );
           })()}
 
+          {/* Convert just this part of the sketch into a diagram */}
+          {onConvertSelection && (
+            <button onClick={() => onConvertSelection([...selectedIds])} title={t("freehand.convertSelectionHint")}
+              className="mb-2 w-full flex items-center gap-2 px-2 py-1 text-xs rounded text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              {t("freehand.convertSelection")}
+            </button>
+          )}
+
           {/* Locked selection: every editing control below is inert until unlocked */}
           <fieldset disabled={allSelectedLocked} className={allSelectedLocked ? "opacity-40 pointer-events-none" : ""} aria-disabled={allSelectedLocked}>
 
@@ -2838,6 +2860,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
               {t("freehand.duplicate")}
             </button>
+            {onConvertSelection && (
+              <button onClick={() => { onConvertSelection([...selectedIds]); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                {t("freehand.convertSelection")}
+              </button>
+            )}
             <button onClick={() => { toggleLockSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
               {elements.filter((el) => selectedIds.has(el.id)).every((el) => el.locked) ? t("freehand.unlock") : t("freehand.lock")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("L", true)}</span>

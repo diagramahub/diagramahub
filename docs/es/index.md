@@ -66,7 +66,7 @@ Se instala en tu propia infraestructura con Docker Compose.
 
 - Lienzo tipo pizarrón con formas, flechas, texto y trazo libre, dibujados con estilo a mano.
 - Bloqueo de elementos, deshacer/rehacer y exportación a PNG.
-- **Boceto → Mermaid**: convierte un boceto en un diagrama Mermaid editable.
+- **Boceto → diagrama**: convierte un boceto completo o solo una sección en un diagrama Mermaid, PlantUML o D2, con una lectura exacta sin IA o con IA a partir de su imagen.
 
 ### Organización
 

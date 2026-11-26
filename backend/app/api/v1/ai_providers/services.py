@@ -586,6 +586,7 @@ class AIProviderService:
         instructions: Optional[str] = None,
         provider: Optional[AIProviderType] = None,
         model: Optional[str] = None,
+        sketch_context: Optional[str] = None,
     ) -> GenerateDiagramResponse:
         """
         Recreate the diagram in an image (whiteboard photo, screenshot, sketch) as code.
@@ -598,6 +599,7 @@ class AIProviderService:
             instructions: Optional extra instructions from the user
             provider: Provider to use (the default one when omitted)
             model: Model to use, e.g. the one picked in the chat (the provider's when omitted)
+            sketch_context: Elements read from a freehand selection (exact texts and links)
 
         Returns:
             Generated diagram code
@@ -650,7 +652,7 @@ class AIProviderService:
         try:
             start_time = time.time()
             diagram_code = await client.generate_diagram_from_image(
-                image, mime_type, diagram_type, language, instructions
+                image, mime_type, diagram_type, language, instructions, sketch_context
             )
         except ImagesNotSupportedError:
             raise HTTPException(

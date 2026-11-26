@@ -121,7 +121,17 @@ export interface FreehandImageStore {
 /** Imperative API the editor uses for exports (set through the `handleRef` prop). */
 export interface FreehandCanvasHandle {
   /** Render the drawing (no selection UI) to a PNG blob; `transparent` skips the background. */
-  exportPng: (options: { scale: 1 | 2 | 3; transparent: boolean }) => Promise<Blob | null>;
+  exportPng: (options: {
+    scale: 1 | 2 | 3;
+    transparent: boolean;
+    /** Only these elements (a selection), framed on them. */
+    ids?: string[];
+    /** Cap on the longest side of the PNG, in pixels (lowers the scale). */
+    maxSide?: number;
+  }) => Promise<Blob | null>;
+  /** The scene as it is now, and the selected element ids. */
+  getElements: () => FreehandElement[];
+  getSelectedIds: () => string[];
   /** Zoom and pan so the whole drawing fits in view (same as the F key). */
   fitToContent: () => void;
 }
