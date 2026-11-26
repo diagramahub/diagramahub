@@ -11,6 +11,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from
 import { useTranslation } from "react-i18next";
 import { drawSketchy, drawStrokeElement, drawStrokeOutline, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
 import { exportBounds, fitExportScale } from "../utils/freehandExport";
+import { fitFontSize, wrapText, type FittedText } from "../utils/textLayout";
 import ConfirmModal from "./ConfirmModal";
 import type {
   FreehandCanvasState,
@@ -30,6 +31,8 @@ import {
   FREEHAND_STROKE_WIDTHS,
   DEFAULT_SKETCH_STYLE,
   FREEHAND_FONT_FAMILIES,
+  STICKY_COLORS,
+  STICKY_SIZE,
   fontStackFor,
   randomSeed,
 } from "../types/freehand";
@@ -110,8 +113,9 @@ function distToSegment(p: FreehandPoint, a: FreehandPoint, b: FreehandPoint): nu
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 
+/** Elements arrows can bind to (they show anchors and carry a wrapped label). */
 function isShape(el: FreehandElement): boolean {
-  return ["rectangle", "diamond", "ellipse"].includes(el.type);
+  return ["rectangle", "diamond", "ellipse", "sticky"].includes(el.type);
 }
 
 /** Whether an element's (rotation-aware) box touches the world rectangle [x0,x1]×[y0,y1]. */
@@ -146,6 +150,38 @@ function measureTextWidth(text: string, fontSize: number, fontFamily?: string): 
   let w = 0;
   for (const line of text.split("\n")) w = Math.max(w, ctx.measureText(line).width);
   return w;
+}
+
+/** Room left around a shape's label, and around a sticky note's text. */
+const SHAPE_TEXT_PADDING = 8;
+const STICKY_PADDING = 14;
+
+/** Box a shape's label wraps in (diamonds and ellipses have less room than their bounds). */
+function labelBox(el: FreehandElement): { width: number; height: number } {
+  const k = el.type === "diamond" ? 0.55 : el.type === "ellipse" ? 0.72 : 1;
+  const pad = el.type === "sticky" ? STICKY_PADDING : SHAPE_TEXT_PADDING;
+  return { width: Math.max(10, el.width * k - pad * 2), height: Math.max(10, el.height * k - pad * 2) };
+}
+
+// Wrapped labels, reused across frames (cleared when the handwriting font arrives)
+const labelCache = new Map<string, FittedText>();
+
+/**
+ * Lines and font size of a shape's label: shapes wrap their text at their
+ * font size; sticky notes also shrink it until it fits the note.
+ */
+function labelLayout(el: FreehandElement, text = el.text || ""): FittedText {
+  const box = labelBox(el);
+  const key = [el.type, text, Math.round(box.width), Math.round(box.height), el.fontFamily, el.fontSize].join("|");
+  const hit = labelCache.get(key);
+  if (hit) return hit;
+  const measure = (t: string, fs: number) => measureTextWidth(t, fs, el.fontFamily);
+  const layout = el.type === "sticky"
+    ? fitFontSize(text, box.width, box.height, measure, { min: 10, max: 32, lineHeight: TEXT_LINE_HEIGHT })
+    : { fontSize: el.fontSize || 14, lines: wrapText(text, box.width, el.fontSize || 14, measure) };
+  if (labelCache.size > 2000) labelCache.clear();
+  labelCache.set(key, layout);
+  return layout;
 }
 
 /** Rounded-rectangle path (ctx.roundRect is not available everywhere). */
@@ -359,6 +395,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const [strokeColor, setStrokeColor] = useState("#1e1e1e");
   const [fillColor, setFillColor] = useState("transparent");
   const [strokeWidth, setStrokeWidth] = useState(2);
+  // Colour of the next sticky note (the last one picked)
+  const [stickyColor, setStickyColor] = useState(STICKY_COLORS[0]);
 
   // Interaction state (using refs to avoid stale closures in handlers)
   const [mode, setMode] = useState<InteractionMode>("idle");
@@ -515,7 +553,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   useEffect(() => {
     if (selectedIds.size === 0) return;
     const first = elements.find((e) => selectedIds.has(e.id));
-    if (first) {
+    // A note's paper colour must not become the fill of the next shape
+    if (first && first.type !== "sticky") {
       setStrokeColor(first.strokeColor);
       setFillColor(first.fillColor);
       setStrokeWidth(first.strokeWidth);
@@ -579,6 +618,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (selectedIds.size === 0) return;
     const updated = elements.map((el) => {
       if (!isEditable(el)) return el;
+      // Sticky notes are always flat paper: no hand-drawn style
+      if (el.type === "sticky" && (prop === "roughness" || prop === "fillStyle" || prop === "strokeWidth")) return el;
       const next = { ...el, [prop]: value };
       // Switching to a sketchy style needs a stable seed; "clean" drops the sketch attributes.
       if (prop === "roughness") {
@@ -796,7 +837,13 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     }
 
     // Drawing preview (sketchy, like the element that will be created)
-    if (mode === "drawing" && drawStart && drawCurrent && activeTool !== "freehand") {
+    if (mode === "drawing" && drawStart && drawCurrent && activeTool === "sticky") {
+      const x = Math.min(drawStart.x, drawCurrent.x), y = Math.min(drawStart.y, drawCurrent.y);
+      const w = Math.abs(drawCurrent.x - drawStart.x), h = Math.abs(drawCurrent.y - drawStart.y);
+      if (w > 1 || h > 1) {
+        ctx.save(); ctx.globalAlpha = 0.7; ctx.fillStyle = stickyColor; ctx.fillRect(x, y, w, h); ctx.restore();
+      }
+    } else if (mode === "drawing" && drawStart && drawCurrent && activeTool !== "freehand") {
       const x = Math.min(drawStart.x, drawCurrent.x), y = Math.min(drawStart.y, drawCurrent.y);
       const w = Math.abs(drawCurrent.x - drawStart.x), h = Math.abs(drawCurrent.y - drawStart.y);
       if (w > 1 || h > 1) {
@@ -818,7 +865,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Restore pan transform
     ctx.restore();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- renderElement is redeclared every render but only reads editingId, which is listed
-  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides]);
+  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides, stickyColor]);
 
   // Paint at most once per animation frame: several state updates between two
   // frames (pointer events arrive faster than the display refreshes) cost one paint.
@@ -877,7 +924,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement) {
     // Hand-drawn elements (0.8.0+): roughjs for shapes/lines, perfect-freehand for strokes.
     // Elements without `roughness` keep the clean rendering below.
-    const sketchy = el.roughness !== undefined && el.type !== "text";
+    const sketchy = el.roughness !== undefined && el.type !== "text" && el.type !== "sticky";
     if (sketchy && el.type === "freehand") {
       drawStrokeElement(ctx, el);
     } else if (sketchy) {
@@ -931,6 +978,19 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         (el.text || "").split("\n").forEach((line, i) => ctx.fillText(line, el.x, el.y + i * (el.fontSize || 16) * TEXT_LINE_HEIGHT));
         break;
       }
+      case "sticky": {
+        // Flat paper square with a soft shadow (shadows ignore the transform: scale them by hand)
+        const m = ctx.getTransform();
+        const scale = Math.hypot(m.a, m.b) || 1;
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.18)";
+        ctx.shadowBlur = 10 * scale;
+        ctx.shadowOffsetY = 3 * scale;
+        ctx.fillStyle = el.fillColor && el.fillColor !== "transparent" ? el.fillColor : STICKY_COLORS[0];
+        ctx.fillRect(el.x, el.y, el.width, el.height);
+        ctx.restore();
+        break;
+      }
       case "freehand": {
         const pts = el.points || []; if (pts.length < 2) break;
         ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
@@ -942,12 +1002,14 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Skip rendering text if this element is currently being edited (to avoid duplication)
     if (el.type !== "text" && el.text && el.id !== editingId) {
       ctx.save();
-      const fs = el.fontSize || 14;
+      // Shapes and notes wrap their label inside their box; arrow labels keep their lines
+      const layout = isShape(el) ? labelLayout(el) : { fontSize: el.fontSize || 14, lines: el.text.split("\n") };
+      const fs = layout.fontSize;
       ctx.font = `${fs}px ${fontStackFor(el.fontFamily)}`;
       ctx.fillStyle = el.strokeColor || "#1e1e1e";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const shapeLines = el.text.split("\n");
+      const shapeLines = layout.lines;
       const lineHeight = fs * TEXT_LINE_HEIGHT;
       const startY = el.y + el.height / 2 - ((shapeLines.length - 1) * lineHeight) / 2;
       shapeLines.forEach((line, i) => ctx.fillText(line, el.x + el.width / 2, startY + i * lineHeight));
@@ -1356,6 +1418,17 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
         newEl = { id: generateId(), type: "freehand", x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: pts, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
       }
+    } else if (activeTool === "sticky") {
+      // A click drops a standard note centred on the pointer; a drag sizes it
+      const w = Math.abs(endPt.x - drawStart.x), h = Math.abs(endPt.y - drawStart.y);
+      const sized = w > 20 && h > 20;
+      newEl = {
+        id: generateId(), type: "sticky",
+        x: sized ? Math.min(drawStart.x, endPt.x) : drawStart.x - STICKY_SIZE / 2,
+        y: sized ? Math.min(drawStart.y, endPt.y) : drawStart.y - STICKY_SIZE / 2,
+        width: sized ? w : STICKY_SIZE, height: sized ? h : STICKY_SIZE,
+        strokeColor: "#1e1e1e", fillColor: stickyColor, strokeWidth: 1, opacity: 1, text: "", fontFamily: "hand",
+      };
     } else if (activeTool === "arrow" || activeTool === "line") {
       let startBinding: ConnectionBinding | undefined, endBinding: ConnectionBinding | undefined;
       let sp = drawStart, ep = endPt;
@@ -1377,6 +1450,13 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       if (activeTool !== "freehand") {
         setSelectedIds(new Set([newEl.id]));
         setActiveTool("select");
+      }
+      // A new note opens for typing right away (Miro-style)
+      if (newEl.type === "sticky") {
+        setEditingId(newEl.id);
+        setEditingText("");
+        editingIsNewRef.current = false;
+        editingOriginalRef.current = "";
       }
     }
     setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); setHoveredAnchor(null); setGuides([]);
@@ -1792,7 +1872,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
     const toolShortcuts: Record<string, FreehandTool> = {
       v: "select", h: "hand", r: "rectangle", d: "diamond", o: "ellipse",
-      a: "arrow", l: "line", t: "text", p: "freehand", e: "eraser",
+      a: "arrow", l: "line", t: "text", n: "sticky", p: "freehand", e: "eraser",
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -1862,6 +1942,19 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       // Delete
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.size > 0) { e.preventDefault(); handleDelete(); return; }
 
+      // Enter: type into the selected shape, note or text (Excalidraw-style)
+      if (e.key === "Enter" && !mod && selectedIds.size === 1) {
+        const sel = elements.find((el) => selectedIds.has(el.id));
+        if (sel && !sel.locked && (isShape(sel) || sel.type === "text")) {
+          e.preventDefault();
+          setEditingId(sel.id);
+          setEditingText(sel.text || "");
+          editingIsNewRef.current = false;
+          editingOriginalRef.current = sel.text || "";
+          return;
+        }
+      }
+
       // Escape: clear selection and return to the select tool
       if (e.key === "Escape") { setSelectedIds(new Set()); setActiveTool("select"); setMode("idle"); setHoveredId(null); setGuides([]); return; }
 
@@ -1900,6 +1993,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     let cancelled = false;
     document.fonts.load('16px "Caveat"').then(() => {
       if (cancelled) return;
+      labelCache.clear();
       setElements((prev) => prev.map((el) =>
         el.type === "text" && el.fontFamily === "hand"
           ? { ...el, width: Math.max(20, measureTextWidth(el.text || "", el.fontSize || 16, el.fontFamily) + 12) }
@@ -2038,6 +2132,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     { id: "arrow", label: t("freehand.tools.arrow"), shortcut: "A", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> },
     { id: "line", label: t("freehand.tools.line"), shortcut: "L", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20L20 4"/></svg> },
     { id: "text", label: t("freehand.tools.text"), shortcut: "T", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg> },
+    { id: "sticky", label: t("freehand.tools.sticky"), shortcut: "N", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v10l-6 6H4z"/><path d="M14 20v-6h6"/></svg> },
     { id: "freehand", label: t("freehand.tools.freehand"), shortcut: "P", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> },
     { id: "eraser", label: t("freehand.tools.eraser"), shortcut: "E", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.8 1.4c.8-.8 2-.8 2.8 0l5 5c.8.8.8 2 0 2.8L11 20"/><path d="M6 11l7 7"/></svg> },
   ];
@@ -2093,9 +2188,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const isArrowLine = !!single && (single.type === "arrow" || single.type === "line");
         const isTextEl = !!single && single.type === "text";
         const isRect = !!single && single.type === "rectangle";
-        const allShapes = elements.filter((el) => selectedIds.has(el.id)).every((el) => isShape(el));
-        const showFill = allShapes && selectedIds.size > 0;
-        const showWidth = !(selectedIds.size === 1 && isTextEl);
+        const selectedEls = elements.filter((el) => selectedIds.has(el.id));
+        // Notes only have a paper colour and a font: no stroke, sketch style, fill pattern or width
+        const allSticky = selectedEls.length > 0 && selectedEls.every((el) => el.type === "sticky");
+        const allShapes = selectedEls.every((el) => isShape(el));
+        const showFill = allShapes && selectedIds.size > 0 && !allSticky;
+        const showWidth = !(selectedIds.size === 1 && isTextEl) && !allSticky;
         const PANEL_W = 232;
         // Place the panel to the RIGHT of the selection (or LEFT if there's no room),
         // so it never overlaps the element being edited
@@ -2172,7 +2270,22 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             </div>
           )}
 
+          {/* Sticky note colour */}
+          {allSticky && (
+            <div className="mb-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.noteColor")}</span>
+              <div className="flex flex-wrap gap-1">
+                {STICKY_COLORS.map((c) => (
+                  <button key={c} onClick={() => { setStickyColor(c); updateStyle("fillColor", c); }}
+                    className={`w-5 h-5 rounded border-2 ${(single ? single.fillColor : stickyColor) === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-700"}`}
+                    style={{ backgroundColor: c }} aria-label={c} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stroke / text color */}
+          {!allSticky && (
           <div className="mb-2">
             <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{isTextEl ? t("freehand.textColor") : t("freehand.stroke")}</span>
             <div className="flex flex-wrap gap-1">
@@ -2183,10 +2296,10 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               ))}
             </div>
           </div>
+          )}
 
-
-          {/* Hand-drawn stroke style (everything but text) */}
-          {!(selectedIds.size === 1 && isTextEl) && (
+          {/* Hand-drawn stroke style (everything but text and notes) */}
+          {!(selectedIds.size === 1 && isTextEl) && !allSticky && (
             <div className="mb-2">
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.sketchStyle")}</span>
               <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t("freehand.sketchStyle")}>
@@ -2240,7 +2353,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           )}
 
           {/* Font (text elements and labelled shapes) */}
-          {!!single && (isTextEl || !!single.text) && (
+          {!!single && (isTextEl || single.type === "sticky" || !!single.text) && (
             <div className="mb-2">
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.font")}</span>
               <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t("freehand.font")}>
@@ -2331,22 +2444,28 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         {editingId && (() => {
           const el = elements.find((e) => e.id === editingId);
           if (!el) return null;
-          const fs = el.fontSize || 16;
-          const lines = Math.max(1, editingText.split("\n").length);
-          const textW = Math.max(20, measureTextWidth(editingText || " ", fs, el.fontFamily) + 12);
-          const textH = lines * fs * 1.25 + 4;
           const isTextType = el.type === "text";
+          // Shapes and notes: the editor wraps inside the label box, at the size the label will have
+          const layout = isShape(el) ? labelLayout(el, editingText) : null;
+          const fs = layout ? layout.fontSize : el.fontSize || 16;
+          const lines = layout ? Math.max(1, layout.lines.length) : Math.max(1, editingText.split("\n").length);
+          const textW = layout ? labelBox(el).width : Math.max(20, measureTextWidth(editingText || " ", fs, el.fontFamily) + 12);
+          const textH = lines * fs * TEXT_LINE_HEIGHT + 4;
           // Standalone text auto-sizes; shapes keep their box and center the editor inside it
           const boxW = isTextType ? textW : el.width;
           const boxH = isTextType ? textH : el.height;
           return (
             <div
               className="absolute flex items-center justify-center"
-              style={{ left: el.x * zoom + panOffset.x, top: el.y * zoom + panOffset.y, width: boxW * zoom, height: boxH * zoom, pointerEvents: "none" }}
+              style={{
+                left: el.x * zoom + panOffset.x, top: el.y * zoom + panOffset.y, width: boxW * zoom, height: boxH * zoom, pointerEvents: "none",
+                transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+              }}
             >
               <textarea
                 autoFocus
                 value={editingText}
+                wrap={layout ? "soft" : "off"}
                 onChange={(e) => {
                   const val = e.target.value;
                   setEditingText(val);
@@ -2359,12 +2478,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
                 }}
                 onBlur={commitTextEdit}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitTextEdit(); }
-                  if (e.key === "Escape") { e.preventDefault(); cancelTextEdit(); }
+                  // Stop here: the canvas shortcuts listen on window, and React may already have
+                  // re-subscribed them (editing ended) before this event bubbles there, so the
+                  // same Enter would reopen the editor.
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); commitTextEdit(); }
+                  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cancelTextEdit(); }
                 }}
                 rows={lines}
                 className="bg-transparent text-center font-medium border-none outline-none resize-none overflow-hidden pointer-events-auto"
-                style={{ color: el.strokeColor || "#1e1e1e", fontSize: fs * zoom, fontFamily: fontStackFor(el.fontFamily), lineHeight: TEXT_LINE_HEIGHT, width: textW * zoom, height: textH * zoom }}
+                style={{ color: el.strokeColor || "#1e1e1e", fontSize: fs * zoom, fontFamily: fontStackFor(el.fontFamily), lineHeight: TEXT_LINE_HEIGHT, width: textW * zoom, height: Math.min(textH, isTextType ? textH : el.height) * zoom }}
               />
             </div>
           );

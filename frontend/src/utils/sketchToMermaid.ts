@@ -2,7 +2,7 @@
  * Deterministic conversion of a freehand sketch into a Mermaid flowchart.
  *
  * No AI involved: shapes with text become nodes (rectangle `[ ]`, diamond
- * `{ }`, ellipse `( )`), and arrows bound to two shapes become edges, with
+ * `{ }`, ellipse `( )`, sticky note `> ]`), and arrows bound to two shapes become edges, with
  * the arrow's own text as the edge label and dashed arrows as `-.->`.
  * Lines without heads become `---`, double-headed arrows `<-->`, and an
  * arrow bound twice to the same shape is a self-loop.
@@ -22,12 +22,14 @@ export interface SketchConversion {
   skipped: Record<string, number>;
 }
 
-type Shape = Extract<FreehandElement["type"], "rectangle" | "diamond" | "ellipse">;
+type Shape = Extract<FreehandElement["type"], "rectangle" | "diamond" | "ellipse" | "sticky">;
 
 const SHAPE_BRACKETS: Record<Shape, [string, string]> = {
   rectangle: ["[", "]"],
   diamond: ["{", "}"],
   ellipse: ["(", ")"],
+  // A sticky note reads as a note: Mermaid's flag shape
+  sticky: [">", "]"],
 };
 
 /**
@@ -104,7 +106,7 @@ export function sketchToMermaid(content: string): SketchConversion {
 
   const shapesById = new Map<string, FreehandElement>();
   for (const el of elements) {
-    if (el.type === "rectangle" || el.type === "diamond" || el.type === "ellipse") {
+    if (el.type === "rectangle" || el.type === "diamond" || el.type === "ellipse" || el.type === "sticky") {
       shapesById.set(el.id, el);
     } else if (el.type === "freehand") skip("skipped_freehand");
     else if (el.type === "text") skip("skipped_text");

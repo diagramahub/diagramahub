@@ -10,7 +10,8 @@ export type FreehandElementType =
   | "arrow"
   | "line"
   | "text"
-  | "freehand";
+  | "freehand"
+  | "sticky";
 
 export interface FreehandPoint {
   x: number;
@@ -88,6 +89,7 @@ export type FreehandTool =
   | "line"
   | "text"
   | "freehand"
+  | "sticky"
   | "eraser";
 
 export const DEFAULT_CANVAS_STATE: FreehandCanvasState = {
@@ -122,6 +124,19 @@ export const FREEHAND_COLORS = [
 ];
 
 export const FREEHAND_STROKE_WIDTHS = [1, 2, 3, 5, 8];
+
+/** Sticky note colours (fillColor of `sticky` elements); the first is the default. */
+export const STICKY_COLORS = [
+  "#fff3bf", // Yellow
+  "#ffdeeb", // Pink
+  "#d3f9d8", // Green
+  "#d0ebff", // Blue
+  "#ffe8cc", // Orange
+  "#e5dbff", // Purple
+];
+
+/** Default size of a sticky note placed with a click (world units). */
+export const STICKY_SIZE = 200;
 
 /** CSS font stacks for the text font selector. "hand" is the bundled handwriting font. */
 export const FREEHAND_FONT_FAMILIES: Record<FreehandFontFamily, string> = {

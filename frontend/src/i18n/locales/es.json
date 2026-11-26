@@ -1762,10 +1762,20 @@
       "line": "Línea",
       "text": "Texto",
       "freehand": "Mano alzada",
+      "sticky": "Nota adhesiva",
+      "image": "Imagen",
       "eraser": "Borrador"
     },
     "clearAllConfirmTitle": "¿Limpiar todo el pizarrón?",
-    "clearAllConfirmMessage": "Se borrarán todos los elementos del pizarrón. Puedes deshacerlo con Deshacer."
+    "clearAllConfirmMessage": "Se borrarán todos los elementos del pizarrón. Puedes deshacerlo con Deshacer.",
+    "noteColor": "Color de la nota",
+    "imageUploading": "Subiendo imagen…",
+    "imageUnsupported": "Solo se pueden insertar imágenes PNG, JPEG, WebP o GIF.",
+    "imageTooLarge": "La imagen es demasiado grande, incluso después de reducirla.",
+    "imageUploadFailed": "No se pudo subir la imagen. Inténtalo de nuevo.",
+    "imageLimit": "Este diagrama alcanzó el máximo de imágenes. Borra alguna que ya no uses.",
+    "imageMissing": "Imagen no disponible",
+    "imageAlt": "Texto alternativo"
   },
   "diagramPreview": {
     "syntaxError": "⚠️ Error de sintaxis",

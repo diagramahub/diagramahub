@@ -1630,10 +1630,20 @@
       "line": "Line",
       "text": "Text",
       "freehand": "Freehand",
+      "sticky": "Sticky note",
+      "image": "Image",
       "eraser": "Eraser"
     },
     "clearAllConfirmTitle": "Clear the whole canvas?",
-    "clearAllConfirmMessage": "Every element on the canvas will be removed. You can undo it with Undo."
+    "clearAllConfirmMessage": "Every element on the canvas will be removed. You can undo it with Undo.",
+    "noteColor": "Note color",
+    "imageUploading": "Uploading image…",
+    "imageUnsupported": "Only PNG, JPEG, WebP or GIF images can be inserted.",
+    "imageTooLarge": "The image is too large, even after shrinking it.",
+    "imageUploadFailed": "The image couldn't be uploaded. Please try again.",
+    "imageLimit": "This diagram has reached its image limit. Delete one you no longer use.",
+    "imageMissing": "Image not available",
+    "imageAlt": "Alt text"
   },
   "subscription": {
     "title": "My Subscription",
