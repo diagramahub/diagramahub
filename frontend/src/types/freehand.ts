@@ -105,6 +105,8 @@ export const DEFAULT_CANVAS_STATE: FreehandCanvasState = {
 export interface FreehandCanvasHandle {
   /** Render the drawing (no selection UI) to a PNG blob; `transparent` skips the background. */
   exportPng: (options: { scale: 1 | 2 | 3; transparent: boolean }) => Promise<Blob | null>;
+  /** Zoom and pan so the whole drawing fits in view (same as the F key). */
+  fitToContent: () => void;
 }
 
 export const FREEHAND_COLORS = [

@@ -2082,10 +2082,9 @@ export default function DiagramEditorPage() {
 
   // Ajustar diagrama a pantalla
   const handleFitToScreen = () => {
-    // Freehand diagrams have no SVG to measure — reset zoom and pan instead
+    // Freehand diagrams have no SVG to measure: the canvas fits its own content
     if (currentDiagram?.diagram_type === "freehand") {
-      setZoom(1);
-      setPan({ x: 0, y: 0 });
+      freehandHandleRef.current?.fitToContent();
       return;
     }
 
@@ -3743,7 +3742,9 @@ export default function DiagramEditorPage() {
         {/* Editor and Preview */}
         <main className="flex-1 flex overflow-hidden">
           {(() => {
-            const codeEditorPanel = (
+            // Freehand sketches have no code view: the editor isn't mounted
+            // (Monaco would re-parse the whole scene JSON on every change).
+            const codeEditorPanel = isFreehandDiagram ? null : (
               <DiagramCodePanel
                 key={currentDiagram?.id}
                 value={diagramCode}
@@ -4316,6 +4317,9 @@ export default function DiagramEditorPage() {
                             onChange={(state) => setDiagramCode(state)}
                             zoom={zoom}
                             onZoomChange={setZoom}
+                            // The pan is viewport state, saved silently with the zoom
+                            initialPan={pan}
+                            onPanChange={setPan}
                           />
                         </div>
                       ) : (
@@ -4530,7 +4534,7 @@ export default function DiagramEditorPage() {
 
             return (
               <div className="flex h-full w-full overflow-hidden">
-                {/* Code editor — always mounted, hidden via CSS when not active */}
+                {/* Code editor — always mounted (except for freehand), hidden via CSS when not active */}
                 <div
                   className="flex-shrink-0 overflow-hidden"
                   style={{
@@ -5635,7 +5639,7 @@ export default function DiagramEditorPage() {
       {isMobile && (
         <>
           <BottomSheet
-            isOpen={showCodeView}
+            isOpen={showCodeView && !isFreehandDiagram}
             onClose={() => setShowCodeView(false)}
             height="h-[65vh]"
           >
