@@ -109,7 +109,7 @@ On macOS use ++cmd++ instead of ++ctrl++.
 
 From **Export Diagram**, whiteboards export as **PNG** at **Screen (1x)**, **Standard (2x)** or **High (3x)** resolution, with a **Transparent background** option. The image covers everything drawn (rotated elements included); on very large canvases the scale is reduced automatically to stay within browser limits, without cropping anything.
 
-You can also **Download source code** as a `.freehand.json` file, which can be imported again (without the images, which are stored apart from the drawing). Excalidraw files (`.excalidraw`) are imported as whiteboards. See [Export and import](export-import.md).
+You can also **Download source code** as a `.freehand.json` file, which can be imported again (without the images, which are stored apart from the drawing; the ZIP export of a project or folder does include them). Excalidraw files (`.excalidraw`) are imported as whiteboards. See [Export and import](export-import.md).
 
 ## Sketch → Mermaid
 

@@ -48,6 +48,8 @@ Usa **Exportar proyecto** o **Exportar carpeta** y elige:
 
         El ZIP incluye un `README.md` con el índice y un `manifest.json` con los datos necesarios para **volver a importarlo**: títulos, carpetas y sus colores.
 
+        Las imágenes de los [pizarrones](pizarron.md#imagenes) van en la carpeta oculta `.files/` del ZIP, una sola vez cada una, con su SHA-256 como nombre (`<sha256>.png`, `.jpg`, `.webp` o `.gif`); el manifiesto indica cuáles usa cada pizarrón. Las versiones de DiagramaHub anteriores ignoran esa carpeta e importan los pizarrones sin sus imágenes.
+
     === "Markdown — un solo archivo"
 
         Todos los diagramas en un solo `.md`, con un bloque de código por diagrama. Tiene dos variantes:
@@ -109,7 +111,7 @@ Antes de crear nada, DiagramaHub te muestra una **Vista previa**:
 - Las carpetas se toman del **primer nivel** de rutas del ZIP. Si todo el contenido está dentro de una sola carpeta raíz, se usa el nivel siguiente. Los niveles más profundos se integran en la carpeta de primer nivel.
 - Un `.md` con el mismo nombre que un diagrama (`flujo.md` junto a `flujo.mmd`) se usa como su descripción.
 - Si ya existe una carpeta con el mismo nombre (sin distinguir mayúsculas), se reutiliza.
-- Si el ZIP es una exportación de DiagramaHub, también se recuperan los títulos originales y los colores de las carpetas.
+- Si el ZIP es una exportación de DiagramaHub, también se recuperan los títulos originales, los colores de las carpetas y las imágenes de sus pizarrones. Cada imagen se revisa como una subida (PNG, JPEG, WebP o GIF según su contenido, hasta 3 MB, hasta 100 por pizarrón) y su contenido debe coincidir con su nombre; la que no cumple se omite, la vista previa lo advierte y el pizarrón muestra un marcador en su lugar.
 
 ### Importar desde Excalidraw
 
@@ -127,5 +129,7 @@ Los dibujos `.excalidraw` se convierten en un [pizarrón](pizarron.md). Se conse
 | Archivos por importación | 500 |
 | Tamaño descomprimido de un ZIP | 50 MB |
 | Tamaño de un archivo individual | 5 MB |
+
+Las imágenes dentro de un ZIP cuentan para estos límites como cualquier otro archivo.
 
 El operador de la instancia puede ajustar estos valores. También hay un límite de importaciones y exportaciones por minuto. Si lo alcanzas, el mensaje te indica cuántos segundos esperar.

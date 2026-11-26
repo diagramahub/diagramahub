@@ -38,6 +38,7 @@ def get_export_service() -> ProjectExportService:
         project_repository=ProjectRepository(),
         folder_repository=FolderRepository(),
         diagram_repository=DiagramRepository(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 
@@ -48,6 +49,7 @@ def get_import_service() -> ProjectImportService:
         folder_repository=FolderRepository(),
         diagram_repository=DiagramRepository(),
         usage_limiter=get_usage_limiter(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 

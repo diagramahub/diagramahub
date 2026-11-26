@@ -109,7 +109,7 @@ En macOS usa ++cmd++ en lugar de ++ctrl++.
 
 Desde **Exportar Diagrama**, los pizarrones se exportan como **PNG** con resolución **Pantalla (1x)**, **Estándar (2x)** o **Alta (3x)** y la opción **Fondo transparente**. La imagen abarca todo el contenido dibujado (incluidos elementos rotados); en lienzos muy grandes la escala se reduce automáticamente para no exceder los límites del navegador, sin recortar nada.
 
-También puedes **Descargar código fuente** como archivo `.freehand.json`, que se puede volver a importar (sin las imágenes, que se guardan aparte del dibujo). Los archivos de Excalidraw (`.excalidraw`) se importan como pizarrones. Consulta [Exportar e importar](exportar-importar.md).
+También puedes **Descargar código fuente** como archivo `.freehand.json`, que se puede volver a importar (sin las imágenes, que se guardan aparte del dibujo; la exportación ZIP de un proyecto o carpeta sí las incluye). Los archivos de Excalidraw (`.excalidraw`) se importan como pizarrones. Consulta [Exportar e importar](exportar-importar.md).
 
 ## Boceto → Mermaid
 

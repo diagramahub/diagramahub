@@ -10,11 +10,15 @@ import anyio
 from fastapi import HTTPException, status
 
 from app.core.rate_limit import SlidingWindowRateLimiter
+from ..diagram_files.interfaces import IDiagramFileRepository
+from ..diagram_files.schemas import FileScope
+from ..diagram_files.services import FILE_DIAGRAM_TYPES, candidate_file_ids
 from ..diagrams.interfaces import IDiagramRepository
 from ..diagrams.schemas import DiagramInDB
 from ..folders.interfaces import IFolderRepository
 from .export_builders import (
     ExportDiagram,
+    ExportFile,
     ExportFolder,
     ExportTree,
     MarkdownVariant,
@@ -23,6 +27,8 @@ from .export_builders import (
     download_filename,
     estimate_tokens,
     group_by_folder,
+    sanitize_filename,
+    stored_files_size,
 )
 from .interfaces import IProjectRepository
 
@@ -89,10 +95,50 @@ class ProjectExportService:
         project_repository: IProjectRepository,
         folder_repository: IFolderRepository,
         diagram_repository: IDiagramRepository,
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
+        """
+        Args:
+            project_repository: Projects (ownership)
+            folder_repository: Folders of the project
+            diagram_repository: The diagrams exported
+            diagram_file_repository: Images of sketches, written into ZIP exports
+                (None: exports leave them out)
+        """
         self.project_repository = project_repository
         self.folder_repository = folder_repository
         self.diagram_repository = diagram_repository
+        self.diagram_file_repository = diagram_file_repository
+
+    async def _attach_files(self, tree: ExportTree, with_data: bool) -> None:
+        """Give each sketch of the tree the stored images its scene mentions.
+
+        ``with_data=False`` loads sizes only (enough for the export summary).
+        """
+        if self.diagram_file_repository is None:
+            return
+        diagrams = tree.root_diagrams + [d for f in tree.folders for d in f.diagrams]
+        for diagram in diagrams:
+            if diagram.diagram_type not in FILE_DIAGRAM_TYPES:
+                continue
+            wanted = candidate_file_ids(diagram.content)
+            if not wanted:
+                continue
+            if with_data:
+                stored = await self.diagram_file_repository.get_many(
+                    FileScope.DIAGRAM, diagram.id, wanted
+                )
+                found = {
+                    f.file_id: ExportFile(f.file_id, f.mime_type, f.size, f.data) for f in stored
+                }
+            else:
+                metas = await self.diagram_file_repository.list_meta(FileScope.DIAGRAM, diagram.id)
+                found = {
+                    m.file_id: ExportFile(m.file_id, m.mime_type, m.size)
+                    for m in metas
+                    if m.file_id in wanted
+                }
+            diagram.files = [found[file_id] for file_id in wanted if file_id in found]
 
     async def load_tree(
         self, project_id: str, user_id: str, folder_id: Optional[str] = None
@@ -199,11 +245,15 @@ class ProjectExportService:
         _check_rate_limit(export_summary_rate_limiter, user_id)
         tree = await self.load_tree(project_id, user_id, folder_id)
         if fmt == "zip":
+            # Image sizes come from their metadata: their bytes aren't loaded here.
+            await self._attach_files(tree, with_data=False)
             # Built in a worker thread: a large project must not block the event loop
             archive = await anyio.to_thread.run_sync(
                 lambda: build_zip(tree, include_descriptions=include_descriptions, compress=False)
             )
-            size = len(archive)
+            size = len(archive) + stored_files_size(
+                tree.unique_files(), sanitize_filename(tree.title, fallback="project")
+            )
             return ExportSummary(
                 diagram_count=tree.diagram_count,
                 folder_count=len(tree.folders),
@@ -236,6 +286,8 @@ class ProjectExportService:
         """Build the download, enforcing the per-user rate limit."""
         _check_rate_limit(export_rate_limiter, user_id)
         tree = await self.load_tree(project_id, user_id, folder_id)
+        if fmt == "zip":
+            await self._attach_files(tree, with_data=True)
         # Compression/rendering runs in a worker thread, off the event loop
         return await anyio.to_thread.run_sync(
             lambda: self.render(tree, fmt, variant, include_descriptions)

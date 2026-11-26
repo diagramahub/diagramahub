@@ -19,6 +19,7 @@ community, account deletion) keep the files in step with their diagrams; like
 
 import hashlib
 import logging
+import re
 from datetime import timedelta
 from typing import Iterable, Optional
 
@@ -63,6 +64,38 @@ def sniff_image_type(data: bytes) -> Optional[str]:
     if data.startswith((b"GIF87a", b"GIF89a")):
         return "image/gif"
     return None
+
+
+FILE_TOO_LARGE = "file_too_large"
+UNSUPPORTED_FILE_TYPE = "unsupported_file_type"
+
+
+def check_image(data: bytes, max_bytes: int) -> tuple[Optional[str], Optional[str]]:
+    """Whether ``data`` may be stored as a diagram image (uploads and imports alike).
+
+    Returns:
+        ``(mime_type, None)`` when it may, else ``(None, error)`` with
+        :data:`FILE_TOO_LARGE` or :data:`UNSUPPORTED_FILE_TYPE`.
+    """
+    if len(data) > max_bytes:
+        return None, FILE_TOO_LARGE
+    mime_type = sniff_image_type(data)
+    if mime_type is None:
+        return None, UNSUPPORTED_FILE_TYPE
+    return mime_type, None
+
+
+def file_id_of(data: bytes) -> str:
+    """A file's id: the SHA-256 of its bytes (64 lowercase hex characters)."""
+    return hashlib.sha256(data).hexdigest()
+
+
+_FILE_ID_IN_TEXT = re.compile(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])")
+
+
+def candidate_file_ids(content: Optional[str]) -> list[str]:
+    """Every distinct file-id-shaped string in ``content`` (64 lowercase hex), in order."""
+    return list(dict.fromkeys(_FILE_ID_IN_TEXT.findall(content or "")))
 
 
 def referenced_file_ids(content: Optional[str], file_ids: Iterable[str]) -> list[str]:
@@ -170,19 +203,19 @@ class DiagramFileService:
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail={"error": "diagram_type_not_supported"},
             )
-        if len(data) > self.max_bytes:
+        mime_type, error = check_image(data, self.max_bytes)
+        if error == FILE_TOO_LARGE:
             raise HTTPException(
                 status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-                detail={"error": "file_too_large", "limit": self.max_bytes},
+                detail={"error": FILE_TOO_LARGE, "limit": self.max_bytes},
             )
-        mime_type = sniff_image_type(data)
         if mime_type is None:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail={"error": "unsupported_file_type"},
+                detail={"error": UNSUPPORTED_FILE_TYPE},
             )
 
-        file_id = hashlib.sha256(data).hexdigest()
+        file_id = file_id_of(data)
         existing = await self.file_repository.get_meta(FileScope.DIAGRAM, diagram_id, file_id)
         if existing is not None:
             return self._response(file_id, existing.mime_type, existing.size), False

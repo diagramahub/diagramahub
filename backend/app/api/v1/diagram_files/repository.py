@@ -60,6 +60,16 @@ class DiagramFileRepository(IDiagramFileRepository):
             True,
         )
 
+    async def get_many(
+        self, scope: FileScope, scope_id: str, file_ids: list[str]
+    ) -> list[DiagramFileInDB]:
+        """These files of a scope, with their bytes (missing ones are left out)."""
+        if not file_ids:
+            return []
+        return await DiagramFileInDB.find(
+            {**_scope_filter(scope, scope_id), "file_id": {"$in": file_ids}}
+        ).to_list()
+
     async def list_meta(self, scope: FileScope, scope_id: str) -> list[DiagramFileMeta]:
         """Every file of a scope, without bytes."""
         return await DiagramFileInDB.find(

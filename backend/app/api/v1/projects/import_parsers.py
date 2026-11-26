@@ -21,13 +21,18 @@ import zlib
 from dataclasses import dataclass, field
 from typing import Optional
 
+from ..diagram_files.schemas import is_valid_file_id
+from ..diagram_files.services import FILE_DIAGRAM_TYPES, check_image, file_id_of
 from ..diagrams.mermaid_types import mermaid_diagram_keyword
-from .export_builders import MANIFEST_FILENAME, sanitize_filename, unique_name
+from .export_builders import ASSETS_DIR, MANIFEST_FILENAME, sanitize_filename, unique_name
 
 logger = logging.getLogger(__name__)
 
 # Reason used when a file can't be read at all (corrupt entry, unexpected data).
 UNREADABLE = "unreadable"
+# Warning on a sketch whose archive image was left out (missing, not an image,
+# too large, bytes that don't match its name, or over the per-diagram cap).
+IMAGE_SKIPPED = "image_skipped"
 
 
 def _loads(text: str):
@@ -93,6 +98,19 @@ class ImportLimits:
     max_files: int = 500
     max_total_bytes: int = 50 * 1024 * 1024
     max_file_bytes: int = 5 * 1024 * 1024
+    # Images of sketches: same rules as an upload (DIAGRAM_FILE_MAX_BYTES,
+    # DIAGRAM_FILES_MAX_PER_DIAGRAM).
+    max_image_bytes: int = 3 * 1024 * 1024
+    max_images_per_diagram: int = 100
+
+
+@dataclass
+class ImportFile:
+    """An image of a sketch, already checked (type from its bytes, id = their SHA-256)."""
+
+    file_id: str
+    mime_type: str
+    data: bytes
 
 
 @dataclass
@@ -105,6 +123,7 @@ class ImportDiagram:
     description: Optional[str]
     source: str  # file name / path inside the upload, for the preview
     warnings: list[str] = field(default_factory=list)
+    files: list[ImportFile] = field(default_factory=list)
 
 
 @dataclass
@@ -663,9 +682,51 @@ def _safe_parts(name: str) -> Optional[list[str]]:
     parts = [p for p in normalized.split("/") if p not in ("", ".")]
     if not parts or any(p == ".." for p in parts) or normalized.startswith("/"):
         return None
-    if any(p.startswith(".") or p == "__MACOSX" for p in parts):
-        return None  # hidden files/folders and macOS resource forks
+    # Hidden files/folders and macOS resource forks are ignored; the one hidden
+    # folder kept is our own export's images (ASSETS_DIR).
+    if any((p.startswith(".") and p != ASSETS_DIR) or p == "__MACOSX" for p in parts):
+        return None
     return parts
+
+
+def _sketch_files(
+    diagram: ImportDiagram, paths: list, assets: dict[str, bytes], limits: ImportLimits
+) -> None:
+    """Attach to a sketch the archive images its manifest entry lists.
+
+    An image is kept only when its scene mentions it, its bytes hash to the id
+    in its name (the name is never trusted) and it passes the upload checks
+    (type from the bytes, size, per-diagram cap). Anything else is left out
+    with an ``image_skipped`` warning; the sketch shows a placeholder.
+    """
+    if diagram.diagram_type not in FILE_DIAGRAM_TYPES:
+        return
+    kept: dict[str, ImportFile] = {}
+    skipped = False
+    for path in paths:
+        if not isinstance(path, str):
+            skipped = True
+            continue
+        stem = posixpath.basename(path).split(".", 1)[0]
+        data = assets.get(path)
+        if (
+            data is None
+            or not is_valid_file_id(stem)
+            or stem not in diagram.content
+            or file_id_of(data) != stem
+        ):
+            skipped = True
+            continue
+        if stem in kept:
+            continue
+        mime_type, error = check_image(data, limits.max_image_bytes)
+        if mime_type is None or len(kept) >= limits.max_images_per_diagram:
+            skipped = True
+            continue
+        kept[stem] = ImportFile(stem, mime_type, data)
+    diagram.files = list(kept.values())
+    if skipped:
+        diagram.warnings.append(IMAGE_SKIPPED)
 
 
 def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
@@ -717,6 +778,11 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
         if f"{top}/{MANIFEST_FILENAME}" in files:
             files = {path.split("/", 1)[1]: content for path, content in files.items()}
 
+    # Our export's images (ASSETS_DIR at the top): used for the sketches that
+    # list them in the manifest, never imported as diagrams themselves.
+    assets = {path: content for path, content in files.items() if path.startswith(f"{ASSETS_DIR}/")}
+    files = {path: content for path, content in files.items() if ASSETS_DIR not in path.split("/")}
+
     manifest = None
     if MANIFEST_FILENAME in files:
         try:
@@ -740,8 +806,14 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
             for d in manifest.get("diagrams") or []
             if isinstance(d, dict) and d.get("path")
         }
+        manifest_files = {
+            str(d["path"]): d["files"]
+            for d in manifest.get("diagrams") or []
+            if isinstance(d, dict) and d.get("path") and isinstance(d.get("files"), list)
+        }
     else:
         manifest_titles = {}
+        manifest_files = {}
 
     diagram_paths = [
         path
@@ -783,6 +855,8 @@ def plan_zip_import(data: bytes, limits: ImportLimits) -> ImportPlan:
         diagram.source = path
         if path in manifest_titles and manifest_titles[path]:
             diagram.title = manifest_titles[path][:100]
+        if path in manifest_files:
+            _sketch_files(diagram, manifest_files[path], assets, limits)
         base, _ = split_extension(path)
         for sibling in (f"{base}.md", f"{base}.markdown"):
             if sibling in description_files and diagram.description is None:

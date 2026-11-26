@@ -9,6 +9,8 @@ Guarantees:
 * No partial writes: if creating a diagram or folder fails midway, what was
   created in this request is deleted again (standalone MongoDB has no
   multi-document transactions).
+* Images of sketches in a Diagramahub export are stored for the new diagrams
+  (the parser already checked them like an upload).
 """
 
 import logging
@@ -20,6 +22,9 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.core.rate_limit import SlidingWindowRateLimiter
+from ..diagram_files.interfaces import IDiagramFileRepository
+from ..diagram_files.schemas import DiagramFileInDB, FileScope
+from ..diagram_files.services import delete_diagram_files
 from ..diagrams.interfaces import IDiagramRepository
 from ..diagrams.schemas import DiagramCreate, code_too_long
 from ..folders.interfaces import IFolderRepository
@@ -90,6 +95,8 @@ class ImportDiagramPreview(BaseModel):
     source: str
     has_description: bool
     warnings: list[str] = []
+    # Images restored with the sketch (from a Diagramahub export)
+    image_count: int = 0
 
 
 class ImportSkippedPreview(BaseModel):
@@ -136,15 +143,27 @@ class ProjectImportService:
         folder_repository: IFolderRepository,
         diagram_repository: IDiagramRepository,
         usage_limiter: UsageLimiter,
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
+        """
+        Args:
+            project_repository: Projects (ownership)
+            folder_repository: Folders (created or reused by name)
+            diagram_repository: Where the diagrams are created
+            usage_limiter: Plan quota
+            diagram_file_repository: Where sketch images are stored (None: dropped)
+        """
         self.project_repository = project_repository
         self.folder_repository = folder_repository
         self.diagram_repository = diagram_repository
         self.usage_limiter = usage_limiter
+        self.diagram_file_repository = diagram_file_repository
         self.limits = ImportLimits(
             max_files=settings.MAX_IMPORT_FILES,
             max_total_bytes=settings.MAX_IMPORT_UNCOMPRESSED_BYTES,
             max_file_bytes=settings.MAX_REQUEST_BODY_BYTES,
+            max_image_bytes=settings.DIAGRAM_FILE_MAX_BYTES,
+            max_images_per_diagram=settings.DIAGRAM_FILES_MAX_PER_DIAGRAM,
         )
 
     async def _authorize(self, project_id: str, user_id: str, folder_id: Optional[str]):
@@ -230,6 +249,7 @@ class ProjectImportService:
                 source=d.source,
                 has_description=bool(d.description),
                 warnings=d.warnings,
+                image_count=len(d.files),
             )
             for d in plan.root_diagrams
         ] + [
@@ -240,6 +260,7 @@ class ProjectImportService:
                 source=d.source,
                 has_description=bool(d.description),
                 warnings=d.warnings,
+                image_count=len(d.files),
             )
             for f in plan.folders
             for d in f.diagrams
@@ -338,6 +359,7 @@ class ProjectImportService:
                     str(project.id),
                 )
                 created.diagram_ids.append(str(new_diagram.id))
+                await self._store_files(diagram, str(new_diagram.id), user_id)
 
             for diagram in plan.root_diagrams:
                 await create(diagram, str(folder.id) if folder else None)
@@ -368,6 +390,23 @@ class ProjectImportService:
             created_folder_ids=created.folder_ids,
         )
 
+    async def _store_files(self, diagram: ImportDiagram, diagram_id: str, user_id: str) -> None:
+        """Store a new sketch's images (checked by the parser) under its id."""
+        if self.diagram_file_repository is None:
+            return
+        for file in diagram.files:
+            await self.diagram_file_repository.create(
+                DiagramFileInDB(
+                    scope=FileScope.DIAGRAM,
+                    scope_id=diagram_id,
+                    owner_id=user_id,
+                    file_id=file.file_id,
+                    mime_type=file.mime_type,
+                    size=len(file.data),
+                    data=file.data,
+                )
+            )
+
     async def _rollback(self, created: _Created) -> bool:
         """Remove what this request created; True only if everything was removed.
 
@@ -381,6 +420,11 @@ class ProjectImportService:
             except Exception:  # noqa: BLE001 - keep rolling back the rest
                 complete = False
                 logger.exception("Import rollback: could not delete diagram %s", diagram_id)
+        try:
+            await delete_diagram_files(self.diagram_file_repository, created.diagram_ids)
+        except Exception:  # noqa: BLE001
+            complete = False
+            logger.exception("Import rollback: could not delete the imported images")
         for folder_id in created.folder_ids:
             try:
                 await self.folder_repository.delete(folder_id)

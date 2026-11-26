@@ -32,6 +32,12 @@ class IDiagramFileRepository(ABC):
         """
 
     @abstractmethod
+    async def get_many(
+        self, scope: FileScope, scope_id: str, file_ids: list[str]
+    ) -> list[DiagramFileInDB]:
+        """These files of a scope, with their bytes (missing ones are left out)."""
+
+    @abstractmethod
     async def list_meta(self, scope: FileScope, scope_id: str) -> list[DiagramFileMeta]:
         """Every file of a scope, without bytes."""
 
