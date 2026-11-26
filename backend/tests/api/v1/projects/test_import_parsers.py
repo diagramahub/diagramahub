@@ -120,6 +120,41 @@ def test_normalize_freehand_fills_defaults_and_drops_unknown_elements() -> None:
 
 
 @pytest.mark.unit
+def test_normalize_freehand_keeps_sticky_notes_and_images() -> None:
+    file_id = "ab" * 32
+    raw = json.dumps(
+        {
+            "elements": [
+                {
+                    "type": "sticky",
+                    "x": 1,
+                    "y": 2,
+                    "width": 80,
+                    "height": 80,
+                    "fillColor": "#fde68a",
+                    "text": "Idea",
+                },
+                {
+                    "type": "image",
+                    "x": 5,
+                    "y": 6,
+                    "width": 300,
+                    "height": 200,
+                    "fileId": file_id,
+                    "mimeType": "image/webp",
+                },
+            ]
+        }
+    )
+    sticky, image = json.loads(normalize_freehand(raw))["elements"]
+    assert sticky["type"] == "sticky"
+    assert sticky["text"] == "Idea" and sticky["fillColor"] == "#fde68a"
+    assert image["type"] == "image"
+    assert image["fileId"] == file_id and image["mimeType"] == "image/webp"
+    assert (image["width"], image["height"]) == (300, 200)
+
+
+@pytest.mark.unit
 def test_excalidraw_to_freehand_maps_shapes_labels_arrows_and_skips_unsupported() -> None:
     doc = {
         "type": "excalidraw",

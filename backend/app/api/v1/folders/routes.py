@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.deps import get_current_user_id
 from app.api.v1.projects.repository import ProjectRepository
 from app.api.v1.diagrams.repository import DiagramRepository
+from app.api.v1.diagram_files.repository import DiagramFileRepository
 from .repository import FolderRepository
 from .services import FolderService
 from .schemas import FolderCreate, FolderUpdate, FolderResponse, FolderWithDiagramsResponse
@@ -20,6 +21,7 @@ def get_folder_service() -> FolderService:
         folder_repository=FolderRepository(),
         project_repository=ProjectRepository(),
         diagram_repository=DiagramRepository(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 

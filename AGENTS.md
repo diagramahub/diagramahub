@@ -123,7 +123,7 @@ diagramahub/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic Settings (env vars)
 │   │   │   └── security.py      # JWT + BCrypt utilities
-│   │   └── api/v1/              # All feature modules (14 modules, see below)
+│   │   └── api/v1/              # All feature modules (17 modules, see below)
 │   ├── tests/
 │   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
 │   │   └── api/v1/              # Tests mirror module structure
@@ -156,7 +156,7 @@ diagramahub/
 ├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-### Backend Module Registry (All 14 Modules)
+### Backend Module Registry (All 17 Modules)
 
 Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
@@ -177,6 +177,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **community** | `community/` | Community portal: published diagram snapshots, stars, forks (via DiagramService + UsageLimiter), comments (one reply level), reports (3 hide until an admin reviews), featuring | — |
 | **activity** | `activity/` | Dashboard heatmap: one document per (user, diagram, hour) the diagram was created, edited or duplicated (`diagram_activity`, TTL 120 days; written by `DiagramService` through `record_activity`, never failing the save), summed per day in the user's time zone (`GET /activity/heatmap?days=&tz=`) | — |
 | **about** | `about/` | About page facts: the repository's GitHub stars and forks (`GET /about/repository`, public), asked by the server and cached for an hour (`GITHUB_STATS_ENABLED`, `GITHUB_REPOSITORY`) | `client.py` |
+| **diagram_files** | `diagram_files/` | Images of freehand diagrams, stored apart from the scene JSON (`diagram_files`: bytes + `scope` diagram/publication + `scope_id` + `owner_id`; `file_id` = SHA-256 of the bytes, unique per scope). Type from magic bytes (PNG/JPEG/WebP/GIF, never SVG), `DIAGRAM_FILE_MAX_BYTES` (3 MiB), `DIAGRAM_FILES_MAX_PER_DIAGRAM` (100, unused files older than an hour collected first). Copied on duplicate/fork/publish, deleted with the diagram, project, folder, publication and account (`copy_referenced_files` / `delete_diagram_files` take an optional `IDiagramFileRepository`) | — |
 | **api_tokens** | `api_tokens/` | API keys (`dh_pat_…`, SHA-256 hash stored; per-area permissions projects/diagrams/sharing/community/ai; `permissions.RULES` maps each path to the level it needs per area — a new route reachable with keys must be added there; one that exposes a stored diagram's code also needs `diagrams` read) | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
@@ -359,7 +360,9 @@ All prefixed with `/api/v1`. See Swagger UI at `/docs` for full interactive docs
 - `CRUD /projects`, `CRUD /diagrams`, `CRUD /folders`
 - `CRUD /ai/providers`, `POST /ai/providers/{type}/test`
 - `CRUD /chat-sessions`, `POST /chat-sessions/{id}/messages`
-- `CRUD /shared-links`; public: `GET /shared/{token}/info`, `GET /shared/{token}/diagram`, `POST /shared/{token}/verify`
+- `POST /diagrams/{id}/files` (multipart `file`; 201 new / 200 already stored), `GET /diagrams/{id}/files/{file_id}` (owner; raw image)
+- `CRUD /shared-links`; public: `GET /shared/{token}/info`, `GET /shared/{token}/diagram`, `POST /shared/{token}/verify` (protected links: returns `file_token`), `GET /shared/{token}/files/{file_id}` (`?file_token=` for protected links)
+- Community images: `GET /community/{publication_id}/files/{file_id}` (same visibility as the publication)
 - `GET /subscriptions/me`, `POST /subscriptions/checkout`, `GET /subscriptions/billing-history`
 - `GET /prompt-history`
 - `CRUD /mfa` (TOTP setup, verify, recovery codes)

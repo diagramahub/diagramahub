@@ -18,6 +18,7 @@ from app.api.v1.prompt_history.interfaces import IPromptHistoryRepository
 from app.api.v1.api_tokens.interfaces import IApiTokenRepository
 from app.api.v1.community.interfaces import ICommunityRepository
 from app.api.v1.activity.interfaces import IActivityRepository
+from app.api.v1.diagram_files.interfaces import IDiagramFileRepository
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class AccountDeletionService:
         api_token_repository: Optional[IApiTokenRepository] = None,
         community_repository: Optional[ICommunityRepository] = None,
         activity_repository: Optional[IActivityRepository] = None,
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
         self.user_repository = user_repository
         self.project_repository = project_repository
@@ -48,6 +50,7 @@ class AccountDeletionService:
         self.api_token_repository = api_token_repository
         self.community_repository = community_repository
         self.activity_repository = activity_repository
+        self.diagram_file_repository = diagram_file_repository
 
     async def delete_user_account(self, user_id: str) -> None:
         """Delete all data associated with a user account.
@@ -167,7 +170,19 @@ class AccountDeletionService:
                 )
                 raise
 
-        # 10. Delete the user document
+        # 10. Images of their diagrams and publications (every file they own)
+        if self.diagram_file_repository is not None:
+            try:
+                await self.diagram_file_repository.delete_by_owner(user_id)
+            except Exception as e:
+                logger.error(
+                    "Failed to delete data for user_id=%s, collection=diagram_files: %s",
+                    user_id,
+                    e,
+                )
+                raise
+
+        # 11. Delete the user document
         try:
             await self.user_repository.delete_by_id(user_id)
         except Exception as e:
@@ -182,6 +197,7 @@ def build_account_deletion_service() -> AccountDeletionService:
     from app.api.v1.ai_providers.repository import AIProviderRepository
     from app.api.v1.api_tokens.repository import ApiTokenRepository
     from app.api.v1.community.repository import CommunityRepository
+    from app.api.v1.diagram_files.repository import DiagramFileRepository
     from app.api.v1.diagrams.repository import DiagramRepository
     from app.api.v1.folders.repository import FolderRepository
     from app.api.v1.projects.repository import ProjectRepository
@@ -200,4 +216,5 @@ def build_account_deletion_service() -> AccountDeletionService:
         api_token_repository=ApiTokenRepository(),
         community_repository=CommunityRepository(),
         activity_repository=ActivityRepository(),
+        diagram_file_repository=DiagramFileRepository(),
     )

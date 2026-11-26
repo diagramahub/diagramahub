@@ -94,6 +94,8 @@ RULES: tuple[Rule, ...] = (
     _rule(r"^/shared-links$", A.SHARING, plus=READ_DIAGRAMS, methods={"POST"}),
     _rule(r"^/shared-links(/|$)", A.SHARING),
     _rule(r"^/projects/[^/]+/diagrams$", A.DIAGRAMS),
+    # Images of freehand diagrams: upload (write) and read.
+    _rule(r"^/diagrams/[^/]+/files(/[^/]+)?$", A.DIAGRAMS),
     # Importing creates folders and diagrams.
     _rule(r"^/projects/[^/]+/import$", A.PROJECTS, A.DIAGRAMS, level=AccessLevel.WRITE),
     _rule(r"^/diagrams(/|$)", A.DIAGRAMS),

@@ -2,8 +2,12 @@
 Business logic layer for folders.
 """
 
+from typing import Optional
+
 from fastapi import HTTPException, status
 from .interfaces import IFolderRepository
+from ..diagram_files.interfaces import IDiagramFileRepository
+from ..diagram_files.services import delete_diagram_files
 from ..projects.interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
 from ..diagrams.schemas import diagram_to_response
@@ -18,6 +22,7 @@ class FolderService:
         folder_repository: IFolderRepository,
         project_repository: IProjectRepository,
         diagram_repository: IDiagramRepository,
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
         """
         Initialize the folder service.
@@ -26,10 +31,12 @@ class FolderService:
             folder_repository: Folder repository
             project_repository: Project repository
             diagram_repository: Diagram repository
+            diagram_file_repository: Images of freehand diagrams (deleted with them)
         """
         self.folder_repository = folder_repository
         self.project_repository = project_repository
         self.diagram_repository = diagram_repository
+        self.diagram_file_repository = diagram_file_repository
 
     async def create_folder(
         self, folder_data: FolderCreate, project_id: str, user_id: str
@@ -184,6 +191,7 @@ class FolderService:
         if delete_diagrams:
             # Delete all diagrams in the folder
             await self.diagram_repository.delete_by_folder_id(folder_id, folder.project_id)
+            await delete_diagram_files(self.diagram_file_repository, [str(d.id) for d in diagrams])
         else:
             # Move diagrams to root (set folder_id to None)
             await self.diagram_repository.clear_folder(folder_id, folder.project_id)

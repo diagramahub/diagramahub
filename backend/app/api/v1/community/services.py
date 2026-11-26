@@ -10,6 +10,10 @@ Business rules of the community portal.
   diagram service, so project ownership and plan limits apply.
 - ``AUTO_HIDE_REPORTS`` open reports hide a publication or comment until an
   admin reviews it.
+- Images of a published (freehand) scene are copied to the publication's own
+  file scope when it is published and whenever its code follows the diagram,
+  so they outlive edits or deletion of the source; a fork copies them into the
+  new diagram, and unpublishing deletes them.
 """
 
 from datetime import timedelta
@@ -17,6 +21,9 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 
+from app.api.v1.diagram_files.interfaces import IDiagramFileRepository
+from app.api.v1.diagram_files.schemas import DiagramFileInDB, FileScope, is_valid_file_id
+from app.api.v1.diagram_files.services import copy_referenced_files, referenced_file_ids
 from app.api.v1.diagrams.interfaces import IDiagramRepository
 from app.api.v1.diagrams.schemas import DiagramCreate, MAX_DIAGRAM_CODE_LENGTH
 from app.api.v1.diagrams.syntax_validator import SyntaxValidator
@@ -136,8 +143,10 @@ class CommunityService:
         diagram_service: DiagramService,
         usage_limiter: UsageLimiter,
         frontend_url: str = "",
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
         self.repository = repository
+        self.diagram_file_repository = diagram_file_repository
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
         self.user_repository = user_repository
@@ -346,10 +355,74 @@ class CommunityService:
             }
             if all(getattr(publication, k) == v for k, v in mirrored.items()):
                 continue
+            content_changed = publication.content != source.content
             mirrored["updated_at"] = source.updated_at or utcnow()
             for field, value in mirrored.items():
                 setattr(publication, field, value)
             await self.repository.set_fields(str(publication.id), mirrored)
+            if content_changed:
+                await self._sync_files(publication)
+
+    async def _sync_files(self, publication: PublishedDiagramInDB) -> None:
+        """Give a publication its own copy of the images its code uses (and only those).
+
+        Copied from the source diagram while it exists; files the code no longer
+        mentions are dropped.
+        """
+        if self.diagram_file_repository is None:
+            return
+        publication_id = str(publication.id)
+        await copy_referenced_files(
+            self.diagram_file_repository,
+            FileScope.DIAGRAM,
+            publication.source_diagram_id,
+            FileScope.PUBLICATION,
+            publication_id,
+            publication.owner_id,
+            publication.content,
+        )
+        stored = await self.diagram_file_repository.list_meta(FileScope.PUBLICATION, publication_id)
+        in_use = set(referenced_file_ids(publication.content, (f.file_id for f in stored)))
+        unused = [f.file_id for f in stored if f.file_id not in in_use]
+        if unused:
+            await self.diagram_file_repository.delete_files(
+                FileScope.PUBLICATION, publication_id, unused
+            )
+
+    async def get_file(
+        self, publication_id: str, file_id: str, user_id: Optional[str], is_admin: bool
+    ) -> tuple[DiagramFileInDB, bool]:
+        """An image of a publication, to whoever may see the publication.
+
+        Returns:
+            The file and whether everyone may see it (False: hidden publication
+            seen by its owner or an admin).
+
+        Raises:
+            HTTPException 404: Hidden or missing publication, or no such image
+        """
+        publication = await self._visible(publication_id, user_id, is_admin)
+        if self.diagram_file_repository is None or not is_valid_file_id(file_id):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+        file = await self.diagram_file_repository.get(
+            FileScope.PUBLICATION, publication_id, file_id
+        )
+        if file is None:
+            # The diagram may have moved on since the publication was last read
+            # (syncing copies its new images), or an earlier copy failed.
+            await self._sync([publication])
+            if file_id in (publication.content or ""):
+                file = await self.diagram_file_repository.get(
+                    FileScope.PUBLICATION, publication_id, file_id
+                )
+                if file is None:
+                    await self._sync_files(publication)
+                    file = await self.diagram_file_repository.get(
+                        FileScope.PUBLICATION, publication_id, file_id
+                    )
+        if file is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+        return file, not publication.hidden
 
     # ------------------------------------------------------------------ #
     #  Publish / update / unpublish
@@ -442,6 +515,7 @@ class CommunityService:
                 allow_comments=request.allow_comments,
             )
         )
+        await self._sync_files(publication)
         return await self.get_detail(str(publication.id), user_id, False)
 
     async def update(
@@ -477,6 +551,10 @@ class CommunityService:
         ):
             await self.usage_limiter.enforce_can_make_private(user_id)
         await self.repository.delete_publication(publication_id)
+        if self.diagram_file_repository is not None:
+            await self.diagram_file_repository.delete_scopes(
+                FileScope.PUBLICATION, [publication_id]
+            )
         return publication
 
     # ------------------------------------------------------------------ #
@@ -521,6 +599,15 @@ class CommunityService:
             ),
             request.project_id,
             user_id,
+        )
+        await copy_referenced_files(
+            self.diagram_file_repository,
+            FileScope.PUBLICATION,
+            publication_id,
+            FileScope.DIAGRAM,
+            created.id,
+            user_id,
+            publication.content,
         )
         await self.repository.add_fork(
             CommunityForkInDB(

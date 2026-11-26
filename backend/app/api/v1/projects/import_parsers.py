@@ -288,7 +288,20 @@ def parse_markdown_file(text: str) -> Optional[tuple[str, str, Optional[str], Op
 #  Freehand / Excalidraw
 # --------------------------------------------------------------------------- #
 
-_FREEHAND_TYPES = {"rectangle", "diamond", "ellipse", "arrow", "line", "text", "freehand"}
+# Element types of the canvas; anything else is dropped on import. ``image``
+# elements only name their file (``fileId``, a SHA-256); a file missing on this
+# server shows as a placeholder.
+_FREEHAND_TYPES = {
+    "rectangle",
+    "diamond",
+    "ellipse",
+    "arrow",
+    "line",
+    "text",
+    "freehand",
+    "sticky",
+    "image",
+}
 
 
 def _num(value, default: float = 0.0) -> float:

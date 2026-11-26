@@ -2,12 +2,16 @@
 Business logic layer for projects.
 """
 
+from typing import Optional
+
 from fastapi import HTTPException, status
 from .export_builders import group_by_folder
 from .interfaces import IProjectRepository
 from ..diagrams.interfaces import IDiagramRepository
 from ..diagrams.schemas import diagram_to_response
 from ..folders.interfaces import IFolderRepository
+from ..diagram_files.interfaces import IDiagramFileRepository
+from ..diagram_files.services import delete_diagram_files
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectWithDiagramsResponse
 
 
@@ -19,6 +23,7 @@ class ProjectService:
         repository: IProjectRepository,
         diagram_repository: IDiagramRepository,
         folder_repository: IFolderRepository,
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
         """
         Initialize the project service.
@@ -27,10 +32,12 @@ class ProjectService:
             repository: Project repository
             diagram_repository: Diagram repository
             folder_repository: Folder repository
+            diagram_file_repository: Images of freehand diagrams (deleted with them)
         """
         self.repository = repository
         self.diagram_repository = diagram_repository
         self.folder_repository = folder_repository
+        self.diagram_file_repository = diagram_file_repository
 
     async def create_project(self, project_data: ProjectCreate, user_id: str) -> ProjectResponse:
         """
@@ -256,8 +263,14 @@ class ProjectService:
                 detail="You don't have access to this project",
             )
 
-        # Delete all diagrams first
+        # Delete all diagrams first (and their images)
+        diagram_ids = (
+            await self.diagram_repository.get_ids_by_project_id(project_id)
+            if self.diagram_file_repository is not None
+            else []
+        )
         await self.diagram_repository.delete_by_project_id(project_id)
+        await delete_diagram_files(self.diagram_file_repository, diagram_ids)
 
         # Delete all folders
         await self.folder_repository.delete_by_project_id(project_id)

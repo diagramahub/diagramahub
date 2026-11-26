@@ -17,6 +17,7 @@ from app.api.v1.shared_links.repository import SharedLinkRepository
 from app.core.config import settings
 from app.core.client_ip import get_client_ip
 from app.api.v1.activity.repository import ActivityRepository
+from app.api.v1.diagram_files.repository import DiagramFileRepository
 from .repository import DiagramRepository
 from .services import DiagramService
 from .fix_service import (
@@ -57,6 +58,7 @@ def get_diagram_service() -> DiagramService:
         shared_link_repository=SharedLinkRepository(),
         folder_repository=FolderRepository(),
         activity_repository=ActivityRepository(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 
