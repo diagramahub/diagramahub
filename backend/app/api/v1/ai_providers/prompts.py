@@ -1065,7 +1065,6 @@ def extract_diagram_code(text: str) -> str:
     unterminated block, or bare code. ``<think>`` blocks are removed first and
     stray marker fragments never reach the editor.
     """
-    import re
 
     text = re.sub(r"<think>.*?</think>\s*", "", text or "", flags=re.DOTALL)
     if "<think>" in text:
@@ -1480,7 +1479,6 @@ CONVERSION_SYSTEM_PROMPT = (
 
 def clean_code_response(text: str) -> str:
     """Limpiar respuesta de IA removiendo bloques de codigo markdown."""
-    import re
 
     text = text.strip()
     if not text:
@@ -1513,7 +1511,6 @@ def clean_ai_code_response(text: str) -> str:
     them, so reasoning tags emitted first (DeepSeek/MiniMax) must be removed
     up front; otherwise the fences survive cleaning and break rendering.
     """
-    import re
 
     text = re.sub(r"<think>.*?</think>\s*", "", text, flags=re.DOTALL)
     if "<think>" in text:
@@ -1572,7 +1569,6 @@ def extract_fix_delimited(response_text: str, provider_name: str) -> dict:
     # Validate required fields
     if "corrected_code" not in result or not result["corrected_code"]:
         # Fallback: try to find code in markdown block
-        import re
 
         code_match = re.search(r"```(?:dbml)?\s*\n(.*?)```", text, re.DOTALL)
         if code_match:
@@ -1612,7 +1608,6 @@ def extract_fix_json(response_text: str, provider_name: str) -> dict:
         ValueError: Si no se puede extraer o parsear el JSON
     """
     import json
-    import re
 
     text = response_text.strip()
 
@@ -1628,7 +1623,7 @@ def extract_fix_json(response_text: str, provider_name: str) -> dict:
             _validate_fix_fields(result, provider_name)
             return result
     except json.JSONDecodeError:
-        pass
+        pass  # Not bare JSON: try the next strategy.
 
     # 3. Buscar JSON con balance de llaves (maneja llaves anidadas en D2/PlantUML)
     result = _extract_balanced_json(text)
@@ -1645,7 +1640,7 @@ def extract_fix_json(response_text: str, provider_name: str) -> dict:
                 _validate_fix_fields(result, provider_name)
                 return result
         except json.JSONDecodeError:
-            pass
+            pass  # Last strategy failed too: report below.
 
     raise ValueError(f"No se pudo extraer JSON de la respuesta de {provider_name}")
 

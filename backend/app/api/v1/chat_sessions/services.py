@@ -488,7 +488,6 @@ class ChatSessionService:
             generation_time = time.time() - start
 
             # Strip <think>...</think> tags (chain-of-thought from some models like DeepSeek/MiniMax)
-            import re
 
             # Handle both closed and unclosed think tags
             ai_text = re.sub(r"<think>.*?</think>\s*", "", ai_text, flags=re.DOTALL)
@@ -509,7 +508,6 @@ class ChatSessionService:
             display_text = ai_text
             improvement_status = None
 
-            code_display = ai_text
             if response_mode == "text" and self._reply_offers_diagram(
                 ai_text, diagram_type, preset_action
             ):
@@ -668,7 +666,6 @@ class ChatSessionService:
         Yields:
             Formatted SSE event strings (``data: {...}\\n\\n``).
         """
-        import re
         from app.api.v1.ai_providers.prompts import (
             build_unified_chat_prompt,
         )
@@ -867,7 +864,6 @@ class ChatSessionService:
                     elif think_buffer and in_think_block:
                         # Unclosed think block — capture as think content
                         think_content_parts.append(think_buffer)
-                    think_buffer = ""
 
                 except NotImplementedError:
                     # Fallback to non-streaming
@@ -1052,7 +1048,8 @@ class ChatSessionService:
                     content=error_text,
                 )
             except Exception:
-                pass
+                # The user still gets the error event; only the history misses it.
+                logger.warning("Could not save the chat error message", exc_info=True)
             yield error_event(error_text)
 
     # ------------------------------------------------------------------ #
@@ -1236,7 +1233,6 @@ class ChatSessionService:
         diagram type (PlantUML @startuml…@enduml, Mermaid keywords, DBML
         Table). Returns ``(None, text)`` when there is no code.
         """
-        import re
 
         from app.api.v1.ai_providers.prompts import extract_diagram_code
 
@@ -1312,7 +1308,6 @@ class ChatSessionService:
         whole diagram (not a snippet that illustrates an answer), and never for
         "Explain", whose answers often quote the current diagram.
         """
-        import re
 
         if re.search(r"<{2,3}\s*DIAGRAMA?\s*>{1,3}", ai_text, re.IGNORECASE):
             return True

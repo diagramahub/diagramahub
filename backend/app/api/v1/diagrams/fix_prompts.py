@@ -13,3 +13,11 @@ from app.api.v1.ai_providers.prompts import (  # noqa: F401
     build_dbml_fix_prompt,
     build_fix_prompt,
 )
+
+__all__ = [
+    "build_mermaid_fix_prompt",
+    "build_plantuml_fix_prompt",
+    "build_d2_fix_prompt",
+    "build_dbml_fix_prompt",
+    "build_fix_prompt",
+]

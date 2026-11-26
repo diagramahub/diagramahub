@@ -3,6 +3,7 @@ Business logic layer for shared links.
 """
 
 import hashlib
+import logging
 import secrets
 import string
 from datetime import datetime, timedelta
@@ -78,6 +79,9 @@ def _build_share_url(token: str) -> str:
     """Build the full share URL for a token."""
     base_url = settings.FRONTEND_URL.rstrip("/")
     return f"{base_url}/shared/{token}"
+
+
+logger = logging.getLogger(__name__)
 
 
 class SharedLinkService:
@@ -337,7 +341,8 @@ class SharedLinkService:
             if user:
                 return user.full_name or user.email.split("@")[0]
         except Exception:
-            pass
+            # The shared view works without the owner's name; don't fail it.
+            logger.warning("Shared link: owner lookup failed", exc_info=True)
         return None
 
     async def _get_valid_link(self, token: str, client_ip: str) -> SharedLinkInDB:

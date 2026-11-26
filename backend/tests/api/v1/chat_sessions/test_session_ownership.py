@@ -115,11 +115,11 @@ async def test_a_message_from_another_session_is_not_found(client: AsyncClient) 
     message_in_b = await _pending_message(session_b)
 
     status_url = f"{BASE}/{session_a}/messages/{message_in_b}/status"
-    assert (
-        await client.put(status_url, json={"status": "accepted"}, headers=owner)
-    ).status_code == 404
+    response = await client.put(status_url, json={"status": "accepted"}, headers=owner)
+    assert response.status_code == 404
     delete_url = f"{BASE}/{session_a}/messages/{message_in_b}"
-    assert (await client.delete(delete_url, headers=owner)).status_code == 404
+    response = await client.delete(delete_url, headers=owner)
+    assert response.status_code == 404
     assert await ChatMessageInDB.get(message_in_b) is not None
 
 
