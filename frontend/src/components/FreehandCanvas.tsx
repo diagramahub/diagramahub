@@ -12,6 +12,9 @@ import { useTranslation } from "react-i18next";
 import { drawSketchy, drawStrokeElement, drawStrokeOutline, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
 import { exportBounds, fitExportScale } from "../utils/freehandExport";
 import { fitFontSize, wrapText, type FittedText } from "../utils/textLayout";
+import { INSERTED_IMAGE_SIDE, INSERTABLE_IMAGE_TYPES, ImageTooLargeError, fitWithin, isInsertableImage, prepareImage } from "../utils/imageImport";
+import { cloneForPaste, parseClipboard, serializeClipboard, type FreehandClipboard } from "../utils/freehandClipboard";
+import { apiErrorStatus } from "../utils/apiError";
 import ConfirmModal from "./ConfirmModal";
 import type {
   FreehandCanvasState,
@@ -24,6 +27,7 @@ import type {
   SketchFillStyle,
   FreehandFontFamily,
   FreehandCanvasHandle,
+  FreehandImageStore,
 } from "../types/freehand";
 import {
   DEFAULT_CANVAS_STATE,
@@ -116,6 +120,31 @@ function distToSegment(p: FreehandPoint, a: FreehandPoint, b: FreehandPoint): nu
 /** Elements arrows can bind to (they show anchors and carry a wrapped label). */
 function isShape(el: FreehandElement): boolean {
   return ["rectangle", "diamond", "ellipse", "sticky"].includes(el.type);
+}
+
+/** Elements arrows can attach to: shapes, notes and images. */
+function canBind(el: FreehandElement): boolean {
+  return isShape(el) || el.type === "image";
+}
+
+/** Data URL of a blob (image bytes for the system clipboard). */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Bytes of a data URL (fetch() can't read data: URLs under the app's CSP). */
+function dataUrlToBlob(url: string): Blob {
+  const [head, body] = url.split(",", 2);
+  const type = head.slice(5, head.indexOf(";"));
+  const bin = atob(body);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type });
 }
 
 /** Whether an element's (rotation-aware) box touches the world rectangle [x0,x1]×[y0,y1]. */
@@ -337,6 +366,8 @@ interface FreehandCanvasProps {
   initialPan?: FreehandPoint;
   /** Called when the user stops panning (debounced). */
   onPanChange?: (pan: FreehandPoint) => void;
+  /** Where the scene's images are read from (and stored, when editing). */
+  imageStore?: FreehandImageStore;
   /** Read-only mode: hides toolbar and disables editing (pan/zoom still work). */
   readOnly?: boolean;
 }
@@ -364,7 +395,7 @@ function sameElements(a: FreehandElement[], b: FreehandElement[]): boolean {
   return true;
 }
 
-export default function FreehandCanvas({ initialState, onChange, handleRef, zoom: zoomProp = 1, onZoomChange, initialPan, onPanChange, readOnly = false }: FreehandCanvasProps) {
+export default function FreehandCanvas({ initialState, onChange, handleRef, zoom: zoomProp = 1, onZoomChange, initialPan, onPanChange, imageStore, readOnly = false }: FreehandCanvasProps) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -386,6 +417,14 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   });
   const elementsRef = useRef(elements);
   elementsRef.current = elements;
+  // Notice shown at the bottom of the canvas (image errors…), cleared after a few seconds
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  const [uploadingImages, setUploadingImages] = useState(0);
   const [background] = useState("#ffffff");
   const [activeTool, setActiveTool] = useState<FreehandTool>("select");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -472,6 +511,45 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // ─── Images: decoded once per file, repainted when they arrive ───
+  type ImageEntry = { status: "loading" | "ready" | "error"; bitmap?: ImageBitmap; blob?: Blob; promise: Promise<void> };
+  const imagesRef = useRef(new Map<string, ImageEntry>());
+  const [imageVersion, setImageVersion] = useState(0);
+  const imageStoreRef = useRef(imageStore);
+  imageStoreRef.current = imageStore;
+  const decodeImage = useCallback((fileId: string, source: Promise<Blob>): Promise<void> => {
+    const cache = imagesRef.current;
+    // Assigned right below; the async body only reads it after its first await
+    let promise: Promise<void> = Promise.resolve();
+    promise = (async () => {
+      try {
+        const blob = await source;
+        const bitmap = await createImageBitmap(blob);
+        cache.set(fileId, { status: "ready", bitmap, blob, promise });
+      } catch {
+        cache.set(fileId, { status: "error", promise });
+      }
+      setImageVersion((v) => v + 1);
+    })();
+    cache.set(fileId, { status: "loading", promise });
+    return promise;
+  }, []);
+  const ensureImage = useCallback((fileId: string): Promise<void> => {
+    const hit = imagesRef.current.get(fileId);
+    if (hit) return hit.promise;
+    const store = imageStoreRef.current;
+    return decodeImage(fileId, store ? store.load(fileId) : Promise.reject(new Error("no_image_store")));
+  }, [decodeImage]);
+  // Load every image of the scene (also the ones out of view, so exports have them)
+  useEffect(() => {
+    for (const el of elements) if (el.type === "image" && el.fileId) void ensureImage(el.fileId);
+  }, [elements, ensureImage]);
+  // Release the decoded images with the canvas
+  useEffect(() => {
+    const cache = imagesRef.current;
+    return () => { for (const entry of cache.values()) entry.bitmap?.close(); cache.clear(); };
+  }, []);
 
   // ─── Undo/redo history ───
   const lastCoalesceRef = useRef<{ key: string; at: number } | null>(null);
@@ -755,7 +833,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             }
           }
           // Rotation handle (single-select, shapes & text)
-          if (selectedIds.size === 1 && (isShape(el) || el.type === "text")) {
+          if (selectedIds.size === 1 && (canBind(el) || el.type === "text")) {
             const cx = el.x + el.width / 2;
             const topY = el.y - 18;
             ctx.beginPath(); ctx.moveTo(cx, topY + 8); ctx.lineTo(cx, topY - 6);
@@ -764,8 +842,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             ctx.fillStyle = "#fff"; ctx.fill();
             ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
           }
-          // Anchor points for shapes
-          if (isShape(el)) {
+          // Anchor points for shapes, notes and images
+          if (canBind(el)) {
             for (const side of ["top", "bottom", "left", "right"] as ConnectionBinding["anchorSide"][]) {
               // Drawn inside the rotated context: use unrotated geometry (the transform rotates it)
               const pt = getAnchorPoint(el, side);
@@ -865,7 +943,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Restore pan transform
     ctx.restore();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- renderElement is redeclared every render but only reads editingId, which is listed
-  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides, stickyColor]);
+  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides, stickyColor, imageVersion]);
 
   // Paint at most once per animation frame: several state updates between two
   // frames (pointer events arrive faster than the display refreshes) cost one paint.
@@ -895,6 +973,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // when the content is too large for a canvas the browser can allocate.
     const bounds = exportBounds(elements);
     if (!bounds) return null;
+    await Promise.all(elements.filter((el) => el.type === "image" && el.fileId).map((el) => ensureImage(el.fileId!)));
     const { minX, minY, width, height } = bounds;
     const pixelScale = fitExportScale(width, height, scale);
     const off = document.createElement("canvas");
@@ -914,7 +993,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     }
     return new Promise((resolve) => off.toBlob(resolve, "image/png"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elements, background]);
+  }, [elements, background, ensureImage]);
   useEffect(() => {
     if (!handleRef) return;
     handleRef.current = { exportPng, fitToContent: () => fitRef.current() };
@@ -924,7 +1003,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement) {
     // Hand-drawn elements (0.8.0+): roughjs for shapes/lines, perfect-freehand for strokes.
     // Elements without `roughness` keep the clean rendering below.
-    const sketchy = el.roughness !== undefined && el.type !== "text" && el.type !== "sticky";
+    const sketchy = el.roughness !== undefined && el.type !== "text" && el.type !== "sticky" && el.type !== "image";
     if (sketchy && el.type === "freehand") {
       drawStrokeElement(ctx, el);
     } else if (sketchy) {
@@ -989,6 +1068,24 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         ctx.fillStyle = el.fillColor && el.fillColor !== "transparent" ? el.fillColor : STICKY_COLORS[0];
         ctx.fillRect(el.x, el.y, el.width, el.height);
         ctx.restore();
+        break;
+      }
+      case "image": {
+        const entry = el.fileId ? imagesRef.current.get(el.fileId) : undefined;
+        if (entry?.bitmap) {
+          ctx.drawImage(entry.bitmap, el.x, el.y, el.width, el.height);
+        } else {
+          // Placeholder while it loads, or when the file can't be read
+          ctx.save();
+          ctx.fillStyle = "#f3f4f6"; ctx.fillRect(el.x, el.y, el.width, el.height);
+          ctx.strokeStyle = "#d1d5db"; ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+          ctx.strokeRect(el.x, el.y, el.width, el.height);
+          if (entry?.status === "error") {
+            ctx.fillStyle = "#6b7280"; ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(t("freehand.imageMissing"), el.x + el.width / 2, el.y + el.height / 2, Math.max(10, el.width - 16));
+          }
+          ctx.restore();
+        }
         break;
       }
       case "freehand": {
@@ -1262,7 +1359,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         };
       }));
       // Show anchor hint if near a shape
-      const near = [...elements].reverse().find((el) => el.id !== elId && isShape(el) && hitTest(pos, el));
+      const near = findTopmost(elements, (el) => el.id !== elId && canBind(el) && hitTest(pos, el));
       if (near) setHoveredAnchor({ elementId: near.id, side: closestAnchorSide(near, pos) });
       else setHoveredAnchor(null);
       return;
@@ -1276,6 +1373,18 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       if (resizeHandle.includes("w")) { nw = Math.max(10, resizeOrigin.elW - dx); nx = resizeOrigin.elX + resizeOrigin.elW - nw; }
       if (resizeHandle.includes("s")) nh = Math.max(10, resizeOrigin.elH + dy);
       if (resizeHandle.includes("n")) { nh = Math.max(10, resizeOrigin.elH - dy); ny = resizeOrigin.elY + resizeOrigin.elH - nh; }
+      // Images keep their proportions (the side being dragged sets the scale)
+      const resizedEl = elements.find((el) => el.id === elId);
+      if (resizedEl?.type === "image" && resizeOrigin.elW > 0 && resizeOrigin.elH > 0) {
+        const horizontal = resizeHandle.includes("e") || resizeHandle.includes("w");
+        const vertical = resizeHandle.includes("n") || resizeHandle.includes("s");
+        const k = horizontal && vertical
+          ? Math.max(nw / resizeOrigin.elW, nh / resizeOrigin.elH)
+          : horizontal ? nw / resizeOrigin.elW : nh / resizeOrigin.elH;
+        nw = Math.max(10, resizeOrigin.elW * k); nh = Math.max(10, resizeOrigin.elH * k);
+        nx = resizeHandle.includes("w") ? resizeOrigin.elX + resizeOrigin.elW - nw : resizeOrigin.elX;
+        ny = resizeHandle.includes("n") ? resizeOrigin.elY + resizeOrigin.elH - nh : resizeOrigin.elY;
+      }
       const resized = elements.map((el) => {
         if (el.id !== elId) return el;
         const updated = { ...el, x: nx, y: ny, width: nw, height: nh };
@@ -1324,7 +1433,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       }
       // Arrow anchor snapping
       if (activeTool === "arrow" || activeTool === "line") {
-        const near = [...elements].reverse().find((el) => isShape(el) && hitTest(cur, el));
+        const near = findTopmost(elements, (el) => canBind(el) && hitTest(cur, el));
         if (near) setHoveredAnchor({ elementId: near.id, side: closestAnchorSide(near, cur) });
         else setHoveredAnchor(null);
       }
@@ -1432,8 +1541,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     } else if (activeTool === "arrow" || activeTool === "line") {
       let startBinding: ConnectionBinding | undefined, endBinding: ConnectionBinding | undefined;
       let sp = drawStart, ep = endPt;
-      const startShape = elements.find((el) => isShape(el) && hitTest(drawStart, el));
-      const endShape = hoveredAnchor ? elements.find((el) => el.id === hoveredAnchor.elementId) : elements.find((el) => isShape(el) && hitTest(endPt, el));
+      const startShape = elements.find((el) => canBind(el) && hitTest(drawStart, el));
+      const endShape = hoveredAnchor ? elements.find((el) => el.id === hoveredAnchor.elementId) : elements.find((el) => canBind(el) && hitTest(endPt, el));
       if (startShape) { const side = closestAnchorSide(startShape, drawStart); startBinding = { elementId: startShape.id, anchorSide: side }; sp = getRotatedAnchor(startShape, side); }
       if (endShape && endShape.id !== startShape?.id) { const side = hoveredAnchor?.elementId === endShape.id ? hoveredAnchor.side : closestAnchorSide(endShape, endPt); endBinding = { elementId: endShape.id, anchorSide: side }; ep = getRotatedAnchor(endShape, side); }
       newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
@@ -1580,8 +1689,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (readOnly) return;
     const pos = getPos(e);
-    const hit = [...elements].reverse().find((el) => hitTest(pos, el));
-    if (hit?.locked) return;
+    const hit = findTopmost(elements, (el) => hitTest(pos, el));
+    if (hit?.locked || hit?.type === "image") return;
     if (hit) {
       setEditingId(hit.id);
       setEditingText(hit.text || "");
@@ -1852,6 +1961,176 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   // Latest fit for the imperative handle (declared earlier than fitToContent)
   fitRef.current = fitToContent;
 
+  // ─── Images: insert from paste, drop or the file picker ───
+  const canInsertImages = !readOnly && !!imageStore?.save;
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const imageErrorKey = (err: unknown): string => {
+    if (err instanceof ImageTooLargeError) return "freehand.imageTooLarge";
+    const status = apiErrorStatus(err);
+    if (status === 413) return "freehand.imageTooLarge";
+    if (status === 409) return "freehand.imageLimit";
+    if (status === 415 || status === 422) return "freehand.imageUnsupported";
+    // The browser couldn't decode the file
+    if (status === undefined && err instanceof DOMException) return "freehand.imageUnsupported";
+    return "freehand.imageUploadFailed";
+  };
+
+  /** Center of the visible canvas, in world coordinates. */
+  const viewCenter = (): FreehandPoint => ({ x: (canvasSize.width / 2 - panOffset.x) / zoom, y: (canvasSize.height / 2 - panOffset.y) / zoom });
+  /** Where pasted things go: under the pointer when it's over the canvas, else the view's center. */
+  const pastePoint = (): FreehandPoint => (pointerOverCanvasRef.current ? mousePosRef.current : viewCenter());
+
+  /** Add new elements on top (one undo step) and select them. */
+  const addElements = (added: FreehandElement[]) => {
+    if (added.length === 0) return;
+    const updated = [...elementsRef.current, ...added];
+    setElements(updated); emit(updated);
+    setSelectedIds(new Set(added.map((el) => el.id)));
+    setActiveTool("select");
+  };
+
+  const insertImages = async (files: File[], at: FreehandPoint) => {
+    const save = imageStoreRef.current?.save;
+    if (readOnly || !save) return;
+    const images = files.filter(isInsertableImage);
+    if (images.length === 0) { setNotice(t("freehand.imageUnsupported")); return; }
+    setUploadingImages((n) => n + images.length);
+    const added: FreehandElement[] = [];
+    for (const [i, file] of images.entries()) {
+      try {
+        const prepared = await prepareImage(file);
+        const fileId = await save(prepared.blob);
+        // Already decoded here: no need to download what was just uploaded
+        if (!imagesRef.current.get(fileId)?.bitmap) void decodeImage(fileId, Promise.resolve(prepared.blob));
+        const size = fitWithin(prepared.width, prepared.height, INSERTED_IMAGE_SIDE);
+        added.push({
+          id: generateId(), type: "image",
+          x: at.x - size.width / 2 + i * 24, y: at.y - size.height / 2 + i * 24, width: size.width, height: size.height,
+          strokeColor: "transparent", fillColor: "transparent", strokeWidth: 1, opacity: 1,
+          fileId, mimeType: prepared.blob.type,
+        });
+      } catch (err) {
+        setNotice(t(imageErrorKey(err)));
+      } finally {
+        setUploadingImages((n) => n - 1);
+      }
+    }
+    addElements(added);
+  };
+
+  // ─── System clipboard: copy/paste between diagrams, tabs and other apps ───
+  /** Paste copied elements centred on `at`; images from another diagram get stored here first. */
+  const pasteElements = async (payload: Pick<FreehandClipboard, "elements" | "files">, at: FreehandPoint) => {
+    const copied = payload.elements;
+    if (copied.length === 0) return;
+    const save = imageStoreRef.current?.save;
+    const pending = Object.entries(payload.files ?? {})
+      .filter(([id]) => copied.some((el) => el.fileId === id) && !imagesRef.current.get(id)?.bitmap);
+    if (pending.length > 0 && save) {
+      setUploadingImages((n) => n + pending.length);
+      await Promise.all(pending.map(async ([id, url]) => {
+        try {
+          const blob = dataUrlToBlob(url);
+          // Same bytes, same id (SHA-256): the elements keep pointing at it
+          if ((await save(blob)) === id) void decodeImage(id, Promise.resolve(blob));
+        } catch (err) {
+          setNotice(t(imageErrorKey(err)));
+        } finally {
+          setUploadingImages((n) => n - 1);
+        }
+      }));
+    }
+    const cx = copied.reduce((sum, el) => sum + el.x + el.width / 2, 0) / copied.length;
+    const cy = copied.reduce((sum, el) => sum + el.y + el.height / 2, 0) / copied.length;
+    addElements(cloneForPaste(copied, at.x - cx, at.y - cy, generateId));
+  };
+
+  /** Put elements on the clipboard (the event's, or the async API from a menu). */
+  const writeClipboard = (els: FreehandElement[], data?: DataTransfer | null) => {
+    clipboardRef.current = els.map((el) => ({ ...el }));
+    const text = serializeClipboard(els);
+    if (data) data.setData("text/plain", text);
+    // Images travel with their bytes (read asynchronously, written right after)
+    const files = [...new Set(els.filter((el) => el.type === "image" && el.fileId).map((el) => el.fileId!))]
+      .map((id) => [id, imagesRef.current.get(id)?.blob] as const)
+      .filter((entry): entry is readonly [string, Blob] => !!entry[1]);
+    if (files.length === 0) {
+      if (!data) void navigator.clipboard?.writeText(text).catch(() => {});
+      return;
+    }
+    void Promise.all(files.map(async ([id, blob]) => [id, await blobToDataUrl(blob)] as const))
+      .then((entries) => navigator.clipboard?.writeText(serializeClipboard(els, Object.fromEntries(entries))))
+      .catch(() => {});
+  };
+
+  const selectionForClipboard = (forCut: boolean) =>
+    elementsRef.current.filter((el) => selectedIds.has(el.id) && (!forCut || !el.locked));
+
+  // Handlers read the latest render through this ref (the listeners are attached once)
+  const clipboardHandlersRef = useRef<Record<"copy" | "cut" | "paste", (e: ClipboardEvent) => void> | null>(null);
+  clipboardHandlersRef.current = {
+    copy: (e) => {
+      const els = selectionForClipboard(false);
+      if (els.length === 0) return;
+      e.preventDefault();
+      writeClipboard(els, e.clipboardData);
+    },
+    cut: (e) => {
+      const els = selectionForClipboard(true);
+      if (els.length === 0) return;
+      e.preventDefault();
+      writeClipboard(els, e.clipboardData);
+      handleDelete();
+    },
+    paste: (e) => {
+      const data = e.clipboardData;
+      if (!data) return;
+      const at = pastePoint();
+      const files = Array.from(data.files);
+      if (files.length > 0) {
+        if (!canInsertImages) return;
+        e.preventDefault();
+        void insertImages(files, at);
+        return;
+      }
+      const text = data.getData("text/plain");
+      const payload = parseClipboard(text);
+      if (payload) { e.preventDefault(); void pasteElements(payload, at); return; }
+      if (text.trim()) {
+        // Plain text from anywhere becomes a text element
+        e.preventDefault();
+        const content = text.replace(/\r\n?/g, "\n").slice(0, 5000);
+        const fs = 16;
+        const w = Math.max(20, measureTextWidth(content, fs, "hand") + 12);
+        const h = content.split("\n").length * fs * TEXT_LINE_HEIGHT + 4;
+        addElements([{ id: generateId(), type: "text", x: at.x - w / 2, y: at.y - h / 2, width: w, height: h, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, text: content, fontSize: fs, fontFamily: "hand" }]);
+        return;
+      }
+      // Nothing usable on the system clipboard: fall back to the last in-app copy
+      if (clipboardRef.current.length > 0) { e.preventDefault(); void pasteElements({ elements: clipboardRef.current }, at); }
+    },
+  };
+  useEffect(() => {
+    if (readOnly) return;
+    const route = (kind: "copy" | "cut" | "paste") => (e: Event) => {
+      const a = document.activeElement;
+      // Inputs (and the inline text editor) keep their own clipboard behaviour
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || (a as HTMLElement).isContentEditable)) return;
+      // Text selected on the page is what the user means to copy
+      if (kind !== "paste" && window.getSelection()?.toString()) return;
+      clipboardHandlersRef.current?.[kind](e as ClipboardEvent);
+    };
+    const onCopy = route("copy"), onCut = route("cut"), onPaste = route("paste");
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("cut", onCut);
+    document.addEventListener("paste", onPaste);
+    return () => {
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("cut", onCut);
+      document.removeEventListener("paste", onPaste);
+    };
+  }, [readOnly]);
+
   // ─── Switching tools drops the selection (its style panel would cover the canvas) ───
   const chooseTool = useCallback((tool: FreehandTool) => {
     setActiveTool(tool);
@@ -1894,50 +2173,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
       // Select all / copy / cut / paste
       if (mod && key === "a" && activeTool === "select") { e.preventDefault(); setSelectedIds(new Set(elements.map((el) => el.id))); return; }
-      if (mod && key === "c" && selectedIds.size > 0) {
-        e.preventDefault();
-        clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)).map((el) => ({ ...el }));
-        return;
-      }
-      if (mod && key === "x" && selectedIds.size > 0) {
-        e.preventDefault();
-        // Locked elements stay (and so are not cut into the clipboard either)
-        clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el }));
-        handleDelete();
-        return;
-      }
-      if (mod && key === "v" && clipboardRef.current.length > 0) {
-        e.preventDefault();
-        const copied = clipboardRef.current;
-        const cx = copied.reduce((s, el) => s + el.x + el.width / 2, 0) / copied.length;
-        const cy = copied.reduce((s, el) => s + el.y + el.height / 2, 0) / copied.length;
-        const dx = mousePosRef.current.x - cx;
-        const dy = mousePosRef.current.y - cy;
-        const newIds = new Set<string>();
-        // Pasted copies keep their grouping among themselves, never with the originals
-        const groupMap = new Map<string, string>();
-        const pasted: FreehandElement[] = copied.map((el) => {
-          const newId = generateId();
-          newIds.add(newId);
-          if (el.groupId && !groupMap.has(el.groupId)) groupMap.set(el.groupId, generateId());
-          return {
-            ...el,
-            id: newId,
-            groupId: el.groupId ? groupMap.get(el.groupId) : undefined,
-            locked: undefined,
-            x: el.x + dx,
-            y: el.y + dy,
-            points: el.points ? el.points.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy })) : undefined,
-            startBinding: undefined,
-            endBinding: undefined,
-          };
-        });
-        const updated = [...elements, ...pasted];
-        setElements(updated);
-        emit(updated);
-        setSelectedIds(newIds);
-        return;
-      }
+      // Copy / cut / paste go through the clipboard events (see "System clipboard" below)
 
       // Delete
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.size > 0) { e.preventDefault(); handleDelete(); return; }
@@ -2165,7 +2401,23 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               title={`${tool.label} (${tool.shortcut})`} aria-label={tool.label}>{tool.svg}</button>
           ))}
         </div>
+        {canInsertImages && (
+          <>
+            <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-0.5" />
+            <button onClick={() => imageInputRef.current?.click()} title={t("freehand.tools.image")} aria-label={t("freehand.tools.image")}
+              className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </button>
+            <input ref={imageInputRef} type="file" accept={INSERTABLE_IMAGE_TYPES.join(",")} multiple className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (files.length > 0) void insertImages(files, viewCenter());
+              }} />
+          </>
+        )}
         <div className="flex-1" />
+        {uploadingImages > 0 && <span role="status" className="text-xs text-purple-600 dark:text-purple-400 mr-2">{t("freehand.imageUploading")}</span>}
         <button onClick={() => setConfirmClear(true)} disabled={elements.length === 0} className="disabled:opacity-40 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md" aria-label={t("freehand.clearAll")}>{t("freehand.clearAll")}</button>
         <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">{elements.length} {t("freehand.elements")}</span>
       </div>
@@ -2191,9 +2443,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const selectedEls = elements.filter((el) => selectedIds.has(el.id));
         // Notes only have a paper colour and a font: no stroke, sketch style, fill pattern or width
         const allSticky = selectedEls.length > 0 && selectedEls.every((el) => el.type === "sticky");
+        // Images have no style of their own: only lock, layers, alignment and delete
+        const allImages = selectedEls.length > 0 && selectedEls.every((el) => el.type === "image");
         const allShapes = selectedEls.every((el) => isShape(el));
         const showFill = allShapes && selectedIds.size > 0 && !allSticky;
-        const showWidth = !(selectedIds.size === 1 && isTextEl) && !allSticky;
+        const showWidth = !(selectedIds.size === 1 && isTextEl) && !allSticky && !selectedEls.every((el) => el.type === "image");
         const PANEL_W = 232;
         // Place the panel to the RIGHT of the selection (or LEFT if there's no room),
         // so it never overlaps the element being edited
@@ -2285,7 +2539,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           )}
 
           {/* Stroke / text color */}
-          {!allSticky && (
+          {!allSticky && !allImages && (
           <div className="mb-2">
             <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{isTextEl ? t("freehand.textColor") : t("freehand.stroke")}</span>
             <div className="flex flex-wrap gap-1">
@@ -2299,7 +2553,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           )}
 
           {/* Hand-drawn stroke style (everything but text and notes) */}
-          {!(selectedIds.size === 1 && isTextEl) && !allSticky && (
+          {!(selectedIds.size === 1 && isTextEl) && !allSticky && !allImages && (
             <div className="mb-2">
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.sketchStyle")}</span>
               <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t("freehand.sketchStyle")}>
@@ -2427,7 +2681,20 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       })()}
 
       {/* Canvas */}
-      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ cursor: getCursor() }} onMouseEnter={() => { pointerOverCanvasRef.current = true; }}>
+      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ cursor: getCursor() }} onMouseEnter={() => { pointerOverCanvasRef.current = true; }}
+        onDragOver={(e) => { if (canInsertImages && e.dataTransfer.types.includes("Files")) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }}
+        onDrop={(e) => {
+          if (!canInsertImages) return;
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length === 0) return;
+          e.preventDefault();
+          void insertImages(files, toWorld(e.clientX, e.clientY));
+        }}>
+        {notice && (
+          <div role="status" className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-sm px-3 py-2 text-xs rounded-md shadow-lg bg-gray-900 text-white dark:bg-gray-800">
+            {notice}
+          </div>
+        )}
         <canvas ref={canvasRef}
           width={canvasSize.width * dpr} height={canvasSize.height * dpr}
           style={{ width: canvasSize.width, height: canvasSize.height, touchAction: "none" }}
@@ -2498,11 +2765,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             className="absolute z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-1 w-44"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button onClick={() => { writeClipboard(selectionForClipboard(false)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               {t("common.copy")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("C")}</span>
             </button>
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el })); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button onClick={() => { writeClipboard(selectionForClipboard(true)); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M6 3v2M18 3v2M6 19v2M18 19v2M3 6h2M3 18h2M19 6h2M19 18h2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
               {t("common.cut")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("X")}</span>
             </button>

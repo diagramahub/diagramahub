@@ -1679,6 +1679,7 @@
     "sketchSkipped": {
       "skipped_freehand": "{{count}} trazos a mano alzada omitidos",
       "skipped_text": "{{count}} textos sueltos omitidos",
+      "skipped_image": "{{count}} imágenes omitidas",
       "skipped_unbound_arrow": "{{count}} flechas sin conectar omitidas",
       "skipped_untitled_shape": "{{count}} formas sin texto omitidas"
     },

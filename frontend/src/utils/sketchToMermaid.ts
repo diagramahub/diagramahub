@@ -110,6 +110,7 @@ export function sketchToMermaid(content: string): SketchConversion {
       shapesById.set(el.id, el);
     } else if (el.type === "freehand") skip("skipped_freehand");
     else if (el.type === "text") skip("skipped_text");
+    else if (el.type === "image") skip("skipped_image");
   }
 
   // Edges: arrows (or lines) bound at both ends to known shapes (a shape to

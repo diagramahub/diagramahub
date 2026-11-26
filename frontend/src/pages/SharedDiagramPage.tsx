@@ -525,6 +525,8 @@ export default function SharedDiagramPage() {
             <FreehandCanvas
               initialState={diagram.rendered_content || diagram.content || ""}
               readOnly
+              // Protected links pass the token /verify returned
+              imageStore={token ? { load: (fileId) => api.getSharedDiagramFile(token, fileId, diagram.file_token) } : undefined}
               zoom={zoom}
               onZoomChange={setZoom}
             />

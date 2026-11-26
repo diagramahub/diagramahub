@@ -33,7 +33,8 @@ import {
   FolderWithDiagrams,
   CreateFolderRequest,
   UpdateFolderRequest,
-  DiagramSearchResult
+  DiagramSearchResult,
+  DiagramFileInfo
 } from '../types/project';
 import {
   UserAISettings,
@@ -387,6 +388,23 @@ class ApiService {
 
   async updateDiagram(diagramId: string, data: UpdateDiagramRequest): Promise<Diagram> {
     const response = await this.api.put<Diagram>(`/api/v1/diagrams/${diagramId}`, data);
+    return response.data;
+  }
+
+  /** Store an image of a freehand diagram (idempotent: the id is the SHA-256 of the bytes). */
+  async uploadDiagramFile(diagramId: string, image: Blob, filename = 'image'): Promise<DiagramFileInfo> {
+    const form = new FormData();
+    form.append('file', image, filename);
+    const response = await this.api.post<DiagramFileInfo>(`/api/v1/diagrams/${diagramId}/files`, form, {
+      timeout: 60_000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  /** Bytes of an image of one of the user's freehand diagrams. */
+  async getDiagramFile(diagramId: string, fileId: string): Promise<Blob> {
+    const response = await this.api.get<Blob>(`/api/v1/diagrams/${diagramId}/files/${fileId}`, { responseType: 'blob' });
     return response.data;
   }
 
@@ -928,6 +946,15 @@ class ApiService {
 
   async verifyAccessCode(token: string, data: VerifyAccessCodeRequest): Promise<SharedDiagram> {
     const response = await this.publicApi.post<SharedDiagram>(`/api/v1/shared/${token}/verify`, data);
+    return response.data;
+  }
+
+  /** An image of a shared freehand diagram (`fileToken` comes from verifying a protected link). */
+  async getSharedDiagramFile(token: string, fileId: string, fileToken?: string | null): Promise<Blob> {
+    const response = await this.publicApi.get<Blob>(`/api/v1/shared/${token}/files/${fileId}`, {
+      responseType: 'blob',
+      params: fileToken ? { file_token: fileToken } : undefined,
+    });
     return response.data;
   }
 

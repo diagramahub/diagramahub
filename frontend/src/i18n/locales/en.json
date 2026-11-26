@@ -1547,6 +1547,7 @@
     "sketchSkipped": {
       "skipped_freehand": "{{count}} freehand strokes skipped",
       "skipped_text": "{{count}} loose texts skipped",
+      "skipped_image": "{{count}} images skipped",
       "skipped_unbound_arrow": "{{count}} unconnected arrows skipped",
       "skipped_untitled_shape": "{{count}} shapes without text skipped"
     },

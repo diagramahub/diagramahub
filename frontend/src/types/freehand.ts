@@ -11,7 +11,8 @@ export type FreehandElementType =
   | "line"
   | "text"
   | "freehand"
-  | "sticky";
+  | "sticky"
+  | "image";
 
 export interface FreehandPoint {
   x: number;
@@ -57,6 +58,9 @@ export interface FreehandElement {
   fillStyle?: SketchFillStyle;
   /** Stable seed so the sketchy strokes don't change on every redraw. */
   seed?: number;
+  /** Images: id of the stored file (SHA-256 of its bytes) and its type. */
+  fileId?: string;
+  mimeType?: string;
   // Connection bindings (for arrows/lines)
   startBinding?: ConnectionBinding;
   endBinding?: ConnectionBinding;
@@ -102,6 +106,17 @@ export const DEFAULT_CANVAS_STATE: FreehandCanvasState = {
   },
   background: "#ffffff",
 };
+
+/**
+ * Where the canvas reads (and, in the editor, stores) the images of its scene:
+ * the owner's diagram, a shared link, a presentation…
+ */
+export interface FreehandImageStore {
+  /** Bytes of a stored image. */
+  load: (fileId: string) => Promise<Blob>;
+  /** Store an image and resolve with its id (editing only). */
+  save?: (image: Blob) => Promise<string>;
+}
 
 /** Imperative API the editor uses for exports (set through the `handleRef` prop). */
 export interface FreehandCanvasHandle {

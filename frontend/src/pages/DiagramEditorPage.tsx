@@ -36,7 +36,7 @@ import MarkdownEditor from "../components/MarkdownEditor";
 import { DiagramDiffView } from "../components/DiagramDiffView";
 import { DiagramConversionModal } from "../components/DiagramConversionModal";
 import FreehandCanvas from "../components/FreehandCanvas";
-import type { FreehandCanvasHandle } from "../types/freehand";
+import type { FreehandCanvasHandle, FreehandImageStore } from "../types/freehand";
 import { sketchToMermaid } from "../utils/sketchToMermaid";
 import { downloadBlob } from "../utils/download";
 import ShareDiagramModal from "../components/ShareDiagramModal";
@@ -273,6 +273,15 @@ export default function DiagramEditorPage() {
   });
   // Imperative API of the freehand canvas (PNG export)
   const freehandHandleRef = useRef<FreehandCanvasHandle | null>(null);
+  // Images of a freehand sketch live apart from its scene JSON, stored per diagram
+  const freehandDiagramId = currentDiagram?.id;
+  const freehandImageStore = useMemo<FreehandImageStore | undefined>(() => {
+    if (!freehandDiagramId) return undefined;
+    return {
+      load: (fileId) => api.getDiagramFile(freehandDiagramId, fileId),
+      save: async (image) => (await api.uploadDiagramFile(freehandDiagramId, image)).file_id,
+    };
+  }, [freehandDiagramId]);
   const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | 'svg' | null>(null);
   // PNG export resolution: 1x = screen, 2x = standard (default), 3x = print/high
   const [pngScale, setPngScale] = useState<1 | 2 | 3>(2);
@@ -4320,6 +4329,7 @@ export default function DiagramEditorPage() {
                             // The pan is viewport state, saved silently with the zoom
                             initialPan={pan}
                             onPanChange={setPan}
+                            imageStore={freehandImageStore}
                           />
                         </div>
                       ) : (
