@@ -26,6 +26,10 @@ Para crear uno, elige **Mano Alzada** como **Tipo de diagrama** al crear un diag
 
 Las flechas conectadas siguen a las formas, notas e imágenes cuando las mueves o rotas.
 
+### Conectores
+
+Al seleccionar una forma, nota o imagen aparece un punto junto a cada uno de sus cuatro lados, como en Miro. Arrastra desde uno de esos puntos para sacar una flecha: si la sueltas sobre otro elemento, queda conectada a los dos. Un clic en el punto sin arrastrar no crea nada.
+
 ## Notas adhesivas
 
 La herramienta **Nota adhesiva** (++n++) crea post-its como en Miro: un clic coloca una nota de 200 × 200 y arrastrar la dibuja del tamaño que quieras. Al crearla queda lista para escribir. El texto se ajusta solo al tamaño de la nota: se achica a medida que escribes más. Hay seis colores en **Color de la nota**, y las flechas se pueden conectar a las notas como a cualquier forma.

@@ -26,6 +26,10 @@ To create one, choose **Freehand** as the **Diagram type** when creating a diagr
 
 Connected arrows follow their shapes, notes and images when you move or rotate them.
 
+### Connectors
+
+When you select a shape, note or image, a dot appears next to each of its four sides, as in Miro. Drag from one of those dots to pull out an arrow: drop it on another element and it stays connected to both. A click on a dot without dragging creates nothing.
+
 ## Sticky notes
 
 The **Sticky note** tool (++n++) creates Miro-style post-its: a click places a 200 × 200 note and a drag draws it at the size you want. A new note is ready for typing. The text fits the note by itself, shrinking as you write more. **Note color** offers six colours, and arrows connect to notes like to any shape.

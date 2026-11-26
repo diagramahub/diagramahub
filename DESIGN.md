@@ -417,7 +417,7 @@ The `freehand` diagram type uses an in-house HTML5 canvas (`components/FreehandC
   - Ctrl/Cmd+A = select all; Delete/Backspace = delete; Escape = deselect.
 - **Element creation**: on finish, switch to the select tool and keep the new element selected. **Exception**: the freehand tool stays active for continuous strokes.
 - **Floating style panel**: appears only when elements are selected and no gesture is in progress (stroke, fill, width). Choosing a drawing tool drops the selection, so the panel never covers the area being drawn. Sticky notes show only **Note color** and font; images only lock/arrange/delete.
-- **Arrows/lines**: no bounding box or resize; edited by their two endpoints. They bind to the anchor points (top/bottom/left/right) of shapes, sticky notes and images, and follow when those move.
+- **Arrows/lines**: no bounding box or resize; edited by their two endpoints. They bind to the anchor points (top/bottom/left/right) of shapes, sticky notes and images, and follow when those move. A single selected shape/note/image shows four **connector dots** just outside its sides (`CONNECTOR_OFFSET`); dragging one draws an arrow bound at that side (Miro-style). The rotation knob sits above the top connector, and the style panel keeps clear of them.
 - **Resize**: handles on shapes; points scale proportionally from the original state (non-cumulative).
 - **Text**: double-click (or Enter) on an element opens a centered input; text persists in the `text` field. Labels of shapes and notes wrap inside their box (`utils/textLayout.ts`); notes also shrink the font to fit.
 - **Sticky notes** (`sticky`, tool N): flat paper colour (`STICKY_COLORS`) with a soft shadow, never hand-drawn; a click drops a 200×200 note that opens for typing.

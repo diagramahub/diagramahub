@@ -290,6 +290,38 @@ function getRotatedAnchor(el: FreehandElement, side: ConnectionBinding["anchorSi
   return rotatePoint(pt, el.x + el.width / 2, el.y + el.height / 2, rad);
 }
 
+// ─── Connectors (Miro-style): dots just outside a selected element to pull arrows from ───
+/** Distance of a connector dot from its edge, and its hit radius (world units). */
+const CONNECTOR_OFFSET = 16;
+const CONNECTOR_HIT = 9;
+const CONNECTOR_SIDES: ConnectionBinding["anchorSide"][] = ["top", "right", "bottom", "left"];
+
+/** Connector dot of a side, unrotated (draw it inside the element's rotated context). */
+function connectorPoint(el: FreehandElement, side: ConnectionBinding["anchorSide"]): FreehandPoint {
+  const a = getAnchorPoint(el, side);
+  switch (side) {
+    case "top": return { x: a.x, y: a.y - CONNECTOR_OFFSET };
+    case "bottom": return { x: a.x, y: a.y + CONNECTOR_OFFSET };
+    case "left": return { x: a.x - CONNECTOR_OFFSET, y: a.y };
+    case "right": return { x: a.x + CONNECTOR_OFFSET, y: a.y };
+    default: return a;
+  }
+}
+
+/** The connector under `pos` (world coordinates, honoring rotation), if any. */
+function connectorAt(el: FreehandElement, pos: FreehandPoint): ConnectionBinding["anchorSide"] | null {
+  const rad = ((el.rotation || 0) * Math.PI) / 180;
+  const cx = el.x + el.width / 2, cy = el.y + el.height / 2;
+  for (const side of CONNECTOR_SIDES) {
+    const p = rad ? rotatePoint(connectorPoint(el, side), cx, cy, rad) : connectorPoint(el, side);
+    if (Math.hypot(pos.x - p.x, pos.y - p.y) <= CONNECTOR_HIT) return side;
+  }
+  return null;
+}
+
+/** Rotation knob position above the element (unrotated), clear of the top connector. */
+const ROTATION_KNOB_OFFSET = 38;
+
 // ─── Alignment guides (Miro-style red lines) ───
 export interface AlignGuide {
   axis: "v" | "h";
@@ -459,6 +491,9 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const [hoveredAnchor, setHoveredAnchor] = useState<{ elementId: string; side: ConnectionBinding["anchorSide"] } | null>(null);
   // Hovered element in select mode (visual feedback)
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Connector of the selected element under the pointer, and the one an arrow is being pulled from
+  const [hoveredConnector, setHoveredConnector] = useState<ConnectionBinding["anchorSide"] | null>(null);
+  const connectorDragRef = useRef<{ elementId: string; side: ConnectionBinding["anchorSide"]; from: FreehandPoint } | null>(null);
   // Active alignment guides (Miro red lines)
   const [guides, setGuides] = useState<AlignGuide[]>([]);
   // Rotation drag origin
@@ -631,8 +666,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   useEffect(() => {
     if (selectedIds.size === 0) return;
     const first = elements.find((e) => selectedIds.has(e.id));
-    // A note's paper colour must not become the fill of the next shape
-    if (first && first.type !== "sticky") {
+    // Notes (paper colour) and images (no stroke) have no style to carry over to the next shape
+    if (first && first.type !== "sticky" && first.type !== "image") {
       setStrokeColor(first.strokeColor);
       setFillColor(first.fillColor);
       setStrokeWidth(first.strokeWidth);
@@ -835,21 +870,23 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           // Rotation handle (single-select, shapes & text)
           if (selectedIds.size === 1 && (canBind(el) || el.type === "text")) {
             const cx = el.x + el.width / 2;
-            const topY = el.y - 18;
-            ctx.beginPath(); ctx.moveTo(cx, topY + 8); ctx.lineTo(cx, topY - 6);
+            const knobY = el.y - ROTATION_KNOB_OFFSET;
+            // Stem from above the top connector up to the knob
+            ctx.beginPath(); ctx.moveTo(cx, el.y - CONNECTOR_OFFSET - 8); ctx.lineTo(cx, knobY + 4);
             ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
-            ctx.beginPath(); ctx.arc(cx, topY - 10, 4, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(cx, knobY, 4, 0, Math.PI * 2);
             ctx.fillStyle = "#fff"; ctx.fill();
             ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
           }
-          // Anchor points for shapes, notes and images
-          if (canBind(el)) {
-            for (const side of ["top", "bottom", "left", "right"] as ConnectionBinding["anchorSide"][]) {
+          // Connectors: drag one to pull an arrow to another element (Miro-style)
+          if (selectedIds.size === 1 && canBind(el)) {
+            for (const side of CONNECTOR_SIDES) {
               // Drawn inside the rotated context: use unrotated geometry (the transform rotates it)
-              const pt = getAnchorPoint(el, side);
-              ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-              ctx.fillStyle = "#7c3aed"; ctx.fill();
-              ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
+              const pt = connectorPoint(el, side);
+              const hot = hoveredConnector === side;
+              ctx.beginPath(); ctx.arc(pt.x, pt.y, hot ? 7 : 5, 0, Math.PI * 2);
+              ctx.fillStyle = hot ? "#7c3aed" : "#fff"; ctx.fill();
+              ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
             }
           }
         }
@@ -943,7 +980,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Restore pan transform
     ctx.restore();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- renderElement is redeclared every render but only reads editingId, which is listed
-  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides, stickyColor, imageVersion]);
+  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides, stickyColor, imageVersion, hoveredConnector]);
 
   // Paint at most once per animation frame: several state updates between two
   // frames (pointer events arrive faster than the display refreshes) cost one paint.
@@ -1193,12 +1230,23 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             return;
           }
         }
-        // 2) Rotation handle (shapes & text)
+        // 2) Connector: pull a new arrow out of the selected element
+        if (selEl && !selEl.locked && canBind(selEl)) {
+          const side = connectorAt(selEl, pos);
+          if (side) {
+            connectorDragRef.current = { elementId: selEl.id, side, from: pos };
+            setHoveredConnector(null);
+            setActiveTool("arrow");
+            setMode("drawing"); setDrawStart(getRotatedAnchor(selEl, side)); setDrawCurrent(pos);
+            return;
+          }
+        }
+        // 3) Rotation handle (shapes & text)
         if (selEl && !selEl.locked && selEl.type !== "arrow" && selEl.type !== "line" && selEl.type !== "freehand") {
           const cx = selEl.x + selEl.width / 2;
           const cy = selEl.y + selEl.height / 2;
           const rad = ((selEl.rotation || 0) * Math.PI) / 180;
-          const handlePos = rotatePoint({ x: cx, y: selEl.y - 18 }, cx, cy, rad);
+          const handlePos = rotatePoint({ x: cx, y: selEl.y - ROTATION_KNOB_OFFSET }, cx, cy, rad);
           if (Math.hypot(pos.x - handlePos.x, pos.y - handlePos.y) <= 10) {
             setMode("rotating");
             rotationStartRef.current = {
@@ -1304,6 +1352,9 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       const hit = findTopmost(elements, (el) => hitTest(pos, el));
       const id = hit ? hit.id : null;
       if (id !== hoveredId) setHoveredId(id);
+      const sel = selectedIds.size === 1 ? elements.find((el) => selectedIds.has(el.id)) : undefined;
+      const side = sel && !sel.locked && canBind(sel) ? connectorAt(sel, pos) : null;
+      if (side !== hoveredConnector) setHoveredConnector(side);
     }
 
     if (mode === "dragging") {
@@ -1541,11 +1592,16 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     } else if (activeTool === "arrow" || activeTool === "line") {
       let startBinding: ConnectionBinding | undefined, endBinding: ConnectionBinding | undefined;
       let sp = drawStart, ep = endPt;
-      const startShape = elements.find((el) => canBind(el) && hitTest(drawStart, el));
+      // Pulled from a connector: it starts at that element and side, whatever lies under the point
+      const pulled = connectorDragRef.current;
+      const startShape = pulled
+        ? elements.find((el) => el.id === pulled.elementId)
+        : elements.find((el) => canBind(el) && hitTest(drawStart, el));
       const endShape = hoveredAnchor ? elements.find((el) => el.id === hoveredAnchor.elementId) : elements.find((el) => canBind(el) && hitTest(endPt, el));
-      if (startShape) { const side = closestAnchorSide(startShape, drawStart); startBinding = { elementId: startShape.id, anchorSide: side }; sp = getRotatedAnchor(startShape, side); }
+      if (startShape) { const side = pulled ? pulled.side : closestAnchorSide(startShape, drawStart); startBinding = { elementId: startShape.id, anchorSide: side }; sp = getRotatedAnchor(startShape, side); }
       if (endShape && endShape.id !== startShape?.id) { const side = hoveredAnchor?.elementId === endShape.id ? hoveredAnchor.side : closestAnchorSide(endShape, endPt); endBinding = { elementId: endShape.id, anchorSide: side }; ep = getRotatedAnchor(endShape, side); }
-      newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
+      // A click on a connector (no real drag) draws nothing
+      if (!pulled || Math.hypot(pos.x - pulled.from.x, pos.y - pulled.from.y) > 12) newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
     } else {
       const x = Math.min(drawStart.x, endPt.x), y = Math.min(drawStart.y, endPt.y);
       const w = Math.abs(endPt.x - drawStart.x), h = Math.abs(endPt.y - drawStart.y);
@@ -1568,6 +1624,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         editingOriginalRef.current = "";
       }
     }
+    // Back to selecting after an arrow pulled from a connector (even when nothing was drawn)
+    if (connectorDragRef.current) { connectorDragRef.current = null; setActiveTool("select"); }
     setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); setHoveredAnchor(null); setGuides([]);
   };
 
@@ -1593,6 +1651,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     setResizeHandle(null); setResizeOrigin(null); setDraggingEndpointIdx(null);
     setHoveredAnchor(null); setGuides([]);
     rotationStartRef.current = null; dragBBoxRef.current = null;
+    if (connectorDragRef.current) { connectorDragRef.current = null; setActiveTool("select"); }
     erasingElementsRef.current = []; erasingDidEraseRef.current = false;
   };
 
@@ -2353,7 +2412,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (mode === "resizing" && resizeHandle) return resizeCursor[resizeHandle];
     if (mode === "dragging") return "grabbing";
     if (activeTool === "hand") return "grab";
-    if (activeTool === "select") return hoveredId ? "move" : "default";
+    if (activeTool === "select") return hoveredConnector ? "crosshair" : hoveredId ? "move" : "default";
     if (activeTool === "eraser") return "not-allowed";
     return "crosshair";
   };
@@ -2451,8 +2510,10 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const PANEL_W = 232;
         // Place the panel to the RIGHT of the selection (or LEFT if there's no room),
         // so it never overlaps the element being edited
-        let left = sx + sw + 12;
-        if (left + PANEL_W > canvasSize.width - 10) left = sx - PANEL_W - 12;
+        // Clear of the connector dots (and their hover ring) on that side
+        const gap = (single && canBind(single) ? CONNECTOR_OFFSET * zoom + 8 : 0) + 12;
+        let left = sx + sw + gap;
+        if (left + PANEL_W > canvasSize.width - 10) left = sx - PANEL_W - gap;
         left = Math.min(Math.max(left, 10), Math.max(10, canvasSize.width - PANEL_W - 10));
         // Vertically centered on the selection; clamped to the viewport (max-h-[70vh] prevents overflow)
         const EST_H = 280;
