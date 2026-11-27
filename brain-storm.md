@@ -2,7 +2,7 @@
 
 Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 
-**Estado** (revisado contra el código de la versión 0.9.1):
+**Estado** (revisado contra el código de la versión 0.9.2):
 
 - ✅ Implementado
 - 🟡 Parcial: existe algo relacionado, pero no lo que describe la idea
@@ -20,6 +20,19 @@ Ideas de funcionalidades potentes para llevar Diagrama Hub al siguiente nivel.
 - ⬜ Node 26 en la imagen del frontend (ya no trae `corepack`: instalar pnpm de otra forma), junto con `@types/node` 26
 - ⬜ Python 3.15 en la imagen del backend (hoy `pyproject.toml` acepta `<3.14`)
 - ⬜ Evaluar MongoDB 8.2 (por ahora se mantiene 8.0, la versión mayor con soporte largo)
+
+### 0.9.2 (completado)
+
+**Pizarrón a mano alzada**
+- ✅ Dibujo más fluido con escenas grandes; pantallas táctiles, pellizco y lápiz; la vista (posición y zoom) se guarda aparte
+- ✅ Notas adhesivas y textos que se acomodan dentro de las formas
+- ✅ Imágenes (pegar, arrastrar, botón), guardadas aparte del dibujo e incluidas en vistas compartidas, Comunidad y ZIP de proyecto
+- ✅ Copiar y pegar con el portapapeles del sistema, entre diagramas y pestañas
+- ✅ Conectores al estilo Miro para sacar flechas de un elemento
+- ✅ Convertir una sección del boceto a Mermaid, PlantUML o D2 (exacta o con IA desde la imagen)
+
+**Mantenimiento**
+- ✅ Correcciones de seguridad (redirecciones abiertas, SVG, rutas de Kroki, errores del chat, registros), alertas de CodeQL, dependencias menores y entorno de desarrollo
 
 ### 0.9.1 (completado)
 
@@ -125,7 +138,7 @@ Implementado: `POST /api/v1/diagrams/{id}/fix` (`diagrams/fix_service.py`, promp
 - ⬜ Animated GIFs de diagramas secuenciales
 
 ### 8. **IA Generativa Avanzada**
-- ✅ Generar diagramas desde imágenes/screenshots: "Desde imagen" en el chat (Gemini, OpenAI, Claude), además de "Sketch → Mermaid" desde el pizarrón
+- ✅ Generar diagramas desde imágenes/screenshots: "Desde imagen" en el chat (Gemini, OpenAI, Claude), además de convertir el boceto (o una sección) desde el pizarrón
 - 🟡 Convertir entre tipos de diagramas (flowchart → sequence): existe conversión con IA entre lenguajes (Mermaid ↔ PlantUML ↔ D2 ↔ DBML, `POST /diagrams/convert`), no entre tipos de diagrama
 - ⬜ Traducción automática de diagramas a otros idiomas
 - 🟡 Generar documentación técnica desde diagramas: la IA genera la descripción de un diagrama y el proyecto se exporta como Markdown "AI-context", pero no hay documentación técnica generada
