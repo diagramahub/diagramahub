@@ -88,6 +88,8 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 | `MAX_IMPORT_UPLOAD_BYTES` | `20971520` (20 MB) | Maximum size of a project import upload (ZIP or loose files). |
 | `MAX_IMPORT_FILES` | `500` | Maximum number of files in one import. |
 | `MAX_IMPORT_UNCOMPRESSED_BYTES` | `52428800` (50 MB) | Maximum size a ZIP may expand to. |
+| `DIAGRAM_FILE_MAX_BYTES` | `3145728` (3 MB) | Maximum size of one [whiteboard](../guide/whiteboard.md#images) image (the browser compresses it before uploading). |
+| `DIAGRAM_FILES_MAX_PER_DIAGRAM` | `100` | Images one whiteboard can keep; unused ones are freed before an upload is refused. |
 
 ### Community
 

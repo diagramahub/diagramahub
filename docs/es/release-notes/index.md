@@ -6,6 +6,7 @@ Formato: `MAJOR.MINOR.PATCH`
 
 | Versión | Fecha | Tipo |
 |---------|-------|------|
+| [0.9.2](0.9.2.md) | 2026-11-26 | Pizarrón: más fluido, táctil y lápiz, notas adhesivas, imágenes, portapapeles, conectores y convertir una sección a Mermaid, PlantUML o D2; seguridad y dependencias |
 | [0.9.1](0.9.1.md) | 2026-11-22 | Mantenimiento: imagen del frontend con nginx 1.31 (corrige los CVE de nginx pendientes en 0.9.0) y pyotp 2.12.0 |
 | [0.9.0](0.9.0.md) | 2026-11-20 | Funciones: Comunidad, diagrama desde imagen, búsqueda en el contenido, insertar y QR, presentar carpetas, PDF de proyecto, API Keys, actividad y favoritos, administración de usuarios, diagramas públicos fuera del límite del plan; actualizaciones mayores, CI y seguridad |
 | [0.8.6](0.8.6.md) | 2026-11-15 | Mantenimiento: dependencias con avisos de seguridad (backend y frontend) y JWT con PyJWT en lugar de python-jose |

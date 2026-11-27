@@ -1,6 +1,6 @@
 # Pizarrón a mano alzada
 
-El tipo **Mano Alzada** es un pizarrón libre para pensar sin sintaxis: dibuja formas, flechas, texto, trazos, notas adhesivas e imágenes con un aspecto hecho a mano. Cuando la idea madura, conviértela en un diagrama Mermaid con un clic.
+El tipo **Mano Alzada** es un pizarrón libre para pensar sin sintaxis: dibuja formas, flechas, texto, trazos, notas adhesivas e imágenes con un aspecto hecho a mano. Cuando la idea madura, [conviértela en un diagrama](#convertir-el-boceto-en-un-diagrama) (Mermaid, PlantUML o D2), completo o solo una sección.
 
 Para crear uno, elige **Mano Alzada** como **Tipo de diagrama** al crear un diagrama. El pizarrón se guarda automáticamente, igual que cualquier otro diagrama.
 

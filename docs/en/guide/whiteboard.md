@@ -1,6 +1,6 @@
 # Freehand whiteboard
 
-The **Freehand** type is a free whiteboard for thinking without syntax: draw shapes, arrows, text, strokes, sticky notes and images with a hand-drawn look. When the idea is ready, turn it into a Mermaid diagram with one click.
+The **Freehand** type is a free whiteboard for thinking without syntax: draw shapes, arrows, text, strokes, sticky notes and images with a hand-drawn look. When the idea is ready, [turn it into a diagram](#turning-the-sketch-into-a-diagram) (Mermaid, PlantUML or D2), whole or just a section.
 
 To create one, choose **Freehand** as the **Diagram type** when creating a diagram. The whiteboard autosaves like any other diagram.
 

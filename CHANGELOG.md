@@ -5,6 +5,74 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.9.2] - 2026-11-26
+
+### Added
+- **Freehand whiteboard: smoother, touch and pen.**
+  - One paint per animation frame, elements outside the view skipped, coalesced pointer samples for strokes, and undo steps that share unchanged elements.
+  - Whiteboards no longer mount the code editor, which re-parsed the whole scene on every change.
+  - Measured with 3000 elements and 4× CPU slowdown: freezes went from 4–8 s to under 0.5 s, memory from 650 to 95 MB, and median paint time from ~20 to ~2 ms.
+  - Pointer events with capture: one finger draws, two fingers pan and pinch to zoom, a double tap edits, and a stroke or drag that leaves the canvas continues.
+  - Pan and zoom are saved as viewport state, apart from the scene, and the view after fitting (F) survives a reload.
+- **Sticky notes** (tool N):
+  - a click drops a 200×200 note, a drag sizes it, and it opens for typing;
+  - six colours, and the text shrinks to fit;
+  - arrows bind to them;
+  - the exact conversion makes them a flag-shaped Mermaid node.
+- **Labels wrap inside shapes** (rectangles, diamonds, ellipses, notes), also while typing. Enter edits the selected shape.
+- **Images on the whiteboard**:
+  - paste, drop, or the toolbar's **Image** button; PNG, JPEG, WebP and GIF, never SVG;
+  - the browser shrinks them to 2048 px and re-encodes them (metadata dropped);
+  - they keep their proportions and accept bound arrows;
+  - they are shown in PNG export, shared views (public and protected), embed, presentations and the Community.
+- **Image storage**: the new `diagram_files` module. Each image is identified by the SHA-256 of its bytes, and its type is read from the bytes.
+  - Owner routes: `POST /diagrams/{id}/files` and `GET /diagrams/{id}/files/{file_id}`.
+  - Shared links: `GET /shared/{token}/files/{file_id}`; protected links get a 12-hour `file_token` from `/verify`.
+  - Community: `GET /community/{publication_id}/files/{file_id}`.
+  - Images are copied on duplicate, fork and publish, and deleted with their diagram, folder, project, publication and account.
+  - Settings: `DIAGRAM_FILE_MAX_BYTES` (3 MiB) and `DIAGRAM_FILES_MAX_PER_DIAGRAM` (100; unused files are collected first).
+- **Copy and paste through the system clipboard**:
+  - elements travel between diagrams, tabs and windows, images with their bytes;
+  - groups and arrow bindings survive among the copies;
+  - plain text from another app is pasted as a text element.
+- **Miro-style connectors**: a selected shape, note or image shows a dot outside each side; dragging one pulls out an arrow bound to both elements.
+- **Convert a section of the sketch**: **Convert to diagram** (selection panel and context menu) and **Convert sketch…** open a dialog with:
+  - a picture of the scope: the selection, with the arrows between its elements and whole groups, or the whole whiteboard;
+  - the target: Mermaid, PlantUML or D2;
+  - the method:
+    - exact: no AI, Mermaid only, and it reports nodes, links and what is left out;
+    - AI from a picture of the section, plus its texts and links read from the canvas (new optional `sketch_context` on `POST /ai/diagram-from-image`, treated as data in the prompt).
+
+  The result is previewed before the new diagram is created.
+- **Project and folder ZIPs carry sketch images** once each, under `.files/<sha256>.<ext>`. On import they are checked: the hash must match, and the type, size and per-sketch limit must pass, otherwise the image is skipped with an `image_skipped` warning. Older ZIPs still import.
+
+### Security
+- **URLs from the API:** URLs that the browser follows (Stripe Checkout, billing portal, invoices, OAuth authorize) must be https on an allowed host (`utils/externalUrl.ts`). Invoices open with `noopener`. `?next=` also rejects control characters and whitespace.
+- **SVG sinks** sanitize where they write: project PDF, Community thumbnails and viewer, shared view.
+- **Kroki:** the client refuses diagram types outside the supported list before building the request path.
+- **Access codes** for protected links use `crypto.getRandomValues`.
+- **AI chat errors:** the chat no longer shows the raw text of internal errors to the user; they get a generic message and the traceback stays in the server log.
+- **Log forging:** request data is neutralized before logging (`app.core.log_safety.log_safe`), so line breaks can't forge log entries.
+- **Test secrets:** tests use the security helpers instead of literal keys, tokens and passwords. `.env.example` Mongo URIs use placeholders.
+
+### Fixed
+- Finishing a text edit with Enter reopened the editor.
+- A note's colour or an image's transparent stroke carried over to the next shape.
+- Choosing a tool kept the selection; the style panel covered the gesture and clipped its options.
+- The reasons for skipped elements in the exact conversion read correctly in the singular.
+- Dev environment: the frontend container mounts its whole folder. Single-file mounts served stale files after a checkout, and lint and two Vitest files failed in the container.
+
+### Changed
+- **Backend**: FastAPI 0.165, pymongo 4.20.1, pydantic 2.14.4, python-multipart 0.0.34, google-genai 3.6.1, resend 2.55, pyotp 2.12.1. Dev: ruff 0.17.6, faker, hypothesis.
+- **Frontend**: @sentry/react 11.16, i18next 27.2.3, i18next-browser-languagedetector 8.3.1, react-i18next 18.0.3, react-router-dom 7.18.6. Dev: autoprefixer 10.7, typescript-eslint 8.73, vitest 5.1.1.
+- **Docs site**: certifi 2026.11.20, urllib3 2.8.0.
+- **CodeQL maintenance alerts cleared**:
+  - best-effort lookups log a warning;
+  - dead code removed;
+  - awaits moved out of asserts;
+  - the obsolete `backend/test_config_embedding_manual.py` removed.
+- Routes can set their own `Cache-Control`: images are cacheable and the rest stays `no-store`.
+
 ## [0.9.1] - 2026-11-22
 
 ### Security
