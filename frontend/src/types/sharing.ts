@@ -38,6 +38,8 @@ export interface SharedDiagram {
   allow_copy_code: boolean;
   allow_embed?: boolean;
   owner_name: string | null;
+  /** Protected links only (from /verify): opens the diagram's images. */
+  file_token?: string | null;
 }
 
 /** Request model for creating a shared link - matches CreateSharedLinkRequest */

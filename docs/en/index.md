@@ -66,7 +66,7 @@ It runs on your own infrastructure with Docker Compose.
 
 - Whiteboard canvas with shapes, arrows, text and freehand strokes, drawn with a hand-drawn look.
 - Element locking, undo/redo and PNG export.
-- **Sketch → Mermaid**: turn a sketch into an editable Mermaid diagram.
+- **Sketch → diagram**: turn a whole sketch or just one section into a Mermaid, PlantUML or D2 diagram, with an exact reading (no AI) or with AI from its picture.
 
 ### Organization
 

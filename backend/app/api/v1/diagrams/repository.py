@@ -82,6 +82,13 @@ class DiagramRepository(IDiagramRepository):
         diagrams = await DiagramInDB.find(DiagramInDB.project_id == project_id).to_list()
         return diagrams
 
+    async def get_ids_by_project_id(self, project_id: str) -> list[str]:
+        """IDs of a project's diagrams (only ``_id`` is read)."""
+        cursor = DiagramInDB.get_pymongo_collection().find(
+            {"project_id": project_id}, projection={"_id": 1}
+        )
+        return [str(doc["_id"]) async for doc in cursor]
+
     async def count_by_project_ids(self, project_ids: list[str]) -> int:
         """Number of diagrams across projects, counted by MongoDB (no documents loaded)."""
         if not project_ids:

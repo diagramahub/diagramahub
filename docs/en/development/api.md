@@ -89,6 +89,10 @@ Routes are relative to `/api/v1`. **Public** = no token; **User** = JWT; **Admin
 | POST | `/diagrams/{diagram_id}/fix` | User |
 | POST | `/diagrams/convert` | User |
 | POST | `/diagrams/render` | Public (per-IP limit) |
+| POST | `/diagrams/{diagram_id}/files` (multipart: `file`) | Owner |
+| GET | `/diagrams/{diagram_id}/files/{file_id}` | Owner (anyone else gets `404`) |
+
+Images of sketches (`freehand`) are stored apart from the scene JSON, which only names them (`fileId`). The type is detected from the bytes (PNG, JPEG, WebP or GIF; never SVG), the `file_id` is the SHA-256 of the bytes (`201` when stored, `200` when the diagram already had it) and the answer is `{"file_id", "mime_type", "size"}`. Limits: `DIAGRAM_FILE_MAX_BYTES` (3 MiB, `413`) and `DIAGRAM_FILES_MAX_PER_DIAGRAM` (100; images the scene no longer uses are deleted before answering `409` `diagram_files_limit`). They are copied on duplicate, fork and publish, and deleted with the diagram.
 
 ### API Keys (`api_tokens/`)
 
@@ -135,6 +139,7 @@ curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
 | GET | `/community/admin/reports` | Admin |
 | PUT | `/community/admin/diagrams/{id}`, `/community/admin/comments/{id}` | Admin |
 | POST | `/community/admin/reports/dismiss` | Admin |
+| GET | `/community/{publication_id}/files/{file_id}` | Whoever can see the publication (images of a published sketch) |
 
 ### AI (`ai_providers/`, mounted at `/ai`)
 
@@ -180,6 +185,7 @@ Each session belongs to the user who created it: another user's session answers 
 | PUT · DELETE | `/shared-links/{link_id}` | User |
 | GET | `/shared/{token}/info`, `/shared/{token}/diagram` | Public |
 | POST | `/shared/{token}/verify` | Public (access code) |
+| GET | `/shared/{token}/files/{file_id}` | Public (protected link: `?file_token=` returned by `/verify`) |
 
 ### Plans and subscriptions (`subscriptions/`)
 

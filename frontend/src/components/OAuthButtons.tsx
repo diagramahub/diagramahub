@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import apiService from '../services/api';
 import { ActiveOAuthProvider } from '../types/oauth';
+import { OAUTH_AUTHORIZE_DOMAINS, safeExternalUrl } from '../utils/externalUrl';
 
 interface OAuthButtonsProps {
   mode: 'login' | 'register';
@@ -50,7 +51,10 @@ const OAuthButtons: React.FC<OAuthButtonsProps> = ({ mode }) => {
     setLoadingProvider(provider);
     try {
       const { authorization_url } = await apiService.getOAuthAuthorizeUrl(provider);
-      window.location.href = authorization_url;
+      // Only follow the provider's own sign-in page (no open redirect).
+      const target = safeExternalUrl(authorization_url, OAUTH_AUTHORIZE_DOMAINS);
+      if (!target) throw new Error('Unexpected OAuth authorization URL');
+      window.location.href = target;
     } catch {
       setLoadingProvider(null);
     }

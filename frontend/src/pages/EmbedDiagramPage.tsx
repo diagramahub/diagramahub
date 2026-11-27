@@ -163,7 +163,8 @@ export default function EmbedDiagramPage() {
     <div className="h-screen flex flex-col bg-white dark:bg-gray-950 overflow-hidden">
       <main className="flex-1 min-h-0 relative">
         {diagram?.diagram_type === 'freehand' ? (
-          <FreehandCanvas initialState={diagram.rendered_content || diagram.content || ''} readOnly />
+          <FreehandCanvas initialState={diagram.rendered_content || diagram.content || ''} readOnly
+            imageStore={token ? { load: (fileId) => api.getSharedDiagramFile(token, fileId, diagram.file_token) } : undefined} />
         ) : (
           // Diagram canvases stay light, as in the editor and the shared view.
           <div

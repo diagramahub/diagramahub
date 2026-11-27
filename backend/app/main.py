@@ -21,6 +21,8 @@ from app.api.v1.projects.routes import router as projects_router
 from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.diagrams.routes import router as diagrams_router
 from app.api.v1.diagrams.schemas import DiagramInDB
+from app.api.v1.diagram_files.routes import router as diagram_files_router
+from app.api.v1.diagram_files.schemas import DiagramFileInDB
 from app.api.v1.prompt_history.routes import router as prompt_history_router
 from app.api.v1.prompt_history.schemas import PromptHistoryInDB
 from app.api.v1.folders.routes import router as folders_router
@@ -177,6 +179,7 @@ async def lifespan(app: FastAPI):
             CommunityCommentInDB,
             CommunityReportInDB,
             DiagramActivityInDB,
+            DiagramFileInDB,
         ],
     )
 
@@ -217,7 +220,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Cache-Control"] = "no-store"
+        # Routes that set their own caching (e.g. diagram images) keep it.
+        response.headers.setdefault("Cache-Control", "no-store")
         if settings.APP_ENV == "production":
             response.headers["Strict-Transport-Security"] = (
                 "max-age=63072000; includeSubDomains; preload"
@@ -239,8 +243,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(
     BodySizeLimitMiddleware,
     max_bytes=settings.MAX_REQUEST_BODY_BYTES,
-    # Project imports upload ZIP archives: their own, larger budget.
-    path_overrides=[(r"^/api/v1/projects/[^/]+/import$", settings.MAX_IMPORT_UPLOAD_BYTES)],
+    path_overrides=[
+        # Project imports upload ZIP archives: their own, larger budget.
+        (r"^/api/v1/projects/[^/]+/import$", settings.MAX_IMPORT_UPLOAD_BYTES),
+        # Diagram images: the file limit plus room for the multipart envelope.
+        (r"^/api/v1/diagrams/[^/]+/files$", settings.DIAGRAM_FILE_MAX_BYTES + 64 * 1024),
+    ],
 )
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -289,6 +297,7 @@ app.include_router(users_router, prefix=settings.API_V1_PREFIX)
 app.include_router(users_admin_router, prefix=settings.API_V1_PREFIX)
 app.include_router(projects_router, prefix=settings.API_V1_PREFIX)
 app.include_router(diagrams_router, prefix=settings.API_V1_PREFIX)
+app.include_router(diagram_files_router, prefix=settings.API_V1_PREFIX)
 app.include_router(folders_router, prefix=settings.API_V1_PREFIX)
 app.include_router(
     ai_providers_router, prefix=f"{settings.API_V1_PREFIX}/ai", tags=["AI Providers"]

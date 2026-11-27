@@ -89,6 +89,10 @@ Las rutas están relativas a `/api/v1`. **Público** = sin token; **Usuario** = 
 | POST | `/diagrams/{diagram_id}/fix` | Usuario |
 | POST | `/diagrams/convert` | Usuario |
 | POST | `/diagrams/render` | Público (con límite por IP) |
+| POST | `/diagrams/{diagram_id}/files` (multipart: `file`) | Dueño |
+| GET | `/diagrams/{diagram_id}/files/{file_id}` | Dueño (el resto recibe `404`) |
+
+Las imágenes de los bocetos (`freehand`) se guardan aparte del JSON de la escena, que solo las nombra (`fileId`). El tipo se detecta por los bytes (PNG, JPEG, WebP o GIF; nunca SVG), el `file_id` es el SHA-256 de los bytes (`201` si se guarda, `200` si el diagrama ya lo tenía) y responde `{"file_id", "mime_type", "size"}`. Límites: `DIAGRAM_FILE_MAX_BYTES` (3 MiB, `413`) y `DIAGRAM_FILES_MAX_PER_DIAGRAM` (100; antes de responder `409` `diagram_files_limit` se borran las imágenes que la escena ya no usa). Se copian al duplicar, bifurcar o publicar y se borran con el diagrama.
 
 ### API Keys (`api_tokens/`)
 
@@ -135,6 +139,7 @@ curl -H "Authorization: Bearer dh_pat_..." http://localhost:5172/api/v1/projects
 | GET | `/community/admin/reports` | Admin |
 | PUT | `/community/admin/diagrams/{id}`, `/community/admin/comments/{id}` | Admin |
 | POST | `/community/admin/reports/dismiss` | Admin |
+| GET | `/community/{publication_id}/files/{file_id}` | Quien puede ver la publicación (imágenes del boceto publicado) |
 
 ### IA (`ai_providers/`, montado en `/ai`)
 
@@ -180,6 +185,7 @@ Cada sesión pertenece a quien la creó: una sesión de otro usuario responde `4
 | PUT · DELETE | `/shared-links/{link_id}` | Usuario |
 | GET | `/shared/{token}/info`, `/shared/{token}/diagram` | Público |
 | POST | `/shared/{token}/verify` | Público (código de acceso) |
+| GET | `/shared/{token}/files/{file_id}` | Público (enlace protegido: `?file_token=` que devuelve `/verify`) |
 
 ### Planes y suscripciones (`subscriptions/`)
 

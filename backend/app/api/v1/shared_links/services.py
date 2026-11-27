@@ -3,9 +3,11 @@ Business logic layer for shared links.
 """
 
 import hashlib
+import hmac
+import logging
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -39,6 +41,9 @@ FAILED_ATTEMPTS_WINDOW_MINUTES = 15
 
 # Valid expiration day options
 VALID_EXPIRATION_DAYS = {5, 10, 30}
+
+# How long a protected link's file token (issued on a correct access code) works.
+FILE_TOKEN_TTL_SECONDS = 12 * 60 * 60
 
 
 def _hash_access_code(code: str) -> str:
@@ -74,10 +79,45 @@ def _anonymize_ip(ip: str) -> str:
     return hashlib.sha256(ip.encode()).hexdigest()
 
 
+def _epoch_now() -> int:
+    """Current time as whole seconds since the epoch (UTC)."""
+    return int(utcnow().replace(tzinfo=timezone.utc).timestamp())
+
+
+def _file_token_signature(link: SharedLinkInDB, expires: int) -> str:
+    """HMAC of a file token: bound to the link, its current access code and expiry.
+
+    Changing the code (or revoking the link, checked separately) ends every
+    token issued before.
+    """
+    message = f"shared-file|{link.id}|{link.access_code_hash or ''}|{expires}"
+    return hmac.new(settings.JWT_SECRET.encode(), message.encode(), hashlib.sha256).hexdigest()
+
+
+def issue_file_token(link: SharedLinkInDB) -> str:
+    """A short-lived token that opens a protected link's images (``<expires>.<hmac>``)."""
+    expires = _epoch_now() + FILE_TOKEN_TTL_SECONDS
+    return f"{expires}.{_file_token_signature(link, expires)}"
+
+
+def file_token_is_valid(link: SharedLinkInDB, file_token: Optional[str]) -> bool:
+    """Whether ``file_token`` was issued for this link's current code and hasn't expired."""
+    if not file_token or "." not in file_token:
+        return False
+    expires_text, signature = file_token.split(".", 1)
+    if not expires_text.isdigit() or int(expires_text) < _epoch_now():
+        return False
+    expected = _file_token_signature(link, int(expires_text))
+    return hmac.compare_digest(signature, expected)
+
+
 def _build_share_url(token: str) -> str:
     """Build the full share URL for a token."""
     base_url = settings.FRONTEND_URL.rstrip("/")
     return f"{base_url}/shared/{token}"
+
+
+logger = logging.getLogger(__name__)
 
 
 class SharedLinkService:
@@ -337,7 +377,8 @@ class SharedLinkService:
             if user:
                 return user.full_name or user.email.split("@")[0]
         except Exception:
-            pass
+            # The shared view works without the owner's name; don't fail it.
+            logger.warning("Shared link: owner lookup failed", exc_info=True)
         return None
 
     async def _get_valid_link(self, token: str, client_ip: str) -> SharedLinkInDB:
@@ -413,6 +454,33 @@ class SharedLinkService:
 
         return await self._fetch_diagram_for_link(link, token, client_ip)
 
+    async def resolve_file_access(
+        self, token: str, client_ip: str, file_token: Optional[str]
+    ) -> tuple[str, bool]:
+        """Which diagram's files a shared link opens, under the rules of its diagram view.
+
+        A public link opens them like ``GET /shared/{token}/diagram``; a protected
+        one needs the ``file_token`` its ``POST /shared/{token}/verify`` returned.
+
+        Returns:
+            The link's diagram id and whether the link is public.
+
+        Raises:
+            HTTPException 404: Missing or revoked link
+            HTTPException 410: Expired link
+            HTTPException 403: ``access_code_required`` (protected link without a
+                valid file token)
+        """
+        link = await self._get_valid_link(token, client_ip)
+        if link.access_type == "public":
+            return link.diagram_id, True
+        if not file_token_is_valid(link, file_token):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"error": "access_code_required"},
+            )
+        return link.diagram_id, False
+
     async def verify_access_code(
         self,
         token: str,
@@ -449,8 +517,10 @@ class SharedLinkService:
                 detail=f"Código de acceso incorrecto. Intentos restantes: {remaining}",
             )
 
-        # Code is correct — fetch diagram
-        return await self._fetch_diagram_for_link(link, token, client_ip)
+        # Code is correct — fetch diagram (plus the token that opens its images)
+        response = await self._fetch_diagram_for_link(link, token, client_ip)
+        response.file_token = issue_file_token(link)
+        return response
 
     async def _log_access(self, token: str, client_ip: str, result: str) -> None:
         """Log an access attempt with anonymized IP."""

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { Mermaid } from "mermaid";
 import { sketchToMermaid } from "../sketchToMermaid";
 
-const shape = (id: string, type: "rectangle" | "diamond" | "ellipse", x: number, y: number, text?: string) => ({
+const shape = (id: string, type: "rectangle" | "diamond" | "ellipse" | "sticky", x: number, y: number, text?: string) => ({
   id, type, x, y, width: 120, height: 60, strokeColor: "#000", fillColor: "transparent", strokeWidth: 2, opacity: 1, text,
 });
 const arrow = (id: string, from: string, to: string, extra: Record<string, unknown> = {}) => ({
@@ -113,5 +114,29 @@ describe("sketchToMermaid", () => {
     expect(result.code).toContain("    A -.- C");
     expect(result.edgeCount).toBe(5);
     expect(result.skipped).toEqual({});
+  });
+  it("turns a sticky note into a flag-shaped node", () => {
+    const result = sketchToMermaid(sketch([
+      shape("n", "sticky", 0, 0, "Revisar precios"),
+      shape("b", "rectangle", 300, 0, "Publicar"),
+      arrow("e", "n", "b"),
+    ]));
+    expect(result.code).toContain('    Revisar_precios>"Revisar precios"]');
+    expect(result.code).toContain("    Revisar_precios --> Publicar");
+    expect(result.nodeCount).toBe(2);
+  });
+
+  it("produces a flowchart the bundled Mermaid parses (sticky notes included)", async () => {
+    // Parsing doesn't sanitize: DOMPurify gets no-op stubs (it needs a DOM), as in mermaidReference.test.ts
+    const purify = (await import("dompurify")).default as unknown as Record<string, unknown>;
+    Object.assign(purify, { sanitize: (text: string) => text, addHook: () => {}, removeHook: () => {}, removeHooks: () => {}, removeAllHooks: () => {} });
+    const mermaid: Mermaid = (await import("mermaid")).default;
+    mermaid.initialize({ startOnLoad: false });
+    const result = sketchToMermaid(sketch([
+      shape("n", "sticky", 0, 0, "Nota: revisar\ncon el equipo"),
+      shape("d", "diamond", 300, 0, "¿Ok?"),
+      arrow("e", "n", "d", { text: "sí" }),
+    ]));
+    await expect(mermaid.parse(result.code)).resolves.toBeTruthy();
   });
 });

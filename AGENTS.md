@@ -16,7 +16,7 @@ Diagramahub is an open-source, self-hostable platform for creating, organizing, 
 
 - **License**: Apache 2.0
 - **Status**: Beta (v0.x) — APIs and data structures may change between versions
-- **Current version**: 0.9.1
+- **Current version**: 0.9.2
 - **Repo**: https://github.com/diagramahub/diagramahub
 
 ## Tech Stack
@@ -123,7 +123,7 @@ diagramahub/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic Settings (env vars)
 │   │   │   └── security.py      # JWT + BCrypt utilities
-│   │   └── api/v1/              # All feature modules (14 modules, see below)
+│   │   └── api/v1/              # All feature modules (17 modules, see below)
 │   ├── tests/
 │   │   ├── conftest.py          # Shared fixtures (async client, test DB, Faker)
 │   │   └── api/v1/              # Tests mirror module structure
@@ -156,7 +156,7 @@ diagramahub/
 ├── docker-compose.yml           # Symlinked to chosen deploy mode
 ```
 
-### Backend Module Registry (All 14 Modules)
+### Backend Module Registry (All 17 Modules)
 
 Every domain entity lives in its own isolated folder under `backend/app/api/v1/`. Complex modules extend the base 5-file pattern with additional files.
 
@@ -177,6 +177,7 @@ Every domain entity lives in its own isolated folder under `backend/app/api/v1/`
 | **community** | `community/` | Community portal: published diagram snapshots, stars, forks (via DiagramService + UsageLimiter), comments (one reply level), reports (3 hide until an admin reviews), featuring | — |
 | **activity** | `activity/` | Dashboard heatmap: one document per (user, diagram, hour) the diagram was created, edited or duplicated (`diagram_activity`, TTL 120 days; written by `DiagramService` through `record_activity`, never failing the save), summed per day in the user's time zone (`GET /activity/heatmap?days=&tz=`) | — |
 | **about** | `about/` | About page facts: the repository's GitHub stars and forks (`GET /about/repository`, public), asked by the server and cached for an hour (`GITHUB_STATS_ENABLED`, `GITHUB_REPOSITORY`) | `client.py` |
+| **diagram_files** | `diagram_files/` | Images of freehand diagrams, stored apart from the scene JSON (`diagram_files`: bytes + `scope` diagram/publication + `scope_id` + `owner_id`; `file_id` = SHA-256 of the bytes, unique per scope). Type from magic bytes (PNG/JPEG/WebP/GIF, never SVG), `DIAGRAM_FILE_MAX_BYTES` (3 MiB), `DIAGRAM_FILES_MAX_PER_DIAGRAM` (100, unused files older than an hour collected first). Copied on duplicate/fork/publish, deleted with the diagram, project, folder, publication and account (`copy_referenced_files` / `delete_diagram_files` take an optional `IDiagramFileRepository`) | — |
 | **api_tokens** | `api_tokens/` | API keys (`dh_pat_…`, SHA-256 hash stored; per-area permissions projects/diagrams/sharing/community/ai; `permissions.RULES` maps each path to the level it needs per area — a new route reachable with keys must be added there; one that exposes a stored diagram's code also needs `diagrams` read) | — |
 
 ### Backend Module Pattern (SOLID — Required for Every CRUD Entity)
@@ -299,7 +300,7 @@ When creating a new module, you MUST:
 - Session invalidation on password change (`pca` claim in JWT)
 - MFA: email codes + TOTP (both active simultaneously, configurable default). 8 recovery codes.
 - Session duration: 2 days without MFA, 5 days with MFA. OAuth: 5 days (MFA bypass).
-- OAuth: provider-agnostic (`IOAuthProvider` interface). Google implemented. Auto-link by email.
+- OAuth: provider-agnostic (`IOAuthProvider` interface). Google implemented. Auto-link by email. A new provider also needs its authorize host in `OAUTH_AUTHORIZE_DOMAINS` (`frontend/src/utils/externalUrl.ts`): the browser only follows authorize, Stripe and invoice URLs from the API when they are https on an allowed host.
 - Security headers: X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy, Permissions-Policy, Cache-Control
 - Swagger/OpenAPI + stack traces disabled in production
 - Sentry: conditional initialization, `before_send` sanitization (filters `Authorization`, `Cookie`, `api_key`, `password`, `token`, `secret`, `jwt`)
@@ -359,7 +360,9 @@ All prefixed with `/api/v1`. See Swagger UI at `/docs` for full interactive docs
 - `CRUD /projects`, `CRUD /diagrams`, `CRUD /folders`
 - `CRUD /ai/providers`, `POST /ai/providers/{type}/test`
 - `CRUD /chat-sessions`, `POST /chat-sessions/{id}/messages`
-- `CRUD /shared-links`; public: `GET /shared/{token}/info`, `GET /shared/{token}/diagram`, `POST /shared/{token}/verify`
+- `POST /diagrams/{id}/files` (multipart `file`; 201 new / 200 already stored), `GET /diagrams/{id}/files/{file_id}` (owner; raw image)
+- `CRUD /shared-links`; public: `GET /shared/{token}/info`, `GET /shared/{token}/diagram`, `POST /shared/{token}/verify` (protected links: returns `file_token`), `GET /shared/{token}/files/{file_id}` (`?file_token=` for protected links)
+- Community images: `GET /community/{publication_id}/files/{file_id}` (same visibility as the publication)
 - `GET /subscriptions/me`, `POST /subscriptions/checkout`, `GET /subscriptions/billing-history`
 - `GET /prompt-history`
 - `CRUD /mfa` (TOTP setup, verify, recovery codes)
@@ -392,7 +395,7 @@ SENTRY_ENABLE_LOGS=True
 VITE_API_URL=http://localhost:5172
 VITE_SENTRY_DSN=
 VITE_APP_ENV=development
-VITE_APP_VERSION=0.9.1
+VITE_APP_VERSION=0.9.2
 ```
 
 ---
@@ -419,7 +422,7 @@ Key sections in translation files: `common`, `nav`, `auth`, `validation`, `dashb
 - **Test DB**: Isolated `diagramahub_test` database, dropped after each test (function scope)
 - **Fixtures** (`conftest.py`): `test_db`, `client` (async httpx.AsyncClient), `authenticated_client`, `user_data` (Faker)
 - **Markers**: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.slow`, `@pytest.mark.property`
-- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 72.85% on 2026-11-22). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
+- **Coverage**: enabled by default (`--cov=app`), skip with `--no-cov`. The full suite enforces a **60% floor** (`--cov-fail-under=60`; measured 74.05% on 2026-11-26). Subset runs (`-m unit`, `-k ...`) are deliberately exempt: a partial suite cannot reach a whole-project floor, so keep the floor in the full-run command instead of `addopts`. Raise it as new tests land.
 - Tests mirror module structure under `tests/api/v1/`
 
 ### Frontend Tests
@@ -472,7 +475,7 @@ React (Frontend) → Axios (api.ts) → FastAPI Routes → Services (business lo
 
 ## Versioning
 
-SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.9.1**.
+SemVer 2.0.0: `MAJOR.MINOR.PATCH`. Current: **0.9.2**.
 
 | Bump | When |
 |------|------|

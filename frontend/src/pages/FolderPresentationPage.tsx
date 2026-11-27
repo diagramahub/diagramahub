@@ -214,7 +214,8 @@ export default function FolderPresentationPage() {
           {/* Diagram canvases stay light, as in the editor. */}
           <div className="w-full h-full bg-white rounded-xl shadow-2xl overflow-hidden">
             {current.diagram_type === 'freehand' ? (
-              <FreehandCanvas key={current.id} initialState={current.content} readOnly />
+              <FreehandCanvas key={current.id} initialState={current.content} readOnly
+                imageStore={{ load: (fileId) => apiService.getDiagramFile(current.id, fileId) }} />
             ) : (
               <div
                 ref={slideRef}

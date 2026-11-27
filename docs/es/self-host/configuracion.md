@@ -88,6 +88,8 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 | `MAX_IMPORT_UPLOAD_BYTES` | `20971520` (20 MB) | Tamaño máximo de una subida de importación de proyecto (ZIP o archivos sueltos). |
 | `MAX_IMPORT_FILES` | `500` | Número máximo de archivos en una importación. |
 | `MAX_IMPORT_UNCOMPRESSED_BYTES` | `52428800` (50 MB) | Tamaño máximo que puede ocupar un ZIP una vez descomprimido. |
+| `DIAGRAM_FILE_MAX_BYTES` | `3145728` (3 MB) | Tamaño máximo de una imagen del [pizarrón](../guia/pizarron.md#imagenes) (el navegador la comprime antes de subirla). |
+| `DIAGRAM_FILES_MAX_PER_DIAGRAM` | `100` | Imágenes que puede guardar un pizarrón; las que ya no se usan se liberan antes de rechazar una subida. |
 
 ### Comunidad
 

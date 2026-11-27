@@ -4,6 +4,7 @@ import { dateLocale } from '../../utils/locale';
 import apiService from '../../services/api';
 import { Invoice } from '../../types/subscription';
 import { apiErrorMessage } from '../../utils/apiError';
+import { STRIPE_DOMAINS, safeExternalUrl } from '../../utils/externalUrl';
 
 export default function BillingHistory() {
   const { t, i18n } = useTranslation();
@@ -32,8 +33,10 @@ export default function BillingHistory() {
     try {
       // Hacer la petición con autenticación para obtener la URL del PDF
       const response = await apiService.downloadInvoice(invoiceId);
-      // Abrir el PDF de Stripe en nueva pestaña
-      window.open(response.pdf_url, '_blank');
+      // Abrir el PDF de Stripe en nueva pestaña (solo páginas de Stripe: sin open redirect)
+      const target = safeExternalUrl(response.pdf_url, STRIPE_DOMAINS);
+      if (!target) throw new Error('Unexpected invoice URL');
+      window.open(target, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
       setError(apiErrorMessage(err) || t('subscription.billing.error'));
     }

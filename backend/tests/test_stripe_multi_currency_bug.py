@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 from app.api.v1.subscriptions.payment_providers.stripe_provider import (
     StripePaymentProvider,
 )
+from tests.utils.security import generate_test_api_key, generate_test_secret
 
 
 @pytest.mark.asyncio
@@ -34,9 +35,9 @@ async def test_checkout_uses_stripe_price_id_not_inline_price_data():
     """
 
     provider = StripePaymentProvider(
-        secret_key="sk_test_fake_key_for_testing",
-        webhook_secret="whsec_fake_secret",
-        publishable_key="pk_test_fake_key",
+        secret_key=generate_test_secret("sk_test_"),
+        webhook_secret=generate_test_secret("whsec_"),
+        publishable_key=generate_test_api_key("pk_test_"),
     )
 
     # --- Mock Stripe API calls ---

@@ -111,6 +111,10 @@ class KrokiClient(IKrokiClient):
             KrokiRenderError: If Kroki returns a non-2xx HTTP status.
             KrokiTimeoutError: If the request times out or Kroki is unreachable.
         """
+        # The type becomes a URL path segment: only known types, so no caller
+        # can turn it into another Kroki path (e.g. "../health").
+        if diagram_type not in self.SUPPORTED_DIAGRAM_TYPES:
+            raise KrokiRenderError(status_code=400, detail="Unsupported diagram type")
         url = f"{self.base_url}/{diagram_type}/svg"
 
         try:

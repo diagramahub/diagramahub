@@ -93,7 +93,7 @@ Themes and styles per language are detailed in [Diagram types](diagram-types.md)
 !!! warning "Conversion may not be exact"
     Each language has its own elements and styles; check the preview before applying. Requires a configured AI provider.
 
-For freehand whiteboards the menu offers **Sketch → Mermaid**, an AI-free conversion described in [Freehand whiteboard](whiteboard.md#sketch-mermaid).
+For freehand whiteboards the menu offers **Convert sketch…**, which turns the whole whiteboard or one section into a new diagram, with or without AI; see [Freehand whiteboard](whiteboard.md#turning-the-sketch-into-a-diagram).
 
 ## Editor shortcuts
 

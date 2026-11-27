@@ -48,6 +48,8 @@ Use **Export project** or **Export folder** and choose:
 
         The ZIP includes a `README.md` with an index and a `manifest.json` with what is needed to **import it back**: titles, folders and their colors.
 
+        Images placed on [whiteboards](whiteboard.md#images) go in the hidden `.files/` folder of the ZIP, once each, named by their SHA-256 (`<sha256>.png`, `.jpg`, `.webp` or `.gif`); the manifest lists which ones each whiteboard uses. Versions of DiagramaHub that predate them ignore that folder and import the whiteboards without their images.
+
     === "Markdown — a single file"
 
         Every diagram in a single `.md`, with one code block per diagram. It has two variants:
@@ -109,7 +111,7 @@ Before anything is created, DiagramaHub shows you a **Preview**:
 - Folders come from the **first level** of paths in the ZIP. If everything sits inside a single top-level folder, the next level is used. Deeper levels are merged into their first-level folder.
 - An `.md` with the same name as a diagram (`flow.md` next to `flow.mmd`) becomes its description.
 - If a folder with the same name already exists (case-insensitive), it is reused.
-- If the ZIP is a DiagramaHub export, the original titles and folder colors are restored as well.
+- If the ZIP is a DiagramaHub export, the original titles and folder colors are restored as well, along with the images of its whiteboards. Each image is checked like an upload (PNG, JPEG, WebP or GIF by its content, up to 3 MB, up to 100 per whiteboard) and its content must match its name; one that doesn't is left out, the preview warns about it, and the whiteboard shows a placeholder in its place.
 
 ### Import from Excalidraw
 
@@ -127,5 +129,7 @@ Before anything is created, DiagramaHub shows you a **Preview**:
 | Files per import | 500 |
 | Uncompressed ZIP size | 50 MB |
 | Single file size | 5 MB |
+
+Images inside a ZIP count toward these limits like any other file.
 
 The instance operator can adjust these values. There is also a per-minute cap on imports and exports. If you hit it, the message tells you how many seconds to wait.

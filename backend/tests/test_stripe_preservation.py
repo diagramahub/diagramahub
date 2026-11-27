@@ -288,8 +288,8 @@ class TestCancellationPreservation:
         and return {"status": ..., "cancel_at": ...}.
         """
         provider = StripePaymentProvider(
-            secret_key="sk_test_fake",
-            webhook_secret="whsec_fake",
+            secret_key=generate_test_secret("sk_test_"),
+            webhook_secret=generate_test_secret("whsec_"),
         )
 
         mock_subscription = MagicMock()
@@ -345,7 +345,7 @@ class TestWebhookValidationPreservation:
         """
         webhook_secret = generate_test_secret("whsec")
         provider = StripePaymentProvider(
-            secret_key="sk_test_fake",
+            secret_key=generate_test_secret("sk_test_"),
             webhook_secret=webhook_secret,
         )
 

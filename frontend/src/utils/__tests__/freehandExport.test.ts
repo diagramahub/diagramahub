@@ -35,6 +35,13 @@ describe("exportBounds", () => {
     expect(b.width).toBeGreaterThan(19 * 20 * 0.6 - 1);
   });
 
+  it("doesn't widen a shape or note for its label (it wraps inside the box)", () => {
+    for (const type of ["rectangle", "sticky"] as const) {
+      const b = exportBounds([el({ type, width: 100, height: 100, text: "a label far longer than the box itself", fontSize: 20 })], 0)!;
+      expect(b.width).toBeCloseTo(102, 5);
+    }
+  });
+
   it("spans far-apart elements", () => {
     const b = exportBounds([el({}), el({ id: "f", x: 100_000, y: 50_000 })], 0)!;
     expect(b.width).toBeGreaterThan(100_000);

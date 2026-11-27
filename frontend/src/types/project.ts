@@ -126,3 +126,11 @@ export type UpdateFolderRequest = {
   name?: string;
   color?: string;
 }
+
+/** A stored image of a freehand diagram (`POST /diagrams/{id}/files`). */
+export interface DiagramFileInfo {
+  /** SHA-256 of the bytes (64 hex characters). */
+  file_id: string;
+  mime_type: string;
+  size: number;
+}

@@ -11,7 +11,10 @@ Two output formats:
 * **ZIP** — one folder per project folder, one source file per diagram with
   the extension of its type, an optional ``.md`` sibling with the description,
   plus ``README.md`` (index) and ``manifest.json`` (enough metadata to import
-  the archive back, folders and colours included).
+  the archive back, folders and colours included). Images placed on sketches
+  go once each to the hidden ``.files/`` folder (``<sha256>.<ext>``); each
+  sketch's manifest entry lists the ones it uses (``files``). Importers that
+  predate it skip hidden paths, so the archive still imports there.
 * **Markdown** — a single ``.md`` document. The ``ai`` variant adds a preamble
   that explains the file to a language model, a path index, per-diagram
   metadata and a token estimate; the ``standard`` variant is a plain document.
@@ -31,6 +34,20 @@ from app.core.clock import utcnow
 EXPORT_FORMAT_VERSION = 1
 MANIFEST_FILENAME = "manifest.json"
 README_FILENAME = "README.md"
+# Images of sketches. Hidden on purpose: it can't clash with a folder name
+# (sanitize_filename strips leading dots) and older importers ignore it.
+ASSETS_DIR = ".files"
+
+# Image type -> file extension inside ``ASSETS_DIR``.
+_IMAGE_EXTENSIONS = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+}
+# ZIP_STORED overhead of one entry: local header (30) + central directory (46),
+# plus the name in each. Used to size an export without loading image bytes.
+_ZIP_ENTRY_OVERHEAD = 30 + 46
 
 MarkdownVariant = Literal["ai", "standard"]
 
@@ -77,6 +94,21 @@ _MAX_NAME_LENGTH = 100
 
 
 @dataclass
+class ExportFile:
+    """An image a sketch uses. ``data`` is None when only its size is needed."""
+
+    file_id: str
+    mime_type: str
+    size: int
+    data: Optional[bytes] = None
+
+    @property
+    def path(self) -> str:
+        """Where the image goes in the archive (below the root folder)."""
+        return f"{ASSETS_DIR}/{self.file_id}.{_IMAGE_EXTENSIONS.get(self.mime_type, 'bin')}"
+
+
+@dataclass
 class ExportDiagram:
     """A diagram as needed by the builders (no database types)."""
 
@@ -87,6 +119,7 @@ class ExportDiagram:
     description: Optional[str]
     created_at: datetime
     updated_at: datetime
+    files: list[ExportFile] = field(default_factory=list)
 
 
 @dataclass
@@ -122,6 +155,24 @@ class ExportTree:
     def title(self) -> str:
         """Human title: the folder name when scoped, else the project name."""
         return self.scope_folder_name or self.project_name
+
+    def unique_files(self) -> list[ExportFile]:
+        """Every image of the tree's sketches, once (sketches may share one)."""
+        seen: dict[str, ExportFile] = {}
+        diagrams = self.root_diagrams + [d for f in self.folders for d in f.diagrams]
+        for diagram in diagrams:
+            for file in diagram.files:
+                seen.setdefault(file.file_id, file)
+        return list(seen.values())
+
+
+def stored_files_size(files: list[ExportFile], root: str) -> int:
+    """Bytes these images add to an uncompressed archive (no need for their data)."""
+    total = 0
+    for file in files:
+        name = len(f"{root}/{file.path}".encode())
+        total += _ZIP_ENTRY_OVERHEAD + 2 * name + file.size
+    return total
 
 
 # --------------------------------------------------------------------------- #
@@ -401,7 +452,9 @@ def _readme(tree: ExportTree, layout: list[tuple[str, ExportDiagram]]) -> str:
         "Each diagram is a source file named after its type "
         "(`.mmd` Mermaid, `.puml` PlantUML, `.d2` D2, `.dbml` DBML, "
         "`.freehand.json` sketch). A `.md` file with the same name holds its "
-        f"description. `{MANIFEST_FILENAME}` lets Diagramahub import this archive back."
+        f"description. Images placed on sketches are in the hidden `{ASSETS_DIR}/` "
+        f"folder, named by their SHA-256. `{MANIFEST_FILENAME}` lets Diagramahub "
+        "import this archive back."
     )
     lines.append("")
     lines.append("| File | Diagram | Type | Updated |")
@@ -418,7 +471,8 @@ def build_zip(tree: ExportTree, include_descriptions: bool = True, compress: boo
 
     ``compress=False`` stores the entries without deflating them: the export
     summary uses it to measure an upper bound of the download size without
-    paying the compression cost.
+    paying the compression cost. Images without ``data`` are listed in the
+    manifest but not written (the summary adds :func:`stored_files_size`).
     """
     root = sanitize_filename(tree.title, fallback="project")
     buffer = io.BytesIO()
@@ -445,6 +499,8 @@ def build_zip(tree: ExportTree, include_descriptions: bool = True, compress: boo
             }
             if include_descriptions and _text(diagram.description):
                 entry["description_path"] = f"{folder_path}{base}.md"
+            if diagram.files:
+                entry["files"] = [file.path for file in diagram.files]
             manifest_diagrams.append(entry)
 
     place(tree.root_diagrams, "", None)
@@ -486,6 +542,9 @@ def build_zip(tree: ExportTree, include_descriptions: bool = True, compress: boo
                 archive.writestr(
                     f"{root}/{entry['description_path']}", _description_markdown(diagram)
                 )
+        for file in tree.unique_files():
+            if file.data is not None:
+                archive.writestr(f"{root}/{file.path}", file.data)
 
     return buffer.getvalue()
 

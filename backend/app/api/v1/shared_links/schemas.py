@@ -165,3 +165,7 @@ class SharedDiagramResponse(BaseModel):
     allow_copy_code: bool
     allow_embed: bool = False
     owner_name: Optional[str] = None  # Display name of the diagram owner
+    # Protected links only: lets the visitor load the diagram's images
+    # (``GET /shared/{token}/files/{file_id}?file_token=…``) without sending the
+    # access code again. Valid for FILE_TOKEN_TTL_SECONDS, until the code changes.
+    file_token: Optional[str] = None

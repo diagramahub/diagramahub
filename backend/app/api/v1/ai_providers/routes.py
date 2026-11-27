@@ -233,6 +233,11 @@ async def diagram_from_image(
     instructions: Optional[str] = Form(None, max_length=500),
     provider: Optional[AIProviderType] = Form(None),
     model: Optional[str] = Form(None, max_length=100, description="e.g. the chat's model"),
+    sketch_context: Optional[str] = Form(
+        None,
+        max_length=12000,
+        description="Converting a freehand selection: its texts and links read from the canvas",
+    ),
     user_id: str = Depends(get_current_user_id),
     service: AIProviderService = Depends(get_ai_provider_service),
 ):
@@ -244,7 +249,7 @@ async def diagram_from_image(
     """
     data = await image.read(MAX_IMAGE_BYTES + 1)
     return await service.generate_diagram_from_image(
-        user_id, data, diagram_type, language, instructions, provider, model
+        user_id, data, diagram_type, language, instructions, provider, model, sketch_context
     )
 
 

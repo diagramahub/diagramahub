@@ -22,6 +22,7 @@ from app.api.v1.users.schemas import (
     UserResponse,
 )
 from app.api.v1.users.email_templates import build_mfa_email_html
+from app.core.log_safety import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,7 @@ async def login(
                 # request a resend via the dedicated endpoint.
                 logger.warning(
                     "Failed to send MFA email code to %s during login",
-                    login_data.email,
+                    log_safe(login_data.email),
                 )
 
     return result

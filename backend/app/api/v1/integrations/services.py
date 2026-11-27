@@ -3,6 +3,7 @@ Business logic layer for vendor integrations.
 """
 
 import logging
+from app.core.log_safety import log_safe
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -190,7 +191,7 @@ class IntegrationsService:
         vendor, config = result
         logger.info(
             "test_vendor_connection: vendor_id=%s, type=%s, category=%s, config_keys=%s",
-            vendor_id,
+            log_safe(vendor_id),
             vendor.vendor_type,
             vendor.category,
             list(config.keys()),
@@ -230,7 +231,7 @@ class IntegrationsService:
                 error_detail=str(exc),
             )
         except Exception as exc:
-            logger.exception("test_vendor_connection: EXCEPTION for %s", vendor_id)
+            logger.exception("test_vendor_connection: EXCEPTION for %s", log_safe(vendor_id))
             success = False
             # Persist failure
             await self.repository.record_test_result(vendor_id, success)

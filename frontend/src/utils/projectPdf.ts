@@ -96,7 +96,7 @@ async function capture(node: HTMLElement): Promise<{ data: string; width: number
 async function svgFor(diagram: Diagram): Promise<string | null> {
   const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_DIAGRAM_TIMEOUT_MS));
   const render = renderDiagram(diagram.content, diagram.diagram_type || 'mermaid').then((result) =>
-    'svg' in result ? sanitizeSvg(result.svg) : null,
+    'svg' in result ? result.svg : null,
   );
   return Promise.race([render, timeout]).catch(() => null);
 }
@@ -128,7 +128,8 @@ function diagramPage(diagram: Diagram, svg: string | null, input: ProjectPdfInpu
   page.appendChild(el('h2', { fontSize: '20px', margin: '0 0 14px', color: '#111827' }, diagram.title));
   const figure = el('div', { textAlign: 'center' });
   if (svg) {
-    figure.innerHTML = svg;
+    // Sanitized here, at the sink: diagram code can come from imports or the AI.
+    figure.innerHTML = sanitizeSvg(svg);
     const node = figure.querySelector('svg');
     if (node) {
       node.style.maxWidth = '100%';

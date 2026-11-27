@@ -38,6 +38,11 @@ class IDiagramRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_ids_by_project_id(self, project_id: str) -> list[str]:
+        """IDs of a project's diagrams (no documents loaded)."""
+        pass
+
+    @abstractmethod
     async def count_by_project_ids(self, project_ids: list[str]) -> int:
         """Number of diagrams across projects (counted in the database)."""
         pass

@@ -35,6 +35,7 @@ from app.api.v1.users.repository import UserRepository
 from app.api.v1.users.schemas import OAuthProviderEntry, UserInDB
 from app.core.security import create_access_token, get_password_hash
 from app.core.clock import utcnow
+from app.core.log_safety import log_safe
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,9 @@ class OAuthService:
         try:
             token_response = await adapter.exchange_code(code, redirect_uri)
         except OAuthTokenExchangeError as exc:
-            logger.error("OAuth token exchange failed for %s: %s", provider, exc)
+            logger.error(
+                "OAuth token exchange failed for %s: %s", log_safe(provider), log_safe(exc)
+            )
             # Log failed attempt
             from app.api.v1.users.audit_log import (
                 EVENT_OAUTH_LOGIN_FAILED,
@@ -228,8 +231,8 @@ class OAuthService:
         except OAuthUserInfoError as exc:
             logger.error(
                 "OAuth user info retrieval failed for %s: %s",
-                provider,
-                exc,
+                log_safe(provider),
+                log_safe(exc),
             )
             from app.api.v1.users.audit_log import (
                 EVENT_OAUTH_LOGIN_FAILED,

@@ -197,7 +197,6 @@ async def test_import_rejected_entirely_when_over_plan_quota(
 async def test_import_rolls_back_on_failure(authenticated_client: AsyncClient) -> None:
     pid = await _project(authenticated_client)
     archive = _zip({"F/a.mmd": "graph TD", "F/b.mmd": "graph TD", "F/c.mmd": "graph TD"})
-    original = import_module.ProjectImportService.__dict__  # noqa: F841
     from app.api.v1.diagrams.repository import DiagramRepository
 
     real_create = DiagramRepository.create

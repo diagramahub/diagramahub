@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../../../services/api';
 import { AdminSubscriptionEntry, AdminUserBilling } from '../../../types/auth';
 import { apiErrorMessage } from '../../../utils/apiError';
+import { STRIPE_DOMAINS, safeExternalUrl } from '../../../utils/externalUrl';
 import { formatDate, formatMoney } from '../../../utils/adminUsers';
 import { StatusPill } from './shared';
 
@@ -157,32 +158,37 @@ export function UserBillingPanel({ userId }: { userId: string }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {billing.invoices.map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-gray-700 dark:text-gray-300">{formatDate(invoice.paid_at || invoice.created_at, lang)}</td>
-                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{invoice.description}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">
-                      {formatMoney(invoice.amount, invoice.currency, lang)}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2">
-                      <StatusPill tone={INVOICE_TONES[invoice.status] ?? 'gray'}>
-                        {t(`admin.users.invoiceStatus.${invoice.status}`, { defaultValue: invoice.status })}
-                      </StatusPill>
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
-                      {(invoice.hosted_invoice_url || invoice.invoice_pdf) && (
-                        <a
-                          href={invoice.hosted_invoice_url || invoice.invoice_pdf || undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs font-medium text-purple-600 hover:underline dark:text-purple-400"
-                        >
-                          {t('admin.users.viewInvoice')}
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {billing.invoices.map((invoice) => {
+                  // Stripe-hosted invoice pages only (no javascript: or foreign links).
+                  const invoiceUrl =
+                    safeExternalUrl(invoice.hosted_invoice_url, STRIPE_DOMAINS) ?? safeExternalUrl(invoice.invoice_pdf, STRIPE_DOMAINS);
+                  return (
+                    <tr key={invoice.id}>
+                      <td className="whitespace-nowrap px-3 py-2 text-gray-700 dark:text-gray-300">{formatDate(invoice.paid_at || invoice.created_at, lang)}</td>
+                      <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{invoice.description}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-gray-900 dark:text-gray-100">
+                        {formatMoney(invoice.amount, invoice.currency, lang)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2">
+                        <StatusPill tone={INVOICE_TONES[invoice.status] ?? 'gray'}>
+                          {t(`admin.users.invoiceStatus.${invoice.status}`, { defaultValue: invoice.status })}
+                        </StatusPill>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-right">
+                        {invoiceUrl && (
+                          <a
+                            href={invoiceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-purple-600 hover:underline dark:text-purple-400"
+                          >
+                            {t('admin.users.viewInvoice')}
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

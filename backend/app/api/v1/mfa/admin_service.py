@@ -149,7 +149,8 @@ class MfaAdminService:
                         plan_code = plan.code
                         is_paying = is_paid_plan(plan) and bool(sub.stripe_subscription_id)
             except Exception:
-                pass
+                # Best effort: the row still lists the user, without plan data.
+                logger.warning("Admin users: plan lookup failed for %s", u.id, exc_info=True)
 
             connected_ai_models = []
             try:
@@ -173,7 +174,8 @@ class MfaAdminService:
                             }
                         )
             except Exception:
-                pass
+                # Best effort: the row still lists the user, without AI models.
+                logger.warning("Admin users: AI settings lookup failed for %s", u.id, exc_info=True)
 
             user_id = str(u.id)
             project_count = project_counts_by_user.get(user_id, 0)
@@ -351,7 +353,8 @@ class MfaAdminService:
                     if plan:
                         plan_name = plan.name
             except Exception:
-                pass
+                # Best effort: the row still lists the user, without plan data.
+                logger.warning("Admin users: plan lookup failed for %s", u.id, exc_info=True)
 
             # Count projects and diagrams
             project_count = 0
@@ -368,7 +371,8 @@ class MfaAdminService:
                         {"project_id": {"$in": project_ids}}
                     ).count()
             except Exception:
-                pass
+                # Best effort: the row still lists the user, with zero counts.
+                logger.warning("Admin users: usage counts failed for %s", u.id, exc_info=True)
 
             yes = "Yes" if lang == "en" else "Sí"
             no = "No"

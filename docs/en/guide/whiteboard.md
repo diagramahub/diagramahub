@@ -1,6 +1,6 @@
 # Freehand whiteboard
 
-The **Freehand** type is a free whiteboard for thinking without syntax: draw shapes, arrows, text and strokes with a hand-drawn look. When the idea is ready, turn it into a Mermaid diagram with one click.
+The **Freehand** type is a free whiteboard for thinking without syntax: draw shapes, arrows, text, strokes, sticky notes and images with a hand-drawn look. When the idea is ready, [turn it into a diagram](#turning-the-sketch-into-a-diagram) (Mermaid, PlantUML or D2), whole or just a section.
 
 To create one, choose **Freehand** as the **Diagram type** when creating a diagram. The whiteboard autosaves like any other diagram.
 
@@ -16,13 +16,36 @@ To create one, choose **Freehand** as the **Diagram type** when creating a diagr
 | **Arrow** | ++a++ | Arrow; drop it on a shape and it stays connected to it |
 | **Line** | ++l++ | Line without arrowheads |
 | **Text** | ++t++ | Free text |
+| **Sticky note** | ++n++ | Coloured post-it; a click places it, a drag sizes it |
 | **Freehand** | ++p++ | Free stroke, pen-pressure aware |
 | **Eraser** | ++e++ | Erase elements |
+| **Image** | — | Insert images from your computer (see [Images](#images)) |
 
 !!! tip "Quick text"
-    Double-click a shape to type inside it, or double-click empty space (with **Select**) to create a text element. ++enter++ confirms and ++esc++ cancels; ++shift+enter++ adds a line break.
+    Double-click a shape (or select it and press ++enter++) to type inside it, or double-click empty space (with **Select**) to create a text element. ++enter++ confirms and ++esc++ cancels; ++shift+enter++ adds a line break. Text inside shapes wraps over several lines to fit them.
 
-Connected arrows follow their shapes when you move or rotate them.
+Connected arrows follow their shapes, notes and images when you move or rotate them.
+
+### Connectors
+
+When you select a shape, note or image, a dot appears next to each of its four sides, as in Miro. Drag from one of those dots to pull out an arrow: drop it on another element and it stays connected to both. A click on a dot without dragging creates nothing.
+
+## Sticky notes
+
+The **Sticky note** tool (++n++) creates Miro-style post-its: a click places a 200 × 200 note and a drag draws it at the size you want. A new note is ready for typing. The text fits the note by itself, shrinking as you write more. **Note color** offers six colours, and arrows connect to notes like to any shape.
+
+## Images
+
+Insert PNG, JPEG, WebP or GIF images in three ways:
+
+- **Paste** a copied image (++ctrl+v++ / ++cmd+v++): it appears under the cursor.
+- **Drag and drop** files onto the canvas.
+- The **Image** button in the toolbar.
+
+Before uploading, the browser shrinks the image to at most 2048 px and compresses it again, which also removes its metadata (such as a photo's GPS location). Images are stored apart from the drawing, keep their proportions when resized, accept connected arrows, and show in the PNG export, the shared view, embeds and presentations. SVG is not supported.
+
+!!! note "Limits"
+    Each image can weigh up to 3 MB after compression, and a whiteboard holds up to 100 images (a self-hosted operator can change both values). Images no longer in use are freed automatically when room is needed.
 
 ## Element style
 
@@ -57,11 +80,15 @@ The hand-drawn look is rendered with [Rough.js](https://roughjs.com/) and is sta
 
 | Action | How |
 |---|---|
-| Pan | Mouse wheel, the **Hand** tool, hold ++space++ and drag, or middle-click |
-| Zoom | ++ctrl++ / ++cmd++ + wheel (anchored at the cursor) or the zoom buttons |
+| Pan | Mouse wheel (++shift++ + wheel to pan sideways), the **Hand** tool, hold ++space++ and drag, or middle-click |
+| Zoom | ++ctrl++ / ++cmd++ + wheel or a trackpad pinch (anchored at the cursor), or the zoom buttons |
 | Fit to content | ++f++ |
 
-The whiteboard's position and zoom are saved with the diagram.
+The whiteboard's position and zoom are saved with the diagram, without counting as an edit.
+
+### Touch screens and pens
+
+On tablets and touch screens, one finger draws with the active tool (with **Select**, dragging empty space pans the canvas), two fingers pan and pinch to zoom, and a double tap works as a double-click. Pens are pressure aware. A stroke or drag that leaves the canvas is not lost.
 
 ## Keyboard shortcuts
 
@@ -70,7 +97,8 @@ The whiteboard's position and zoom are saved with the diagram.
 | ++ctrl+z++ / ++cmd+z++ | Undo |
 | ++ctrl+shift+z++ or ++ctrl+y++ | Redo |
 | ++ctrl+a++ | Select all |
-| ++ctrl+c++ / ++ctrl+x++ / ++ctrl+v++ | Copy / cut / paste (pastes at the cursor position) |
+| ++ctrl+c++ / ++ctrl+x++ / ++ctrl+v++ | Copy / cut / paste through the system clipboard: pastes at the cursor position and works across diagrams and tabs. Text copied from another app is pasted as text |
+| ++enter++ | Type into the selected shape, note or text |
 | ++ctrl+d++ | Duplicate |
 | ++ctrl+g++ / ++ctrl+shift+g++ | Group / ungroup |
 | ++ctrl+shift+l++ | Lock / unlock |
@@ -85,11 +113,20 @@ On macOS use ++cmd++ instead of ++ctrl++.
 
 From **Export Diagram**, whiteboards export as **PNG** at **Screen (1x)**, **Standard (2x)** or **High (3x)** resolution, with a **Transparent background** option. The image covers everything drawn (rotated elements included); on very large canvases the scale is reduced automatically to stay within browser limits, without cropping anything.
 
-You can also **Download source code** as a `.freehand.json` file, which can be imported again. Excalidraw files (`.excalidraw`) are imported as whiteboards. See [Export and import](export-import.md).
+You can also **Download source code** as a `.freehand.json` file, which can be imported again (without the images, which are stored apart from the drawing; the ZIP export of a project or folder does include them). Excalidraw files (`.excalidraw`) are imported as whiteboards. See [Export and import](export-import.md).
 
-## Sketch → Mermaid
+## Turning the sketch into a diagram
 
-On a whiteboard, the **Convert diagram type** menu offers **Sketch → Mermaid**, which creates a **new Mermaid diagram** (the whiteboard is left untouched). The conversion is deterministic and **uses no AI**:
+A sketch can be turned into a **new diagram** (the whiteboard is left untouched), whole or just one section:
+
+1. **Choose what to convert.** For a section, select it by dragging over the canvas and press **Convert to diagram** in the selection's panel (or the right-click menu). For the whole whiteboard, use **Convert sketch…** in the **Convert diagram type** menu. The dialog shows a picture of what will be converted; arrows joining two selected elements and whole groups come along by themselves.
+2. **Choose the type**: Mermaid, PlantUML or D2.
+3. **Choose how**, with the recommended option marked:
+    - **Exact, no AI**: instant and free, Mermaid only. It reads shapes with text and connected arrows, and tells you before converting how many nodes and links come out and what is left out.
+    - **With AI, from the picture**: the AI sees a picture of the section and gets its exact texts and links read from the canvas, so it understands strokes, handwriting, loose arrows and notes without getting the texts wrong. It uses your AI provider with a model that reads images, and you can give it instructions.
+4. **Check the result** and press **Create diagram**.
+
+The exact conversion works like this:
 
 ```mermaid
 flowchart LR
@@ -102,6 +139,7 @@ flowchart LR
 | On the whiteboard | In Mermaid |
 |---|---|
 | Rectangle / diamond / ellipse with text | Node `[ ]` / `{ }` / `( )` |
+| Sticky note with text | Flag-shaped node `> ]` |
 | Arrow connected to two shapes | Link `-->` (the arrow's text becomes the label) |
 | Dashed arrow | `-.->` |
 | Double-headed arrow | `<-->` |
@@ -109,4 +147,4 @@ flowchart LR
 | Arrow leaving and entering the same shape | Self-loop |
 
 !!! note "What is left out"
-    Freehand strokes, loose text, unconnected arrows and shapes without text have no structural equivalent: they are skipped, and DiagramaHub tells you how many of each were left out.
+    In the exact conversion, freehand strokes, loose text, images, unconnected arrows and shapes without text have no structural equivalent: they are skipped, and DiagramaHub tells you how many of each would be left out, so you can choose the AI conversion when you need them.

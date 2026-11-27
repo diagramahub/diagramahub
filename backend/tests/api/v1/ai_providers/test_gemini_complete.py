@@ -7,6 +7,7 @@ import pytest
 
 from app.api.v1.ai_providers.clients.gemini_client import GeminiClient
 from app.api.v1.chat_sessions.services import ChatSessionService
+from tests.utils.security import generate_test_api_key
 
 
 class _FakeModels:
@@ -22,7 +23,7 @@ class _FakeModels:
 
 def _client_with_fake_models() -> tuple[GeminiClient, _FakeModels]:
     """Build a GeminiClient whose SDK calls are captured instead of sent."""
-    client = GeminiClient(api_key="test-key", model="gemini-test")
+    client = GeminiClient(api_key=generate_test_api_key(), model="gemini-test")
     models = _FakeModels()
     client.client = SimpleNamespace(aio=SimpleNamespace(models=models))
     return client, models

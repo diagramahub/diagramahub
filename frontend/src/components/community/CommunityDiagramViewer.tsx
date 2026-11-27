@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNonPassiveWheel } from '../../hooks/useNonPassiveWheel';
+import { sanitizeSvg } from '../../utils/sanitize';
 import { loadCommunitySvg } from './svgCache';
 
 interface CommunityDiagramViewerProps {
@@ -65,7 +66,7 @@ export function CommunityDiagramViewer({ cacheKey, content, diagramType, title }
         setStatus('error');
         return;
       }
-      host.innerHTML = svg;
+      host.innerHTML = sanitizeSvg(svg);
       const element = host.querySelector('svg');
       if (!element) {
         setStatus('error');

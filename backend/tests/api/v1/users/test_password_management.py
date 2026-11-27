@@ -14,6 +14,7 @@ from tests.utils import (
     generate_password_missing_lowercase,
     generate_password_missing_uppercase,
     generate_test_password,
+    generate_test_token,
     generate_weak_password,
 )
 
@@ -229,7 +230,7 @@ class TestPasswordReset:
             "/api/v1/users/reset-password-confirm",
             json={
                 "email": registered_user["email"],
-                "token": "invalid-token-123",
+                "token": generate_test_token("invalid"),
                 "new_password": generate_test_password("InvalidTokenReset"),
             },
         )
@@ -246,7 +247,8 @@ class TestPasswordReset:
 
         # Create a reset token that's already expired
         user = await UserInDB.find_one(UserInDB.email == registered_user["email"])
-        user.reset_token = "expired-token"
+        expired_token = generate_test_token("expired")
+        user.reset_token = expired_token
         user.reset_token_expires = time.time() - 3600  # 1 hour ago
         await user.save()
 
@@ -254,7 +256,7 @@ class TestPasswordReset:
             "/api/v1/users/reset-password-confirm",
             json={
                 "email": registered_user["email"],
-                "token": "expired-token",
+                "token": expired_token,
                 "new_password": generate_test_password("ExpiredTokenReset"),
             },
         )
@@ -320,14 +322,17 @@ class TestPasswordReset:
         # Missing email
         response = await client.post(
             "/api/v1/users/reset-password-confirm",
-            json={"token": "some-token", "new_password": generate_test_password("MissingEmail")},
+            json={
+                "token": generate_test_token(),
+                "new_password": generate_test_password("MissingEmail"),
+            },
         )
         assert response.status_code == 422
 
         # Missing new_password
         response = await client.post(
             "/api/v1/users/reset-password-confirm",
-            json={"email": "test@example.com", "token": "some-token"},
+            json={"email": "test@example.com", "token": generate_test_token()},
         )
         assert response.status_code == 422
 

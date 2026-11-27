@@ -10,7 +10,9 @@ export type FreehandElementType =
   | "arrow"
   | "line"
   | "text"
-  | "freehand";
+  | "freehand"
+  | "sticky"
+  | "image";
 
 export interface FreehandPoint {
   x: number;
@@ -56,6 +58,9 @@ export interface FreehandElement {
   fillStyle?: SketchFillStyle;
   /** Stable seed so the sketchy strokes don't change on every redraw. */
   seed?: number;
+  /** Images: id of the stored file (SHA-256 of its bytes) and its type. */
+  fileId?: string;
+  mimeType?: string;
   // Connection bindings (for arrows/lines)
   startBinding?: ConnectionBinding;
   endBinding?: ConnectionBinding;
@@ -88,6 +93,7 @@ export type FreehandTool =
   | "line"
   | "text"
   | "freehand"
+  | "sticky"
   | "eraser";
 
 export const DEFAULT_CANVAS_STATE: FreehandCanvasState = {
@@ -101,10 +107,33 @@ export const DEFAULT_CANVAS_STATE: FreehandCanvasState = {
   background: "#ffffff",
 };
 
+/**
+ * Where the canvas reads (and, in the editor, stores) the images of its scene:
+ * the owner's diagram, a shared link, a presentation…
+ */
+export interface FreehandImageStore {
+  /** Bytes of a stored image. */
+  load: (fileId: string) => Promise<Blob>;
+  /** Store an image and resolve with its id (editing only). */
+  save?: (image: Blob) => Promise<string>;
+}
+
 /** Imperative API the editor uses for exports (set through the `handleRef` prop). */
 export interface FreehandCanvasHandle {
   /** Render the drawing (no selection UI) to a PNG blob; `transparent` skips the background. */
-  exportPng: (options: { scale: 1 | 2 | 3; transparent: boolean }) => Promise<Blob | null>;
+  exportPng: (options: {
+    scale: 1 | 2 | 3;
+    transparent: boolean;
+    /** Only these elements (a selection), framed on them. */
+    ids?: string[];
+    /** Cap on the longest side of the PNG, in pixels (lowers the scale). */
+    maxSide?: number;
+  }) => Promise<Blob | null>;
+  /** The scene as it is now, and the selected element ids. */
+  getElements: () => FreehandElement[];
+  getSelectedIds: () => string[];
+  /** Zoom and pan so the whole drawing fits in view (same as the F key). */
+  fitToContent: () => void;
 }
 
 export const FREEHAND_COLORS = [
@@ -120,6 +149,19 @@ export const FREEHAND_COLORS = [
 ];
 
 export const FREEHAND_STROKE_WIDTHS = [1, 2, 3, 5, 8];
+
+/** Sticky note colours (fillColor of `sticky` elements); the first is the default. */
+export const STICKY_COLORS = [
+  "#fff3bf", // Yellow
+  "#ffdeeb", // Pink
+  "#d3f9d8", // Green
+  "#d0ebff", // Blue
+  "#ffe8cc", // Orange
+  "#e5dbff", // Purple
+];
+
+/** Default size of a sticky note placed with a click (world units). */
+export const STICKY_SIZE = 200;
 
 /** CSS font stacks for the text font selector. "hand" is the bundled handwriting font. */
 export const FREEHAND_FONT_FAMILIES: Record<FreehandFontFamily, string> = {

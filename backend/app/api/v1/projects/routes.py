@@ -8,6 +8,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 from app.api.deps import get_current_user_id
 from app.api.v1.diagrams.repository import DiagramRepository
+from app.api.v1.diagram_files.repository import DiagramFileRepository
 from app.api.v1.folders.repository import FolderRepository
 from app.api.v1.subscriptions.usage_limiter import UsageLimiter
 from app.api.v1.subscriptions.limiter_factory import build_usage_limiter
@@ -27,6 +28,7 @@ def get_project_service() -> ProjectService:
         repository=ProjectRepository(),
         diagram_repository=DiagramRepository(),
         folder_repository=FolderRepository(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 
@@ -36,6 +38,7 @@ def get_export_service() -> ProjectExportService:
         project_repository=ProjectRepository(),
         folder_repository=FolderRepository(),
         diagram_repository=DiagramRepository(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 
@@ -46,6 +49,7 @@ def get_import_service() -> ProjectImportService:
         folder_repository=FolderRepository(),
         diagram_repository=DiagramRepository(),
         usage_limiter=get_usage_limiter(),
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 

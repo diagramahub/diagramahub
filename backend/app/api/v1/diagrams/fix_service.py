@@ -3,6 +3,7 @@ Servicio para corrección de diagramas con IA.
 """
 
 import logging
+from app.core.log_safety import log_safe
 import time
 import difflib
 from typing import Optional
@@ -103,9 +104,9 @@ class DiagramFixService:
             self.logger.info(
                 "Fix diagram request started",
                 extra={
-                    "diagram_id": diagram_id,
-                    "user_id": user_id,
-                    "provider_requested": provider_name,
+                    "diagram_id": log_safe(diagram_id),
+                    "user_id": log_safe(user_id),
+                    "provider_requested": log_safe(provider_name),
                 },
             )
 
@@ -179,16 +180,16 @@ class DiagramFixService:
                     self.logger.warning(
                         "Corrected DBML code has validation warning (proceeding anyway)",
                         extra={
-                            "diagram_id": diagram_id,
-                            "validation_error": validation_result.error_message,
+                            "diagram_id": log_safe(diagram_id),
+                            "validation_error": log_safe(validation_result.error_message),
                         },
                     )
                 else:
                     self.logger.error(
                         "Corrected code failed validation",
                         extra={
-                            "diagram_id": diagram_id,
-                            "validation_error": validation_result.error_message,
+                            "diagram_id": log_safe(diagram_id),
+                            "validation_error": log_safe(validation_result.error_message),
                         },
                     )
                     raise ValueError(
@@ -312,11 +313,11 @@ class DiagramFixService:
         """
         log_data = {
             "event": "diagram_fix",
-            "diagram_id": diagram_id,
-            "user_id": user_id,
-            "diagram_type": diagram_type,
-            "provider": provider,
-            "model": model,
+            "diagram_id": log_safe(diagram_id),
+            "user_id": log_safe(user_id),
+            "diagram_type": log_safe(diagram_type),
+            "provider": log_safe(provider),
+            "model": log_safe(model),
             "success": success,
             "response_time": response_time,
         }
@@ -325,7 +326,7 @@ class DiagramFixService:
             log_data["validation_passed"] = validation_passed
 
         if error_type:
-            log_data["error_type"] = error_type
+            log_data["error_type"] = log_safe(error_type)
 
         if success:
             self.logger.info("Diagram fix completed successfully", extra=log_data)

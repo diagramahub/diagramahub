@@ -26,6 +26,7 @@ export const MAX_EXPORT_SIDE = 8192;
 export const MAX_EXPORT_AREA = 16_777_216;
 
 const CHAR_WIDTH_RATIO = 0.6; // rough average glyph width / font size
+const WRAPPED_LABEL_TYPES = new Set<FreehandElement["type"]>(["rectangle", "diamond", "ellipse", "sticky"]);
 
 function rotate(p: FreehandPoint, cx: number, cy: number, rad: number): FreehandPoint {
   const cos = Math.cos(rad), sin = Math.sin(rad);
@@ -62,7 +63,8 @@ export function exportBounds(elements: FreehandElement[], padding = EXPORT_PADDI
       if (Number.isFinite(p.x) && Number.isFinite(p.y)) extend(p.x, p.y, stroke);
     }
     // Text can render wider than its stored box (e.g. after a font change).
-    if (el.text) {
+    // Shapes and notes wrap their label inside their own box.
+    if (el.text && !WRAPPED_LABEL_TYPES.has(el.type)) {
       const fontSize = el.fontSize || 16;
       const lines = el.text.split("\n");
       const textW = Math.max(...lines.map((l) => l.length)) * fontSize * CHAR_WIDTH_RATIO;

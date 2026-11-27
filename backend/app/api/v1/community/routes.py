@@ -13,6 +13,8 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 
 from app.api.deps import get_current_user, get_optional_user_email
+from app.api.v1.diagram_files.repository import DiagramFileRepository
+from app.api.v1.diagram_files.routes import file_response
 from app.api.v1.diagrams.repository import DiagramRepository
 from app.api.v1.diagrams.routes import get_diagram_service, get_usage_limiter
 from app.api.v1.projects.repository import ProjectRepository
@@ -96,6 +98,7 @@ def get_community_service() -> CommunityService:
         diagram_service=get_diagram_service(),
         usage_limiter=get_usage_limiter(),
         frontend_url=settings.FRONTEND_URL,
+        diagram_file_repository=DiagramFileRepository(),
     )
 
 
@@ -146,6 +149,32 @@ async def get_publication(
     return await service.get_detail(
         publication_id, viewer.user_id if viewer else None, viewer.is_admin if viewer else False
     )
+
+
+@router.get(
+    "/{publication_id}/files/{file_id}",
+    response_class=Response,
+    responses={200: {"content": {"image/*": {}}, "description": "The image bytes"}},
+)
+async def get_publication_file(
+    publication_id: str,
+    file_id: str,
+    viewer: Optional[Member] = Depends(get_viewer),
+    service: CommunityService = Depends(get_community_service),
+) -> Response:
+    """An image of a published freehand diagram (seen by whoever can see the publication)."""
+    file, visible_to_all = await service.get_file(
+        publication_id,
+        file_id,
+        viewer.user_id if viewer else None,
+        viewer.is_admin if viewer else False,
+    )
+    cache = (
+        "public, max-age=86400"
+        if visible_to_all and settings.COMMUNITY_PUBLIC
+        else "private, max-age=3600"
+    )
+    return file_response(file, cache)
 
 
 @router.get("/my-published", response_model=list[PublishedSource])

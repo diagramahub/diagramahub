@@ -36,8 +36,8 @@ import MarkdownEditor from "../components/MarkdownEditor";
 import { DiagramDiffView } from "../components/DiagramDiffView";
 import { DiagramConversionModal } from "../components/DiagramConversionModal";
 import FreehandCanvas from "../components/FreehandCanvas";
-import type { FreehandCanvasHandle } from "../types/freehand";
-import { sketchToMermaid } from "../utils/sketchToMermaid";
+import type { FreehandCanvasHandle, FreehandElement, FreehandImageStore } from "../types/freehand";
+import { SketchConversionModal } from "../components/SketchConversionModal";
 import { downloadBlob } from "../utils/download";
 import ShareDiagramModal from "../components/ShareDiagramModal";
 import ExportDiagramModal, { type ExportContentOptions } from "../components/ExportDiagramModal";
@@ -87,6 +87,9 @@ const FILE_BROWSER_DEFAULT_WIDTH = 256;
 const FILE_BROWSER_HANDLE_WIDTH = 6;
 const clampFileBrowserWidth = (width: number) =>
   Math.min(Math.max(width, FILE_BROWSER_MIN_WIDTH), FILE_BROWSER_MAX_WIDTH);
+
+/** Stable empty selection for the sketch conversion dialog when it's closed. */
+const EMPTY_IDS: string[] = [];
 
 export default function DiagramEditorPage() {
   const { projectId, diagramId } = useParams();
@@ -273,6 +276,15 @@ export default function DiagramEditorPage() {
   });
   // Imperative API of the freehand canvas (PNG export)
   const freehandHandleRef = useRef<FreehandCanvasHandle | null>(null);
+  // Images of a freehand sketch live apart from its scene JSON, stored per diagram
+  const freehandDiagramId = currentDiagram?.id;
+  const freehandImageStore = useMemo<FreehandImageStore | undefined>(() => {
+    if (!freehandDiagramId) return undefined;
+    return {
+      load: (fileId) => api.getDiagramFile(freehandDiagramId, fileId),
+      save: async (image) => (await api.uploadDiagramFile(freehandDiagramId, image)).file_id,
+    };
+  }, [freehandDiagramId]);
   const [exportingFormat, setExportingFormat] = useState<'png' | 'pdf' | 'markdown' | 'svg' | null>(null);
   // PNG export resolution: 1x = screen, 2x = standard (default), 3x = print/high
   const [pngScale, setPngScale] = useState<1 | 2 | 3>(2);
@@ -2082,10 +2094,9 @@ export default function DiagramEditorPage() {
 
   // Ajustar diagrama a pantalla
   const handleFitToScreen = () => {
-    // Freehand diagrams have no SVG to measure — reset zoom and pan instead
+    // Freehand diagrams have no SVG to measure: the canvas fits its own content
     if (currentDiagram?.diagram_type === "freehand") {
-      setZoom(1);
-      setPan({ x: 0, y: 0 });
+      freehandHandleRef.current?.fitToContent();
       return;
     }
 
@@ -2197,38 +2208,43 @@ export default function DiagramEditorPage() {
     return t(fallbackKey);
   };
 
-  // Freehand sketch -> Mermaid flowchart (deterministic, no AI): creates a new diagram next to the sketch
-  const handleSketchToMermaid = async () => {
-    if (!currentDiagram || !projectId) return;
+  // Freehand sketch -> diagram: the dialog picks the part (selection or everything),
+  // the target and the method (exact, or AI from a picture of that part); the result
+  // becomes a new diagram next to the sketch.
+  const [sketchConversion, setSketchConversion] = useState<{ elements: FreehandElement[]; selectedIds: string[] } | null>(null);
+  const openSketchConversion = (ids?: string[]) => {
     setShowConvertMenu(false);
-    const result = sketchToMermaid(diagramCode);
-    if (result.nodeCount === 0) {
-      setError(t("conversion.sketchNothing"));
-      return;
+    const handle = freehandHandleRef.current;
+    let elements = handle?.getElements();
+    if (!elements) {
+      try { elements = (JSON.parse(diagramCode) as { elements?: FreehandElement[] }).elements ?? []; } catch { elements = []; }
     }
-    // What was left out goes into the code as Mermaid comments, so it is visible and editable.
-    const notes = Object.entries(result.skipped).map(
-      ([reason, count]) => `%% ${t(`conversion.sketchSkipped.${reason}`, { count })}`,
-    );
-    const header = [`%% ${t("conversion.sketchGenerated", { title: diagramTitle })}`, ...notes, ""].join("\n");
+    setSketchConversion({ elements, selectedIds: ids ?? handle?.getSelectedIds() ?? [] });
+  };
+  const renderSketchPng = useCallback(
+    (ids: string[] | null, maxSide: number) =>
+      freehandHandleRef.current?.exportPng({ scale: 2, transparent: false, ids: ids ?? undefined, maxSide }) ?? Promise.resolve(null),
+    [],
+  );
+  const createFromSketch = async (code: string, target: "mermaid" | "plantuml" | "d2") => {
+    if (!currentDiagram || !projectId) return;
+    const label = { mermaid: "Mermaid", plantuml: "PlantUML", d2: "D2" }[target];
     try {
-      setIsConverting(true);
       const created = await api.createDiagram(projectId, {
-        title: `${diagramTitle} (Mermaid)`.slice(0, 100),
-        content: header + result.code,
-        diagram_type: "mermaid",
+        title: `${diagramTitle} (${label})`.slice(0, 100),
+        content: code,
+        diagram_type: target,
         description: diagramDescription || undefined,
         folder_id: selectedFolderId,
       });
       const fresh = await api.getProject(projectId);
       setProject(fresh);
+      setSketchConversion(null);
       fitOnNextRender.current = true;
       navigate(`/projects/${projectId}/diagrams/${created.id}`);
     } catch (err) {
-      console.error("Error converting sketch to Mermaid:", err);
-      setError(t("conversion.sketchError"));
-    } finally {
-      setIsConverting(false);
+      console.error("Error converting sketch:", err);
+      setError(conversionErrorMessage(err, "conversion.sketchError"));
     }
   };
 
@@ -3506,11 +3522,11 @@ export default function DiagramEditorPage() {
                   </p>
                   {currentDiagram.diagram_type === "freehand" && (
                     <button
-                      onClick={handleSketchToMermaid}
+                      onClick={() => openSketchConversion()}
                       className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
                     >
-                      {t("conversion.sketchToMermaid")}
-                      <span className="block text-xs text-gray-500 dark:text-gray-400">{t("conversion.sketchToMermaidHint")}</span>
+                      {t("conversion.sketchConvert")}
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">{t("conversion.sketchConvertHint")}</span>
                     </button>
                   )}
                   {(currentDiagram.diagram_type === "freehand" ? [] : ["mermaid", "plantuml", "d2", "dbml"])
@@ -3743,7 +3759,9 @@ export default function DiagramEditorPage() {
         {/* Editor and Preview */}
         <main className="flex-1 flex overflow-hidden">
           {(() => {
-            const codeEditorPanel = (
+            // Freehand sketches have no code view: the editor isn't mounted
+            // (Monaco would re-parse the whole scene JSON on every change).
+            const codeEditorPanel = isFreehandDiagram ? null : (
               <DiagramCodePanel
                 key={currentDiagram?.id}
                 value={diagramCode}
@@ -4316,6 +4334,11 @@ export default function DiagramEditorPage() {
                             onChange={(state) => setDiagramCode(state)}
                             zoom={zoom}
                             onZoomChange={setZoom}
+                            // The pan is viewport state, saved silently with the zoom
+                            initialPan={pan}
+                            onPanChange={setPan}
+                            imageStore={freehandImageStore}
+                            onConvertSelection={openSketchConversion}
                           />
                         </div>
                       ) : (
@@ -4530,7 +4553,7 @@ export default function DiagramEditorPage() {
 
             return (
               <div className="flex h-full w-full overflow-hidden">
-                {/* Code editor — always mounted, hidden via CSS when not active */}
+                {/* Code editor — always mounted (except for freehand), hidden via CSS when not active */}
                 <div
                   className="flex-shrink-0 overflow-hidden"
                   style={{
@@ -5420,6 +5443,20 @@ export default function DiagramEditorPage() {
         </div>
       )}
 
+      {/* Freehand sketch -> diagram */}
+      <SketchConversionModal
+        isOpen={!!sketchConversion}
+        onClose={() => setSketchConversion(null)}
+        title={diagramTitle}
+        elements={sketchConversion?.elements ?? []}
+        selectedIds={sketchConversion?.selectedIds ?? EMPTY_IDS}
+        renderPng={renderSketchPng}
+        hasAI={!!aiSettings?.providers?.length}
+        provider={conversionProvider}
+        model={conversionModel}
+        onCreate={createFromSketch}
+      />
+
       {/* Diagram Conversion Preview Modal */}
       {showConversionModal && conversionResult && (
         <DiagramConversionModal
@@ -5635,7 +5672,7 @@ export default function DiagramEditorPage() {
       {isMobile && (
         <>
           <BottomSheet
-            isOpen={showCodeView}
+            isOpen={showCodeView && !isFreehandDiagram}
             onClose={() => setShowCodeView(false)}
             height="h-[65vh]"
           >

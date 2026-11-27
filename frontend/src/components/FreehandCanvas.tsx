@@ -7,10 +7,14 @@
  * - Floating style panel appears when elements are selected
  * - HiDPI canvas rendering
  */
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { drawSketchy, drawStrokeElement, drawStrokeOutline, strokeOutline, PREVIEW_SEED } from "../utils/sketchRenderer";
 import { exportBounds, fitExportScale } from "../utils/freehandExport";
+import { fitFontSize, wrapText, type FittedText } from "../utils/textLayout";
+import { INSERTED_IMAGE_SIDE, INSERTABLE_IMAGE_TYPES, ImageTooLargeError, fitWithin, isInsertableImage, prepareImage } from "../utils/imageImport";
+import { cloneForPaste, parseClipboard, serializeClipboard, type FreehandClipboard } from "../utils/freehandClipboard";
+import { apiErrorStatus } from "../utils/apiError";
 import ConfirmModal from "./ConfirmModal";
 import type {
   FreehandCanvasState,
@@ -23,6 +27,7 @@ import type {
   SketchFillStyle,
   FreehandFontFamily,
   FreehandCanvasHandle,
+  FreehandImageStore,
 } from "../types/freehand";
 import {
   DEFAULT_CANVAS_STATE,
@@ -30,6 +35,8 @@ import {
   FREEHAND_STROKE_WIDTHS,
   DEFAULT_SKETCH_STYLE,
   FREEHAND_FONT_FAMILIES,
+  STICKY_COLORS,
+  STICKY_SIZE,
   fontStackFor,
   randomSeed,
 } from "../types/freehand";
@@ -110,8 +117,47 @@ function distToSegment(p: FreehandPoint, a: FreehandPoint, b: FreehandPoint): nu
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 }
 
+/** Elements arrows can bind to (they show anchors and carry a wrapped label). */
 function isShape(el: FreehandElement): boolean {
-  return ["rectangle", "diamond", "ellipse"].includes(el.type);
+  return ["rectangle", "diamond", "ellipse", "sticky"].includes(el.type);
+}
+
+/** Elements arrows can attach to: shapes, notes and images. */
+function canBind(el: FreehandElement): boolean {
+  return isShape(el) || el.type === "image";
+}
+
+/** Data URL of a blob (image bytes for the system clipboard). */
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** Bytes of a data URL (fetch() can't read data: URLs under the app's CSP). */
+function dataUrlToBlob(url: string): Blob {
+  const [head, body] = url.split(",", 2);
+  const type = head.slice(5, head.indexOf(";"));
+  const bin = atob(body);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type });
+}
+
+/** Whether an element's (rotation-aware) box touches the world rectangle [x0,x1]×[y0,y1]. */
+function intersectsView(el: FreehandElement, x0: number, y0: number, x1: number, y1: number): boolean {
+  let minX = el.x, minY = el.y, maxX = el.x + el.width, maxY = el.y + el.height;
+  if (el.rotation) {
+    // A rotated box always fits in the circle around its center
+    const cx = el.x + el.width / 2, cy = el.y + el.height / 2;
+    const r = Math.hypot(el.width, el.height) / 2;
+    minX = cx - r; maxX = cx + r; minY = cy - r; maxY = cy + r;
+  }
+  const pad = (el.strokeWidth || 2) * 2;
+  return maxX + pad >= x0 && minX - pad <= x1 && maxY + pad >= y0 && minY - pad <= y1;
 }
 
 // Cached offscreen context for text measurement (avoids creating a canvas per keystroke)
@@ -133,6 +179,38 @@ function measureTextWidth(text: string, fontSize: number, fontFamily?: string): 
   let w = 0;
   for (const line of text.split("\n")) w = Math.max(w, ctx.measureText(line).width);
   return w;
+}
+
+/** Room left around a shape's label, and around a sticky note's text. */
+const SHAPE_TEXT_PADDING = 8;
+const STICKY_PADDING = 14;
+
+/** Box a shape's label wraps in (diamonds and ellipses have less room than their bounds). */
+function labelBox(el: FreehandElement): { width: number; height: number } {
+  const k = el.type === "diamond" ? 0.55 : el.type === "ellipse" ? 0.72 : 1;
+  const pad = el.type === "sticky" ? STICKY_PADDING : SHAPE_TEXT_PADDING;
+  return { width: Math.max(10, el.width * k - pad * 2), height: Math.max(10, el.height * k - pad * 2) };
+}
+
+// Wrapped labels, reused across frames (cleared when the handwriting font arrives)
+const labelCache = new Map<string, FittedText>();
+
+/**
+ * Lines and font size of a shape's label: shapes wrap their text at their
+ * font size; sticky notes also shrink it until it fits the note.
+ */
+function labelLayout(el: FreehandElement, text = el.text || ""): FittedText {
+  const box = labelBox(el);
+  const key = [el.type, text, Math.round(box.width), Math.round(box.height), el.fontFamily, el.fontSize].join("|");
+  const hit = labelCache.get(key);
+  if (hit) return hit;
+  const measure = (t: string, fs: number) => measureTextWidth(t, fs, el.fontFamily);
+  const layout = el.type === "sticky"
+    ? fitFontSize(text, box.width, box.height, measure, { min: 10, max: 32, lineHeight: TEXT_LINE_HEIGHT })
+    : { fontSize: el.fontSize || 14, lines: wrapText(text, box.width, el.fontSize || 14, measure) };
+  if (labelCache.size > 2000) labelCache.clear();
+  labelCache.set(key, layout);
+  return layout;
 }
 
 /** Rounded-rectangle path (ctx.roundRect is not available everywhere). */
@@ -212,6 +290,38 @@ function getRotatedAnchor(el: FreehandElement, side: ConnectionBinding["anchorSi
   return rotatePoint(pt, el.x + el.width / 2, el.y + el.height / 2, rad);
 }
 
+// ─── Connectors (Miro-style): dots just outside a selected element to pull arrows from ───
+/** Distance of a connector dot from its edge, and its hit radius (world units). */
+const CONNECTOR_OFFSET = 16;
+const CONNECTOR_HIT = 9;
+const CONNECTOR_SIDES: ConnectionBinding["anchorSide"][] = ["top", "right", "bottom", "left"];
+
+/** Connector dot of a side, unrotated (draw it inside the element's rotated context). */
+function connectorPoint(el: FreehandElement, side: ConnectionBinding["anchorSide"]): FreehandPoint {
+  const a = getAnchorPoint(el, side);
+  switch (side) {
+    case "top": return { x: a.x, y: a.y - CONNECTOR_OFFSET };
+    case "bottom": return { x: a.x, y: a.y + CONNECTOR_OFFSET };
+    case "left": return { x: a.x - CONNECTOR_OFFSET, y: a.y };
+    case "right": return { x: a.x + CONNECTOR_OFFSET, y: a.y };
+    default: return a;
+  }
+}
+
+/** The connector under `pos` (world coordinates, honoring rotation), if any. */
+function connectorAt(el: FreehandElement, pos: FreehandPoint): ConnectionBinding["anchorSide"] | null {
+  const rad = ((el.rotation || 0) * Math.PI) / 180;
+  const cx = el.x + el.width / 2, cy = el.y + el.height / 2;
+  for (const side of CONNECTOR_SIDES) {
+    const p = rad ? rotatePoint(connectorPoint(el, side), cx, cy, rad) : connectorPoint(el, side);
+    if (Math.hypot(pos.x - p.x, pos.y - p.y) <= CONNECTOR_HIT) return side;
+  }
+  return null;
+}
+
+/** Rotation knob position above the element (unrotated), clear of the top connector. */
+const ROTATION_KNOB_OFFSET = 38;
+
 // ─── Alignment guides (Miro-style red lines) ───
 export interface AlignGuide {
   axis: "v" | "h";
@@ -270,10 +380,28 @@ interface FreehandCanvasProps {
   onChange?: (state: string) => void;
   /** Receives the imperative handle (exports) once the canvas is mounted. */
   handleRef?: React.MutableRefObject<FreehandCanvasHandle | null>;
-  /** Zoom level controlled by the parent editor toolbar. */
+  /**
+   * Zoom set by the parent (toolbar buttons, restored viewport). The canvas
+   * zooms on its own while the user scrolls or pinches and reports the result
+   * through `onZoomChange` once the gesture settles, so the parent page doesn't
+   * re-render on every wheel event.
+   */
   zoom?: number;
-  /** Called when the canvas requests a zoom change (Ctrl+scroll). */
+  /** Called when the user zoomed the canvas (Ctrl/⌘+scroll, pinch, fit). */
   onZoomChange?: (zoom: number) => void;
+  /**
+   * Saved pan offset (screen pixels) to start from. The pan is viewport state,
+   * not content: it's reported through `onPanChange` and never written into the
+   * scene JSON (sketches saved before 0.9.2 kept it there; that value is still
+   * read when no `initialPan` is given).
+   */
+  initialPan?: FreehandPoint;
+  /** Called when the user stops panning (debounced). */
+  onPanChange?: (pan: FreehandPoint) => void;
+  /** Where the scene's images are read from (and stored, when editing). */
+  imageStore?: FreehandImageStore;
+  /** "Convert to diagram" from the selection's panel or menu (the selected ids). */
+  onConvertSelection?: (ids: string[]) => void;
   /** Read-only mode: hides toolbar and disables editing (pan/zoom still work). */
   readOnly?: boolean;
 }
@@ -281,7 +409,27 @@ interface FreehandCanvasProps {
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 type InteractionMode = "idle" | "drawing" | "dragging" | "resizing" | "marquee" | "endpoint" | "erasing" | "rotating";
 
-export default function FreehandCanvas({ initialState, onChange, handleRef, zoom = 1, onZoomChange, readOnly = false }: FreehandCanvasProps) {
+/** Zoom limits of the canvas (also used by the pinch and wheel gestures). */
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 5;
+const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+
+/** Topmost element (last painted) matching `pred`, without copying the array. */
+function findTopmost(els: FreehandElement[], pred: (el: FreehandElement) => boolean): FreehandElement | undefined {
+  for (let i = els.length - 1; i >= 0; i--) if (pred(els[i])) return els[i];
+  return undefined;
+}
+
+/** Same scene, element by element (unchanged elements keep their identity). */
+function sameElements(a: FreehandElement[], b: FreehandElement[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i] && JSON.stringify(a[i]) !== JSON.stringify(b[i])) return false;
+  }
+  return true;
+}
+
+export default function FreehandCanvas({ initialState, onChange, handleRef, zoom: zoomProp = 1, onZoomChange, initialPan, onPanChange, imageStore, onConvertSelection, readOnly = false }: FreehandCanvasProps) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -303,15 +451,27 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   });
   const elementsRef = useRef(elements);
   elementsRef.current = elements;
+  // Notice shown at the bottom of the canvas (image errors…), cleared after a few seconds
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  const [uploadingImages, setUploadingImages] = useState(0);
   const [background] = useState("#ffffff");
   const [activeTool, setActiveTool] = useState<FreehandTool>("select");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedIdsRef = useRef(selectedIds);
+  selectedIdsRef.current = selectedIds;
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
 
   // Drawing defaults (also used for style editing)
   const [strokeColor, setStrokeColor] = useState("#1e1e1e");
   const [fillColor, setFillColor] = useState("transparent");
   const [strokeWidth, setStrokeWidth] = useState(2);
+  // Colour of the next sticky note (the last one picked)
+  const [stickyColor, setStickyColor] = useState(STICKY_COLORS[0]);
 
   // Interaction state (using refs to avoid stale closures in handlers)
   const [mode, setMode] = useState<InteractionMode>("idle");
@@ -335,6 +495,9 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   const [hoveredAnchor, setHoveredAnchor] = useState<{ elementId: string; side: ConnectionBinding["anchorSide"] } | null>(null);
   // Hovered element in select mode (visual feedback)
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Connector of the selected element under the pointer, and the one an arrow is being pulled from
+  const [hoveredConnector, setHoveredConnector] = useState<ConnectionBinding["anchorSide"] | null>(null);
+  const connectorDragRef = useRef<{ elementId: string; side: ConnectionBinding["anchorSide"]; from: FreehandPoint } | null>(null);
   // Active alignment guides (Miro red lines)
   const [guides, setGuides] = useState<AlignGuide[]>([]);
   // Rotation drag origin
@@ -349,8 +512,6 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   // Eraser drag state
   const erasingElementsRef = useRef<FreehandElement[]>([]);
   const erasingDidEraseRef = useRef(false);
-  // Wheel-pan persistence: emit after the user stops scrolling
-  const wheelEmitTimeoutRef = useRef<number | null>(null);
   // Whether the arrow endpoint being dragged actually moved (a plain click changes nothing)
   const endpointMovedRef = useRef(false);
   // Alignment-guide drag origin: bbox captured on first move so snapping uses
@@ -364,30 +525,77 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   // Infinite canvas: viewport pan offset
   // Start from the persisted pan: the reset effect below skips the first mount
   // (initialState === lastEmittedRef), so it can't restore it there.
+  // Sketches saved before 0.9.2 carry their pan in the scene JSON: used only
+  // when the parent has no saved pan, and then reported so it gets saved there.
+  const legacyPanRef = useRef<FreehandPoint | null>(null);
   const [panOffset, setPanOffset] = useState<FreehandPoint>(() => {
+    if (initialPan && (initialPan.x !== 0 || initialPan.y !== 0)) return initialPan;
     const viewport = parseCanvasState(initialState).viewport;
-    return { x: viewport?.scrollX ?? 0, y: viewport?.scrollY ?? 0 };
+    const legacy = { x: viewport?.scrollX ?? 0, y: viewport?.scrollY ?? 0 };
+    if (legacy.x !== 0 || legacy.y !== 0) legacyPanRef.current = legacy;
+    return legacy;
   });
-  // Live values for callbacks that must stay stable (emit, deferred wheel save)
+  // Live values for callbacks that must stay stable (wheel, pinch)
   const panOffsetRef = useRef(panOffset);
   panOffsetRef.current = panOffset;
+  // Local zoom: wheel/pinch update it directly (pan and zoom in the same
+  // render, anchored at the pointer) and report it to the parent afterwards.
+  const [zoom, setZoom] = useState(() => clampZoom(zoomProp));
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
+  const reportedZoomRef = useRef(zoomProp);
+  const zoomReportTimeoutRef = useRef<number | null>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<FreehandPoint>({ x: 0, y: 0 });
-  // Zoom anchoring: keeps the point under the cursor fixed while zooming
-  const prevZoomRef = useRef(zoom);
-  const zoomAnchorRef = useRef<FreehandPoint | null>(null);
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // ─── Images: decoded once per file, repainted when they arrive ───
+  type ImageEntry = { status: "loading" | "ready" | "error"; bitmap?: ImageBitmap; blob?: Blob; promise: Promise<void> };
+  const imagesRef = useRef(new Map<string, ImageEntry>());
+  const [imageVersion, setImageVersion] = useState(0);
+  const imageStoreRef = useRef(imageStore);
+  imageStoreRef.current = imageStore;
+  const decodeImage = useCallback((fileId: string, source: Promise<Blob>): Promise<void> => {
+    const cache = imagesRef.current;
+    // Assigned right below; the async body only reads it after its first await
+    let promise: Promise<void> = Promise.resolve();
+    promise = (async () => {
+      try {
+        const blob = await source;
+        const bitmap = await createImageBitmap(blob);
+        cache.set(fileId, { status: "ready", bitmap, blob, promise });
+      } catch {
+        cache.set(fileId, { status: "error", promise });
+      }
+      setImageVersion((v) => v + 1);
+    })();
+    cache.set(fileId, { status: "loading", promise });
+    return promise;
+  }, []);
+  const ensureImage = useCallback((fileId: string): Promise<void> => {
+    const hit = imagesRef.current.get(fileId);
+    if (hit) return hit.promise;
+    const store = imageStoreRef.current;
+    return decodeImage(fileId, store ? store.load(fileId) : Promise.reject(new Error("no_image_store")));
+  }, [decodeImage]);
+  // Load every image of the scene (also the ones out of view, so exports have them)
+  useEffect(() => {
+    for (const el of elements) if (el.type === "image" && el.fileId) void ensureImage(el.fileId);
+  }, [elements, ensureImage]);
+  // Release the decoded images with the canvas
+  useEffect(() => {
+    const cache = imagesRef.current;
+    return () => { for (const entry of cache.values()) entry.bitmap?.close(); cache.clear(); };
+  }, []);
 
   // ─── Undo/redo history ───
   const lastCoalesceRef = useRef<{ key: string; at: number } | null>(null);
   const pushHistory = useCallback((els: FreehandElement[], coalesceKey?: string) => {
     // Nothing changed (a click without moving, a no-op nudge): no new undo step
     const top = historyRef.current[historyIndexRef.current];
-    if (top && JSON.stringify(top) === JSON.stringify(els)) return;
+    if (top && sameElements(top, els)) return;
     // Continuous edits (a slider being dragged) replace their own last step
     const now = Date.now();
     const last = lastCoalesceRef.current;
@@ -396,18 +604,18 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     lastCoalesceRef.current = coalesceKey ? { key: coalesceKey, at: now } : null;
     if (coalesce) historyIndexRef.current -= 1;
     historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
-    historyRef.current.push(
-      els.map((el) => ({ ...el, points: el.points ? el.points.map((p) => ({ ...p })) : undefined })),
-    );
+    // Elements are never mutated in place (every edit creates new objects), so
+    // a step shares the unchanged ones with its neighbours instead of copying them.
+    historyRef.current.push([...els]);
     if (historyRef.current.length > 100) historyRef.current.shift();
     historyIndexRef.current = historyRef.current.length - 1;
   }, []);
 
   // ─── Emit changes ───
   const emit = useCallback((els: FreehandElement[], coalesceKey?: string) => {
-    // Serialize the live viewport so pan position survives reloads and diagram switches.
-    const pan = panOffsetRef.current;
-    const json = JSON.stringify({ version: 1, elements: els, viewport: { zoom: zoomRef.current, scrollX: pan.x, scrollY: pan.y }, background });
+    // The viewport is saved apart from the content (see `onPanChange`/`onZoomChange`):
+    // panning or zooming is not an edit and must not re-save the whole scene.
+    const json = JSON.stringify({ version: 1, elements: els, viewport: DEFAULT_CANVAS_STATE.viewport, background });
     lastEmittedRef.current = json;
     onChange?.(json);
     if (!skipHistoryRef.current) pushHistory(els, coalesceKey);
@@ -444,9 +652,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     lastEmittedRef.current = initialState;
     const state = parseCanvasState(initialState);
     setElements(state.elements);
-    // Restore the persisted viewport instead of resetting it (and clear any
-    // stale pan left over from the previously open diagram).
-    setPanOffset({ x: state.viewport?.scrollX ?? 0, y: state.viewport?.scrollY ?? 0 });
+    // A sketch saved before 0.9.2 brings its pan in the JSON; otherwise the
+    // current view stays (switching diagrams remounts the canvas anyway).
+    if (state.viewport?.scrollX || state.viewport?.scrollY) {
+      setPanOffset({ x: state.viewport.scrollX ?? 0, y: state.viewport.scrollY ?? 0 });
+    }
     setSelectedIds(new Set());
     setEditingId(null);
     setEditingText("");
@@ -460,7 +670,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   useEffect(() => {
     if (selectedIds.size === 0) return;
     const first = elements.find((e) => selectedIds.has(e.id));
-    if (first) {
+    // Notes (paper colour) and images (no stroke) have no style to carry over to the next shape
+    if (first && first.type !== "sticky" && first.type !== "image") {
       setStrokeColor(first.strokeColor);
       setFillColor(first.fillColor);
       setStrokeWidth(first.strokeWidth);
@@ -510,8 +721,9 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     const offsetY = (canvasSize.height - contentH * fitZoom) / 2 - minY * fitZoom;
 
     didFitRef.current = true;
-    prevZoomRef.current = fitZoom;
     setPanOffset({ x: offsetX, y: offsetY });
+    setZoom(fitZoom);
+    reportedZoomRef.current = fitZoom;
     onZoomChange?.(fitZoom);
   }, [readOnly, elements, canvasSize, onZoomChange]);
 
@@ -523,6 +735,8 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (selectedIds.size === 0) return;
     const updated = elements.map((el) => {
       if (!isEditable(el)) return el;
+      // Sticky notes are always flat paper: no hand-drawn style
+      if (el.type === "sticky" && (prop === "roughness" || prop === "fillStyle" || prop === "strokeWidth")) return el;
       const next = { ...el, [prop]: value };
       // Switching to a sketchy style needs a stable seed; "clean" drops the sketch attributes.
       if (prop === "roughness") {
@@ -596,8 +810,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     ctx.translate(panOffset.x, panOffset.y);
     ctx.scale(zoom, zoom);
 
+    // Visible world rectangle (with a margin for strokes, arrowheads and labels):
+    // elements entirely outside it are skipped, selected ones always drawn.
+    const margin = 40 / zoom + 24;
+    const vx0 = -panOffset.x / zoom - margin, vy0 = -panOffset.y / zoom - margin;
+    const vx1 = (canvasSize.width - panOffset.x) / zoom + margin, vy1 = (canvasSize.height - panOffset.y) / zoom + margin;
+
     // Draw elements
     for (const el of elements) {
+      if (!selectedIds.has(el.id) && !intersectsView(el, vx0, vy0, vx1, vy1)) continue;
       ctx.save();
       ctx.globalAlpha = el.opacity ?? 1;
       ctx.strokeStyle = el.strokeColor || "#1e1e1e";
@@ -651,23 +872,25 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             }
           }
           // Rotation handle (single-select, shapes & text)
-          if (selectedIds.size === 1 && (isShape(el) || el.type === "text")) {
+          if (selectedIds.size === 1 && (canBind(el) || el.type === "text")) {
             const cx = el.x + el.width / 2;
-            const topY = el.y - 18;
-            ctx.beginPath(); ctx.moveTo(cx, topY + 8); ctx.lineTo(cx, topY - 6);
+            const knobY = el.y - ROTATION_KNOB_OFFSET;
+            // Stem from above the top connector up to the knob
+            ctx.beginPath(); ctx.moveTo(cx, el.y - CONNECTOR_OFFSET - 8); ctx.lineTo(cx, knobY + 4);
             ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
-            ctx.beginPath(); ctx.arc(cx, topY - 10, 4, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(cx, knobY, 4, 0, Math.PI * 2);
             ctx.fillStyle = "#fff"; ctx.fill();
             ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
           }
-          // Anchor points for shapes
-          if (isShape(el)) {
-            for (const side of ["top", "bottom", "left", "right"] as ConnectionBinding["anchorSide"][]) {
+          // Connectors: drag one to pull an arrow to another element (Miro-style)
+          if (selectedIds.size === 1 && canBind(el)) {
+            for (const side of CONNECTOR_SIDES) {
               // Drawn inside the rotated context: use unrotated geometry (the transform rotates it)
-              const pt = getAnchorPoint(el, side);
-              ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
-              ctx.fillStyle = "#7c3aed"; ctx.fill();
-              ctx.strokeStyle = "#fff"; ctx.lineWidth = 1; ctx.stroke();
+              const pt = connectorPoint(el, side);
+              const hot = hoveredConnector === side;
+              ctx.beginPath(); ctx.arc(pt.x, pt.y, hot ? 7 : 5, 0, Math.PI * 2);
+              ctx.fillStyle = hot ? "#7c3aed" : "#fff"; ctx.fill();
+              ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1.5; ctx.stroke();
             }
           }
         }
@@ -733,7 +956,13 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     }
 
     // Drawing preview (sketchy, like the element that will be created)
-    if (mode === "drawing" && drawStart && drawCurrent && activeTool !== "freehand") {
+    if (mode === "drawing" && drawStart && drawCurrent && activeTool === "sticky") {
+      const x = Math.min(drawStart.x, drawCurrent.x), y = Math.min(drawStart.y, drawCurrent.y);
+      const w = Math.abs(drawCurrent.x - drawStart.x), h = Math.abs(drawCurrent.y - drawStart.y);
+      if (w > 1 || h > 1) {
+        ctx.save(); ctx.globalAlpha = 0.7; ctx.fillStyle = stickyColor; ctx.fillRect(x, y, w, h); ctx.restore();
+      }
+    } else if (mode === "drawing" && drawStart && drawCurrent && activeTool !== "freehand") {
       const x = Math.min(drawStart.x, drawCurrent.x), y = Math.min(drawStart.y, drawCurrent.y);
       const w = Math.abs(drawCurrent.x - drawStart.x), h = Math.abs(drawCurrent.y - drawStart.y);
       if (w > 1 || h > 1) {
@@ -755,25 +984,50 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Restore pan transform
     ctx.restore();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- renderElement is redeclared every render but only reads editingId, which is listed
-  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides]);
+  }, [elements, selectedIds, canvasSize, dpr, background, hoveredAnchor, marqueeRect, mode, drawStart, drawCurrent, activeTool, strokeColor, fillColor, strokeWidth, freehandPoints, editingId, panOffset, zoom, hoveredId, guides, stickyColor, imageVersion, hoveredConnector]);
 
-  useEffect(() => { draw(); }, [draw]);
+  // Paint at most once per animation frame: several state updates between two
+  // frames (pointer events arrive faster than the display refreshes) cost one paint.
+  const drawRef = useRef(draw);
+  drawRef.current = draw;
+  const frameRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (frameRef.current !== null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      drawRef.current();
+    });
+  }, [draw]);
+  // Resizing the canvas clears it: repaint right away instead of a frame later
+  useLayoutEffect(() => { drawRef.current(); }, [canvasSize, dpr]);
+  useEffect(() => () => {
+    // Reset the ref too: StrictMode re-runs effects, and a stale id would block every later paint
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    frameRef.current = null;
+  }, []);
+
+  const fitRef = useRef<() => void>(() => {});
 
   // ─── PNG export (used by the editor's export dialog) ───
-  const exportPng = useCallback(async ({ scale, transparent }: { scale: 1 | 2 | 3; transparent: boolean }): Promise<Blob | null> => {
+  const exportPng = useCallback(async ({ scale, transparent, ids, maxSide }: Parameters<FreehandCanvasHandle["exportPng"]>[0]): Promise<Blob | null> => {
+    // A selection is exported alone, framed on itself
+    const only = ids && ids.length > 0 ? new Set(ids) : null;
+    const scene = only ? elements.filter((el) => only.has(el.id)) : elements;
     // Bounds include rotated corners, strokes and labels; the scale is reduced
     // when the content is too large for a canvas the browser can allocate.
-    const bounds = exportBounds(elements);
+    const bounds = exportBounds(scene);
     if (!bounds) return null;
+    await Promise.all(scene.filter((el) => el.type === "image" && el.fileId).map((el) => ensureImage(el.fileId!)));
     const { minX, minY, width, height } = bounds;
-    const pixelScale = fitExportScale(width, height, scale);
+    let pixelScale = fitExportScale(width, height, scale);
+    if (maxSide) pixelScale = Math.min(pixelScale, maxSide / Math.max(width, height));
     const off = document.createElement("canvas");
     off.width = Math.max(1, Math.floor(width * pixelScale)); off.height = Math.max(1, Math.floor(height * pixelScale));
     const ctx = off.getContext("2d");
     if (!ctx) return null;
     if (!transparent) { ctx.fillStyle = background; ctx.fillRect(0, 0, off.width, off.height); }
     ctx.scale(pixelScale, pixelScale); ctx.translate(-minX, -minY);
-    for (const el of elements) {
+    for (const el of scene) {
       ctx.save();
       ctx.globalAlpha = el.opacity ?? 1;
       ctx.strokeStyle = el.strokeColor || "#1e1e1e"; ctx.fillStyle = el.fillColor || "transparent";
@@ -784,17 +1038,22 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     }
     return new Promise((resolve) => off.toBlob(resolve, "image/png"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [elements, background]);
+  }, [elements, background, ensureImage]);
   useEffect(() => {
     if (!handleRef) return;
-    handleRef.current = { exportPng };
+    handleRef.current = {
+      exportPng,
+      fitToContent: () => fitRef.current(),
+      getElements: () => elementsRef.current,
+      getSelectedIds: () => [...selectedIdsRef.current],
+    };
     return () => { handleRef.current = null; };
   }, [handleRef, exportPng]);
 
   function renderElement(ctx: CanvasRenderingContext2D, el: FreehandElement) {
     // Hand-drawn elements (0.8.0+): roughjs for shapes/lines, perfect-freehand for strokes.
     // Elements without `roughness` keep the clean rendering below.
-    const sketchy = el.roughness !== undefined && el.type !== "text";
+    const sketchy = el.roughness !== undefined && el.type !== "text" && el.type !== "sticky" && el.type !== "image";
     if (sketchy && el.type === "freehand") {
       drawStrokeElement(ctx, el);
     } else if (sketchy) {
@@ -848,6 +1107,37 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         (el.text || "").split("\n").forEach((line, i) => ctx.fillText(line, el.x, el.y + i * (el.fontSize || 16) * TEXT_LINE_HEIGHT));
         break;
       }
+      case "sticky": {
+        // Flat paper square with a soft shadow (shadows ignore the transform: scale them by hand)
+        const m = ctx.getTransform();
+        const scale = Math.hypot(m.a, m.b) || 1;
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.18)";
+        ctx.shadowBlur = 10 * scale;
+        ctx.shadowOffsetY = 3 * scale;
+        ctx.fillStyle = el.fillColor && el.fillColor !== "transparent" ? el.fillColor : STICKY_COLORS[0];
+        ctx.fillRect(el.x, el.y, el.width, el.height);
+        ctx.restore();
+        break;
+      }
+      case "image": {
+        const entry = el.fileId ? imagesRef.current.get(el.fileId) : undefined;
+        if (entry?.bitmap) {
+          ctx.drawImage(entry.bitmap, el.x, el.y, el.width, el.height);
+        } else {
+          // Placeholder while it loads, or when the file can't be read
+          ctx.save();
+          ctx.fillStyle = "#f3f4f6"; ctx.fillRect(el.x, el.y, el.width, el.height);
+          ctx.strokeStyle = "#d1d5db"; ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+          ctx.strokeRect(el.x, el.y, el.width, el.height);
+          if (entry?.status === "error") {
+            ctx.fillStyle = "#6b7280"; ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(t("freehand.imageMissing"), el.x + el.width / 2, el.y + el.height / 2, Math.max(10, el.width - 16));
+          }
+          ctx.restore();
+        }
+        break;
+      }
       case "freehand": {
         const pts = el.points || []; if (pts.length < 2) break;
         ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
@@ -859,12 +1149,14 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     // Skip rendering text if this element is currently being edited (to avoid duplication)
     if (el.type !== "text" && el.text && el.id !== editingId) {
       ctx.save();
-      const fs = el.fontSize || 14;
+      // Shapes and notes wrap their label inside their box; arrow labels keep their lines
+      const layout = isShape(el) ? labelLayout(el) : { fontSize: el.fontSize || 14, lines: el.text.split("\n") };
+      const fs = layout.fontSize;
       ctx.font = `${fs}px ${fontStackFor(el.fontFamily)}`;
       ctx.fillStyle = el.strokeColor || "#1e1e1e";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const shapeLines = el.text.split("\n");
+      const shapeLines = layout.lines;
       const lineHeight = fs * TEXT_LINE_HEIGHT;
       const startY = el.y + el.height / 2 - ((shapeLines.length - 1) * lineHeight) / 2;
       shapeLines.forEach((line, i) => ctx.fillText(line, el.x + el.width / 2, startY + i * lineHeight));
@@ -873,11 +1165,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   }
 
   // ─── Mouse position (screen → world with pan + zoom) ───
-  const getPos = (e: React.MouseEvent): FreehandPoint => {
+  const toWorld = (clientX: number, clientY: number): FreehandPoint => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
-    return { x: (e.clientX - rect.left - panOffset.x) / zoom, y: (e.clientY - rect.top - panOffset.y) / zoom };
+    return { x: (clientX - rect.left - panOffset.x) / zoom, y: (clientY - rect.top - panOffset.y) / zoom };
   };
+  const getPos = (e: React.MouseEvent): FreehandPoint => toWorld(e.clientX, e.clientY);
   // Screen position (without pan/zoom, for context menu positioning)
   const getScreenPos = (e: React.MouseEvent): FreehandPoint => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -909,7 +1202,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   };
 
   // ─── Pointer Down ───
-  const handlePointerDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
     // Close context menu on any click
     if (contextMenu) setContextMenu(null);
 
@@ -950,12 +1243,23 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             return;
           }
         }
-        // 2) Rotation handle (shapes & text)
+        // 2) Connector: pull a new arrow out of the selected element
+        if (selEl && !selEl.locked && canBind(selEl)) {
+          const side = connectorAt(selEl, pos);
+          if (side) {
+            connectorDragRef.current = { elementId: selEl.id, side, from: pos };
+            setHoveredConnector(null);
+            setActiveTool("arrow");
+            setMode("drawing"); setDrawStart(getRotatedAnchor(selEl, side)); setDrawCurrent(pos);
+            return;
+          }
+        }
+        // 3) Rotation handle (shapes & text)
         if (selEl && !selEl.locked && selEl.type !== "arrow" && selEl.type !== "line" && selEl.type !== "freehand") {
           const cx = selEl.x + selEl.width / 2;
           const cy = selEl.y + selEl.height / 2;
           const rad = ((selEl.rotation || 0) * Math.PI) / 180;
-          const handlePos = rotatePoint({ x: cx, y: selEl.y - 18 }, cx, cy, rad);
+          const handlePos = rotatePoint({ x: cx, y: selEl.y - ROTATION_KNOB_OFFSET }, cx, cy, rad);
           if (Math.hypot(pos.x - handlePos.x, pos.y - handlePos.y) <= 10) {
             setMode("rotating");
             rotationStartRef.current = {
@@ -993,6 +1297,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         }
         if (hit.locked) return; // selectable (to unlock it), never dragged
         setMode("dragging"); setDragOffset({ x: pos.x, y: pos.y }); dragBBoxRef.current = null;
+      } else if (e.pointerType === "touch") {
+        // One finger on empty canvas pans (two fingers pinch); the marquee needs a mouse or pen
+        setSelectedIds(new Set());
+        setIsPanning(true);
+        setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
       } else {
         // 3) Start marquee on empty space
         if (!e.shiftKey) setSelectedIds(new Set());
@@ -1035,7 +1344,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   };
 
   // ─── Pointer Move ───
-  const handlePointerMove = (e: React.MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     const pos = getPos(e);
     mousePosRef.current = pos;
 
@@ -1053,8 +1362,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
     // Hover highlight in select mode (only while idle)
     if (mode === "idle" && activeTool === "select" && !readOnly) {
-      const hit = [...elements].reverse().find((el) => hitTest(pos, el));
-      setHoveredId(hit ? hit.id : null);
+      const hit = findTopmost(elements, (el) => hitTest(pos, el));
+      const id = hit ? hit.id : null;
+      if (id !== hoveredId) setHoveredId(id);
+      const sel = selectedIds.size === 1 ? elements.find((el) => selectedIds.has(el.id)) : undefined;
+      const side = sel && !sel.locked && canBind(sel) ? connectorAt(sel, pos) : null;
+      if (side !== hoveredConnector) setHoveredConnector(side);
     }
 
     if (mode === "dragging") {
@@ -1110,7 +1423,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         };
       }));
       // Show anchor hint if near a shape
-      const near = [...elements].reverse().find((el) => el.id !== elId && isShape(el) && hitTest(pos, el));
+      const near = findTopmost(elements, (el) => el.id !== elId && canBind(el) && hitTest(pos, el));
       if (near) setHoveredAnchor({ elementId: near.id, side: closestAnchorSide(near, pos) });
       else setHoveredAnchor(null);
       return;
@@ -1124,6 +1437,18 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       if (resizeHandle.includes("w")) { nw = Math.max(10, resizeOrigin.elW - dx); nx = resizeOrigin.elX + resizeOrigin.elW - nw; }
       if (resizeHandle.includes("s")) nh = Math.max(10, resizeOrigin.elH + dy);
       if (resizeHandle.includes("n")) { nh = Math.max(10, resizeOrigin.elH - dy); ny = resizeOrigin.elY + resizeOrigin.elH - nh; }
+      // Images keep their proportions (the side being dragged sets the scale)
+      const resizedEl = elements.find((el) => el.id === elId);
+      if (resizedEl?.type === "image" && resizeOrigin.elW > 0 && resizeOrigin.elH > 0) {
+        const horizontal = resizeHandle.includes("e") || resizeHandle.includes("w");
+        const vertical = resizeHandle.includes("n") || resizeHandle.includes("s");
+        const k = horizontal && vertical
+          ? Math.max(nw / resizeOrigin.elW, nh / resizeOrigin.elH)
+          : horizontal ? nw / resizeOrigin.elW : nh / resizeOrigin.elH;
+        nw = Math.max(10, resizeOrigin.elW * k); nh = Math.max(10, resizeOrigin.elH * k);
+        nx = resizeHandle.includes("w") ? resizeOrigin.elX + resizeOrigin.elW - nw : resizeOrigin.elX;
+        ny = resizeHandle.includes("n") ? resizeOrigin.elY + resizeOrigin.elH - nh : resizeOrigin.elY;
+      }
       const resized = elements.map((el) => {
         if (el.id !== elId) return el;
         const updated = { ...el, x: nx, y: ny, width: nw, height: nh };
@@ -1164,12 +1489,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       }
       setDrawCurrent(cur);
       if (activeTool === "freehand") {
-        const pressure = penPressureRef.current;
-        setFreehandPoints((prev) => [...prev, pressure === undefined ? pos : { ...pos, pressure }]);
+        // Every sample the browser coalesced since the last event: smoother, faster strokes
+        const native = e.nativeEvent as PointerEvent;
+        const samples = typeof native.getCoalescedEvents === "function" ? native.getCoalescedEvents() : [];
+        const pts = samples.length > 1 ? samples.map((ev) => ({ ...toWorld(ev.clientX, ev.clientY), ...(ev.pointerType === "mouse" ? {} : { pressure: ev.pressure }) })) : [penPressureRef.current === undefined ? pos : { ...pos, pressure: penPressureRef.current }];
+        setFreehandPoints((prev) => prev.concat(pts));
       }
       // Arrow anchor snapping
       if (activeTool === "arrow" || activeTool === "line") {
-        const near = [...elements].reverse().find((el) => isShape(el) && hitTest(cur, el));
+        const near = findTopmost(elements, (el) => canBind(el) && hitTest(cur, el));
         if (near) setHoveredAnchor({ elementId: near.id, side: closestAnchorSide(near, cur) });
         else setHoveredAnchor(null);
       }
@@ -1177,15 +1505,10 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
   };
 
   // ─── Pointer Up ───
-  const handlePointerUp = (e: React.MouseEvent) => {
+  const handlePointerUp = (e: React.PointerEvent) => {
     if (isPanning) {
+      // The pan is reported to the parent by the effect above (not an edit)
       setIsPanning(false);
-      // Persist the panned viewport (hand tool / space-drag / middle-drag).
-      if (!readOnly) {
-        skipHistoryRef.current = true;
-        emit(elements);
-        skipHistoryRef.current = false;
-      }
       return;
     }
     const pos = getPos(e);
@@ -1268,14 +1591,30 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
         newEl = { id: generateId(), type: "freehand", x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs) || 1, height: Math.max(...ys) - Math.min(...ys) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: pts, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
       }
+    } else if (activeTool === "sticky") {
+      // A click drops a standard note centred on the pointer; a drag sizes it
+      const w = Math.abs(endPt.x - drawStart.x), h = Math.abs(endPt.y - drawStart.y);
+      const sized = w > 20 && h > 20;
+      newEl = {
+        id: generateId(), type: "sticky",
+        x: sized ? Math.min(drawStart.x, endPt.x) : drawStart.x - STICKY_SIZE / 2,
+        y: sized ? Math.min(drawStart.y, endPt.y) : drawStart.y - STICKY_SIZE / 2,
+        width: sized ? w : STICKY_SIZE, height: sized ? h : STICKY_SIZE,
+        strokeColor: "#1e1e1e", fillColor: stickyColor, strokeWidth: 1, opacity: 1, text: "", fontFamily: "hand",
+      };
     } else if (activeTool === "arrow" || activeTool === "line") {
       let startBinding: ConnectionBinding | undefined, endBinding: ConnectionBinding | undefined;
       let sp = drawStart, ep = endPt;
-      const startShape = elements.find((el) => isShape(el) && hitTest(drawStart, el));
-      const endShape = hoveredAnchor ? elements.find((el) => el.id === hoveredAnchor.elementId) : elements.find((el) => isShape(el) && hitTest(endPt, el));
-      if (startShape) { const side = closestAnchorSide(startShape, drawStart); startBinding = { elementId: startShape.id, anchorSide: side }; sp = getRotatedAnchor(startShape, side); }
+      // Pulled from a connector: it starts at that element and side, whatever lies under the point
+      const pulled = connectorDragRef.current;
+      const startShape = pulled
+        ? elements.find((el) => el.id === pulled.elementId)
+        : elements.find((el) => canBind(el) && hitTest(drawStart, el));
+      const endShape = hoveredAnchor ? elements.find((el) => el.id === hoveredAnchor.elementId) : elements.find((el) => canBind(el) && hitTest(endPt, el));
+      if (startShape) { const side = pulled ? pulled.side : closestAnchorSide(startShape, drawStart); startBinding = { elementId: startShape.id, anchorSide: side }; sp = getRotatedAnchor(startShape, side); }
       if (endShape && endShape.id !== startShape?.id) { const side = hoveredAnchor?.elementId === endShape.id ? hoveredAnchor.side : closestAnchorSide(endShape, endPt); endBinding = { elementId: endShape.id, anchorSide: side }; ep = getRotatedAnchor(endShape, side); }
-      newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
+      // A click on a connector (no real drag) draws nothing
+      if (!pulled || Math.hypot(pos.x - pulled.from.x, pos.y - pulled.from.y) > 12) newEl = { id: generateId(), type: activeTool, x: Math.min(sp.x, ep.x), y: Math.min(sp.y, ep.y), width: Math.abs(ep.x - sp.x) || 1, height: Math.abs(ep.y - sp.y) || 1, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, points: [sp, ep], endArrowhead: activeTool === "arrow", startBinding, endBinding, ...DEFAULT_SKETCH_STYLE, seed: randomSeed() };
     } else {
       const x = Math.min(drawStart.x, endPt.x), y = Math.min(drawStart.y, endPt.y);
       const w = Math.abs(endPt.x - drawStart.x), h = Math.abs(endPt.y - drawStart.y);
@@ -1290,16 +1629,140 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         setSelectedIds(new Set([newEl.id]));
         setActiveTool("select");
       }
+      // A new note opens for typing right away (Miro-style)
+      if (newEl.type === "sticky") {
+        setEditingId(newEl.id);
+        setEditingText("");
+        editingIsNewRef.current = false;
+        editingOriginalRef.current = "";
+      }
     }
+    // Back to selecting after an arrow pulled from a connector (even when nothing was drawn)
+    if (connectorDragRef.current) { connectorDragRef.current = null; setActiveTool("select"); }
     setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); setHoveredAnchor(null); setGuides([]);
+  };
+
+  // ─── Pointer routing: mouse, pen and touch (one finger draws, two pinch and pan) ───
+  const pointersRef = useRef(new Map<number, FreehandPoint>());
+  const pinchRef = useRef<{ dist: number; center: FreehandPoint; zoom: number; pan: FreehandPoint } | null>(null);
+  // After a pinch, the finger still down must not start or continue anything
+  const gestureEndedRef = useRef(false);
+  const lastTapRef = useRef<{ at: number; x: number; y: number } | null>(null);
+  const lastPointerTypeRef = useRef<string>("mouse");
+
+  const screenPoint = (e: { clientX: number; clientY: number }): FreehandPoint => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    return rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : { x: 0, y: 0 };
+  };
+
+  /** Drop the gesture in progress without saving it (a second finger came down, or the browser cancelled it). */
+  const cancelInteraction = () => {
+    const committed = historyRef.current[historyIndexRef.current];
+    if (committed && ["dragging", "resizing", "rotating", "endpoint", "erasing"].includes(modeRef.current)) setElements(committed);
+    setMode("idle"); setIsPanning(false);
+    setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); setMarqueeRect(null);
+    setResizeHandle(null); setResizeOrigin(null); setDraggingEndpointIdx(null);
+    setHoveredAnchor(null); setGuides([]);
+    rotationStartRef.current = null; dragBBoxRef.current = null;
+    if (connectorDragRef.current) { connectorDragRef.current = null; setActiveTool("select"); }
+    erasingElementsRef.current = []; erasingDidEraseRef.current = false;
+  };
+
+  const twoPointers = (): [FreehandPoint, FreehandPoint] => {
+    const [a, b] = [...pointersRef.current.values()];
+    return [a, b];
+  };
+
+  const onCanvasPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    lastPointerTypeRef.current = e.pointerType;
+    penPressureRef.current = e.pointerType === "mouse" ? undefined : e.pressure;
+    if (e.pointerType === "touch") {
+      pointersRef.current.set(e.pointerId, screenPoint(e));
+      if (pointersRef.current.size === 2) {
+        cancelInteraction();
+        const [a, b] = twoPointers();
+        pinchRef.current = {
+          dist: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+          center: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+          zoom: zoomRef.current,
+          pan: panOffsetRef.current,
+        };
+        gestureEndedRef.current = true;
+        return;
+      }
+      if (pointersRef.current.size > 2 || gestureEndedRef.current) return;
+      // Double tap acts as a double click (not every touch browser sends dblclick)
+      const now = Date.now();
+      const last = lastTapRef.current;
+      if (last && now - last.at < 300 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 24) {
+        lastTapRef.current = null;
+        cancelInteraction();
+        handleDoubleClick(e);
+        return;
+      }
+      lastTapRef.current = { at: now, x: e.clientX, y: e.clientY };
+    } else if (e.button !== 0 && e.button !== 1) {
+      return; // right button: only the context menu
+    }
+    // Keep receiving the gesture's events outside the canvas: a stroke or drag
+    // that leaves it continues instead of being lost.
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+    handlePointerDown(e);
+  };
+
+  const onCanvasPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType !== "mouse" && e.buttons) penPressureRef.current = e.pressure;
+    if (e.pointerType === "touch") {
+      if (!pointersRef.current.has(e.pointerId)) return;
+      pointersRef.current.set(e.pointerId, screenPoint(e));
+      const pinch = pinchRef.current;
+      if (pinch && pointersRef.current.size >= 2) {
+        const [a, b] = twoPointers();
+        const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        const z = clampZoom(pinch.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.dist));
+        // The world point that was under the fingers stays under them
+        const wx = (pinch.center.x - pinch.pan.x) / pinch.zoom, wy = (pinch.center.y - pinch.pan.y) / pinch.zoom;
+        const nextPan = { x: center.x - wx * z, y: center.y - wy * z };
+        zoomRef.current = z; panOffsetRef.current = nextPan;
+        setZoom(z); setPanOffset(nextPan);
+        return;
+      }
+      if (gestureEndedRef.current) return;
+    }
+    handlePointerMove(e);
+  };
+
+  const onCanvasPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    penPressureRef.current = undefined;
+    if (e.pointerType === "touch") {
+      pointersRef.current.delete(e.pointerId);
+      if (pinchRef.current && pointersRef.current.size < 2) {
+        pinchRef.current = null;
+        reportedZoomRef.current = zoomRef.current;
+        onZoomChange?.(zoomRef.current);
+      }
+      if (gestureEndedRef.current) {
+        if (pointersRef.current.size === 0) gestureEndedRef.current = false;
+        return;
+      }
+    } else if (e.button === 2) {
+      return;
+    }
+    handlePointerUp(e);
+  };
+
+  const onCanvasPointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size === 0) { pinchRef.current = null; gestureEndedRef.current = false; }
+    cancelInteraction();
   };
 
   // ─── Double-click: edit text inside an element, or create a text element on empty canvas ───
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (readOnly) return;
     const pos = getPos(e);
-    const hit = [...elements].reverse().find((el) => hitTest(pos, el));
-    if (hit?.locked) return;
+    const hit = findTopmost(elements, (el) => hitTest(pos, el));
+    if (hit?.locked || hit?.type === "image") return;
     if (hit) {
       setEditingId(hit.id);
       setEditingText(hit.text || "");
@@ -1558,15 +2021,196 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     const pad = 60;
     const scale = Math.min((canvasSize.width - pad) / contentW, (canvasSize.height - pad) / contentH);
     const fitZoom = Math.max(0.2, Math.min(scale, 1.5));
-    // Bypass the anchor-based zoom effect: we set the exact offset ourselves
-    prevZoomRef.current = fitZoom;
-    zoomAnchorRef.current = null;
     setPanOffset({
       x: (canvasSize.width - contentW * fitZoom) / 2 - minX * fitZoom,
       y: (canvasSize.height - contentH * fitZoom) / 2 - minY * fitZoom,
     });
+    setZoom(fitZoom);
+    reportedZoomRef.current = fitZoom;
     onZoomChange?.(fitZoom);
   }, [elements, canvasSize, onZoomChange]);
+
+  // Latest fit for the imperative handle (declared earlier than fitToContent)
+  fitRef.current = fitToContent;
+
+  // ─── Images: insert from paste, drop or the file picker ───
+  const canInsertImages = !readOnly && !!imageStore?.save;
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const imageErrorKey = (err: unknown): string => {
+    if (err instanceof ImageTooLargeError) return "freehand.imageTooLarge";
+    const status = apiErrorStatus(err);
+    if (status === 413) return "freehand.imageTooLarge";
+    if (status === 409) return "freehand.imageLimit";
+    if (status === 415 || status === 422) return "freehand.imageUnsupported";
+    // The browser couldn't decode the file
+    if (status === undefined && err instanceof DOMException) return "freehand.imageUnsupported";
+    return "freehand.imageUploadFailed";
+  };
+
+  /** Center of the visible canvas, in world coordinates. */
+  const viewCenter = (): FreehandPoint => ({ x: (canvasSize.width / 2 - panOffset.x) / zoom, y: (canvasSize.height / 2 - panOffset.y) / zoom });
+  /** Where pasted things go: under the pointer when it's over the canvas, else the view's center. */
+  const pastePoint = (): FreehandPoint => (pointerOverCanvasRef.current ? mousePosRef.current : viewCenter());
+
+  /** Add new elements on top (one undo step) and select them. */
+  const addElements = (added: FreehandElement[]) => {
+    if (added.length === 0) return;
+    const updated = [...elementsRef.current, ...added];
+    setElements(updated); emit(updated);
+    setSelectedIds(new Set(added.map((el) => el.id)));
+    setActiveTool("select");
+  };
+
+  const insertImages = async (files: File[], at: FreehandPoint) => {
+    const save = imageStoreRef.current?.save;
+    if (readOnly || !save) return;
+    const images = files.filter(isInsertableImage);
+    if (images.length === 0) { setNotice(t("freehand.imageUnsupported")); return; }
+    setUploadingImages((n) => n + images.length);
+    const added: FreehandElement[] = [];
+    for (const [i, file] of images.entries()) {
+      try {
+        const prepared = await prepareImage(file);
+        const fileId = await save(prepared.blob);
+        // Already decoded here: no need to download what was just uploaded
+        if (!imagesRef.current.get(fileId)?.bitmap) void decodeImage(fileId, Promise.resolve(prepared.blob));
+        const size = fitWithin(prepared.width, prepared.height, INSERTED_IMAGE_SIDE);
+        added.push({
+          id: generateId(), type: "image",
+          x: at.x - size.width / 2 + i * 24, y: at.y - size.height / 2 + i * 24, width: size.width, height: size.height,
+          strokeColor: "transparent", fillColor: "transparent", strokeWidth: 1, opacity: 1,
+          fileId, mimeType: prepared.blob.type,
+        });
+      } catch (err) {
+        setNotice(t(imageErrorKey(err)));
+      } finally {
+        setUploadingImages((n) => n - 1);
+      }
+    }
+    addElements(added);
+  };
+
+  // ─── System clipboard: copy/paste between diagrams, tabs and other apps ───
+  /** Paste copied elements centred on `at`; images from another diagram get stored here first. */
+  const pasteElements = async (payload: Pick<FreehandClipboard, "elements" | "files">, at: FreehandPoint) => {
+    const copied = payload.elements;
+    if (copied.length === 0) return;
+    const save = imageStoreRef.current?.save;
+    const pending = Object.entries(payload.files ?? {})
+      .filter(([id]) => copied.some((el) => el.fileId === id) && !imagesRef.current.get(id)?.bitmap);
+    if (pending.length > 0 && save) {
+      setUploadingImages((n) => n + pending.length);
+      await Promise.all(pending.map(async ([id, url]) => {
+        try {
+          const blob = dataUrlToBlob(url);
+          // Same bytes, same id (SHA-256): the elements keep pointing at it
+          if ((await save(blob)) === id) void decodeImage(id, Promise.resolve(blob));
+        } catch (err) {
+          setNotice(t(imageErrorKey(err)));
+        } finally {
+          setUploadingImages((n) => n - 1);
+        }
+      }));
+    }
+    const cx = copied.reduce((sum, el) => sum + el.x + el.width / 2, 0) / copied.length;
+    const cy = copied.reduce((sum, el) => sum + el.y + el.height / 2, 0) / copied.length;
+    addElements(cloneForPaste(copied, at.x - cx, at.y - cy, generateId));
+  };
+
+  /** Put elements on the clipboard (the event's, or the async API from a menu). */
+  const writeClipboard = (els: FreehandElement[], data?: DataTransfer | null) => {
+    clipboardRef.current = els.map((el) => ({ ...el }));
+    const text = serializeClipboard(els);
+    if (data) data.setData("text/plain", text);
+    // Images travel with their bytes (read asynchronously, written right after)
+    const files = [...new Set(els.filter((el) => el.type === "image" && el.fileId).map((el) => el.fileId!))]
+      .map((id) => [id, imagesRef.current.get(id)?.blob] as const)
+      .filter((entry): entry is readonly [string, Blob] => !!entry[1]);
+    if (files.length === 0) {
+      if (!data) void navigator.clipboard?.writeText(text).catch(() => {});
+      return;
+    }
+    void Promise.all(files.map(async ([id, blob]) => [id, await blobToDataUrl(blob)] as const))
+      .then((entries) => navigator.clipboard?.writeText(serializeClipboard(els, Object.fromEntries(entries))))
+      .catch(() => {});
+  };
+
+  const selectionForClipboard = (forCut: boolean) =>
+    elementsRef.current.filter((el) => selectedIds.has(el.id) && (!forCut || !el.locked));
+
+  // Handlers read the latest render through this ref (the listeners are attached once)
+  const clipboardHandlersRef = useRef<Record<"copy" | "cut" | "paste", (e: ClipboardEvent) => void> | null>(null);
+  clipboardHandlersRef.current = {
+    copy: (e) => {
+      const els = selectionForClipboard(false);
+      if (els.length === 0) return;
+      e.preventDefault();
+      writeClipboard(els, e.clipboardData);
+    },
+    cut: (e) => {
+      const els = selectionForClipboard(true);
+      if (els.length === 0) return;
+      e.preventDefault();
+      writeClipboard(els, e.clipboardData);
+      handleDelete();
+    },
+    paste: (e) => {
+      const data = e.clipboardData;
+      if (!data) return;
+      const at = pastePoint();
+      const files = Array.from(data.files);
+      if (files.length > 0) {
+        if (!canInsertImages) return;
+        e.preventDefault();
+        void insertImages(files, at);
+        return;
+      }
+      const text = data.getData("text/plain");
+      const payload = parseClipboard(text);
+      if (payload) { e.preventDefault(); void pasteElements(payload, at); return; }
+      if (text.trim()) {
+        // Plain text from anywhere becomes a text element
+        e.preventDefault();
+        const content = text.replace(/\r\n?/g, "\n").slice(0, 5000);
+        const fs = 16;
+        const w = Math.max(20, measureTextWidth(content, fs, "hand") + 12);
+        const h = content.split("\n").length * fs * TEXT_LINE_HEIGHT + 4;
+        addElements([{ id: generateId(), type: "text", x: at.x - w / 2, y: at.y - h / 2, width: w, height: h, strokeColor, fillColor: "transparent", strokeWidth, opacity: 1, text: content, fontSize: fs, fontFamily: "hand" }]);
+        return;
+      }
+      // Nothing usable on the system clipboard: fall back to the last in-app copy
+      if (clipboardRef.current.length > 0) { e.preventDefault(); void pasteElements({ elements: clipboardRef.current }, at); }
+    },
+  };
+  useEffect(() => {
+    if (readOnly) return;
+    const route = (kind: "copy" | "cut" | "paste") => (e: Event) => {
+      const a = document.activeElement;
+      // Inputs (and the inline text editor) keep their own clipboard behaviour
+      if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || (a as HTMLElement).isContentEditable)) return;
+      // Text selected on the page is what the user means to copy
+      if (kind !== "paste" && window.getSelection()?.toString()) return;
+      clipboardHandlersRef.current?.[kind](e as ClipboardEvent);
+    };
+    const onCopy = route("copy"), onCut = route("cut"), onPaste = route("paste");
+    document.addEventListener("copy", onCopy);
+    document.addEventListener("cut", onCut);
+    document.addEventListener("paste", onPaste);
+    return () => {
+      document.removeEventListener("copy", onCopy);
+      document.removeEventListener("cut", onCut);
+      document.removeEventListener("paste", onPaste);
+    };
+  }, [readOnly]);
+
+  // ─── Switching tools drops the selection (its style panel would cover the canvas) ───
+  const chooseTool = useCallback((tool: FreehandTool) => {
+    setActiveTool(tool);
+    if (tool !== "select") setSelectedIds(new Set());
+    setMode("idle");
+    setHoveredId(null);
+    setGuides([]);
+  }, []);
 
   // ─── Keyboard ───
   useEffect(() => {
@@ -1579,7 +2223,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
     const toolShortcuts: Record<string, FreehandTool> = {
       v: "select", h: "hand", r: "rectangle", d: "diamond", o: "ellipse",
-      a: "arrow", l: "line", t: "text", p: "freehand", e: "eraser",
+      a: "arrow", l: "line", t: "text", n: "sticky", p: "freehand", e: "eraser",
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -1601,53 +2245,23 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
 
       // Select all / copy / cut / paste
       if (mod && key === "a" && activeTool === "select") { e.preventDefault(); setSelectedIds(new Set(elements.map((el) => el.id))); return; }
-      if (mod && key === "c" && selectedIds.size > 0) {
-        e.preventDefault();
-        clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)).map((el) => ({ ...el }));
-        return;
-      }
-      if (mod && key === "x" && selectedIds.size > 0) {
-        e.preventDefault();
-        // Locked elements stay (and so are not cut into the clipboard either)
-        clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el }));
-        handleDelete();
-        return;
-      }
-      if (mod && key === "v" && clipboardRef.current.length > 0) {
-        e.preventDefault();
-        const copied = clipboardRef.current;
-        const cx = copied.reduce((s, el) => s + el.x + el.width / 2, 0) / copied.length;
-        const cy = copied.reduce((s, el) => s + el.y + el.height / 2, 0) / copied.length;
-        const dx = mousePosRef.current.x - cx;
-        const dy = mousePosRef.current.y - cy;
-        const newIds = new Set<string>();
-        // Pasted copies keep their grouping among themselves, never with the originals
-        const groupMap = new Map<string, string>();
-        const pasted: FreehandElement[] = copied.map((el) => {
-          const newId = generateId();
-          newIds.add(newId);
-          if (el.groupId && !groupMap.has(el.groupId)) groupMap.set(el.groupId, generateId());
-          return {
-            ...el,
-            id: newId,
-            groupId: el.groupId ? groupMap.get(el.groupId) : undefined,
-            locked: undefined,
-            x: el.x + dx,
-            y: el.y + dy,
-            points: el.points ? el.points.map((p) => ({ ...p, x: p.x + dx, y: p.y + dy })) : undefined,
-            startBinding: undefined,
-            endBinding: undefined,
-          };
-        });
-        const updated = [...elements, ...pasted];
-        setElements(updated);
-        emit(updated);
-        setSelectedIds(newIds);
-        return;
-      }
+      // Copy / cut / paste go through the clipboard events (see "System clipboard" below)
 
       // Delete
       if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.size > 0) { e.preventDefault(); handleDelete(); return; }
+
+      // Enter: type into the selected shape, note or text (Excalidraw-style)
+      if (e.key === "Enter" && !mod && selectedIds.size === 1) {
+        const sel = elements.find((el) => selectedIds.has(el.id));
+        if (sel && !sel.locked && (isShape(sel) || sel.type === "text")) {
+          e.preventDefault();
+          setEditingId(sel.id);
+          setEditingText(sel.text || "");
+          editingIsNewRef.current = false;
+          editingOriginalRef.current = sel.text || "";
+          return;
+        }
+      }
 
       // Escape: clear selection and return to the select tool
       if (e.key === "Escape") { setSelectedIds(new Set()); setActiveTool("select"); setMode("idle"); setHoveredId(null); setGuides([]); return; }
@@ -1672,15 +2286,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       // Tool shortcuts (single letters)
       if (!mod && !e.altKey && toolShortcuts[key]) {
         e.preventDefault();
-        setActiveTool(toolShortcuts[key]);
-        setMode("idle");
-        setHoveredId(null);
-        setGuides([]);
+        chooseTool(toolShortcuts[key]);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [readOnly, editingId, selectedIds, handleDelete, elements, activeTool, emit, undo, redo, duplicateSelected, moveElements, fitToContent, groupSelected, ungroupSelected, toggleLockSelected]);
+  }, [readOnly, editingId, selectedIds, handleDelete, elements, activeTool, emit, undo, redo, duplicateSelected, moveElements, fitToContent, groupSelected, ungroupSelected, toggleLockSelected, chooseTool]);
 
   // ─── Handwriting font (Caveat) loads asynchronously ───
   // Text measured before it arrives used the fallback font's metrics, and the canvas
@@ -1690,6 +2301,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     let cancelled = false;
     document.fonts.load('16px "Caveat"').then(() => {
       if (cancelled) return;
+      labelCache.clear();
       setElements((prev) => prev.map((el) =>
         el.type === "text" && el.fontFamily === "hand"
           ? { ...el, width: Math.max(20, measureTextWidth(el.text || "", el.fontSize || 16, el.fontFamily) + 12) }
@@ -1722,47 +2334,76 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     };
   }, []);
 
-  // ─── Keep the anchor point fixed when zoom changes ───
-  // screen = world * zoom + panOffset  →  panOffset' = anchor - (anchor - panOffset) / prevZoom * zoom
-  useEffect(() => {
-    const prevZoom = prevZoomRef.current;
-    if (prevZoom === zoom) return;
-    prevZoomRef.current = zoom;
-    // Wheel zoom anchors at the cursor; toolbar buttons anchor at the canvas center
-    const anchor = zoomAnchorRef.current ?? { x: canvasSize.width / 2, y: canvasSize.height / 2 };
-    zoomAnchorRef.current = null;
-    setPanOffset((prev) => ({
-      x: anchor.x - ((anchor.x - prev.x) / prevZoom) * zoom,
-      y: anchor.y - ((anchor.y - prev.y) / prevZoom) * zoom,
-    }));
-  }, [zoom, canvasSize.width, canvasSize.height]);
+  // ─── Zoom ───
+  // Zoom to `next`, keeping the screen point `anchor` over the same world point.
+  // screen = world * zoom + panOffset  →  pan' = anchor - (anchor - pan) / zoom * next
+  const zoomAt = useCallback((next: number, anchor: FreehandPoint) => {
+    const prev = zoomRef.current;
+    const z = clampZoom(next);
+    if (z === prev) return;
+    const pan = panOffsetRef.current;
+    const nextPan = { x: anchor.x - ((anchor.x - pan.x) / prev) * z, y: anchor.y - ((anchor.y - pan.y) / prev) * z };
+    zoomRef.current = z; panOffsetRef.current = nextPan;
+    setZoom(z);
+    setPanOffset(nextPan);
+    // Tell the parent once the gesture settles (its toolbar shows the level and saves it)
+    if (zoomReportTimeoutRef.current !== null) window.clearTimeout(zoomReportTimeoutRef.current);
+    zoomReportTimeoutRef.current = window.setTimeout(() => {
+      zoomReportTimeoutRef.current = null;
+      reportedZoomRef.current = zoomRef.current;
+      onZoomChange?.(zoomRef.current);
+    }, 150);
+  }, [onZoomChange]);
 
-  // ─── Wheel to pan/zoom ───
+  // Zoom set by the parent (toolbar buttons, reset): anchored at the canvas center
+  useEffect(() => {
+    if (zoomProp === reportedZoomRef.current) return;
+    reportedZoomRef.current = zoomProp;
+    if (Math.abs(zoomProp - zoomRef.current) < 1e-6) return;
+    const prev = zoomRef.current;
+    const z = clampZoom(zoomProp);
+    const anchor = { x: canvasSize.width / 2, y: canvasSize.height / 2 };
+    setPanOffset((pan) => ({ x: anchor.x - ((anchor.x - pan.x) / prev) * z, y: anchor.y - ((anchor.y - pan.y) / prev) * z }));
+    setZoom(z);
+    // Out of range (e.g. the toolbar went past the maximum): show the real level
+    if (z !== zoomProp) { reportedZoomRef.current = z; onZoomChange?.(z); }
+  }, [zoomProp, canvasSize.width, canvasSize.height, onZoomChange]);
+
+  // ─── Report the pan to the parent once it settles (saved apart from the content) ───
+  const panReportedRef = useRef<FreehandPoint | null>(null);
+  useEffect(() => {
+    if (!onPanChange) return;
+    // First run: nothing moved yet. A legacy pan (from the JSON) is reported so it gets saved.
+    if (panReportedRef.current === null) {
+      panReportedRef.current = panOffset;
+      if (legacyPanRef.current) onPanChange(legacyPanRef.current);
+      return;
+    }
+    if (isPanning) return; // reported when the drag ends
+    const timer = window.setTimeout(() => {
+      panReportedRef.current = panOffset;
+      onPanChange(panOffset);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [panOffset, isPanning, onPanChange]);
+
+  // ─── Wheel: pan, or zoom with Ctrl/⌘ (trackpad pinch arrives as Ctrl+wheel) ───
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    if ((e.ctrlKey || e.metaKey) && onZoomChange) {
-      // Zoom anchored at the cursor — delegated to parent editor
+    if (e.ctrlKey || e.metaKey) {
       const rect = canvasRef.current?.getBoundingClientRect();
-      if (rect) {
-        zoomAnchorRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      }
-      const delta = e.deltaY > 0 ? -0.05 : 0.05;
-      onZoomChange(Math.min(5, Math.max(0.2, zoom + delta)));
+      const anchor = rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : { x: 0, y: 0 };
+      // Proportional to the scroll amount: a trackpad pinch sends many small
+      // deltas (smooth), a mouse wheel notch is capped so it doesn't jump.
+      const delta = Math.max(-30, Math.min(30, e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY));
+      zoomAt(zoomRef.current * Math.exp(-delta / 120), anchor);
     } else {
-      // Pan
-      setPanOffset((prev) => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
-      // Persist wheel pans shortly after the user stops scrolling (no history entry).
-      if (!readOnly) {
-        if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
-        wheelEmitTimeoutRef.current = window.setTimeout(() => {
-          wheelEmitTimeoutRef.current = null;
-          skipHistoryRef.current = true;
-          emit(elementsRef.current);
-          skipHistoryRef.current = false;
-        }, 400);
-      }
+      // Shift+wheel pans horizontally on mice without a horizontal wheel
+      const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX;
+      const dy = e.shiftKey && !e.deltaX ? 0 : e.deltaY;
+      setPanOffset((prev) => ({ x: prev.x - dx, y: prev.y - dy }));
     }
-  }, [zoom, onZoomChange, readOnly, emit]);
+  }, [zoomAt]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -1770,9 +2411,9 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
-  // A pending wheel save is only dropped when the canvas goes away
+  // A pending zoom report is dropped when the canvas goes away
   useEffect(() => () => {
-    if (wheelEmitTimeoutRef.current !== null) window.clearTimeout(wheelEmitTimeoutRef.current);
+    if (zoomReportTimeoutRef.current !== null) window.clearTimeout(zoomReportTimeoutRef.current);
   }, []);
 
   const [confirmClear, setConfirmClear] = useState(false);
@@ -1784,7 +2425,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     if (mode === "resizing" && resizeHandle) return resizeCursor[resizeHandle];
     if (mode === "dragging") return "grabbing";
     if (activeTool === "hand") return "grab";
-    if (activeTool === "select") return hoveredId ? "move" : "default";
+    if (activeTool === "select") return hoveredConnector ? "crosshair" : hoveredId ? "move" : "default";
     if (activeTool === "eraser") return "not-allowed";
     return "crosshair";
   };
@@ -1799,6 +2440,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
     { id: "arrow", label: t("freehand.tools.arrow"), shortcut: "A", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> },
     { id: "line", label: t("freehand.tools.line"), shortcut: "L", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20L20 4"/></svg> },
     { id: "text", label: t("freehand.tools.text"), shortcut: "T", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg> },
+    { id: "sticky", label: t("freehand.tools.sticky"), shortcut: "N", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v10l-6 6H4z"/><path d="M14 20v-6h6"/></svg> },
     { id: "freehand", label: t("freehand.tools.freehand"), shortcut: "P", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> },
     { id: "eraser", label: t("freehand.tools.eraser"), shortcut: "E", svg: <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16c-.8-.8-.8-2 0-2.8L14.8 1.4c.8-.8 2-.8 2.8 0l5 5c.8.8.8 2 0 2.8L11 20"/><path d="M6 11l7 7"/></svg> },
   ];
@@ -1826,19 +2468,36 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         </div>
         <div className="flex items-center gap-0.5">
           {tools.map((tool) => (
-            <button key={tool.id} onClick={() => setActiveTool(tool.id)}
+            <button key={tool.id} onClick={() => chooseTool(tool.id)}
               className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors ${activeTool === tool.id ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"}`}
               title={`${tool.label} (${tool.shortcut})`} aria-label={tool.label}>{tool.svg}</button>
           ))}
         </div>
+        {canInsertImages && (
+          <>
+            <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-0.5" />
+            <button onClick={() => imageInputRef.current?.click()} title={t("freehand.tools.image")} aria-label={t("freehand.tools.image")}
+              className="w-8 h-8 flex items-center justify-center rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </button>
+            <input ref={imageInputRef} type="file" accept={INSERTABLE_IMAGE_TYPES.join(",")} multiple className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = "";
+                if (files.length > 0) void insertImages(files, viewCenter());
+              }} />
+          </>
+        )}
         <div className="flex-1" />
+        {uploadingImages > 0 && <span role="status" className="text-xs text-purple-600 dark:text-purple-400 mr-2">{t("freehand.imageUploading")}</span>}
         <button onClick={() => setConfirmClear(true)} disabled={elements.length === 0} className="disabled:opacity-40 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md" aria-label={t("freehand.clearAll")}>{t("freehand.clearAll")}</button>
         <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">{elements.length} {t("freehand.elements")}</span>
       </div>
       )}
 
       {/* Context panel — appears next to the selection (Excalidraw-style) */}
-      {!readOnly && selectedIds.size > 0 && (() => {
+      {/* Hidden while a gesture is in progress (drawing, dragging, resizing…) so it never covers the work */}
+      {!readOnly && selectedIds.size > 0 && mode === "idle" && (() => {
         let bminX = Infinity, bminY = Infinity, bmaxX = -Infinity, bmaxY = -Infinity;
         for (const el of elements) {
           if (!selectedIds.has(el.id)) continue;
@@ -1853,14 +2512,21 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
         const isArrowLine = !!single && (single.type === "arrow" || single.type === "line");
         const isTextEl = !!single && single.type === "text";
         const isRect = !!single && single.type === "rectangle";
-        const allShapes = elements.filter((el) => selectedIds.has(el.id)).every((el) => isShape(el));
-        const showFill = allShapes && selectedIds.size > 0;
-        const showWidth = !(selectedIds.size === 1 && isTextEl);
+        const selectedEls = elements.filter((el) => selectedIds.has(el.id));
+        // Notes only have a paper colour and a font: no stroke, sketch style, fill pattern or width
+        const allSticky = selectedEls.length > 0 && selectedEls.every((el) => el.type === "sticky");
+        // Images have no style of their own: only lock, layers, alignment and delete
+        const allImages = selectedEls.length > 0 && selectedEls.every((el) => el.type === "image");
+        const allShapes = selectedEls.every((el) => isShape(el));
+        const showFill = allShapes && selectedIds.size > 0 && !allSticky;
+        const showWidth = !(selectedIds.size === 1 && isTextEl) && !allSticky && !selectedEls.every((el) => el.type === "image");
         const PANEL_W = 232;
         // Place the panel to the RIGHT of the selection (or LEFT if there's no room),
         // so it never overlaps the element being edited
-        let left = sx + sw + 12;
-        if (left + PANEL_W > canvasSize.width - 10) left = sx - PANEL_W - 12;
+        // Clear of the connector dots (and their hover ring) on that side
+        const gap = (single && canBind(single) ? CONNECTOR_OFFSET * zoom + 8 : 0) + 12;
+        let left = sx + sw + gap;
+        if (left + PANEL_W > canvasSize.width - 10) left = sx - PANEL_W - gap;
         left = Math.min(Math.max(left, 10), Math.max(10, canvasSize.width - PANEL_W - 10));
         // Vertically centered on the selection; clamped to the viewport (max-h-[70vh] prevents overflow)
         const EST_H = 280;
@@ -1901,6 +2567,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             );
           })()}
 
+          {/* Convert just this part of the sketch into a diagram */}
+          {onConvertSelection && (
+            <button onClick={() => onConvertSelection([...selectedIds])} title={t("freehand.convertSelectionHint")}
+              className="mb-2 w-full flex items-center gap-2 px-2 py-1 text-xs rounded text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/30">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              {t("freehand.convertSelection")}
+            </button>
+          )}
+
           {/* Locked selection: every editing control below is inert until unlocked */}
           <fieldset disabled={allSelectedLocked} className={allSelectedLocked ? "opacity-40 pointer-events-none" : ""} aria-disabled={allSelectedLocked}>
 
@@ -1932,7 +2607,22 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             </div>
           )}
 
+          {/* Sticky note colour */}
+          {allSticky && (
+            <div className="mb-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.noteColor")}</span>
+              <div className="flex flex-wrap gap-1">
+                {STICKY_COLORS.map((c) => (
+                  <button key={c} onClick={() => { setStickyColor(c); updateStyle("fillColor", c); }}
+                    className={`w-5 h-5 rounded border-2 ${(single ? single.fillColor : stickyColor) === c ? "border-purple-500 scale-110" : "border-gray-300 dark:border-gray-700"}`}
+                    style={{ backgroundColor: c }} aria-label={c} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stroke / text color */}
+          {!allSticky && !allImages && (
           <div className="mb-2">
             <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{isTextEl ? t("freehand.textColor") : t("freehand.stroke")}</span>
             <div className="flex flex-wrap gap-1">
@@ -1943,13 +2633,13 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               ))}
             </div>
           </div>
+          )}
 
-
-          {/* Hand-drawn stroke style (everything but text) */}
-          {!(selectedIds.size === 1 && isTextEl) && (
+          {/* Hand-drawn stroke style (everything but text and notes) */}
+          {!(selectedIds.size === 1 && isTextEl) && !allSticky && !allImages && (
             <div className="mb-2">
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.sketchStyle")}</span>
-              <div className="flex gap-1" role="radiogroup" aria-label={t("freehand.sketchStyle")}>
+              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t("freehand.sketchStyle")}>
                 {([["clean", undefined], ["architect", 0], ["artist", 1], ["cartoonist", 2]] as const).map(([key, value]) => {
                   const active = single ? single.roughness === value : false;
                   const label = t(`freehand.sketch${key.charAt(0).toUpperCase()}${key.slice(1)}`);
@@ -1985,7 +2675,7 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           {showFill && fillColor !== "transparent" && !!single && single.roughness !== undefined && (
             <div className="mb-2">
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.fillStyle")}</span>
-              <div className="flex gap-1" role="radiogroup" aria-label={t("freehand.fillStyle")}>
+              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t("freehand.fillStyle")}>
                 {([["solid", "fillSolid"], ["hachure", "fillHachure"], ["cross-hatch", "fillCrossHatch"]] as const).map(([value, key]) => {
                   const active = (single.fillStyle ?? "hachure") === value;
                   return (
@@ -2000,10 +2690,10 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
           )}
 
           {/* Font (text elements and labelled shapes) */}
-          {!!single && (isTextEl || !!single.text) && (
+          {!!single && (isTextEl || single.type === "sticky" || !!single.text) && (
             <div className="mb-2">
               <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">{t("freehand.font")}</span>
-              <div className="flex gap-1" role="radiogroup" aria-label={t("freehand.font")}>
+              <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={t("freehand.font")}>
                 {(Object.keys(FREEHAND_FONT_FAMILIES) as FreehandFontFamily[]).map((family) => {
                   const active = (single.fontFamily ?? "sans-serif") === family || (!single.fontFamily && family === "sans-serif");
                   const label = t(family === "hand" ? "freehand.fontHand" : family === "monospace" ? "freehand.fontMono" : "freehand.fontSans");
@@ -2074,39 +2764,58 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
       })()}
 
       {/* Canvas */}
-      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ cursor: getCursor() }} onMouseEnter={() => { pointerOverCanvasRef.current = true; }}>
+      <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ cursor: getCursor() }} onMouseEnter={() => { pointerOverCanvasRef.current = true; }}
+        onDragOver={(e) => { if (canInsertImages && e.dataTransfer.types.includes("Files")) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } }}
+        onDrop={(e) => {
+          if (!canInsertImages) return;
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length === 0) return;
+          e.preventDefault();
+          void insertImages(files, toWorld(e.clientX, e.clientY));
+        }}>
+        {notice && (
+          <div role="status" className="absolute bottom-3 left-1/2 -translate-x-1/2 z-40 max-w-sm px-3 py-2 text-xs rounded-md shadow-lg bg-gray-900 text-white dark:bg-gray-800">
+            {notice}
+          </div>
+        )}
         <canvas ref={canvasRef}
           width={canvasSize.width * dpr} height={canvasSize.height * dpr}
-          style={{ width: canvasSize.width, height: canvasSize.height }}
+          style={{ width: canvasSize.width, height: canvasSize.height, touchAction: "none" }}
           className="absolute inset-0"
-          onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp}
-          onPointerDown={(e) => { penPressureRef.current = e.pointerType === "mouse" ? undefined : e.pressure; }}
-          onPointerMove={(e) => { if (e.pointerType !== "mouse" && e.buttons) penPressureRef.current = e.pressure; }}
-          onPointerUp={() => { penPressureRef.current = undefined; }}
-          onDoubleClick={handleDoubleClick}
+          onPointerDown={onCanvasPointerDown} onPointerMove={onCanvasPointerMove}
+          onPointerUp={onCanvasPointerUp} onPointerCancel={onCanvasPointerCancel}
+          // Touch double taps are handled in onCanvasPointerDown
+          onDoubleClick={(e) => { if (lastPointerTypeRef.current !== "touch") handleDoubleClick(e); }}
           onContextMenu={handleContextMenu}
-          onMouseLeave={() => { setHoveredId(null); setGuides([]); if (isPanning) setIsPanning(false); if (mode === "dragging") { setMode("idle"); dragBBoxRef.current = null; emit(elements); } if (mode === "endpoint") { setMode("idle"); setDraggingEndpointIdx(null); emit(elements); } if (mode === "drawing") { setMode("idle"); setDrawStart(null); setDrawCurrent(null); setFreehandPoints([]); } if (mode === "marquee") { setMode("idle"); setMarqueeRect(null); } if (mode === "erasing") { setMode("idle"); if (erasingDidEraseRef.current) emit(erasingElementsRef.current); erasingElementsRef.current = []; erasingDidEraseRef.current = false; } if (mode === "rotating") { setMode("idle"); rotationStartRef.current = null; emit(elements); } if (mode === "resizing") { setMode("idle"); setResizeHandle(null); setResizeOrigin(null); setGuides([]); emit(elements); } pointerOverCanvasRef.current = false; }}
+          // Gestures in progress keep their pointer capture (they end on pointerup); only the hover is cleared
+          onPointerLeave={() => { if (modeRef.current === "idle") setHoveredId(null); pointerOverCanvasRef.current = false; }}
         />
         {/* Inline text editor overlay */}
         {editingId && (() => {
           const el = elements.find((e) => e.id === editingId);
           if (!el) return null;
-          const fs = el.fontSize || 16;
-          const lines = Math.max(1, editingText.split("\n").length);
-          const textW = Math.max(20, measureTextWidth(editingText || " ", fs, el.fontFamily) + 12);
-          const textH = lines * fs * 1.25 + 4;
           const isTextType = el.type === "text";
+          // Shapes and notes: the editor wraps inside the label box, at the size the label will have
+          const layout = isShape(el) ? labelLayout(el, editingText) : null;
+          const fs = layout ? layout.fontSize : el.fontSize || 16;
+          const lines = layout ? Math.max(1, layout.lines.length) : Math.max(1, editingText.split("\n").length);
+          const textW = layout ? labelBox(el).width : Math.max(20, measureTextWidth(editingText || " ", fs, el.fontFamily) + 12);
+          const textH = lines * fs * TEXT_LINE_HEIGHT + 4;
           // Standalone text auto-sizes; shapes keep their box and center the editor inside it
           const boxW = isTextType ? textW : el.width;
           const boxH = isTextType ? textH : el.height;
           return (
             <div
               className="absolute flex items-center justify-center"
-              style={{ left: el.x * zoom + panOffset.x, top: el.y * zoom + panOffset.y, width: boxW * zoom, height: boxH * zoom, pointerEvents: "none" }}
+              style={{
+                left: el.x * zoom + panOffset.x, top: el.y * zoom + panOffset.y, width: boxW * zoom, height: boxH * zoom, pointerEvents: "none",
+                transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+              }}
             >
               <textarea
                 autoFocus
                 value={editingText}
+                wrap={layout ? "soft" : "off"}
                 onChange={(e) => {
                   const val = e.target.value;
                   setEditingText(val);
@@ -2119,12 +2828,15 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
                 }}
                 onBlur={commitTextEdit}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitTextEdit(); }
-                  if (e.key === "Escape") { e.preventDefault(); cancelTextEdit(); }
+                  // Stop here: the canvas shortcuts listen on window, and React may already have
+                  // re-subscribed them (editing ended) before this event bubbles there, so the
+                  // same Enter would reopen the editor.
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); commitTextEdit(); }
+                  if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cancelTextEdit(); }
                 }}
                 rows={lines}
                 className="bg-transparent text-center font-medium border-none outline-none resize-none overflow-hidden pointer-events-auto"
-                style={{ color: el.strokeColor || "#1e1e1e", fontSize: fs * zoom, fontFamily: fontStackFor(el.fontFamily), lineHeight: TEXT_LINE_HEIGHT, width: textW * zoom, height: textH * zoom }}
+                style={{ color: el.strokeColor || "#1e1e1e", fontSize: fs * zoom, fontFamily: fontStackFor(el.fontFamily), lineHeight: TEXT_LINE_HEIGHT, width: textW * zoom, height: Math.min(textH, isTextType ? textH : el.height) * zoom }}
               />
             </div>
           );
@@ -2136,11 +2848,11 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
             className="absolute z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-xl py-1 w-44"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button onClick={() => { writeClipboard(selectionForClipboard(false)); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               {t("common.copy")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("C")}</span>
             </button>
-            <button onClick={() => { clipboardRef.current = elements.filter((el) => selectedIds.has(el.id) && !el.locked).map((el) => ({ ...el })); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button onClick={() => { writeClipboard(selectionForClipboard(true)); handleDelete(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M6 3v2M18 3v2M6 19v2M18 19v2M3 6h2M3 18h2M19 6h2M19 18h2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
               {t("common.cut")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("X")}</span>
             </button>
@@ -2148,6 +2860,12 @@ export default function FreehandCanvas({ initialState, onChange, handleRef, zoom
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
               {t("freehand.duplicate")}
             </button>
+            {onConvertSelection && (
+              <button onClick={() => { onConvertSelection([...selectedIds]); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                {t("freehand.convertSelection")}
+              </button>
+            )}
             <button onClick={() => { toggleLockSelected(); setContextMenu(null); }} className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
               {elements.filter((el) => selectedIds.has(el.id)).every((el) => el.locked) ? t("freehand.unlock") : t("freehand.lock")}<span className="ml-auto text-[10px] text-gray-400">{shortcutLabel("L", true)}</span>

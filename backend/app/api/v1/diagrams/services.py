@@ -29,6 +29,9 @@ from .kroki_client import KrokiClient
 from .rate_limiter import render_rate_limiter
 from ..activity.interfaces import IActivityRepository
 from ..activity.services import record_activity
+from ..diagram_files.interfaces import IDiagramFileRepository
+from ..diagram_files.schemas import FileScope
+from ..diagram_files.services import copy_referenced_files, delete_diagram_files
 from ..folders.interfaces import IFolderRepository
 from ..projects.interfaces import IProjectRepository
 from ..shared_links.interfaces import ISharedLinkRepository
@@ -94,6 +97,7 @@ class DiagramService:
         shared_link_repository: Optional[ISharedLinkRepository] = None,
         folder_repository: Optional[IFolderRepository] = None,
         activity_repository: Optional[IActivityRepository] = None,
+        diagram_file_repository: Optional[IDiagramFileRepository] = None,
     ):
         """
         Initialize the diagram service.
@@ -106,6 +110,8 @@ class DiagramService:
             shared_link_repository: Shared link repository
             folder_repository: Folder repository (validates ``folder_id``)
             activity_repository: Where the diagrams worked on are noted (dashboard heatmap)
+            diagram_file_repository: Images of freehand diagrams (copied on duplicate,
+                deleted with the diagram)
         """
         self.diagram_repository = diagram_repository
         self.project_repository = project_repository
@@ -114,6 +120,7 @@ class DiagramService:
         self.shared_link_repository = shared_link_repository
         self.folder_repository = folder_repository
         self.activity_repository = activity_repository
+        self.diagram_file_repository = diagram_file_repository
 
     async def _ensure_folder_in_project(self, folder_id: Optional[str], project_id: str) -> None:
         """Reject a ``folder_id`` that is not a folder of ``project_id``.
@@ -494,6 +501,15 @@ class DiagramService:
             )
 
         duplicated = await self.diagram_repository.duplicate(diagram, duplicate_data.title)
+        await copy_referenced_files(
+            self.diagram_file_repository,
+            FileScope.DIAGRAM,
+            diagram_id,
+            FileScope.DIAGRAM,
+            str(duplicated.id),
+            user_id,
+            duplicated.content,
+        )
         await record_activity(self.activity_repository, user_id, [str(duplicated.id)])
         return DiagramResponse(**diagram_to_response(duplicated))
 
@@ -530,6 +546,7 @@ class DiagramService:
                 await self.shared_link_repository.revoke(str(active_link.id))
 
         await self.diagram_repository.delete(diagram_id)
+        await delete_diagram_files(self.diagram_file_repository, [diagram_id])
         return {"message": "Diagram deleted successfully"}
 
     def _is_mermaid_diagram(self, diagram_type: str) -> bool:

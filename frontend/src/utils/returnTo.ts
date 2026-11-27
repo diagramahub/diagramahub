@@ -5,9 +5,15 @@
  */
 const KEY = 'dh_return_to';
 
-/** Only same-app paths: "/x", never "//host" or "/\\host" (open redirect). */
+/**
+ * Only same-app paths: "/x", never "//host" or "/\\host" (open redirect).
+ * Control characters and whitespace are rejected too: browsers drop tabs and
+ * newlines from URLs, so "/\t/host" would become "//host".
+ */
 export function safeReturnPath(path: string | null | undefined): string | null {
   if (!path || !path.startsWith('/') || path.startsWith('//') || path.startsWith('/\\')) return null;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u0020\u007f]/.test(path)) return null;
   return path;
 }
 

@@ -33,7 +33,8 @@ import {
   FolderWithDiagrams,
   CreateFolderRequest,
   UpdateFolderRequest,
-  DiagramSearchResult
+  DiagramSearchResult,
+  DiagramFileInfo
 } from '../types/project';
 import {
   UserAISettings,
@@ -390,6 +391,23 @@ class ApiService {
     return response.data;
   }
 
+  /** Store an image of a freehand diagram (idempotent: the id is the SHA-256 of the bytes). */
+  async uploadDiagramFile(diagramId: string, image: Blob, filename = 'image'): Promise<DiagramFileInfo> {
+    const form = new FormData();
+    form.append('file', image, filename);
+    const response = await this.api.post<DiagramFileInfo>(`/api/v1/diagrams/${diagramId}/files`, form, {
+      timeout: 60_000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  /** Bytes of an image of one of the user's freehand diagrams. */
+  async getDiagramFile(diagramId: string, fileId: string): Promise<Blob> {
+    const response = await this.api.get<Blob>(`/api/v1/diagrams/${diagramId}/files/${fileId}`, { responseType: 'blob' });
+    return response.data;
+  }
+
   /**
    * Best-effort diagram save while the page is being unloaded (tab close,
    * reload). Uses `fetch` with `keepalive` because an axios request would be
@@ -516,23 +534,26 @@ class ApiService {
   }
 
   async diagramFromImage(data: {
-    image: File;
+    image: Blob;
     diagramType: string;
     language: 'es' | 'en';
     instructions?: string;
     provider?: string;
     model?: string;
+    /** Converting a freehand selection: its texts and links read from the canvas. */
+    sketchContext?: string;
     /** Upload progress, 0-1. */
     onUploadProgress?: (fraction: number) => void;
     signal?: AbortSignal;
   }): Promise<GenerateDiagramResponse> {
     const form = new FormData();
-    form.append('image', data.image);
+    form.append('image', data.image, data.image instanceof File ? data.image.name : 'sketch.png');
     form.append('diagram_type', data.diagramType);
     form.append('language', data.language);
     if (data.instructions) form.append('instructions', data.instructions);
     if (data.provider) form.append('provider', data.provider);
     if (data.model) form.append('model', data.model);
+    if (data.sketchContext) form.append('sketch_context', data.sketchContext);
     // multipart explicitly: with the instance's JSON default, axios would turn the
     // FormData into JSON and drop the file.
     const response = await this.api.post<GenerateDiagramResponse>('/api/v1/ai/diagram-from-image', form, {
@@ -928,6 +949,15 @@ class ApiService {
 
   async verifyAccessCode(token: string, data: VerifyAccessCodeRequest): Promise<SharedDiagram> {
     const response = await this.publicApi.post<SharedDiagram>(`/api/v1/shared/${token}/verify`, data);
+    return response.data;
+  }
+
+  /** An image of a shared freehand diagram (`fileToken` comes from verifying a protected link). */
+  async getSharedDiagramFile(token: string, fileId: string, fileToken?: string | null): Promise<Blob> {
+    const response = await this.publicApi.get<Blob>(`/api/v1/shared/${token}/files/${fileId}`, {
+      responseType: 'blob',
+      params: fileToken ? { file_token: fileToken } : undefined,
+    });
     return response.data;
   }
 

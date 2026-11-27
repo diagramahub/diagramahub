@@ -195,14 +195,16 @@ async def test_a_hidden_or_orphan_publication_can_always_be_removed(
     await _create(client, author, author["project"])  # 2 private: full
     await _hide(hidden["id"])
     # Hidden already counts as private: removing it changes nothing.
-    assert (
-        await client.delete(f"{COMMUNITY}/diagrams/{hidden['id']}", headers=author["headers"])
-    ).status_code == 204
+    response = await client.delete(
+        f"{COMMUNITY}/diagrams/{hidden['id']}", headers=author["headers"]
+    )
+    assert response.status_code == 204
     # Its diagram deleted: the publication alone uses no slot.
     await client.delete(f"/api/v1/diagrams/{second}", headers=author["headers"])
-    assert (
-        await client.delete(f"{COMMUNITY}/diagrams/{orphan['id']}", headers=author["headers"])
-    ).status_code == 204
+    response = await client.delete(
+        f"{COMMUNITY}/diagrams/{orphan['id']}", headers=author["headers"]
+    )
+    assert response.status_code == 204
 
 
 async def test_an_admin_may_leave_the_owner_over_the_limit(

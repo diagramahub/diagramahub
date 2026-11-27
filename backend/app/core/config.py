@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Project Info
     PROJECT_NAME: str = "Diagramahub"
-    VERSION: str = "0.9.1"
+    VERSION: str = "0.9.2"
     API_V1_PREFIX: str = "/api/v1"
 
     # Global request body limit (bytes). Generous on purpose: freehand
@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     MAX_IMPORT_UPLOAD_BYTES: int = 20 * 1024 * 1024
     MAX_IMPORT_FILES: int = 500
     MAX_IMPORT_UNCOMPRESSED_BYTES: int = 50 * 1024 * 1024
+
+    # Images placed on freehand diagrams (stored apart from the scene JSON).
+    # Largest accepted image, and most images one diagram keeps (unused ones are
+    # collected before an upload is refused).
+    DIAGRAM_FILE_MAX_BYTES: int = 3 * 1024 * 1024
+    DIAGRAM_FILES_MAX_PER_DIAGRAM: int = 100
 
     # Community: anyone (signed in or not) can browse publications, open them
     # and read their comments. False keeps the whole community behind sign-in

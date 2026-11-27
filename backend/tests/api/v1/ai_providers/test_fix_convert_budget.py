@@ -15,6 +15,7 @@ from app.api.v1.ai_providers.clients.gemini_client import GeminiClient
 from app.api.v1.ai_providers.clients.minimax_client import MinimaxClient
 from app.api.v1.ai_providers.clients.openai_client import OpenAIClient
 from app.api.v1.diagrams.conversion_service import DiagramConversionService
+from tests.utils.security import generate_test_api_key
 
 FIXED = json.dumps(
     {"corrected_code": "graph TD\n  A-->B", "explanation": "x", "changes_summary": "x"}
@@ -31,7 +32,9 @@ CLIENTS = [
 
 
 def _client(cls, method: str, truncated: bool, reply: str, seen: dict):
-    client = cls(api_key="test-key", model=None, parameters={"max_output_tokens": 2048})
+    client = cls(
+        api_key=generate_test_api_key(), model=None, parameters={"max_output_tokens": 2048}
+    )
 
     async def fake(*args, **kwargs):
         seen.update(kwargs)

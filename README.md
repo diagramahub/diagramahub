@@ -1,7 +1,7 @@
 # ✏️ Diagramahub
 
 [![Known Vulnerabilities](https://snyk.io/test/github/diagramahub/diagramahub/badge.svg?targetFile=frontend/package.json)](https://snyk.io/test/github/diagramahub/diagramahub?targetFile=frontend/package.json)
-[![Backend coverage](https://img.shields.io/badge/backend%20coverage-72.85%25-yellow)](#-testing)
+[![Backend coverage](https://img.shields.io/badge/backend%20coverage-74.05%25-yellow)](#-testing)
 
 
 **Diagramahub** is an open-source platform for creating, organizing, and exporting diagrams using plain text markup. It combines the power of Mermaid, PlantUML, and D2 with a polished interface — ideal for developers and teams who want to diagram fast and stay in flow.
@@ -66,7 +66,7 @@ For production deployment (Nginx/SSL), upgrades, and troubleshooting, see the **
 
 ## 🏗️ Architecture
 
-Modular monorepo following **SOLID** principles: a **React 19 + Vite 7** frontend, a **FastAPI + MongoDB** backend, and **[Kroki](https://kroki.io/)** for server-side diagram rendering — all orchestrated with Docker Compose.
+Modular monorepo following **SOLID** principles: a **React 19 + Vite 8** frontend, a **FastAPI + MongoDB** backend, and **[Kroki](https://kroki.io/)** for server-side diagram rendering — all orchestrated with Docker Compose.
 
 📐 Full breakdown (modules, services, layout) in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 

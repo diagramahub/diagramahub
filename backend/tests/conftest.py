@@ -14,6 +14,7 @@ from pymongo import AsyncMongoClient
 from app.api.v1.ai_providers.schemas import UserAISettingsInDB
 from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB
 from app.api.v1.diagrams.schemas import DiagramInDB
+from app.api.v1.diagram_files.schemas import DiagramFileInDB
 from app.api.v1.folders.schemas import FolderInDB
 from app.api.v1.integrations.schemas import VendorConfigInDB
 from app.api.v1.mfa.schemas import MfaTokenAttempt
@@ -59,7 +60,7 @@ def _reset_login_rate_state():
     """
     from app.api.v1.diagrams.rate_limiter import render_rate_limiter
     from app.api.v1.mfa.rate_limiter import mfa_verify_rate_limiter
-    from app.api.v1.shared_links.public_routes import get_rate_limiter
+    from app.api.v1.shared_links.public_routes import get_file_rate_limiter, get_rate_limiter
     from app.api.v1.users.rate_limiter import (
         account_lockout,
         login_rate_limiter,
@@ -73,6 +74,7 @@ def _reset_login_rate_state():
     mfa_verify_rate_limiter.reset()
     render_rate_limiter.reset()
     get_rate_limiter().reset()
+    get_file_rate_limiter().reset()
     account_lockout._accounts.clear()
     yield
 
@@ -115,6 +117,7 @@ async def test_db() -> AsyncGenerator:
             CommunityCommentInDB,
             CommunityReportInDB,
             DiagramActivityInDB,
+            DiagramFileInDB,
         ],
     )
 
