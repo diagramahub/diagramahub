@@ -234,3 +234,20 @@ class TestRenderAbuseProtection:
         """The production budget must not drift silently."""
         assert render_rate_limiter.max_requests == 60
         assert render_rate_limiter.window_seconds == 60
+
+
+@pytest.mark.unit
+class TestKrokiClientTypeGuard:
+    """The diagram type is a URL path segment: the client only sends known types."""
+
+    @pytest.mark.parametrize("dtype", ["../health", "plantuml/../d2", "d2?x=1", "PLANTUML", ""])
+    async def test_unknown_type_is_refused_before_any_request(self, dtype: str, monkeypatch):
+        def no_network(*args, **kwargs):
+            raise AssertionError("Kroki must not be called for an unknown type")
+
+        monkeypatch.setattr("httpx.AsyncClient", no_network)
+
+        with pytest.raises(KrokiRenderError) as exc:
+            await KrokiClient(base_url="http://kroki.invalid").render(dtype, "A -> B")
+
+        assert exc.value.status_code == 400

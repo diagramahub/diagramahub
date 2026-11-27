@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fitSvgToContainer } from '../../utils/fitSvg';
+import { sanitizeSvg } from '../../utils/sanitize';
 import { loadCommunitySvg } from './svgCache';
 
 interface DiagramThumbnailProps {
@@ -51,7 +52,7 @@ export function DiagramThumbnail({ cacheKey, content, diagramType, title, classN
         setFailed(true);
         return;
       }
-      ref.current.innerHTML = svg;
+      ref.current.innerHTML = sanitizeSvg(svg);
       fitSvgToContainer(ref.current);
     };
     loadCommunitySvg(cacheKey, content, diagramType).then(show);

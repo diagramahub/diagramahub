@@ -17,6 +17,7 @@ from app.api.v1.projects.schemas import ProjectInDB
 from app.api.v1.diagrams.schemas import DiagramInDB
 from app.api.v1.users.schemas import UserInDB
 from tests.utils import generate_test_password
+from tests.utils.security import generate_test_api_key
 
 
 @pytest.mark.integration
@@ -76,7 +77,7 @@ class TestAdminUsersListing:
             providers=[
                 AIProviderConfig(
                     provider=AIProviderType.GEMINI,
-                    api_key="encrypted-key-placeholder",
+                    api_key=generate_test_api_key("encrypted"),
                     model="gemini-2.5-flash",
                     is_active=True,
                     is_default=True,

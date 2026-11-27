@@ -21,6 +21,7 @@ from app.api.v1.ai_providers.services import (
     AIProviderService,
     sniff_image_type,
 )
+from tests.utils.security import generate_test_api_key
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 64
@@ -29,7 +30,7 @@ REPLY = "Here it is:\n```mermaid\ngraph TD\n  Start-->End\n```"
 
 
 def _provider(kind: AIProviderType) -> SimpleNamespace:
-    return SimpleNamespace(provider=kind, api_key="k-test", model="m", parameters={})
+    return SimpleNamespace(provider=kind, api_key=generate_test_api_key(), model="m", parameters={})
 
 
 async def _upload(

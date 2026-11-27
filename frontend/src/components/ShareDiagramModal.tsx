@@ -17,9 +17,13 @@ type ExpirationOption = 5 | 10 | 30 | null;
 
 function generateAccessCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  // Cryptographic randomness (Math.random is predictable); bytes >= 248 are
+  // dropped so every character is equally likely (248 = 4 × 62).
   let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  while (code.length < 6) {
+    for (const byte of crypto.getRandomValues(new Uint8Array(12))) {
+      if (byte < 248 && code.length < 6) code += chars[byte % chars.length];
+    }
   }
   return code;
 }

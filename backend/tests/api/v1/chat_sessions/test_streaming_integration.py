@@ -14,6 +14,7 @@ import json
 
 import pytest
 from httpx import AsyncClient
+from tests.utils.security import generate_test_api_key
 
 
 @pytest.mark.integration
@@ -182,7 +183,7 @@ class TestStreamingServiceDetection:
             def provider_name(self):
                 return "Minimal"
 
-        client = MinimalClient(api_key="test", model="test", parameters={})
+        client = MinimalClient(api_key=generate_test_api_key(), model="test", parameters={})
 
         # The method exists but raises NotImplementedError
         assert hasattr(client, "chat_with_context_stream")
@@ -201,7 +202,7 @@ class TestStreamingServiceDetection:
         import inspect
         from app.api.v1.ai_providers.clients.openai_client import OpenAIClient
 
-        client = OpenAIClient(api_key="test", model="gpt-4.1-mini")
+        client = OpenAIClient(api_key=generate_test_api_key(), model="gpt-4.1-mini")
         assert hasattr(client, "chat_with_context_stream")
         assert inspect.isasyncgenfunction(client.chat_with_context_stream)
 
@@ -210,7 +211,7 @@ class TestStreamingServiceDetection:
         import inspect
         from app.api.v1.ai_providers.clients.claude_client import ClaudeClient
 
-        client = ClaudeClient(api_key="test", model="claude-haiku-4-5-20251001")
+        client = ClaudeClient(api_key=generate_test_api_key(), model="claude-haiku-4-5-20251001")
         assert hasattr(client, "chat_with_context_stream")
         assert inspect.isasyncgenfunction(client.chat_with_context_stream)
 
@@ -219,7 +220,7 @@ class TestStreamingServiceDetection:
         import inspect
         from app.api.v1.ai_providers.clients.gemini_client import GeminiClient
 
-        client = GeminiClient(api_key="test", model="gemini-2.0-flash-lite")
+        client = GeminiClient(api_key=generate_test_api_key(), model="gemini-2.0-flash-lite")
         assert hasattr(client, "chat_with_context_stream")
         assert inspect.isasyncgenfunction(client.chat_with_context_stream)
 
@@ -228,7 +229,7 @@ class TestStreamingServiceDetection:
         import inspect
         from app.api.v1.ai_providers.clients.deepseek_client import DeepSeekClient
 
-        client = DeepSeekClient(api_key="test", model="deepseek-chat")
+        client = DeepSeekClient(api_key=generate_test_api_key(), model="deepseek-chat")
         assert hasattr(client, "chat_with_context_stream")
         assert inspect.isasyncgenfunction(client.chat_with_context_stream)
 
@@ -237,6 +238,6 @@ class TestStreamingServiceDetection:
         import inspect
         from app.api.v1.ai_providers.clients.minimax_client import MinimaxClient
 
-        client = MinimaxClient(api_key="test", model="minimax-01")
+        client = MinimaxClient(api_key=generate_test_api_key(), model="minimax-01")
         assert hasattr(client, "chat_with_context_stream")
         assert inspect.isasyncgenfunction(client.chat_with_context_stream)

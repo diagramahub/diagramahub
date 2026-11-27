@@ -8,6 +8,7 @@ import pytest
 
 from app.api.v1.integrations.email_vendors.interfaces import IEmailVendor
 from app.api.v1.integrations.email_vendors.resend_adapter import ResendAdapter
+from tests.utils.security import generate_test_api_key
 
 
 class TestResendAdapter:
@@ -15,18 +16,23 @@ class TestResendAdapter:
 
     def test_implements_interface(self):
         """ResendAdapter must implement IEmailVendor."""
-        adapter = ResendAdapter(api_key="test-resend-api-key", from_email="noreply@example.com")
+        adapter = ResendAdapter(
+            api_key=generate_test_api_key("re"), from_email="noreply@example.com"
+        )
         assert isinstance(adapter, IEmailVendor)
 
     def test_get_vendor_name(self):
         """get_vendor_name should return 'resend'."""
-        adapter = ResendAdapter(api_key="test-resend-api-key", from_email="noreply@example.com")
+        adapter = ResendAdapter(
+            api_key=generate_test_api_key("re"), from_email="noreply@example.com"
+        )
         assert adapter.get_vendor_name() == "resend"
 
     def test_constructor_stores_config(self):
         """Constructor should store api_key and from_email."""
-        adapter = ResendAdapter(api_key="test-resend-config-key", from_email="sender@test.com")
-        assert adapter.api_key == "test-resend-config-key"
+        api_key = generate_test_api_key("re")
+        adapter = ResendAdapter(api_key=api_key, from_email="sender@test.com")
+        assert adapter.api_key == api_key
         assert adapter.from_email == "sender@test.com"
 
     @pytest.mark.asyncio
@@ -34,7 +40,9 @@ class TestResendAdapter:
     async def test_send_email_success(self, mock_resend):
         """send_email should call resend.Emails.send_async with correct params."""
         mock_resend.Emails.send_async = AsyncMock(return_value={"id": "email_123"})
-        adapter = ResendAdapter(api_key="test-resend-api-key", from_email="noreply@example.com")
+        adapter = ResendAdapter(
+            api_key=generate_test_api_key("re"), from_email="noreply@example.com"
+        )
 
         result = await adapter.send_email(
             to="user@example.com",
@@ -57,7 +65,9 @@ class TestResendAdapter:
     async def test_send_email_with_custom_from(self, mock_resend):
         """send_email should use custom from_email when provided."""
         mock_resend.Emails.send_async = AsyncMock(return_value={"id": "email_456"})
-        adapter = ResendAdapter(api_key="test-resend-api-key", from_email="default@example.com")
+        adapter = ResendAdapter(
+            api_key=generate_test_api_key("re"), from_email="default@example.com"
+        )
 
         await adapter.send_email(
             to="user@example.com",
@@ -74,7 +84,9 @@ class TestResendAdapter:
     async def test_test_connection_success(self, mock_resend):
         """test_connection should return True when API key is valid."""
         mock_resend.Emails.send_async = AsyncMock(return_value={"id": "test_email_123"})
-        adapter = ResendAdapter(api_key="test-resend-valid-key", from_email="noreply@example.com")
+        adapter = ResendAdapter(
+            api_key=generate_test_api_key("re"), from_email="noreply@example.com"
+        )
 
         result = await adapter.test_connection()
         assert result is True
@@ -84,7 +96,9 @@ class TestResendAdapter:
     async def test_test_connection_failure(self, mock_resend):
         """test_connection should return False when API key is invalid."""
         mock_resend.Emails.send_async = AsyncMock(side_effect=Exception("API connection failed"))
-        adapter = ResendAdapter(api_key="test-resend-invalid-key", from_email="noreply@example.com")
+        adapter = ResendAdapter(
+            api_key=generate_test_api_key("re"), from_email="noreply@example.com"
+        )
 
         result = await adapter.test_connection()
         assert result is False

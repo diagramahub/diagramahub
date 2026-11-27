@@ -191,8 +191,11 @@ export default function SharedDiagramPage() {
         if ('svg' in result) {
           if (isServerRenderedType(type)) {
             // Server-rendered SVGs (Kroki) are sanitized for safety
-            const safeSvg = sanitizeSvg(result.svg);
-            diagramRef.current.innerHTML = `<div style="max-width:none;" draggable="false">${safeSvg}</div>`;
+            const wrapper = document.createElement('div');
+            wrapper.style.maxWidth = 'none';
+            wrapper.draggable = false;
+            wrapper.innerHTML = sanitizeSvg(result.svg);
+            diagramRef.current.replaceChildren(wrapper);
           } else {
             // Mermaid already sanitizes labels (securityLevel 'strict'); sanitize the SVG again before injecting
             diagramRef.current.innerHTML = sanitizeSvg(result.svg);
@@ -202,7 +205,7 @@ export default function SharedDiagramPage() {
         }
       } catch {
         if (diagramRef.current) {
-          diagramRef.current.innerHTML = `<div class="text-red-500 dark:text-red-400 p-4 text-center"><p>${t('diagram.render.error')}</p></div>`;
+          diagramRef.current.innerHTML = `<div class="text-red-500 dark:text-red-400 p-4 text-center"><p>${escapeHtml(t('diagram.render.error'))}</p></div>`;
         }
       }
     };

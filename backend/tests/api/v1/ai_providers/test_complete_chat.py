@@ -11,6 +11,7 @@ from app.api.v1.ai_providers.clients.gemini_client import GeminiClient
 from app.api.v1.ai_providers.clients.minimax_client import MinimaxClient
 from app.api.v1.ai_providers.clients.openai_client import OpenAIClient
 from app.api.v1.chat_sessions.services import ChatSessionService
+from tests.utils.security import generate_test_api_key
 
 SYSTEM = "Diagram:\ngraph TD\n  A-->B\n<<<DIAGRAMA>>>"
 HISTORY = [
@@ -46,7 +47,7 @@ async def test_openai_style_providers_get_system_plus_native_turns(
     client_cls: Any, method: str
 ) -> None:
     """Chat-completions providers receive a system message followed by real turns."""
-    client = client_cls(api_key="test-key")
+    client = client_cls(api_key=generate_test_api_key())
     calls = _capture(client, method)
 
     assert await client.complete_chat(SYSTEM, HISTORY, language="es") == "ok"
@@ -57,7 +58,7 @@ async def test_openai_style_providers_get_system_plus_native_turns(
 @pytest.mark.unit
 async def test_claude_gets_top_level_system_and_native_turns() -> None:
     """Claude receives the system prompt in its top-level field and real turns."""
-    client = ClaudeClient(api_key="test-key")
+    client = ClaudeClient(api_key=generate_test_api_key())
     calls = _capture(client, "_messages_request")
 
     await client.complete_chat(SYSTEM, HISTORY, language="es")
@@ -69,7 +70,7 @@ async def test_claude_gets_top_level_system_and_native_turns() -> None:
 @pytest.mark.unit
 async def test_gemini_default_flattens_turns_and_keeps_system_instruction() -> None:
     """Gemini uses the base flattening (as in 0.6.2) plus its system_instruction."""
-    client = GeminiClient(api_key="test-key", model="gemini-test")
+    client = GeminiClient(api_key=generate_test_api_key(), model="gemini-test")
     recorded: list[dict[str, Any]] = []
 
     async def generate_content(**kwargs: Any) -> SimpleNamespace:
@@ -91,7 +92,7 @@ async def test_gemini_default_flattens_turns_and_keeps_system_instruction() -> N
 @pytest.mark.unit
 async def test_chat_dispatch_uses_complete_chat_with_full_history() -> None:
     """The chat service hands the raw history to complete_chat (no pre-flattening)."""
-    client = OpenAIClient(api_key="test-key")
+    client = OpenAIClient(api_key=generate_test_api_key())
     calls = _capture(client, "_chat_completion")
 
     await ChatSessionService._call_ai_client(client, SYSTEM, HISTORY, language="es")

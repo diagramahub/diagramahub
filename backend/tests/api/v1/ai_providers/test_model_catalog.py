@@ -9,6 +9,7 @@ from app.api.v1.ai_providers import model_catalog
 from app.api.v1.ai_providers.clients.claude_client import ClaudeClient
 from app.api.v1.ai_providers.clients.factory import AIClientFactory
 from app.api.v1.ai_providers.schemas import AIProviderType
+from tests.utils.security import generate_test_api_key
 
 PROVIDERS = [p.value for p in AIProviderType]
 
@@ -38,7 +39,10 @@ def test_unknown_models_get_safe_defaults() -> None:
 def test_clients_default_to_the_recommended_model() -> None:
     for provider in PROVIDERS:
         client = AIClientFactory.create_client(
-            provider=AIProviderType(provider), api_key="test-key-123", model=None, parameters={}
+            provider=AIProviderType(provider),
+            api_key=generate_test_api_key(),
+            model=None,
+            parameters={},
         )
         assert client.model == model_catalog.recommended_model(provider)
 

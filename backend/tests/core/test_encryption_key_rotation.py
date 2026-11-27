@@ -9,6 +9,7 @@ from pymongo import AsyncMongoClient
 from app.core.config import settings
 from app.core.security import decrypt_api_key, encrypt_api_key, get_cipher
 from scripts.rotate_encryption_key import rotate_secrets
+from tests.utils.security import generate_test_api_key
 
 pytestmark = pytest.mark.integration
 
@@ -28,19 +29,21 @@ def _switch_to_new_key(monkeypatch: pytest.MonkeyPatch, keys: dict[str, str]) ->
 
 
 def test_previous_key_still_decrypts(monkeypatch: pytest.MonkeyPatch, keys: dict) -> None:
-    token = encrypt_api_key("sk-test-value")
+    plain = generate_test_api_key("sk")
+    token = encrypt_api_key(plain)
 
     _switch_to_new_key(monkeypatch, keys)
 
-    assert decrypt_api_key(token) == "sk-test-value"
+    assert decrypt_api_key(token) == plain
 
 
 def test_new_data_uses_the_current_key(monkeypatch: pytest.MonkeyPatch, keys: dict) -> None:
     _switch_to_new_key(monkeypatch, keys)
 
-    token = encrypt_api_key("sk-test-value")
+    plain = generate_test_api_key("sk")
+    token = encrypt_api_key(plain)
 
-    assert Fernet(keys["new"].encode()).decrypt(token.encode()) == b"sk-test-value"
+    assert Fernet(keys["new"].encode()).decrypt(token.encode()) == plain.encode()
     with pytest.raises(InvalidToken):
         Fernet(keys["old"].encode()).decrypt(token.encode())
 
@@ -48,7 +51,7 @@ def test_new_data_uses_the_current_key(monkeypatch: pytest.MonkeyPatch, keys: di
 def test_without_the_previous_key_old_data_is_unreadable(
     monkeypatch: pytest.MonkeyPatch, keys: dict
 ) -> None:
-    token = encrypt_api_key("sk-test-value")
+    token = encrypt_api_key(generate_test_api_key("sk"))
 
     monkeypatch.setattr(settings, "AI_ENCRYPTION_KEY", keys["new"])
 

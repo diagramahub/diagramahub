@@ -5,8 +5,10 @@ from httpx import AsyncClient
 
 from app.api.v1.ai_providers.schemas import AIProviderConfig, UserAISettingsInDB
 from app.core.security import encrypt_api_key, mask_stored_api_key
+from tests.utils.security import generate_test_api_key
 
-FAKE_KEY = "AIzaFakeKeyForTests0000xyz"
+# Random middle: only the first 4 and last 3 characters show once masked.
+FAKE_KEY = f"AIza{generate_test_api_key()}xyz"
 
 
 @pytest.mark.unit

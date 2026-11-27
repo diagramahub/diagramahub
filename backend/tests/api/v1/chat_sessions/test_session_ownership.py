@@ -11,7 +11,7 @@ from httpx import AsyncClient
 
 from app.api.v1.chat_sessions.repository import ChatMessageRepository
 from app.api.v1.chat_sessions.schemas import ChatMessageInDB, ChatSessionInDB, ImprovementStatus
-from tests.utils.security import generate_test_password
+from tests.utils.security import generate_test_api_key, generate_test_password
 
 pytestmark = pytest.mark.integration
 
@@ -140,5 +140,5 @@ async def test_the_owner_can_use_every_endpoint(client: AsyncClient) -> None:
 
 
 async def test_testing_a_provider_key_requires_a_token(client: AsyncClient) -> None:
-    body = {"provider": "openai", "api_key": "sk-test-1234567890", "model": "gpt-5.4-mini"}
+    body = {"provider": "openai", "api_key": generate_test_api_key("sk"), "model": "gpt-5.4-mini"}
     assert (await client.post("/api/v1/ai/test-provider", json=body)).status_code == 401

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import apiService from '../../services/api';
 import { Plan, Subscription } from '../../types/subscription';
 import { apiErrorMessage } from '../../utils/apiError';
+import { STRIPE_DOMAINS, safeExternalUrl } from '../../utils/externalUrl';
 import { diagramLimitLines, isUnlimited } from '../../utils/plans';
 import { dateLocale } from '../../utils/locale';
 
@@ -35,8 +36,10 @@ export default function PlanSelector({ currentSubscription, onPlanSelected }: Pl
       const response = await apiService.initiateCheckout(planId);
       
       if (response.session_url) {
-        // Redirect to Stripe checkout
-        window.location.href = response.session_url;
+        // Redirect to Stripe checkout (only Stripe-hosted pages: no open redirect)
+        const target = safeExternalUrl(response.session_url, STRIPE_DOMAINS);
+        if (!target) throw new Error('Unexpected checkout URL');
+        window.location.href = target;
       } else {
         // Free plan - reload to show updated subscription
         if (onPlanSelected) {

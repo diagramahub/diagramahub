@@ -300,7 +300,7 @@ When creating a new module, you MUST:
 - Session invalidation on password change (`pca` claim in JWT)
 - MFA: email codes + TOTP (both active simultaneously, configurable default). 8 recovery codes.
 - Session duration: 2 days without MFA, 5 days with MFA. OAuth: 5 days (MFA bypass).
-- OAuth: provider-agnostic (`IOAuthProvider` interface). Google implemented. Auto-link by email.
+- OAuth: provider-agnostic (`IOAuthProvider` interface). Google implemented. Auto-link by email. A new provider also needs its authorize host in `OAUTH_AUTHORIZE_DOMAINS` (`frontend/src/utils/externalUrl.ts`): the browser only follows authorize, Stripe and invoice URLs from the API when they are https on an allowed host.
 - Security headers: X-Content-Type-Options, X-Frame-Options, HSTS, Referrer-Policy, Permissions-Policy, Cache-Control
 - Swagger/OpenAPI + stack traces disabled in production
 - Sentry: conditional initialization, `before_send` sanitization (filters `Authorization`, `Cookie`, `api_key`, `password`, `token`, `secret`, `jwt`)

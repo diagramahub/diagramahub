@@ -21,6 +21,9 @@ describe('returnTo', () => {
     expect(safeReturnPath('/\\evil.com')).toBeNull();
     expect(safeReturnPath('https://evil.com')).toBeNull();
     expect(safeReturnPath(null)).toBeNull();
+    expect(safeReturnPath('/\t/evil.com')).toBeNull();
+    expect(safeReturnPath('/\n/evil.com')).toBeNull();
+    expect(safeReturnPath('/ /evil.com')).toBeNull();
   });
 
   it('is read once', () => {

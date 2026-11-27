@@ -4,6 +4,7 @@ import apiService from '../../services/api';
 import { Subscription } from '../../types/subscription';
 import CancelSubscriptionModal from './CancelSubscriptionModal';
 import { apiErrorMessage } from '../../utils/apiError';
+import { STRIPE_DOMAINS, safeExternalUrl } from '../../utils/externalUrl';
 import { diagramLimitLines } from '../../utils/plans';
 
 export default function SubscriptionCard() {
@@ -46,7 +47,10 @@ export default function SubscriptionCard() {
       setUpdatingPayment(true);
       const { session_url } = await apiService.updatePaymentMethod();
       if (session_url) {
-        window.location.href = session_url;
+        // Only follow Stripe-hosted pages (no open redirect).
+        const target = safeExternalUrl(session_url, STRIPE_DOMAINS);
+        if (!target) throw new Error('Unexpected payment session URL');
+        window.location.href = target;
       }
     } catch (err: unknown) {
       setError(apiErrorMessage(err) || t('subscription.errors.updatePaymentMethod'));
